@@ -1,0 +1,73 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Bitácora | TOMATO{% endblock %}
+
+{% block content %}
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900">Bitácora Global</h1>
+        <p class="mt-1 text-sm text-gray-500">Supervisión de reportes de todos los proyectos.</p>
+    </div>
+
+    <!-- Filter Form -->
+    <form action="/logs" method="get" class="flex items-center gap-2">
+        <select name="project_id" onchange="this.form.submit()"
+            class="block rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+            <option value="">Todos los Proyectos</option>
+            {% for p in projects %}
+            <option value="{{ p.id }}" {% if selected_project_id==p.id %}selected{% endif %}>{{ p.name }}</option>
+            {% endfor %}
+        </select>
+    </form>
+</div>
+
+<div class="space-y-6">
+    {% for log in logs %}
+    <div class="bg-white shadow-sm rounded-lg border border-gray-200 p-6">
+        <div class="flex justify-between items-start mb-4">
+            <div class="flex items-center gap-3">
+                <div
+                    class="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center font-bold text-gray-600">
+                    {{ log.user.username[:2].upper() }}
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-gray-900">
+                        {{ log.user.full_name or log.user.username }}
+                        <span class="text-gray-400 mx-1">•</span>
+                        <a href="/projects/{{ log.project.id }}" class="text-indigo-600 hover:underline">{{
+                            log.project.name }}</a>
+                    </p>
+                    <p class="text-xs text-gray-500">{{ log.date.strftime('%Y-%m-%d') }}</p>
+                </div>
+            </div>
+            <!-- Optional: Delete/Edit actions could go here for Admin -->
+        </div>
+
+        {% if log.notes %}
+        <p class="text-gray-700 whitespace-pre-wrap mb-4">{{ log.notes }}</p>
+        {% endif %}
+
+        {% if log.photos %}
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            {% for photo in log.photos %}
+            <a href="{{ photo.file_path }}" target="_blank"
+                class="block aspect-square bg-gray-100 rounded-lg overflow-hidden border border-gray-200 hover:opacity-90 transition-opacity">
+                <img src="{{ photo.file_path }}" alt="Evidencia" class="w-full h-full object-cover">
+            </a>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    {% else %}
+    <div class="text-center py-12 bg-white rounded-lg border border-gray-200 border-dashed">
+        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+            aria-hidden="true">
+            <path vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+        </svg>
+        <h3 class="mt-2 text-sm font-semibold text-gray-900">No hay reportes</h3>
+        <p class="mt-1 text-sm text-gray-500">No se encontraron bitácoras con los filtros actuales.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

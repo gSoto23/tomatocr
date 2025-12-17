@@ -1,0 +1,82 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Nuevo Reporte | TOMATO{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <div class="flex items-center gap-4">
+        <a href="/logs" class="p-2 rounded-full hover:bg-gray-200">
+            <svg class="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+        </a>
+        <h1 class="text-2xl font-bold text-gray-900">Nuevo Reporte</h1>
+    </div>
+</div>
+
+<div class="bg-white shadow-sm rounded-lg border border-gray-200 max-w-2xl mx-auto p-6">
+    <form action="/logs/new" method="post" enctype="multipart/form-data">
+        <div class="space-y-6">
+
+            <!-- Project -->
+            <div>
+                <label for="project_id" class="block text-sm font-medium leading-6 text-gray-900">Proyecto <span
+                        class="text-red-500">*</span></label>
+                <div class="mt-2">
+                    <select id="project_id" name="project_id" required
+                        class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
+                        <option value="" disabled {% if not selected_project_id %}selected{% endif %}>Seleccione un
+                            proyecto</option>
+                        {% for p in projects %}
+                        <option value="{{ p.id }}" {% if selected_project_id==p.id %}selected{% endif %}>{{ p.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Date -->
+            <div>
+                <label for="date" class="block text-sm font-medium leading-6 text-gray-900">Fecha <span
+                        class="text-red-500">*</span></label>
+                <div class="mt-2">
+                    <input type="date" name="date" id="date" required value="{{ today }}"
+                        class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
+                </div>
+            </div>
+
+            <!-- Notes -->
+            <div>
+                <label for="notes" class="block text-sm font-medium leading-6 text-gray-900">Notas / Avances</label>
+                <div class="mt-2">
+                    <textarea name="notes" id="notes" rows="4"
+                        class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6"
+                        placeholder="Describa el trabajo realizado..."></textarea>
+                </div>
+            </div>
+
+            <!-- Photos -->
+            <div>
+                <label for="photos" class="block text-sm font-medium leading-6 text-gray-900">Fotografías</label>
+                <div class="mt-2 text-sm text-gray-500 mb-2">Seleccione una o varias imágenes.</div>
+                <input type="file" name="photos" id="photos" multiple accept="image/*" class="block w-full text-sm text-slate-500
+                      file:mr-4 file:py-2 file:px-4
+                      file:rounded-full file:border-0
+                      file:text-sm file:font-semibold
+                      file:bg-black/5 file:text-black
+                      hover:file:bg-black/10
+                    " />
+            </div>
+
+            <div class="pt-4 flex items-center justify-end gap-x-6">
+                <a href="/logs" class="text-sm font-semibold leading-6 text-gray-900">Cancelar</a>
+                <button type="submit"
+                    class="rounded-md bg-black px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black">
+                    Guardar Reporte
+                </button>
+            </div>
+
+        </div>
+    </form>
+</div>
+{% endblock %}

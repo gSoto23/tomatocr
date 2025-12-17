@@ -5,7 +5,7 @@ from pathlib import Path
 from datetime import datetime, date
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, Form, File, UploadFile, status, Request
+from fastapi import APIRouter, Depends, Form, File, UploadFile, status, Request, HTTPException
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -33,21 +33,40 @@ def get_db():
         db.close()
 
 @router.get("/")
-async def list_logs(request: Request, db: Session = Depends(get_db), user: User = Depends(deps.get_current_user)):
+async def list_logs(
+    request: Request, 
+    project_id: Optional[int] = None,
+    db: Session = Depends(get_db), 
+    user: User = Depends(deps.get_current_user)
+):
+    # RBAC: Only Admin can access the global logs list
+    if user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+        
     query = db.query(DailyLog).join(Project)
     
-    # RBAC: Clients and Workers see only logs for their assigned projects
-    if user.role != "admin":
-        query = query.filter(Project.users.any(id=user.id))
+    # Filter by Project if provided
+    if project_id:
+        query = query.filter(DailyLog.project_id == project_id)
         
     logs = query.order_by(desc(DailyLog.date), desc(DailyLog.created_at)).all()
-    return templates.TemplateResponse("logs/list.html", {"request": request, "logs": logs, "user": user})
+    
+    # Get all projects for filter dropdown
+    projects = db.query(Project).all()
+    
+    return templates.TemplateResponse("logs/list.html", {
+        "request": request, 
+        "logs": logs, 
+        "user": user,
+        "projects": projects,
+        "selected_project_id": project_id
+    })
 
 @router.get("/new")
 async def new_log_form(request: Request, project_id: Optional[int] = None, db: Session = Depends(get_db), user: User = Depends(deps.get_current_user)):
     # RBAC: Clients cannot report
     if user.role == "client":
-        return RedirectResponse(url="/logs", status_code=status.HTTP_303_SEE_OTHER)
+        return RedirectResponse(url="/projects", status_code=status.HTTP_303_SEE_OTHER)
 
     # Get available projects
     if user.role == "admin":
@@ -75,14 +94,14 @@ async def create_log(
     user: User = Depends(deps.get_current_user)
 ):
     if user.role == "client":
-         return RedirectResponse(url="/logs", status_code=status.HTTP_303_SEE_OTHER)
+         return RedirectResponse(url="/projects", status_code=status.HTTP_303_SEE_OTHER)
     
     # Validation: Ensure user is assigned to project (if not admin)
     if user.role != "admin":
         # Check assignment
         assigned = db.query(Project).filter(Project.id == project_id, Project.users.any(id=user.id)).first()
         if not assigned:
-             return RedirectResponse(url="/logs?error=access_denied", status_code=status.HTTP_303_SEE_OTHER)
+             return RedirectResponse(url="/projects?error=access_denied", status_code=status.HTTP_303_SEE_OTHER)
 
     # Create Log
     log_date = datetime.strptime(date_val, "%Y-%m-%d").date()
@@ -116,4 +135,5 @@ async def create_log(
                 db.add(db_photo)
 
     db.commit()
-    return RedirectResponse(url="/logs", status_code=status.HTTP_303_SEE_OTHER)
+    # Redirect to Project Detail instead of global log list
+    return RedirectResponse(url=f"/projects/{project_id}", status_code=status.HTTP_303_SEE_OTHER)

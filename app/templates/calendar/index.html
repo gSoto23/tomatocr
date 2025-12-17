@@ -1,0 +1,136 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Calendario | TOMATO{% endblock %}
+
+{% block content %}
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900">Calendario de Operaciones</h1>
+        <p class="mt-1 text-sm text-gray-500">
+            {% if user.role == 'admin' %}
+            Asignación de proyectos y personal.
+            {% else %}
+            Tus proyectos asignados.
+            {% endif %}
+        </p>
+    </div>
+    {% if user.role == 'admin' %}
+    <button onclick="document.getElementById('scheduleModal').classList.remove('hidden')"
+        class="inline-flex items-center justify-center rounded-md bg-black px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black">
+        <svg class="-ml-0.5 mr-1.5 h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z"
+                clip-rule="evenodd" />
+        </svg>
+        Asignar Proyecto
+    </button>
+    {% endif %}
+</div>
+
+<div class="bg-white shadow-sm rounded-lg border border-gray-200 p-4">
+    <div id='calendar'></div>
+</div>
+
+<!-- Scheduling Modal (Admin Only) -->
+{% if user.role == 'admin' %}
+<div id="scheduleModal" class="relative z-50 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+
+    <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+        <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+
+            <div
+                class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+                <form action="/calendar/schedule" method="post">
+                    <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+                        <div class="sm:flex sm:items-start">
+                            <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
+                                <h3 class="text-base font-semibold leading-6 text-gray-900" id="modal-title">Asignar
+                                    Proyecto</h3>
+                                <div class="mt-4 space-y-4">
+
+                                    <!-- Date -->
+                                    <div>
+                                        <label for="date"
+                                            class="block text-sm font-medium leading-6 text-gray-900">Fecha</label>
+                                        <input type="date" name="date" id="date" required
+                                            class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+                                    </div>
+
+                                    <!-- Project -->
+                                    <div>
+                                        <label for="project_id"
+                                            class="block text-sm font-medium leading-6 text-gray-900">Proyecto</label>
+                                        <select name="project_id" id="project_id" required
+                                            class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+                                            {% for p in projects %}
+                                            <option value="{{ p.id }}">{{ p.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+
+                                    <!-- Worker -->
+                                    <div>
+                                        <label for="user_id"
+                                            class="block text-sm font-medium leading-6 text-gray-900">Trabajador</label>
+                                        <select name="user_id" id="user_id" required
+                                            class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+                                            {% for w in workers %}
+                                            <option value="{{ w.id }}">{{ w.full_name or w.username }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                        <button type="submit"
+                            class="inline-flex w-full justify-center rounded-md bg-black px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 sm:ml-3 sm:w-auto">Guardar</button>
+                        <button type="button" onclick="document.getElementById('scheduleModal').classList.add('hidden')"
+                            class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var calendarEl = document.getElementById('calendar');
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            locale: 'es',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,listWeek'
+            },
+            buttonText: {
+                today: 'Hoy',
+                month: 'Mes',
+                list: 'Lista'
+            },
+            events: '/calendar/events',
+            eventClick: function (info) {
+                if (info.event.url) {
+                    window.location.href = info.event.url;
+                    info.jsEvent.preventDefault(); // prevents browser from following link in current tab.
+                }
+            },
+            {% if user.role == 'admin' %}
+            dateClick: function (info) {
+        // Open modal and set date
+        document.getElementById('date').value = info.dateStr;
+        document.getElementById('scheduleModal').classList.remove('hidden');
+    }
+            {% endif %}
+        });
+    calendar.render();
+    });
+</script>
+{% endblock %}

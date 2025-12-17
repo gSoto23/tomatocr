@@ -145,7 +145,7 @@ async def get_project_detail(
         raise HTTPException(status_code=404, detail="Project not found")
 
     # Auth check: Admin or Assigned User
-    if user.role != "admin" and user not in project.users:
+    if user.role != "admin" and user.id not in [u.id for u in project.users]:
         raise HTTPException(status_code=403, detail="Not authorized")
 
     # Fetch recent logs for this project

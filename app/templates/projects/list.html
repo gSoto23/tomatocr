@@ -63,7 +63,9 @@
                     {% endif %}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    {% if user.role == "admin" %}
                     <a href="/projects/{{ project.id }}/edit" class="text-indigo-600 hover:text-indigo-900">Editar</a>
+                    {% endif %}
                 </td>
             </tr>
             {% else %}

@@ -4,6 +4,7 @@ from app.db.base import Base
 from app.db.models.user import User
 from app.db.models.project import Project # Needed for mapper registry
 from app.db.models.log import DailyLog # Needed for mapper registry
+from app.db.models.schedule import ProjectSchedule # Needed for mapper registry
 from app.core.security import get_password_hash
 
 def create_initial_data():
