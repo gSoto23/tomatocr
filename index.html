@@ -1,0 +1,586 @@
+<!doctype html>
+<html lang="es" class="">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TOMATO | Jardinería, Paisajismo y Zonas Verdes</title>
+    <meta
+            name="description"
+            content="TOMATO: jardinería, paisajismo y mantenimiento de zonas verdes con estándar profesional. Rutinas claras, ejecución consistente y resultados medibles."
+    />
+
+    <!-- Tailwind CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { darkMode: "class" };
+    </script>
+</head>
+
+<body class="bg-white text-black antialiased dark:bg-black dark:text-white">
+<!-- HEADER -->
+<header class="sticky top-0 z-50 border-b border-black/10 bg-white/90 backdrop-blur dark:border-white/10 dark:bg-black/80">
+    <div class="mx-auto max-w-6xl px-4">
+        <div class="flex items-center justify-between py-4 gap-4">
+            <!-- Brand -->
+            <a href="#" class="flex items-center gap-3 min-w-[200px]">
+                <!-- Light mode -->
+                <img
+                        src="images/LogoTomatoB.png"
+                        alt="TOMATO"
+                        class="h-10 block dark:hidden"
+                />
+
+                <!-- Dark mode -->
+                <img
+                        src="images/LogoTomatoW.png"
+                        alt="TOMATO"
+                        class="h-10 hidden dark:block"
+                />
+            </a>
+
+            <!-- Nav (desktop) -->
+            <nav class="hidden md:flex items-center gap-6 text-sm">
+                <a href="#about" class="hover:opacity-70">Empresa</a>
+                <a href="#services" class="hover:opacity-70">Servicios</a>
+                <a href="#gallery" class="hover:opacity-70">Galería</a>
+                <a href="#process" class="hover:opacity-70">Proceso</a>
+                <a href="#contact" class="hover:opacity-70">Contacto</a>
+            </nav>
+
+            <div class="hidden lg:flex items-center gap-2">
+
+                <!-- Login (header) -->
+                <form action="/login" method="post" class="flex items-center gap-2">
+                    <input
+                            name="user"
+                            type="text"
+                            autocomplete="username"
+                            placeholder="Usuario"
+                            class="w-36 rounded-md border border-black/20 bg-white px-3 py-2 text-sm outline-none focus:border-black dark:border-white/20 dark:bg-black dark:focus:border-white"
+                    />
+                    <input
+                            name="pass"
+                            type="password"
+                            autocomplete="current-password"
+                            placeholder="Contraseña"
+                            class="w-36 rounded-md border border-black/20 bg-white px-3 py-2 text-sm outline-none focus:border-black dark:border-white/20 dark:bg-black dark:focus:border-white"
+                    />
+                    <button
+                            type="submit"
+                            class="rounded-md bg-black px-3 py-2 text-sm font-semibold text-white hover:opacity-90 dark:bg-white dark:text-black"
+                    >
+                        Ingresar
+                    </button>
+                </form>
+            </div>
+
+            <!-- Mobile controls -->
+            <div class="flex lg:hidden items-center gap-2">
+
+                <!-- Hamburger -->
+                <button
+                        id="menuBtn"
+                        type="button"
+                        class="md:hidden inline-flex items-center justify-center rounded-md border border-black/20 p-2 hover:bg-black hover:text-white dark:border-white/20 dark:hover:bg-white dark:hover:text-black"
+                        aria-label="Abrir menú"
+                        aria-controls="mobileMenu"
+                        aria-expanded="false"
+                >
+                    <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile overlay -->
+    <div id="mobileOverlay" class="hidden fixed inset-0 bg-black/50 z-40 md:hidden"></div>
+
+    <!-- Mobile menu panel -->
+    <div id="mobileMenu" class="hidden md:hidden pb-4 relative z-50 bg-white dark:bg-black">
+        <div class="grid gap-3 text-sm">
+                <form action="/login" method="post" class="grid gap-2 pt-2">
+                    <div class="text-md text-center text-black/60 dark:text-white/60">Acceso al sistema interno</div>
+                    <input
+                            name="user"
+                            type="text"
+                            autocomplete="username"
+                            placeholder="Usuario"
+                            class="w-full rounded-md border border-black/20 bg-white px-3 py-2 text-sm outline-none focus:border-black dark:border-white/20 dark:bg-black dark:focus:border-white"
+                    />
+                    <input
+                            name="pass"
+                            type="password"
+                            autocomplete="current-password"
+                            placeholder="Contraseña"
+                            class="w-full rounded-md border border-black/20 bg-white px-3 py-2 text-sm outline-none focus:border-black dark:border-white/20 dark:bg-black dark:focus:border-white"
+                    />
+                    <button type="submit" class="rounded-md bg-black px-3 py-2 text-sm font-semibold text-white hover:opacity-90 dark:bg-white dark:text-black">
+                        Ingresar
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- HERO -->
+<section
+        class="relative border-b border-black/10 dark:border-white/10"
+        style="background-image: url('images/bg.png'); background-size: cover; background-position: center;"
+>
+    <div class="absolute inset-0 bg-white/75 dark:bg-black/70"></div>
+
+    <div class="relative mx-auto max-w-6xl px-4 py-16 md:py-28">
+        <div class="grid md:grid-cols-12 gap-10 items-center">
+            <div class="md:col-span-7">
+
+                <h1 class="mt-3 text-3xl md:text-5xl font-semibold tracking-tight">
+                    Jardinería y zonas verdes con estándar profesional.
+                </h1>
+
+                <p class="mt-5 text-base md:text-lg text-black/80 dark:text-white/80 leading-relaxed">
+                    TOMATO se especializa en <span class="font-semibold">mantenimiento de zonas verdes</span>,
+                    <span class="font-semibold">jardinería</span> y <span class="font-semibold">paisajismo</span>.
+                    Operamos con rutinas claras, detalle en sitio y consistencia para proteger la imagen y el valor de tu propiedad.
+                </p>
+
+                <!-- WhatsApp SOLO aquí (Hero) -->
+                <div class="mt-7 flex flex-col sm:flex-row gap-3">
+                    <a
+                            href="https://wa.me/50670808613"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="inline-flex items-center justify-center rounded-md bg-black px-5 py-3 text-sm font-semibold text-white hover:opacity-90 dark:bg-white dark:text-black"
+                    >
+                        Cotizar por WhatsApp
+                    </a>
+
+                    <a
+                            href="#services"
+                            class="inline-flex items-center justify-center rounded-md border border-black/30 px-5 py-3 text-sm font-semibold hover:bg-black hover:text-white
+                   dark:border-white/30 dark:hover:bg-white dark:hover:text-black"
+                    >
+                        Ver servicios
+                    </a>
+                </div>
+
+            </div>
+
+            <div class="md:col-span-5 hidden md:block"></div>
+        </div>
+    </div>
+</section>
+
+<!-- ABOUT -->
+<section id="about">
+    <div class="mx-auto max-w-6xl px-4 py-14">
+        <div class="grid md:grid-cols-12 gap-10">
+            <div class="md:col-span-5">
+                <h2 class="text-2xl md:text-3xl font-semibold tracking-tight">Empresa</h2>
+                <p class="mt-4 text-black/70 dark:text-white/70 leading-relaxed">
+                    TOMATO trabaja con un enfoque simple: <span class="font-semibold">planificar</span>, <span class="font-semibold">ejecutar</span>
+                    y <span class="font-semibold">mantener</span> de forma consistente. Nuestro objetivo es que tus áreas verdes se mantengan
+                    impecables, sin improvisaciones y con un estándar profesional de acabado.
+                </p>
+            </div>
+
+            <div class="md:col-span-7">
+                <div class="grid sm:grid-cols-2 gap-4">
+                    <div class="rounded-xl border border-black/10 p-5 dark:border-white/10">
+                        <div class="text-sm font-semibold">Planificación por sitio</div>
+                        <div class="mt-2 text-sm text-black/70 dark:text-white/70">Evaluación, frecuencia recomendada y criterios claros de calidad.</div>
+                    </div>
+                    <div class="rounded-xl border border-black/10 p-5 dark:border-white/10">
+                        <div class="text-sm font-semibold">Ejecución ordenada</div>
+                        <div class="mt-2 text-sm text-black/70 dark:text-white/70">Rutinas definidas: corte, bordeado, poda, limpieza y detalle final.</div>
+                    </div>
+                    <div class="rounded-xl border border-black/10 p-5 dark:border-white/10">
+                        <div class="text-sm font-semibold">Prevención y continuidad</div>
+                        <div class="mt-2 text-sm text-black/70 dark:text-white/70">Mantenimiento constante para evitar deterioro y costos correctivos.</div>
+                    </div>
+                    <div class="rounded-xl border border-black/10 p-5 dark:border-white/10">
+                        <div class="text-sm font-semibold">Comunicación profesional</div>
+                        <div class="mt-2 text-sm text-black/70 dark:text-white/70">Alcance claro, coordinación ágil y seguimiento de avances.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- SERVICES (Accordion) -->
+<section id="services" class="border-t border-black/10 dark:border-white/10">
+    <div class="mx-auto max-w-6xl px-4 py-14">
+        <h2 class="text-2xl md:text-3xl font-semibold tracking-tight">Servicios</h2>
+        <p class="mt-3 text-black/70 dark:text-white/70 w-full leading-relaxed">
+            Nuestro enfoque combina ejecución ordenada, detalle de acabado y continuidad. Los servicios se adaptan por tipo de propiedad,
+            extensión del área, tránsito de personas y objetivos (presentación, seguridad, control de crecimiento y estética).
+            A continuación podés ver el alcance de cada línea de trabajo.
+        </p>
+
+        <div class="mt-8 space-y-3" id="servicesAccordion">
+            <!-- Item 1 -->
+            <div class="rounded-2xl border border-black/10 dark:border-white/10 overflow-hidden">
+                <button
+                        type="button"
+                        class="services-toggle w-full flex items-center justify-between gap-4 px-5 py-4 text-left hover:bg-black/5 dark:hover:bg-white/10"
+                        aria-expanded="false"
+                        aria-controls="servicePanel1"
+                >
+                    <div>
+                        <div class="text-sm font-semibold">Mantenimiento de Zonas Verdes</div>
+                        <div class="mt-1 text-sm text-black/60 dark:text-white/60">
+                            Control, orden y presentación constante durante todo el año.
+                        </div>
+                    </div>
+                    <span class="shrink-0 rounded-full border border-black/20 p-2 dark:border-white/20" aria-hidden="true">
+            <svg class="h-4 w-4 transition-transform duration-200" viewBox="0 0 24 24" fill="none">
+              <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+                </button>
+
+                <div id="servicePanel1" class="services-panel hidden px-5 pb-5">
+                    <div class="pt-2 text-sm text-black/70 dark:text-white/70 leading-relaxed space-y-3">
+                        <p>
+                            Diseñamos y ejecutamos rutinas de mantenimiento para que las áreas verdes se mantengan estables, limpias y con un acabado consistente.
+                            Este servicio es ideal para condominios, empresas, centros educativos, áreas comunes y propiedades residenciales que requieren
+                            buena presentación sin interrupciones.
+                        </p>
+                        <p>
+                            El alcance se define por frecuencia (semanal, quincenal, mensual o por demanda) y por la condición del sitio. Nos enfocamos en
+                            controlar crecimiento, reducir maleza, mantener bordes definidos y garantizar limpieza post-trabajo para que el área quede lista
+                            para uso inmediato.
+                        </p>
+
+                        <div class="rounded-xl border border-black/10 p-4 dark:border-white/10">
+                            <div class="text-xs uppercase tracking-widest text-black/60 dark:text-white/60">Incluye típicamente</div>
+                            <ul class="mt-3 list-disc pl-5 space-y-2">
+                                <li>Corte de césped con altura adecuada según temporada y tipo de área.</li>
+                                <li>Bordeado de aceras, jardineras, árboles y límites de zona verde.</li>
+                                <li>Control de maleza y limpieza general del área intervenida.</li>
+                                <li>Recolección y disposición de residuos vegetales según condiciones del sitio.</li>
+                                <li>Recomendaciones de frecuencia para evitar deterioro y costos correctivos.</li>
+                            </ul>
+                        </div>
+
+                        <div class="text-sm text-black/60 dark:text-white/60">
+                            Resultado esperado: áreas verdes uniformes, limpias y con un estándar visible de orden y mantenimiento.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Item 2 -->
+            <div class="rounded-2xl border border-black/10 dark:border-white/10 overflow-hidden">
+                <button
+                        type="button"
+                        class="services-toggle w-full flex items-center justify-between gap-4 px-5 py-4 text-left hover:bg-black/5 dark:hover:bg-white/10"
+                        aria-expanded="false"
+                        aria-controls="servicePanel2"
+                >
+                    <div>
+                        <div class="text-sm font-semibold">Jardinería</div>
+                        <div class="mt-1 text-sm text-black/60 dark:text-white/60">
+                            Detalle, salud de plantas y estética controlada.
+                        </div>
+                    </div>
+                    <span class="shrink-0 rounded-full border border-black/20 p-2 dark:border-white/20" aria-hidden="true">
+            <svg class="h-4 w-4 transition-transform duration-200" viewBox="0 0 24 24" fill="none">
+              <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+                </button>
+
+                <div id="servicePanel2" class="services-panel hidden px-5 pb-5">
+                    <div class="pt-2 text-sm text-black/70 dark:text-white/70 leading-relaxed space-y-3">
+                        <p>
+                            La jardinería es donde se define el “acabado” de la propiedad. Nos enfocamos en mantener plantas, arbustos y elementos decorativos
+                            en condiciones óptimas, con una estética cuidada y coherente. Este servicio es ideal para entradas, jardines frontales,
+                            áreas de alto tránsito y espacios que requieren buena impresión.
+                        </p>
+                        <p>
+                            Trabajamos con podas de formación, control de crecimiento y limpieza de camas. Cuando aplica, se incorporan ajustes de suelo,
+                            fertilización según necesidad y reposición de plantas para mantener continuidad visual. El objetivo es evitar jardines “cansados”,
+                            desordenados o con vacíos.
+                        </p>
+
+                        <div class="rounded-xl border border-black/10 p-4 dark:border-white/10">
+                            <div class="text-xs uppercase tracking-widest text-black/60 dark:text-white/60">Incluye típicamente</div>
+                            <ul class="mt-3 list-disc pl-5 space-y-2">
+                                <li>Poda de arbustos y plantas ornamentales para forma y control.</li>
+                                <li>Limpieza de camas/jardineras: hojas secas, maleza y residuos.</li>
+                                <li>Reposición de plantas (según diseño y disponibilidad) para mantener estética.</li>
+                                <li>Fertilización y mejoras puntuales (según diagnóstico del sitio).</li>
+                                <li>Detalle final: alineación visual, limpieza de bordes y presentación.</li>
+                            </ul>
+                        </div>
+
+                        <div class="text-sm text-black/60 dark:text-white/60">
+                            Resultado esperado: jardines con orden, salud y una presentación consistente.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Item 3 -->
+            <div class="rounded-2xl border border-black/10 dark:border-white/10 overflow-hidden">
+                <button
+                        type="button"
+                        class="services-toggle w-full flex items-center justify-between gap-4 px-5 py-4 text-left hover:bg-black/5 dark:hover:bg-white/10"
+                        aria-expanded="false"
+                        aria-controls="servicePanel3"
+                >
+                    <div>
+                        <div class="text-sm font-semibold">Paisajismo</div>
+                        <div class="mt-1 text-sm text-black/60 dark:text-white/60">
+                            Diseño e instalación con visión de mantenimiento.
+                        </div>
+                    </div>
+                    <span class="shrink-0 rounded-full border border-black/20 p-2 dark:border-white/20" aria-hidden="true">
+            <svg class="h-4 w-4 transition-transform duration-200" viewBox="0 0 24 24" fill="none">
+              <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+                </button>
+
+                <div id="servicePanel3" class="services-panel hidden px-5 pb-5">
+                    <div class="pt-2 text-sm text-black/70 dark:text-white/70 leading-relaxed space-y-3">
+                        <p>
+                            El paisajismo no es solo “poner plantas”: es crear un espacio funcional y estético que se pueda mantener en el tiempo.
+                            Diseñamos e instalamos soluciones que ordenan visualmente el entorno, mejoran el uso del espacio y elevan la presentación
+                            de la propiedad.
+                        </p>
+                        <p>
+                            Priorizamos criterios prácticos: selección de especies, distribución para evitar mantenimiento excesivo, y una propuesta que
+                            considere riego, crecimiento y exposición. El resultado es un espacio más limpio, armónico y coherente con el entorno
+                            y con el objetivo del cliente (corporativo o residencial).
+                        </p>
+
+                        <div class="rounded-xl border border-black/10 p-4 dark:border-white/10">
+                            <div class="text-xs uppercase tracking-widest text-black/60 dark:text-white/60">Incluye típicamente</div>
+                            <ul class="mt-3 list-disc pl-5 space-y-2">
+                                <li>Propuesta de diseño (según alcance): distribución, estilo y criterios de mantenimiento.</li>
+                                <li>Selección e instalación de plantas y elementos verdes según el entorno.</li>
+                                <li>Preparación de área: limpieza, conformación y orden base para instalación.</li>
+                                <li>Plan de continuidad: recomendaciones y rutina para mantener el resultado.</li>
+                                <li>Ajustes posteriores: reposiciones o correcciones puntuales según evolución.</li>
+                            </ul>
+                        </div>
+
+                        <div class="text-sm text-black/60 dark:text-white/60">
+                            Resultado esperado: un espacio más armónico, ordenado y sostenible de mantener.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- GALLERY -->
+<!-- GALLERY (Carousel) -->
+<section id="gallery" class="border-t border-black/10 dark:border-white/10">
+    <div class="mx-auto max-w-6xl px-4 py-14">
+        <div class="flex items-end justify-between gap-6 flex-wrap">
+            <div>
+                <h2 class="text-2xl md:text-3xl font-semibold tracking-tight">Galería</h2>
+                <p class="mt-3 text-black/70 dark:text-white/70 max-w-2xl leading-relaxed">
+                    Proyectos de mantenimiento, jardinería y paisajismo.
+                </p>
+            </div>
+        </div>
+
+        <div
+                id="galleryCarousel"
+                class="mt-8 relative"
+                aria-label="Galería de proyectos TOMATO"
+        >
+            <!-- Track -->
+            <div class="overflow-hidden rounded-2xl border border-black/10 dark:border-white/10">
+                <div
+                        id="galleryTrack"
+                        class="flex transition-transform duration-300 ease-out"
+                        style="transform: translateX(0%)"
+                >
+                    <!-- Slide 1 -->
+                    <figure class="min-w-full bg-black/5 dark:bg-white/10">
+                        <div class="aspect-[16/9] bg-black/5 dark:bg-white/10">
+                            <img
+                                    src="assets/gallery-1.jpg"
+                                    alt="Proyecto 1 - Antes y Después"
+                                    class="h-full w-full object-cover"
+                            />
+                        </div>
+                        <figcaption class="p-4 text-sm text-black/70 dark:text-white/70 bg-white dark:bg-black">
+                            Antes / Después — mantenimiento de zonas verdes.
+                        </figcaption>
+                    </figure>
+
+                    <!-- Slide 2 -->
+                    <figure class="min-w-full bg-black/5 dark:bg-white/10">
+                        <div class="aspect-[16/9] bg-black/5 dark:bg-white/10">
+                            <img
+                                    src="assets/gallery-2.jpg"
+                                    alt="Proyecto 2 - Mantenimiento continuo"
+                                    class="h-full w-full object-cover"
+                            />
+                        </div>
+                        <figcaption class="p-4 text-sm text-black/70 dark:text-white/70 bg-white dark:bg-black">
+                            Mantenimiento continuo — corte, bordeado y limpieza.
+                        </figcaption>
+                    </figure>
+
+                    <!-- Slide 3 -->
+                    <figure class="min-w-full bg-black/5 dark:bg-white/10">
+                        <div class="aspect-[16/9] bg-black/5 dark:bg-white/10">
+                            <img
+                                    src="assets/gallery-3.jpg"
+                                    alt="Proyecto 3 - Detalle de jardinería"
+                                    class="h-full w-full object-cover"
+                            />
+                        </div>
+                        <figcaption class="p-4 text-sm text-black/70 dark:text-white/70 bg-white dark:bg-black">
+                            Detalle de jardinería — reposición y acabado.
+                        </figcaption>
+                    </figure>
+
+                    <!-- Slide 4 -->
+                    <figure class="min-w-full bg-black/5 dark:bg-white/10">
+                        <div class="aspect-[16/9] bg-black/5 dark:bg-white/10">
+                            <img
+                                    src="assets/gallery-4.jpg"
+                                    alt="Proyecto 4 - Paisajismo"
+                                    class="h-full w-full object-cover"
+                            />
+                        </div>
+                        <figcaption class="p-4 text-sm text-black/70 dark:text-white/70 bg-white dark:bg-black">
+                            Paisajismo — diseño e instalación.
+                        </figcaption>
+                    </figure>
+                </div>
+            </div>
+
+            <!-- Prev/Next -->
+            <button
+                    type="button"
+                    id="galleryPrev"
+                    class="absolute left-3 top-1/2 -translate-y-1/2 rounded-full border border-black/20 bg-white/80 p-2 hover:bg-white
+               dark:border-white/20 dark:bg-black/60 dark:hover:bg-black"
+                    aria-label="Anterior"
+            >
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+
+            <button
+                    type="button"
+                    id="galleryNext"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 rounded-full border border-black/20 bg-white/80 p-2 hover:bg-white
+               dark:border-white/20 dark:bg-black/60 dark:hover:bg-black"
+                    aria-label="Siguiente"
+            >
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+
+            <!-- Dots -->
+            <div class="mt-4 flex items-center justify-center gap-2" aria-label="Indicadores de galería">
+                <button class="gallery-dot h-2.5 w-2.5 rounded-full bg-black/30 dark:bg-white/30" aria-label="Ir a 1"></button>
+                <button class="gallery-dot h-2.5 w-2.5 rounded-full bg-black/10 dark:bg-white/10" aria-label="Ir a 2"></button>
+                <button class="gallery-dot h-2.5 w-2.5 rounded-full bg-black/10 dark:bg-white/10" aria-label="Ir a 3"></button>
+                <button class="gallery-dot h-2.5 w-2.5 rounded-full bg-black/10 dark:bg-white/10" aria-label="Ir a 4"></button>
+            </div>
+
+            <!-- Live region (opcional, para accesibilidad) -->
+            <p id="galleryLive" class="sr-only" aria-live="polite"></p>
+        </div>
+    </div>
+</section>
+
+<!-- PROCESS -->
+<section id="process" class="border-t border-black/10 dark:border-white/10">
+    <div class="mx-auto max-w-6xl px-4 py-14">
+        <h2 class="text-2xl md:text-3xl font-semibold tracking-tight">Proceso</h2>
+        <p class="mt-3 text-black/70 dark:text-white/70 max-w-2xl leading-relaxed">
+            Un flujo simple que garantiza claridad, orden y consistencia en el mantenimiento.
+        </p>
+
+        <div class="mt-8 grid md:grid-cols-4 gap-4">
+            <div class="rounded-2xl border border-black/10 p-6 dark:border-white/10">
+                <div class="text-xs text-black/60 dark:text-white/60">Paso 01</div>
+                <div class="mt-2 text-sm font-semibold">Visita y diagnóstico</div>
+                <div class="mt-2 text-sm text-black/70 dark:text-white/70">Alcance, frecuencia y puntos críticos del sitio.</div>
+            </div>
+            <div class="rounded-2xl border border-black/10 p-6 dark:border-white/10">
+                <div class="text-xs text-black/60 dark:text-white/60">Paso 02</div>
+                <div class="mt-2 text-sm font-semibold">Plan de trabajo</div>
+                <div class="mt-2 text-sm text-black/70 dark:text-white/70">Tareas, periodicidad y estándares de acabado.</div>
+            </div>
+            <div class="rounded-2xl border border-black/10 p-6 dark:border-white/10">
+                <div class="text-xs text-black/60 dark:text-white/60">Paso 03</div>
+                <div class="mt-2 text-sm font-semibold">Ejecución</div>
+                <div class="mt-2 text-sm text-black/70 dark:text-white/70">Operación ordenada y supervisada en sitio.</div>
+            </div>
+            <div class="rounded-2xl border border-black/10 p-6 dark:border-white/10">
+                <div class="text-xs text-black/60 dark:text-white/60">Paso 04</div>
+                <div class="mt-2 text-sm font-semibold">Seguimiento</div>
+                <div class="mt-2 text-sm text-black/70 dark:text-white/70">Continuidad, ajustes y mejora progresiva.</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CONTACT -->
+<section id="contact" class="border-t border-black/10 dark:border-white/10">
+    <div class="mx-auto max-w-6xl px-4 py-14">
+        <div class="grid md:grid-cols-12 gap-10 items-start">
+            <div class="md:col-span-6">
+                <h2 class="text-2xl md:text-3xl font-semibold tracking-tight">Contacto</h2>
+                <p class="mt-3 text-black/70 dark:text-white/70 leading-relaxed">
+                    Coordinamos visita y cotización con rapidez. Para agilizar, enviá ubicación, tipo de propiedad y frecuencia deseada.
+                </p>
+
+                <!-- WhatsApp SOLO aquí (Contacto) -->
+                <div class="mt-6">
+                    <a
+                            href="https://wa.me/50670808613"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="inline-flex items-center justify-center rounded-md bg-black px-5 py-3 text-sm font-semibold text-white hover:opacity-90 dark:bg-white dark:text-black"
+                    >
+                        WhatsApp 7080-8613
+                    </a>
+                </div>
+
+                <div class="mt-4 text-sm text-black/60 dark:text-white/60">
+                    Horario de atención: Lunes a Sábado (según agenda).
+                </div>
+            </div>
+
+            <div class="md:col-span-6">
+                <div class="rounded-2xl border border-black/10 p-6 dark:border-white/10">
+                    <div class="text-sm font-semibold">Información sugerida para cotizar</div>
+                    <ul class="mt-3 space-y-2 text-sm text-black/70 dark:text-white/70 list-disc pl-5">
+                        <li>Ubicación o referencia del sitio</li>
+                        <li>Área aproximada y tipo de zonas verdes</li>
+                        <li>Frecuencia (semanal / quincenal / mensual)</li>
+                        <li>Necesidades especiales (poda, reposición, paisajismo)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <footer class="mt-14 border-t border-black/10 pt-6 text-sm text-black/60 dark:border-white/10 dark:text-white/60">
+            © <span id="year"></span> TOMATO. Todos los derechos reservados.
+        </footer>
+    </div>
+</section>
+
+<script src="js/script.js"></script>
+</body>
+</html>
