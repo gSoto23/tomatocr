@@ -1,0 +1,149 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}
+{{ project.name }} | TOMATO
+{% endblock %}
+
+{% block content %}
+<div class="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div>
+        <div class="flex items-center gap-3">
+            <a href="/projects" class="text-gray-400 hover:text-gray-500">
+                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+            </a>
+            <h1 class="text-2xl font-bold text-gray-900">{{ project.name }}</h1>
+            {% if project.is_active %}
+            <span
+                class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Activo</span>
+            {% else %}
+            <span
+                class="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/10">Inactivo</span>
+            {% endif %}
+        </div>
+        <p class="mt-2 text-sm text-gray-500 ml-9">{{ project.location or 'Sin ubicación registrada' }}</p>
+    </div>
+
+    <div class="flex items-center gap-3 sm:ml-auto">
+        {% if user.role != 'client' %}
+        <a href="/logs/new?project_id={{ project.id }}"
+            class="inline-flex items-center gap-2 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+            <svg class="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            Nuevo Reporte
+        </a>
+        {% endif %}
+
+        {% if user.role == 'admin' %}
+        <a href="/projects/{{ project.id }}/edit"
+            class="inline-flex items-center gap-2 rounded-md bg-black px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            </svg>
+            Editar
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <!-- Main Info & Logs -->
+    <div class="lg:col-span-2 space-y-8">
+        <!-- Description -->
+        <div class="bg-white shadow-sm rounded-lg border border-gray-200 p-6">
+            <h3 class="text-base font-semibold leading-7 text-gray-900">Descripción</h3>
+            <p class="mt-1 text-sm leading-6 text-gray-600">{{ project.description or 'Sin descripción.' }}</p>
+        </div>
+
+        <!-- Recent Logs -->
+        <div>
+            <h3 class="text-base font-semibold leading-7 text-gray-900 mb-4">Bitácora Reciente</h3>
+            <div class="space-y-6">
+                {% for log in logs %}
+                <div class="bg-white shadow-sm rounded-lg border border-gray-200 p-6">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-600">
+                                {{ log.user.username[:2].upper() }}
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-900">{{ log.user.full_name or log.user.username
+                                    }}</p>
+                                <p class="text-xs text-gray-500">{{ log.date.strftime('%Y-%m-%d') }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% if log.notes %}
+                    <p class="text-sm text-gray-700 whitespace-pre-wrap">{{ log.notes }}</p>
+                    {% endif %}
+
+                    {% if log.photos %}
+                    <div class="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        {% for photo in log.photos %}
+                        <a href="{{ photo.file_path }}" target="_blank"
+                            class="block aspect-square bg-gray-100 rounded-lg overflow-hidden border border-gray-200 hover:opacity-90">
+                            <img src="{{ photo.file_path }}" alt="Evidencia" class="w-full h-full object-cover">
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% else %}
+                <div class="text-center py-12 bg-white rounded-lg border border-gray-200 border-dashed">
+                    <p class="text-sm text-gray-500">No hay reportes registrados para este proyecto.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar Info -->
+    <div class="space-y-6">
+        <!-- Team -->
+        <div class="bg-white shadow-sm rounded-lg border border-gray-200 p-6">
+            <h3 class="text-base font-semibold leading-7 text-gray-900 mb-4">Equipo Asignado</h3>
+
+            <div class="space-y-4">
+                <div>
+                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Clientes</p>
+                    <div class="space-y-2">
+                        {% for u in project.users if u.role == 'client' %}
+                        <div class="flex items-center gap-2">
+                            <div
+                                class="h-6 w-6 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-[10px] font-bold">
+                                {{ u.username[:1].upper() }}
+                            </div>
+                            <span class="text-sm text-gray-900">{{ u.full_name or u.username }}</span>
+                        </div>
+                        {% else %}
+                        <p class="text-sm text-gray-400 italic">No asignado</p>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div>
+                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Trabajadores</p>
+                    <div class="space-y-2">
+                        {% for u in project.users if u.role == 'worker' %}
+                        <div class="flex items-center gap-2">
+                            <div
+                                class="h-6 w-6 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center text-[10px] font-bold">
+                                {{ u.username[:1].upper() }}
+                            </div>
+                            <span class="text-sm text-gray-900">{{ u.full_name or u.username }}</span>
+                        </div>
+                        {% else %}
+                        <p class="text-sm text-gray-400 italic">No asignado</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

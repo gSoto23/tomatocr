@@ -1,0 +1,103 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}
+{% if edit_user %}Editar Usuario{% else %}Nuevo Usuario{% endif %} | TOMATO
+{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <div class="flex items-center gap-4">
+        <a href="/users" class="p-2 rounded-full hover:bg-gray-200">
+            <svg class="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+        </a>
+        <h1 class="text-2xl font-bold text-gray-900">
+            {% if edit_user %}Editar Usuario{% else %}Nuevo Usuario{% endif %}
+        </h1>
+    </div>
+</div>
+
+<div class="bg-white shadow-sm rounded-lg border border-gray-200 max-w-2xl mx-auto p-6">
+    <form action="{% if edit_user %}/users/{{ edit_user.id }}/edit{% else %}/users/new{% endif %}" method="post">
+        <div class="space-y-6">
+
+            <!-- Username -->
+            <div>
+                <label for="username" class="block text-sm font-medium leading-6 text-gray-900">Usuario <span
+                        class="text-red-500">*</span></label>
+                <div class="mt-2">
+                    <input type="text" name="username" id="username" required
+                        value="{{ edit_user.username if edit_user else '' }}"
+                        class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
+                </div>
+            </div>
+
+            <!-- Full Name -->
+            <div>
+                <label for="full_name" class="block text-sm font-medium leading-6 text-gray-900">Nombre Completo <span
+                        class="text-red-500">*</span></label>
+                <div class="mt-2">
+                    <input type="text" name="full_name" id="full_name" required
+                        value="{{ edit_user.full_name if edit_user else '' }}"
+                        class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
+                </div>
+            </div>
+
+            <!-- Password -->
+            <div>
+                <label for="password" class="block text-sm font-medium leading-6 text-gray-900">
+                    Contraseña
+                    {% if not edit_user %}<span class="text-red-500">*</span>{% endif %}
+                </label>
+                <div class="mt-2">
+                    <input type="password" name="password" id="password" {% if not edit_user %}required{% endif %}
+                        class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
+                    {% if edit_user %}
+                    <p class="mt-1 text-xs text-gray-500">Dejar en blanco para mantener la contraseña actual.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Role -->
+            <div>
+                <label for="role" class="block text-sm font-medium leading-6 text-gray-900">Rol <span
+                        class="text-red-500">*</span></label>
+                <div class="mt-2">
+                    <select id="role" name="role" required
+                        class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
+                        <option value="worker" {% if edit_user and edit_user.role=='worker' %}selected{% endif %}>
+                            Trabajador (worker)</option>
+                        <option value="client" {% if edit_user and edit_user.role=='client' %}selected{% endif %}>
+                            Cliente (client)</option>
+                        <option value="admin" {% if edit_user and edit_user.role=='admin' %}selected{% endif %}>
+                            Administrador (admin)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Is Active -->
+            <div class="relative flex gap-x-3">
+                <div class="flex h-6 items-center">
+                    <input id="is_active" name="is_active" type="checkbox" value="true" {% if not edit_user or
+                        edit_user.is_active %}checked{% endif %}
+                        class="h-4 w-4 rounded border-gray-300 text-black focus:ring-black">
+                </div>
+                <div class="text-sm leading-6">
+                    <label for="is_active" class="font-medium text-gray-900">Usuario Activo</label>
+                    <p class="text-gray-500">Desmarcar para bloquear acceso.</p>
+                </div>
+            </div>
+
+            <div class="pt-4 flex items-center justify-end gap-x-6">
+                <a href="/users" class="text-sm font-semibold leading-6 text-gray-900">Cancelar</a>
+                <button type="submit"
+                    class="rounded-md bg-black px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black">
+                    {% if edit_user %}Guardar Cambios{% else %}Crear Usuario{% endif %}
+                </button>
+            </div>
+
+        </div>
+    </form>
+</div>
+{% endblock %}
