@@ -1,13 +1,17 @@
 
+import json
 from typing import List, Optional
-from fastapi import APIRouter, Depends, Form, Request, status, HTTPException
-from fastapi.responses import RedirectResponse
+from fastapi import APIRouter, Depends, Form, Request, status, HTTPException, Body
+from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
 
 from app.db.session import SessionLocal
 from app.db.models.project import Project
+from app.db.models.project_details import ProjectSupply, ProjectTask
 from app.db.models.user import User
+from app.db.models.associations import project_users
 from app.routers import deps
 
 router = APIRouter(
@@ -18,26 +22,46 @@ router = APIRouter(
 
 templates = Jinja2Templates(directory="app/templates")
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+# Pydantic Models for JSON body
+class SupplyCreate(BaseModel):
+    name: str
+    quantity: str
+
+class TaskCreate(BaseModel):
+    description: str
+    is_required: bool = True
+
+class ProjectCreate(BaseModel):
+    name: str
+    client_ids: List[int] = []
+    worker_ids: List[int] = []
+    client_display_name: Optional[str] = None
+    province: Optional[str] = None
+    address: Optional[str] = None
+    waze_link: Optional[str] = None
+    contact_name: Optional[str] = None
+    contact_phone: Optional[str] = None
+    contact_email: Optional[str] = None
+    description: Optional[str] = None
+    # Lists
+    supplies: List[SupplyCreate] = []
+    tasks: List[TaskCreate] = []
+    is_active: bool = True
 
 @router.get("/")
-async def list_projects(request: Request, db: Session = Depends(get_db), user: User = Depends(deps.get_current_user)):
+async def list_projects(request: Request, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
     if user.role == "admin":
         projects = db.query(Project).all()
     else:
-        # Worker/Client sees only assigned projects
-        # Since we set up back_populates="projects" in User, we can access user.projects
-        projects = user.projects
-        
+        # Explicit query
+        projects = db.query(Project)\
+            .join(project_users)\
+            .filter(project_users.c.user_id == user.id)\
+            .all()   
     return templates.TemplateResponse("projects/list.html", {"request": request, "projects": projects, "user": user})
 
 @router.get("/new")
-async def new_project_form(request: Request, db: Session = Depends(get_db), user: User = Depends(deps.get_current_user)):
+async def new_project_form(request: Request, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
     if user.role != "admin": 
         return RedirectResponse(url="/projects", status_code=status.HTTP_303_SEE_OTHER)
 
@@ -54,35 +78,49 @@ async def new_project_form(request: Request, db: Session = Depends(get_db), user
 
 @router.post("/new")
 async def create_project(
-    name: str = Form(...),
-    client_ids: List[int] = Form([]),
-    worker_ids: List[int] = Form([]),
-    location: Optional[str] = Form(None),
-    description: Optional[str] = Form(None),
-    db: Session = Depends(get_db),
+    project_in: ProjectCreate,
+    db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
     if user.role != "admin":
-         return RedirectResponse(url="/projects", status_code=status.HTTP_303_SEE_OTHER)
+         raise HTTPException(status_code=403, detail="Not authorized")
 
     project = Project(
-        name=name,
-        location=location,
-        description=description
+        name=project_in.name,
+        client_display_name=project_in.client_display_name,
+        province=project_in.province,
+        address=project_in.address,
+        waze_link=project_in.waze_link,
+        contact_name=project_in.contact_name,
+        contact_phone=project_in.contact_phone,
+        contact_email=project_in.contact_email,
+        description=project_in.description,
+        is_active=project_in.is_active
     )
     
     # Assign users
-    all_ids = client_ids + worker_ids
+    all_ids = project_in.client_ids + project_in.worker_ids
     if all_ids:
         selected_users = db.query(User).filter(User.id.in_(all_ids)).all()
         project.users = selected_users
 
     db.add(project)
+    db.flush() # get ID
+
+    # Add Supplies
+    for s in project_in.supplies:
+        db.add(ProjectSupply(project_id=project.id, name=s.name, quantity=s.quantity))
+
+    # Add Tasks
+    for t in project_in.tasks:
+        db.add(ProjectTask(project_id=project.id, description=t.description, is_required=t.is_required))
+
     db.commit()
-    return RedirectResponse(url="/projects", status_code=status.HTTP_303_SEE_OTHER)
+    # Return JSON redirect instruction
+    return {"status": "success", "redirect_url": "/projects"}
 
 @router.get("/{id}/edit")
-async def edit_project_form(id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(deps.get_current_user)):
+async def edit_project_form(id: int, request: Request, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
     if user.role != "admin":
         return RedirectResponse(url="/projects", status_code=status.HTTP_303_SEE_OTHER)
 
@@ -104,53 +142,62 @@ async def edit_project_form(id: int, request: Request, db: Session = Depends(get
 @router.post("/{id}/edit")
 async def update_project(
     id: int,
-    name: str = Form(...),
-    client_ids: List[int] = Form([]),
-    worker_ids: List[int] = Form([]),
-    location: Optional[str] = Form(None),
-    description: Optional[str] = Form(None),
-    is_active: bool = Form(False),
-    db: Session = Depends(get_db),
+    project_in: ProjectCreate,
+    db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
     if user.role != "admin":
-        return RedirectResponse(url="/projects", status_code=status.HTTP_303_SEE_OTHER)
+        raise HTTPException(status_code=403, detail="Not authorized")
 
     project = db.query(Project).filter(Project.id == id).first()
-    if project:
-        project.name = name
-        project.location = location
-        project.description = description
-        project.is_active = is_active
-        
-        # Update users
-        all_ids = client_ids + worker_ids
-        # Clear current and re-add? Or specific logic?
-        # Simplest is find all new selected and replace list
-        selected_users = db.query(User).filter(User.id.in_(all_ids)).all()
-        project.users = selected_users
-        
-        db.commit()
-    return RedirectResponse(url="/projects", status_code=status.HTTP_303_SEE_OTHER)
+    if not project:
+         raise HTTPException(status_code=404, detail="Project not found")
+
+    # Update Fields
+    project.name = project_in.name
+    project.client_display_name = project_in.client_display_name
+    project.province = project_in.province
+    project.address = project_in.address
+    project.waze_link = project_in.waze_link
+    project.contact_name = project_in.contact_name
+    project.contact_phone = project_in.contact_phone
+    project.contact_email = project_in.contact_email
+    project.description = project_in.description
+    project.is_active = project_in.is_active
+    
+    # Update Users
+    all_ids = project_in.client_ids + project_in.worker_ids
+    selected_users = db.query(User).filter(User.id.in_(all_ids)).all()
+    project.users = selected_users
+    
+    # Update Supplies (Replace All strategy for simplicity or nuanced?)
+    # Simple strategy: Delete all old, add all new.
+    db.query(ProjectSupply).filter(ProjectSupply.project_id == id).delete()
+    for s in project_in.supplies:
+        db.add(ProjectSupply(project_id=id, name=s.name, quantity=s.quantity))
+
+    # Update Tasks
+    db.query(ProjectTask).filter(ProjectTask.project_id == id).delete()
+    for t in project_in.tasks:
+        db.add(ProjectTask(project_id=id, description=t.description, is_required=t.is_required))
+
+    db.commit()
+    return {"status": "success", "redirect_url": "/projects"}
 
 @router.get("/{id}")
 async def get_project_detail(
     id: int, 
     request: Request, 
-    db: Session = Depends(get_db), 
+    db: Session = Depends(deps.get_db), 
     user: User = Depends(deps.get_current_user)
 ):
     project = db.query(Project).filter(Project.id == id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    # Auth check: Admin or Assigned User
     if user.role != "admin" and user.id not in [u.id for u in project.users]:
         raise HTTPException(status_code=403, detail="Not authorized")
 
-    # Fetch recent logs for this project
-    # We need to import DailyLog inside or top-level. 
-    # Doing inline to verify import availability or use relationship if exists (project.logs)
     logs = sorted(project.logs, key=lambda x: (x.date, x.created_at), reverse=True)
 
     return templates.TemplateResponse("projects/detail.html", {

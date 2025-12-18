@@ -8,22 +8,16 @@ from app.core.security import verify_password, create_access_token
 from app.core.config import settings
 from datetime import timedelta
 
-router = APIRouter()
+from app.routers import deps
 
-# Dependency
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+router = APIRouter()
 
 @router.post("/login")
 async def login(
     request: Request,
     user: str = Form(...),
     pass_: str = Form(..., alias="pass"), # mapping 'pass' from HTML form to 'pass_' variable
-    db: Session = Depends(get_db)
+    db: Session = Depends(deps.get_db)
 ):
     # Authenticate
     db_user = db.query(User).filter(User.username == user).first()

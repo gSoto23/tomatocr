@@ -15,4 +15,14 @@ class Project(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+    # New Fields
+    client_display_name = Column(String(100))
+    province = Column(String(50))
+    address = Column(Text)
+    waze_link = Column(String(500))
+    
+    contact_name = Column(String(100))
+    contact_phone = Column(String(20))
+    contact_email = Column(String(100))
+
     users = relationship("User", secondary=project_users, back_populates="projects")

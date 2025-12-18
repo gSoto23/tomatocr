@@ -9,3 +9,5 @@ Base = declarative_base()
 # from app.db.models.project import Project
 from app.db.models.log import DailyLog, Photo
 from app.db.models.schedule import ProjectSchedule
+from app.db.models.project_details import ProjectSupply, ProjectTask
+from app.db.models.log_task import DailyLogTask

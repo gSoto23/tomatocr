@@ -20,22 +20,11 @@ router = APIRouter(
 
 templates = Jinja2Templates(directory="app/templates")
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
 @router.get("/")
-async def calendar_view(request: Request, db: Session = Depends(get_db), user: User = Depends(deps.get_current_user)):
-    # Workers and Admins can see calendar
-    # Clients? Unspecified in prompt, but let's hide or show read-only. 
-    # Prompt said "admin and worker".
+async def calendar_view(request: Request, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
     if user.role == "client":
         return RedirectResponse(url="/projects", status_code=status.HTTP_303_SEE_OTHER)
 
-    # For Schedule Modal
     projects = []
     workers = []
     if user.role == "admin":
@@ -50,13 +39,9 @@ async def calendar_view(request: Request, db: Session = Depends(get_db), user: U
     })
 
 @router.get("/events")
-async def get_events(start: str, end: str, db: Session = Depends(get_db), user: User = Depends(deps.get_current_user)):
-    # FullCalendar passes start/end dates
-    # start_date = datetime.fromisoformat(start).date() # simplified
-    
+async def get_events(start: str, end: str, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
     query = db.query(ProjectSchedule)
     
-    # Workers see only their assignments
     if user.role != "admin":
         query = query.filter(ProjectSchedule.user_id == user.id)
     
@@ -64,17 +49,21 @@ async def get_events(start: str, end: str, db: Session = Depends(get_db), user: 
     
     events = []
     for s in schedules:
-        events.append({
+        evt = {
             "id": s.id,
             "title": f"{s.project.name} ({s.user.username})",
             "start": s.date.isoformat(),
-            "url": f"/projects/{s.project.id}",  # Clicking takes to project
+            # Workers click to go to project, Admins click to Edit (handled in JS)
+            "url": f"/projects/{s.project.id}" if user.role != "admin" else None, 
             "extendedProps": {
-                "worker": s.user.username,
-                "project": s.project.name
+                "worker_id": s.user_id,
+                "project_id": s.project_id,
+                "project_name": s.project.name,
+                "worker_name": s.user.full_name or s.user.username
             },
-            "color": "#000000" if user.role == "admin" else "#2563eb" # Black for admin, Blue for worker
-        })
+            "color": "#000000" if user.role == "admin" else "#2563eb"
+        }
+        events.append(evt)
         
     return JSONResponse(events)
 
@@ -83,7 +72,7 @@ async def create_schedule(
     project_id: int = Form(...),
     user_id: int = Form(...),
     date_val: str = Form(..., alias="date"),
-    db: Session = Depends(get_db),
+    db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
     if user.role != "admin":
@@ -97,4 +86,40 @@ async def create_schedule(
     db.add(new_schedule)
     db.commit()
     
+    return RedirectResponse(url="/calendar", status_code=status.HTTP_303_SEE_OTHER)
+
+@router.post("/schedule/{id}/delete")
+async def delete_schedule(id: int, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
+    if user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    schedule = db.query(ProjectSchedule).filter(ProjectSchedule.id == id).first()
+    if not schedule:
+        raise HTTPException(status_code=404, detail="Schedule not found")
+        
+    db.delete(schedule)
+    db.commit()
+    return RedirectResponse(url="/calendar", status_code=status.HTTP_303_SEE_OTHER)
+
+@router.post("/schedule/{id}/edit")
+async def update_schedule(
+    id: int,
+    project_id: int = Form(...),
+    user_id: int = Form(...),
+    date_val: str = Form(..., alias="date"),
+    db: Session = Depends(deps.get_db),
+    user: User = Depends(deps.get_current_user)
+):
+    if user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    schedule = db.query(ProjectSchedule).filter(ProjectSchedule.id == id).first()
+    if not schedule:
+        raise HTTPException(status_code=404, detail="Schedule not found")
+    
+    schedule.project_id = project_id
+    schedule.user_id = user_id
+    schedule.date = datetime.strptime(date_val, "%Y-%m-%d").date()
+    
+    db.commit()
     return RedirectResponse(url="/calendar", status_code=status.HTTP_303_SEE_OTHER)

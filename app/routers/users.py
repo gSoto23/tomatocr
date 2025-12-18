@@ -18,19 +18,12 @@ router = APIRouter(
 
 templates = Jinja2Templates(directory="app/templates")
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
 def check_admin(user: User):
     if user.role != "admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
 
 @router.get("/")
-async def list_users(request: Request, db: Session = Depends(get_db), user: User = Depends(deps.get_current_user)):
+async def list_users(request: Request, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
     check_admin(user)
     users = db.query(User).all()
     return templates.TemplateResponse("users/list.html", {"request": request, "users": users, "user": user})
@@ -47,7 +40,7 @@ async def create_user(
     full_name: str = Form(...),
     role: str = Form(...),
     is_active: bool = Form(False),
-    db: Session = Depends(get_db),
+    db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
     check_admin(user)
@@ -69,7 +62,7 @@ async def create_user(
     return RedirectResponse(url="/users", status_code=status.HTTP_303_SEE_OTHER)
 
 @router.get("/{id}/edit")
-async def edit_user_form(id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(deps.get_current_user)):
+async def edit_user_form(id: int, request: Request, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
     check_admin(user)
     edit_user = db.query(User).filter(User.id == id).first()
     if not edit_user:
@@ -84,7 +77,7 @@ async def update_user(
     full_name: str = Form(...),
     role: str = Form(...),
     is_active: bool = Form(False),
-    db: Session = Depends(get_db),
+    db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
     check_admin(user)

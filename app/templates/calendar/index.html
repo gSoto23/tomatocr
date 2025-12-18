@@ -15,7 +15,7 @@
         </p>
     </div>
     {% if user.role == 'admin' %}
-    <button onclick="document.getElementById('scheduleModal').classList.remove('hidden')"
+    <button onclick="openModal()"
         class="inline-flex items-center justify-center rounded-md bg-black px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black">
         <svg class="-ml-0.5 mr-1.5 h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
             <path fill-rule="evenodd"
@@ -41,12 +41,12 @@
 
             <div
                 class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
-                <form action="/calendar/schedule" method="post">
+                <form id="scheduleForm" action="/calendar/schedule" method="post">
                     <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
                         <div class="sm:flex sm:items-start">
                             <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
-                                <h3 class="text-base font-semibold leading-6 text-gray-900" id="modal-title">Asignar
-                                    Proyecto</h3>
+                                <h3 class="text-base font-semibold leading-6 text-gray-900" id="modal-title">Gestión de
+                                    Asignación</h3>
                                 <div class="mt-4 space-y-4">
 
                                     <!-- Date -->
@@ -85,13 +85,23 @@
                             </div>
                         </div>
                     </div>
-                    <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                    <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 gap-2">
+                        <!-- Save Button -->
                         <button type="submit"
-                            class="inline-flex w-full justify-center rounded-md bg-black px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 sm:ml-3 sm:w-auto">Guardar</button>
-                        <button type="button" onclick="document.getElementById('scheduleModal').classList.add('hidden')"
+                            class="inline-flex w-full justify-center rounded-md bg-black px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 sm:w-auto">Guardar</button>
+
+                        <!-- Delete Button (Only for editing) -->
+                        <button type="button" id="deleteBtn" onclick="deleteSchedule()"
+                            class="hidden inline-flex w-full justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:w-auto">Eliminar</button>
+
+                        <!-- Cancel -->
+                        <button type="button" onclick="closeModal()"
                             class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">Cancelar</button>
                     </div>
                 </form>
+
+                <!-- Hidden Delete Form -->
+                <form id="deleteForm" method="post" class="hidden"></form>
             </div>
         </div>
     </div>
@@ -100,6 +110,55 @@
 
 <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
 <script>
+    {% if user.role == 'admin' %}
+    let currentScheduleId = null;
+
+    function openModal(dateStr = '', schedule = null) {
+        const modal = document.getElementById('scheduleModal');
+        const form = document.getElementById('scheduleForm');
+        const deleteBtn = document.getElementById('deleteBtn');
+        const title = document.getElementById('modal-title');
+
+        modal.classList.remove('hidden');
+
+        if (schedule) {
+            // Edit Mode
+            currentScheduleId = schedule.id;
+            title.innerText = 'Editar Asignación';
+            form.action = `/calendar/schedule/${schedule.id}/edit`;
+            deleteBtn.classList.remove('hidden');
+
+            document.getElementById('date').value = schedule.start; // YYYY-MM-DD
+            document.getElementById('project_id').value = schedule.extendedProps.project_id;
+            document.getElementById('user_id').value = schedule.extendedProps.worker_id;
+        } else {
+            // Create Mode
+            currentScheduleId = null;
+            title.innerText = 'Asignar Proyecto';
+            form.action = '/calendar/schedule';
+            deleteBtn.classList.add('hidden');
+
+            document.getElementById('date').value = dateStr || new Date().toISOString().split('T')[0];
+            document.getElementById('project_id').selectedIndex = 0;
+            document.getElementById('user_id').selectedIndex = 0;
+        }
+    }
+
+    function closeModal() {
+        document.getElementById('scheduleModal').classList.add('hidden');
+        currentScheduleId = null;
+    }
+
+    function deleteSchedule() {
+        if (!currentScheduleId) return;
+        if (!confirm('¿Estás seguro de eliminar esta asignación?')) return;
+
+        const deleteForm = document.getElementById('deleteForm');
+        deleteForm.action = `/calendar/schedule/${currentScheduleId}/delete`;
+        deleteForm.submit();
+    }
+    {% endif %}
+
     document.addEventListener('DOMContentLoaded', function () {
         var calendarEl = document.getElementById('calendar');
         var calendar = new FullCalendar.Calendar(calendarEl, {
@@ -118,15 +177,22 @@
             events: '/calendar/events',
             eventClick: function (info) {
                 if (info.event.url) {
-                    window.location.href = info.event.url;
-                    info.jsEvent.preventDefault(); // prevents browser from following link in current tab.
+                    // Navigate only if there is a URL (Worker)
+                    if (!info.event.extendedProps.worker_id) { // Not strictly needed if backend controls URL
+                        window.location.href = info.event.url;
+                    }
+                    // For Admin, url is null or we prevent default if we want to edit
                 }
+
+                {% if user.role == 'admin' %}
+                info.jsEvent.preventDefault(); // Stop navigation even if URL exists (should be null for admin anyway)
+                // Open edit modal
+                openModal(null, info.event);
+                {% endif %}
             },
             {% if user.role == 'admin' %}
             dateClick: function (info) {
-        // Open modal and set date
-        document.getElementById('date').value = info.dateStr;
-        document.getElementById('scheduleModal').classList.remove('hidden');
+        openModal(info.dateStr);
     }
             {% endif %}
         });

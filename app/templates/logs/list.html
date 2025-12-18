@@ -21,53 +21,70 @@
     </form>
 </div>
 
-<div class="space-y-6">
-    {% for log in logs %}
-    <div class="bg-white shadow-sm rounded-lg border border-gray-200 p-6">
-        <div class="flex justify-between items-start mb-4">
-            <div class="flex items-center gap-3">
-                <div
-                    class="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center font-bold text-gray-600">
-                    {{ log.user.username[:2].upper() }}
-                </div>
-                <div>
-                    <p class="text-sm font-medium text-gray-900">
-                        {{ log.user.full_name or log.user.username }}
-                        <span class="text-gray-400 mx-1">•</span>
-                        <a href="/projects/{{ log.project.id }}" class="text-indigo-600 hover:underline">{{
-                            log.project.name }}</a>
-                    </p>
-                    <p class="text-xs text-gray-500">{{ log.date.strftime('%Y-%m-%d') }}</p>
-                </div>
-            </div>
-            <!-- Optional: Delete/Edit actions could go here for Admin -->
-        </div>
-
-        {% if log.notes %}
-        <p class="text-gray-700 whitespace-pre-wrap mb-4">{{ log.notes }}</p>
-        {% endif %}
-
-        {% if log.photos %}
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            {% for photo in log.photos %}
-            <a href="{{ photo.file_path }}" target="_blank"
-                class="block aspect-square bg-gray-100 rounded-lg overflow-hidden border border-gray-200 hover:opacity-90 transition-opacity">
-                <img src="{{ photo.file_path }}" alt="Evidencia" class="w-full h-full object-cover">
-            </a>
+<div class="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
+    <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+            <tr>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Fecha</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Proyecto</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Usuario</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Detalle</th>
+                <th scope="col" class="relative px-6 py-3"><span class="sr-only">Ver</span></th>
+            </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+            {% for log in logs %}
+            <tr>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {{ log.date.strftime('%Y-%m-%d') }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <a href="/projects/{{ log.project.id }}"
+                        class="text-sm font-medium text-indigo-600 hover:text-indigo-900">{{ log.project.name }}</a>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center">
+                        <div
+                            class="h-6 w-6 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-600 mr-2">
+                            {{ log.user.username[:2].upper() }}
+                        </div>
+                        <div class="text-sm font-medium text-gray-900">{{ log.user.full_name or log.user.username }}
+                        </div>
+                    </div>
+                </td>
+                <td class="px-6 py-4 text-sm text-gray-500 truncate max-w-xs block">
+                    {{ log.notes or '-' }}
+                    {% if log.photos %}
+                    <span
+                        class="inline-flex items-center rounded-md bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600 ml-1">
+                        <svg class="h-3 w-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path
+                                d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" />
+                        </svg>
+                        {{ log.photos|length }}
+                    </span>
+                    {% endif %}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <button onclick="openLogModal({{ log.id }})" class="text-indigo-600 hover:text-indigo-900">Ver
+                        Detalle</button>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5" class="px-6 py-10 text-center text-sm text-gray-500">
+                    No se encontraron bitácoras con los filtros actuales.
+                </td>
+            </tr>
             {% endfor %}
-        </div>
-        {% endif %}
-    </div>
-    {% else %}
-    <div class="text-center py-12 bg-white rounded-lg border border-gray-200 border-dashed">
-        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-            aria-hidden="true">
-            <path vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-        </svg>
-        <h3 class="mt-2 text-sm font-semibold text-gray-900">No hay reportes</h3>
-        <p class="mt-1 text-sm text-gray-500">No se encontraron bitácoras con los filtros actuales.</p>
-    </div>
-    {% endfor %}
+        </tbody>
+    </table>
 </div>
+
+{% include 'components/log_modal.html' %}
+
 {% endblock %}

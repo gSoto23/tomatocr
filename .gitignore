@@ -28,3 +28,13 @@ app/static/uploads/*
 # Logs
 *.log
 
+
+# Local Development Scripts
+debug_client.py
+debug_server.py
+reproduce_issue.py
+reset_db.py
+create_user.py
+verify_login.py
+migrate_project_overhaul.py
+experimental_client.py

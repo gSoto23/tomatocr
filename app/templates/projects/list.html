@@ -48,10 +48,14 @@
                     </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm text-gray-500">{{ project.client_name or '-' }}</div>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-500">{{ project.client_display_name or '-' }}</div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm text-gray-500 truncate max-w-xs">{{ project.location or '-' }}</div>
+                    <div class="text-sm text-gray-500 truncate max-w-xs">
+                        {% if project.province %}{{ project.province }}, {% endif %}
+                        {{ project.address or project.location or '-' }}
+                    </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                     {% if project.is_active %}
