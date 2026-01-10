@@ -82,6 +82,16 @@
                     <button id="btn-delete" type="button" onclick="deleteLog()"
                         class="hidden inline-flex w-full justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:w-auto">Eliminar</button>
 
+                    <!-- Email Button -->
+                    <button id="btn-email" type="button" onclick="sendLogEmail()"
+                        class="hidden inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 sm:w-auto">
+                        <svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        Enviar por Correo
+                    </button>
+
                     <!-- Helper View Buttons -->
                     <button id="btn-edit" type="button" onclick="enableEditMode()"
                         class="hidden inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:w-auto">Editar</button>
@@ -195,6 +205,14 @@
                 btnEdit.classList.add('hidden');
             }
 
+            // Email Button (Admin only)
+            const btnEmail = document.getElementById('btn-email');
+            if (data.is_admin) {
+                btnEmail.classList.remove('hidden');
+            } else {
+                btnEmail.classList.add('hidden');
+            }
+
             loading.classList.add('hidden');
             content.classList.remove('hidden');
 
@@ -269,5 +287,38 @@
         const form = document.getElementById('delete-log-form');
         form.action = `/logs/${currentLogId}/delete`;
         form.submit();
+    }
+
+    async function sendLogEmail() {
+        if (!currentLogId) return;
+        const recipient = prompt("Ingrese el correo electrónico del destinatario:");
+        if (!recipient) return;
+
+        // Basic Email validation
+        if (!recipient.includes('@') || !recipient.includes('.')) {
+            alert("Por favor ingrese un correo válido.");
+            return;
+        }
+
+        try {
+            const response = await fetch(`/logs/${currentLogId}/send-email`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ recipient: recipient })
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                alert("Correo enviado exitosamente.");
+            } else {
+                alert("Error: " + (result.detail || result.message || "No se pudo enviar el correo."));
+            }
+        } catch (error) {
+            console.error(error);
+            alert("Ocurrió un error al intentar enviar el correo.");
+        }
     }
 </script>

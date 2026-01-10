@@ -19,6 +19,15 @@ class Settings(BaseSettings):
     MYSQL_PORT: str = os.getenv("MYSQL_PORT", "3306")
     MYSQL_DB: str = os.getenv("MYSQL_DB", "tomato_db")
     USE_SQLITE: bool = True # Force SQLite for local dev
+
+    # Email
+    MAIL_USERNAME: str = os.getenv("MAIL_USERNAME", "")
+    MAIL_PASSWORD: str = os.getenv("MAIL_PASSWORD", "")
+    MAIL_FROM: str = os.getenv("MAIL_FROM", "admin@tomatocr.com")
+    MAIL_PORT: int = int(os.getenv("MAIL_PORT", 587))
+    MAIL_SERVER: str = os.getenv("MAIL_SERVER", "smtp.gmail.com")
+    MAIL_STARTTLS: bool = True
+    MAIL_SSL_TLS: bool = False
     
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> str:

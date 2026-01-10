@@ -65,8 +65,12 @@ async def get_log_detail(id: int, db: Session = Depends(deps.get_db), user: User
     if not log:
         raise HTTPException(status_code=404, detail="Log not found")
     
-    # Auth check: Admin or Author
-    if user.role != "admin" and log.user_id != user.id:
+    # Auth check: Admin, Author, or Assigned User (Client/Worker)
+    is_project_member = False
+    if log.project and log.project.users:
+        is_project_member = user.id in [u.id for u in log.project.users]
+
+    if user.role != "admin" and log.user_id != user.id and not is_project_member:
         raise HTTPException(status_code=403, detail="Not authorized")
 
     # Get all project tasks to allow editing (checking missed ones)
@@ -93,6 +97,7 @@ async def get_log_detail(id: int, db: Session = Depends(deps.get_db), user: User
         "created_at": log.created_at.isoformat() if log.created_at else None,
         "updated_at": log.updated_at.isoformat() if log.updated_at else None,
         "can_edit": (user.role == "admin" or log.user_id == user.id),
+        "is_admin": (user.role == "admin"),
         "tasks": tasks_data
     }
 
@@ -250,3 +255,30 @@ async def create_log(
 
     db.commit()
     return RedirectResponse(url=f"/projects/{project_id}", status_code=status.HTTP_303_SEE_OTHER)
+
+from app.utils.email import send_log_email
+from pydantic import EmailStr, BaseModel
+
+class EmailSchema(BaseModel):
+    recipient: EmailStr
+
+@router.post("/{id}/send-email")
+async def send_email(
+    id: int, 
+    email_data: EmailSchema,
+    db: Session = Depends(deps.get_db),
+    user: User = Depends(deps.get_current_user)
+):
+    if user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    log = db.query(DailyLog).filter(DailyLog.id == id).first()
+    if not log:
+        raise HTTPException(status_code=404, detail="Log not found")
+
+    try:
+        await send_log_email(log, [email_data.recipient])
+        return JSONResponse({"status": "success", "message": "Correo enviado correctamente"})
+    except Exception as e:
+        print(f"Error sending email: {e}")
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
