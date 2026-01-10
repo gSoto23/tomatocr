@@ -10,9 +10,9 @@
     </div>
 
     <!-- Filter Form -->
-    <form action="/logs" method="get" class="flex items-center gap-2">
+    <form action="/logs" method="get" class="flex items-center gap-2 w-full sm:w-auto">
         <select name="project_id" onchange="this.form.submit()"
-            class="block rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+            class="block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6 sm:w-64">
             <option value="">Todos los Proyectos</option>
             {% for p in projects %}
             <option value="{{ p.id }}" {% if selected_project_id==p.id %}selected{% endif %}>{{ p.name }}</option>
@@ -21,7 +21,7 @@
     </form>
 </div>
 
-<div class="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
+<div class="bg-white shadow-sm rounded-lg border border-gray-200 overflow-x-auto">
     <table class="min-w-full divide-y divide-gray-200">
         <thead class="bg-gray-50">
             <tr>

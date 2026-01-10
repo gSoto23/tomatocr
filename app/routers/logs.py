@@ -86,6 +86,11 @@ async def get_log_detail(id: int, db: Session = Depends(deps.get_db), user: User
             "completed": task.id in completed_task_ids,
             "is_required": task.is_required
         })
+    
+    # Get Project Contacts for Email Dropdown
+    contacts_data = []
+    if log.project and log.project.contacts:
+        contacts_data = [{"id": c.id, "name": c.name, "email": c.email} for c in log.project.contacts]
 
     return {
         "id": log.id,
@@ -98,7 +103,8 @@ async def get_log_detail(id: int, db: Session = Depends(deps.get_db), user: User
         "updated_at": log.updated_at.isoformat() if log.updated_at else None,
         "can_edit": (user.role == "admin" or log.user_id == user.id),
         "is_admin": (user.role == "admin"),
-        "tasks": tasks_data
+        "tasks": tasks_data,
+        "project_contacts": contacts_data
     }
 
 @router.post("/{id}/delete")
@@ -260,7 +266,8 @@ from app.utils.email import send_log_email
 from pydantic import EmailStr, BaseModel
 
 class EmailSchema(BaseModel):
-    recipient: EmailStr
+    recipients: List[EmailStr]
+    additional_text: Optional[str] = None
 
 @router.post("/{id}/send-email")
 async def send_email(
@@ -277,7 +284,7 @@ async def send_email(
         raise HTTPException(status_code=404, detail="Log not found")
 
     try:
-        await send_log_email(log, [email_data.recipient])
+        await send_log_email(log, email_data.recipients, email_data.additional_text)
         return JSONResponse({"status": "success", "message": "Correo enviado correctamente"})
     except Exception as e:
         print(f"Error sending email: {e}")

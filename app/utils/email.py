@@ -1,5 +1,6 @@
 
 from typing import List
+import base64
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
 from pydantic import EmailStr
 from app.core.config import settings
@@ -20,7 +21,7 @@ conf = ConnectionConfig(
     TEMPLATE_FOLDER=Path(__file__).parent.parent / 'templates'
 )
 
-async def send_log_email(log: DailyLog, recipients: List[EmailStr]):
+async def send_log_email(log: DailyLog, recipients: List[EmailStr], additional_text: str = None):
     """
     Send an email with the log details to the specified recipients.
     """
@@ -48,6 +49,19 @@ async def send_log_email(log: DailyLog, recipients: List[EmailStr]):
     attachments = []
     base_path = Path(__file__).parent.parent # app/
     
+    # Add Logo with Content-ID
+    logo_path = base_path / 'static/images/logo_tomato.png'
+    if logo_path.exists():
+        attachments.append({
+            "file": str(logo_path),
+            "headers": {
+                "Content-ID": "<logo_tomato>",
+                "Content-Disposition": 'inline; filename="logo_tomato.png"'
+            },
+            "mime_type": "image",
+            "mime_subtype": "png"
+        })
+
     for photo in log.photos:
         # Remove leading slash from /static/...
         clean_path = photo.file_path.lstrip("/")
@@ -68,6 +82,7 @@ async def send_log_email(log: DailyLog, recipients: List[EmailStr]):
             "date": date_str,
             "notes": log.notes,
             "done_tasks": done_tasks,
+            "additional_text": additional_text,
             "log": log # Pass full object just in case
         },
         subtype=MessageType.html,

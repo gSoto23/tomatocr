@@ -9,7 +9,7 @@ from pydantic import BaseModel
 
 from app.db.session import SessionLocal
 from app.db.models.project import Project
-from app.db.models.project_details import ProjectSupply, ProjectTask
+from app.db.models.project_details import ProjectSupply, ProjectTask, ProjectContact
 from app.db.models.user import User
 from app.db.models.associations import project_users
 from app.routers import deps
@@ -31,6 +31,12 @@ class TaskCreate(BaseModel):
     description: str
     is_required: bool = True
 
+class ContactCreate(BaseModel):
+    name: str
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    position: Optional[str] = None
+
 class ProjectCreate(BaseModel):
     name: str
     client_ids: List[int] = []
@@ -39,11 +45,9 @@ class ProjectCreate(BaseModel):
     province: Optional[str] = None
     address: Optional[str] = None
     waze_link: Optional[str] = None
-    contact_name: Optional[str] = None
-    contact_phone: Optional[str] = None
-    contact_email: Optional[str] = None
     description: Optional[str] = None
     # Lists
+    contacts: List[ContactCreate] = []
     supplies: List[SupplyCreate] = []
     tasks: List[TaskCreate] = []
     is_active: bool = True
@@ -91,9 +95,6 @@ async def create_project(
         province=project_in.province,
         address=project_in.address,
         waze_link=project_in.waze_link,
-        contact_name=project_in.contact_name,
-        contact_phone=project_in.contact_phone,
-        contact_email=project_in.contact_email,
         description=project_in.description,
         is_active=project_in.is_active
     )
@@ -106,6 +107,16 @@ async def create_project(
 
     db.add(project)
     db.flush() # get ID
+
+    # Add Contacts
+    for c in project_in.contacts:
+        db.add(ProjectContact(
+            project_id=project.id, 
+            name=c.name, 
+            phone=c.phone, 
+            email=c.email, 
+            position=c.position
+        ))
 
     # Add Supplies
     for s in project_in.supplies:
@@ -159,9 +170,6 @@ async def update_project(
     project.province = project_in.province
     project.address = project_in.address
     project.waze_link = project_in.waze_link
-    project.contact_name = project_in.contact_name
-    project.contact_phone = project_in.contact_phone
-    project.contact_email = project_in.contact_email
     project.description = project_in.description
     project.is_active = project_in.is_active
     
@@ -169,6 +177,17 @@ async def update_project(
     all_ids = project_in.client_ids + project_in.worker_ids
     selected_users = db.query(User).filter(User.id.in_(all_ids)).all()
     project.users = selected_users
+
+    # Update Contacts
+    db.query(ProjectContact).filter(ProjectContact.project_id == id).delete()
+    for c in project_in.contacts:
+        db.add(ProjectContact(
+            project_id=id, 
+            name=c.name, 
+            phone=c.phone, 
+            email=c.email, 
+            position=c.position
+        ))
     
     # Update Supplies (Replace All strategy for simplicity or nuanced?)
     # Simple strategy: Delete all old, add all new.

@@ -98,34 +98,68 @@
         </div>
 
         <!-- Contact -->
-        {% if project.contact_name or project.contact_phone or project.contact_email %}
+        {% if project.contacts or (project.contact_name or project.contact_phone or project.contact_email) %}
         <div class="bg-white shadow-sm rounded-lg border border-gray-200 p-6">
             <h3 class="text-base font-semibold leading-7 text-gray-900 mb-4 flex items-center gap-2">
                 <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
                 </svg>
-                Contacto en Sitio
+                Contactos en Sitio
             </h3>
-            <div class="space-y-3 text-sm">
-                {% if project.contact_name %}
-                <div>
-                    <span class="text-gray-500 block text-xs uppercase">Encargado</span>
-                    <span class="text-gray-900 font-medium">{{ project.contact_name }}</span>
+            <div class="space-y-4">
+                {% if project.contacts %}
+                {% for contact in project.contacts %}
+                <div class="border-b border-gray-100 pb-3 last:border-0 last:pb-0">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-gray-900 font-medium text-sm">{{ contact.name }}</span>
+                        {% if contact.position %}
+                        <span
+                            class="text-[10px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full uppercase tracking-wide">{{
+                            contact.position }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="text-sm space-y-1">
+                        {% if contact.phone %}
+                        <div>
+                            <span class="text-gray-500 text-xs">Tel:</span>
+                            <a href="tel:{{ contact.phone }}" class="text-indigo-600 hover:text-indigo-500 ml-1">{{
+                                contact.phone }}</a>
+                        </div>
+                        {% endif %}
+                        {% if contact.email %}
+                        <div>
+                            <span class="text-gray-500 text-xs">Email:</span>
+                            <a href="mailto:{{ contact.email }}" class="text-indigo-600 hover:text-indigo-500 ml-1">{{
+                                contact.email }}</a>
+                        </div>
+                        {% endif %}
+                    </div>
                 </div>
-                {% endif %}
-                {% if project.contact_phone %}
-                <div>
-                    <span class="text-gray-500 block text-xs uppercase">Teléfono</span>
-                    <a href="tel:{{ project.contact_phone }}" class="text-indigo-600 hover:text-indigo-500">{{
-                        project.contact_phone }}</a>
-                </div>
-                {% endif %}
-                {% if project.contact_email %}
-                <div>
-                    <span class="text-gray-500 block text-xs uppercase">Correo</span>
-                    <a href="mailto:{{ project.contact_email }}" class="text-indigo-600 hover:text-indigo-500">{{
-                        project.contact_email }}</a>
+                {% endfor %}
+                {% else %}
+                <!-- Legacy Fallback -->
+                <div class="text-sm space-y-3">
+                    {% if project.contact_name %}
+                    <div>
+                        <span class="text-gray-500 block text-xs uppercase">Encargado</span>
+                        <span class="text-gray-900 font-medium">{{ project.contact_name }}</span>
+                    </div>
+                    {% endif %}
+                    {% if project.contact_phone %}
+                    <div>
+                        <span class="text-gray-500 block text-xs uppercase">Teléfono</span>
+                        <a href="tel:{{ project.contact_phone }}" class="text-indigo-600 hover:text-indigo-500">{{
+                            project.contact_phone }}</a>
+                    </div>
+                    {% endif %}
+                    {% if project.contact_email %}
+                    <div>
+                        <span class="text-gray-500 block text-xs uppercase">Correo</span>
+                        <a href="mailto:{{ project.contact_email }}" class="text-indigo-600 hover:text-indigo-500">{{
+                            project.contact_email }}</a>
+                    </div>
+                    {% endif %}
                 </div>
                 {% endif %}
             </div>
@@ -249,7 +283,7 @@
         <!-- Recent Logs Table -->
         <div>
             <h3 class="text-base font-semibold leading-7 text-gray-900 mb-4">Bitácora Reciente</h3>
-            <div class="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
+            <div class="bg-white shadow-sm rounded-lg border border-gray-200 overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>

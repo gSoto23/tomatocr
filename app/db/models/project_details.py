@@ -22,3 +22,15 @@ class ProjectTask(Base):
     is_required = Column(Boolean, default=True)
 
     project = relationship("Project", backref="tasks")
+
+class ProjectContact(Base):
+    __tablename__ = "project_contacts"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
+    name = Column(String(100), nullable=False)
+    phone = Column(String(20))
+    email = Column(String(100))
+    position = Column(String(100))
+    
+    project = relationship("Project", back_populates="contacts")

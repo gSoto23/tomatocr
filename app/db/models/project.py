@@ -26,3 +26,4 @@ class Project(Base):
     contact_email = Column(String(100))
 
     users = relationship("User", secondary=project_users, back_populates="projects")
+    contacts = relationship("ProjectContact", back_populates="project", cascade="all, delete-orphan")

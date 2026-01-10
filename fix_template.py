@@ -1,4 +1,7 @@
-{% extends "base_dashboard.html" %}
+
+import os
+
+content = """{% extends "base_dashboard.html" %}
 
 {% block title %}
 {% if project %}Editar Proyecto{% else %}Nuevo Proyecto{% endif %} | TOMATO
@@ -24,7 +27,7 @@
                         Proyecto</label>
                     <div class="mt-2">
                         <input type="text" x-model="formData.name" id="name" required
-                            class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
+                            class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
                     </div>
                 </div>
 
@@ -33,7 +36,7 @@
                         del Cliente (Visible)</label>
                     <div class="mt-2">
                         <input type="text" x-model="formData.client_display_name" id="client_display_name"
-                            class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
+                            class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
                     </div>
                 </div>
 
@@ -85,7 +88,7 @@
                     <label for="province" class="block text-sm font-medium leading-6 text-gray-900">Provincia</label>
                     <div class="mt-2">
                         <select id="province" x-model="formData.province"
-                            class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
+                            class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
                             <option value="">Seleccione...</option>
                             <option value="San José">San José</option>
                             <option value="Alajuela">Alajuela</option>
@@ -104,7 +107,7 @@
                     <div class="mt-2">
                         <input type="url" x-model="formData.waze_link" id="waze_link"
                             placeholder="https://waze.com/ul?..."
-                            class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
+                            class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
                     </div>
                 </div>
 
@@ -113,7 +116,7 @@
                         Exacta</label>
                     <div class="mt-2">
                         <textarea id="address" x-model="formData.address" rows="2"
-                            class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6"></textarea>
+                            class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6"></textarea>
                     </div>
                 </div>
 
@@ -122,20 +125,20 @@
                     <h3 class="text-base font-semibold leading-7 text-gray-900">Contacto en Sitio</h3>
                 </div>
 
-                <div class="space-y-2 col-span-full">
+                <div class="space-y-2">
                     <template x-for="(contact, index) in formData.contacts" :key="index">
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 border p-2 rounded relative">
                             <input type="text" x-model="contact.name" placeholder="Nombre" required
-                                class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+                                class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
 
                             <input type="text" x-model="contact.position" placeholder="Cargo / Puesto"
-                                class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+                                class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
 
                             <input type="text" x-model="contact.phone" placeholder="Teléfono"
-                                class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+                                class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
 
                             <input type="email" x-model="contact.email" placeholder="Correo"
-                                class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+                                class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
 
                             <button type="button" @click="removeContact(index)"
                                 class="absolute top-2 right-2 text-red-500 hover:text-red-700">
@@ -162,7 +165,7 @@
                         Adicionales</label>
                     <div class="mt-2">
                         <textarea id="description" x-model="formData.description" rows="3"
-                            class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6"></textarea>
+                            class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6"></textarea>
                     </div>
                 </div>
 
@@ -173,9 +176,9 @@
                         <template x-for="(supply, index) in formData.supplies" :key="index">
                             <div class="flex gap-2 items-center">
                                 <input type="text" x-model="supply.name" placeholder="Nombre (e.g. Cloro)"
-                                    class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+                                    class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
                                 <input type="text" x-model="supply.quantity" placeholder="Cant. (e.g. 5L)"
-                                    class="block w-32 rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+                                    class="block w-32 rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
                                 <button type="button" @click="removeSupply(index)"
                                     class="text-red-500 hover:text-red-700">
                                     <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -204,7 +207,7 @@
                         <template x-for="(task, index) in formData.tasks" :key="index">
                             <div class="flex gap-2 items-center">
                                 <input type="text" x-model="task.description" placeholder="Descripción de la tarea"
-                                    class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+                                    class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
                                 <div class="flex items-center gap-2">
                                     <input type="checkbox" x-model="task.is_required"
                                         class="h-4 w-4 rounded border-gray-300 text-black focus:ring-black">
@@ -257,70 +260,52 @@
 </div>
 
 <script>
-    // Initialize data with separate assignments to avoid auto-formatter issues with nested Jinja expressions
-    var _initialData = {
-        name: {{ (project.name if project and project.name else "") | tojson | safe }},
-    client_display_name: {{ (project.client_display_name if project and project.client_display_name else "") | tojson | safe }},
-    province: {{ (project.province if project and project.province else "") | tojson | safe }},
-    address: {{ (project.address if project and project.address else "") | tojson | safe }},
-    waze_link: {{ (project.waze_link if project and project.waze_link else "") | tojson | safe }},
-    is_active: {{ "true" if (not project or project.is_active) else "false" }},
-    description: {{ (project.description if project and project.description else "") | tojson | safe }},
-    contacts: [],
-        client_ids: [],
-            worker_ids: [],
-                supplies: [],
-                    tasks: []
-    };
-
-    {% if project %}
-    // Populate lists if project exists
-    {% for c in project.contacts %}
-    _initialData.contacts.push({
-        name: {{ c.name | tojson | safe }},
-        phone: {{ c.phone | tojson | safe }},
-        email: {{ c.email | tojson | safe }},
-        position: {{ c.position | tojson | safe }}
-    });
-    {% endfor %}
-
-    // Legacy fallback
-    {% if not project.contacts and(project.contact_name or project.contact_phone) %}
-    _initialData.contacts.push({
-        name: {{ (project.contact_name or "") | tojson | safe }},
-        phone: {{ (project.contact_phone or "") | tojson | safe }},
-        email: {{ (project.contact_email or "") | tojson | safe }},
-        position: "Principal"
-    });
-    {% endif %}
-
-    {% for u in project.users %}
-    {% if u.role == 'client' %}
-    _initialData.client_ids.push({{ u.id }});
-    {% elif u.role == 'worker' %}
-    _initialData.worker_ids.push({{ u.id }});
-    {% endif %}
-    {% endfor %}
-
-    {% for s in project.supplies %}
-    _initialData.supplies.push({
-        name: {{ s.name | tojson | safe }},
-        quantity: {{ s.quantity | tojson | safe }}
-    });
-    {% endfor %}
-
-    {% for t in project.tasks %}
-    _initialData.tasks.push({
-        description: {{ t.description | tojson | safe }},
-        is_required: {{ "true" if t.is_required else "false" }}
-    });
-    {% endfor %}
-    {% endif %}
-
     function projectForm() {
         return {
-            formData: _initialData,
-
+            formData: {
+                name: {{ (project.name | tojson if project and project.name else "''") | safe }},
+                client_display_name: {{ (project.client_display_name | tojson if project and project.client_display_name else "''") | safe }},
+                province: {{ (project.province | tojson if project and project.province else "''") | safe }},
+                address: {{ (project.address | tojson if project and project.address else "''") | safe }},
+                waze_link: {{ (project.waze_link | tojson if project and project.waze_link else "''") | safe }},
+                is_active: {% if project and not project.is_active %}false{% else %}true{% endif %},
+                description: {{ (project.description | tojson if project and project.description else "''") | safe }},
+                contacts: [
+                    {% if project %}
+                        {% for c in project.contacts %}
+                            { name: {{ (c.name | tojson) | safe }}, phone: {{ (c.phone | tojson) | safe }}, email: {{ (c.email | tojson) | safe }}, position: {{ (c.position | tojson) | safe }} },
+                        {% endfor %}
+                        {% if not project.contacts and (project.contact_name or project.contact_phone or project.contact_email) %}
+                             { 
+                                name: {{ (project.contact_name | tojson or "''") | safe }}, 
+                                phone: {{ (project.contact_phone | tojson or "''") | safe }},
+                                email: {{ (project.contact_email | tojson or "''") | safe }},
+                                position: "Principal"
+                            },
+                        {% endif %}
+                    {% endif %}
+                ],
+                client_ids: [
+                    {% if project %} {% for u in project.users if u.role == 'client' %} {{ u.id }}, {% endfor %} {% endif %}
+                ],
+                worker_ids: [
+                    {% if project %} {% for u in project.users if u.role == 'worker' %} {{ u.id }}, {% endfor %} {% endif %}
+                ],
+                supplies: [
+                    {% if project %}
+                        {% for s in project.supplies %} 
+                            { name: {{ (s.name | tojson) | safe }}, quantity: {{ (s.quantity | tojson) | safe }} }, 
+                        {% endfor %} 
+                    {% endif %}
+                ],
+                tasks: [
+                    {% if project %}
+                        {% for t in project.tasks %} 
+                            { description: {{ (t.description | tojson) | safe }}, is_required: {% if t.is_required %}true{% else %}false{% endif %} }, 
+                        {% endfor %} 
+                    {% endif %}
+                ]
+            },
             addContact() {
                 this.formData.contacts.push({ name: '', phone: '', email: '', position: '' });
             },
@@ -340,33 +325,37 @@
                 this.formData.tasks.splice(index, 1);
             },
             async submitForm() {
-                const isEdit = {{ "true" if project else "false" }};
+                const isEdit = {% if project %}true{% else %}false{% endif %};
+                const url = isEdit ? '/projects/{{ (project.id if project else "") | safe }}/edit' : '/projects/new';
 
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(this.formData)
+                    });
 
-            const url = isEdit ? '/projects/{{ (project.id if project else "") | safe }}/edit' : '/projects/new';
+                    const result = await response.json();
 
-            try {
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(this.formData)
-                });
-
-                const result = await response.json();
-
-                if(response.ok) {
-            window.location.href = result.redirect_url;
-        } else {
-            alert('Error al guardar: ' + (result.detail || 'Error desconocido'));
-        }
-    } catch (error) {
-        console.error(error);
-        alert('Error de red');
-    }
+                    if (response.ok) {
+                        window.location.href = result.redirect_url;
+                    } else {
+                        alert('Error al guardar: ' + (result.detail || 'Error desconocido'));
+                    }
+                } catch (error) {
+                    console.error(error);
+                    alert('Error de red');
+                }
             }
         }
     }
 </script>
 {% endblock %}
+"""
+
+with open("/Users/gsoto/Desktop/tomatocr/app/templates/projects/form.html", "w") as f:
+    f.write(content)
+
+print("File updated successfully")

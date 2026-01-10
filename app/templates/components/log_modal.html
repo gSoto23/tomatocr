@@ -3,10 +3,10 @@
     <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
 
     <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
-        <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+        <div class="flex min-h-full items-center justify-center p-4 text-center">
 
             <div
-                class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl">
+                class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 w-full max-w-lg sm:max-w-2xl">
                 <!-- Modal Header -->
                 <div class="bg-gray-50 px-4 py-3 sm:px-6 flex justify-between items-center">
                     <h3 class="text-base font-semibold leading-6 text-gray-900" id="log-modal-title">Detalle del Reporte
@@ -64,9 +64,45 @@
 
                             <label class="block text-sm font-medium text-gray-700 mb-2">Notas</label>
                             <textarea name="notes" id="edit-notes" rows="6"
-                                class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6"></textarea>
+                                class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6"></textarea>
                             <p class="mt-1 text-xs text-gray-400">Última edición: <span id="log-updated"></span></p>
                         </form>
+
+                        <!-- Email Mode -->
+                        <div id="email-mode" class="hidden">
+                            <h4 class="text-base font-semibold leading-6 text-gray-900 mb-4">Enviar Reporte por Correo
+                            </h4>
+
+                            <div class="bg-blue-50 p-3 rounded-md border border-blue-100 mb-4">
+                                <p class="text-xs text-blue-700 font-medium mb-1">Resumen del Contenido:</p>
+                                <ul class="list-disc pl-4 space-y-1 text-xs text-blue-600">
+                                    <li>Reporte: <span id="email-preview-project" class="font-bold"></span></li>
+                                    <li>Fecha: <span id="email-preview-date"></span></li>
+                                    <li>Notas: <span id="email-preview-notes" class="italic truncate block"></span></li>
+                                    <li>Tareas Hechas: <span id="email-preview-tasks" class="font-bold"></span></li>
+                                </ul>
+                            </div>
+
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Destinatarios</label>
+                                    <div id="email-recipients-container"
+                                        class="space-y-2 border rounded-md p-3 bg-gray-50 max-h-40 overflow-y-auto">
+                                        <!-- Populated via JS -->
+                                    </div>
+                                    <p class="mt-1 text-xs text-gray-500">Seleccione los contactos a los que desea
+                                        enviar el reporte.</p>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Mensaje Adicional
+                                        (Opcional)</label>
+                                    <textarea id="email-additional-text" rows="3"
+                                        placeholder="Escriba un mensaje para incluir en el cuerpo del correo..."
+                                        class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6"></textarea>
+                                </div>
+                            </div>
+                        </div>
 
                         <!-- Photos -->
                         <div id="log-photos" class="grid grid-cols-2 gap-4 mt-4"></div>
@@ -82,9 +118,19 @@
                     <button id="btn-delete" type="button" onclick="deleteLog()"
                         class="hidden inline-flex w-full justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:w-auto">Eliminar</button>
 
+                    <!-- Email Mode Buttons -->
+                    <button id="btn-send-email-confirm" type="button" onclick="submitSendEmail()"
+                        class="hidden inline-flex w-full justify-center rounded-md bg-black px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 sm:w-auto">
+                        Enviar Correo
+                    </button>
+                    <button id="btn-cancel-email" type="button" onclick="disableEmailMode()"
+                        class="hidden mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">
+                        Cancelar
+                    </button>
+
                     <!-- Email Button -->
-                    <button id="btn-email" type="button" onclick="sendLogEmail()"
-                        class="hidden inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 sm:w-auto">
+                    <button id="btn-email" type="button" onclick="enableEmailMode()"
+                        class="hidden inline-flex w-full justify-center rounded-md bg-black px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 sm:w-auto">
                         <svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -107,6 +153,7 @@
 
 <script>
     let currentLogId = null;
+    let currentLogData = null;
 
     async function openLogModal(logId) {
         currentLogId = logId;
@@ -124,6 +171,7 @@
             const response = await fetch(`/logs/${logId}/detail`);
             if (!response.ok) throw new Error('Failed to load');
             const data = await response.json();
+            currentLogData = data;
 
             // Populate
             document.getElementById('log-project').textContent = data.project_name;
@@ -289,16 +337,110 @@
         form.submit();
     }
 
-    async function sendLogEmail() {
-        if (!currentLogId) return;
-        const recipient = prompt("Ingrese el correo electrónico del destinatario:");
-        if (!recipient) return;
+    function enableEmailMode() {
+        if (!currentLogData) return;
 
-        // Basic Email validation
-        if (!recipient.includes('@') || !recipient.includes('.')) {
-            alert("Por favor ingrese un correo válido.");
+        // Toggle Views
+        document.getElementById('view-mode').classList.add('hidden');
+        document.getElementById('log-tasks-container').classList.add('hidden'); // Hide tasks summary
+        document.getElementById('log-photos').classList.add('hidden'); // Hide photos
+        document.getElementById('email-mode').classList.remove('hidden');
+
+        // Toggle Buttons
+        document.getElementById('btn-email').classList.add('hidden'); // Hide entry button
+        document.getElementById('btn-edit').classList.add('hidden');
+        document.getElementById('btn-save').classList.add('hidden'); // Should be hidden anyway
+        document.getElementById('btn-delete').classList.add('hidden');
+
+        document.getElementById('btn-send-email-confirm').classList.remove('hidden');
+        document.getElementById('btn-cancel-email').classList.remove('hidden');
+
+        // Populate Preview
+        document.getElementById('email-preview-project').textContent = currentLogData.project_name;
+        document.getElementById('email-preview-date').textContent = currentLogData.date;
+        document.getElementById('email-preview-notes').textContent = currentLogData.notes || "Sin notas";
+
+        const doneTasksCount = currentLogData.tasks.filter(t => t.completed).length;
+        document.getElementById('email-preview-tasks').textContent = `${doneTasksCount} / ${currentLogData.tasks.length}`;
+
+        // Populate Recipients
+        const container = document.getElementById('email-recipients-container');
+        container.innerHTML = '';
+
+        if (currentLogData.project_contacts && currentLogData.project_contacts.length > 0) {
+            currentLogData.project_contacts.forEach((contact, index) => {
+                if (contact.email) {
+                    const div = document.createElement('div');
+                    div.className = "flex items-start";
+                    div.innerHTML = `
+                        <div class="flex h-5 items-center">
+                            <input id="recipient-${index}" name="recipients" value="${contact.email}" type="checkbox" checked
+                                class="h-4 w-4 rounded border-gray-300 text-black focus:ring-black">
+                        </div>
+                        <div class="ml-3 text-sm">
+                            <label for="recipient-${index}" class="font-medium text-gray-700">${contact.name}</label>
+                            <p class="text-gray-500 text-xs">${contact.email} ${contact.position ? `(${contact.position})` : ''}</p>
+                        </div>
+                    `;
+                    container.appendChild(div);
+                }
+            });
+        }
+
+        // Always add option to send to self? or manually add? 
+        // For now, if no contacts with email, show message.
+        if (container.children.length === 0) {
+            container.innerHTML = '<p class="text-sm text-gray-500 italic">No hay contactos con correo registrados en el proyecto.</p>';
+        }
+
+        // Clear additional text
+        document.getElementById('email-additional-text').value = '';
+    }
+
+    function disableEmailMode() {
+        document.getElementById('email-mode').classList.add('hidden');
+        document.getElementById('view-mode').classList.remove('hidden');
+
+        // Restore Task list if not empty
+        const list = document.getElementById('log-tasks-list');
+        if (list.children.length > 0) {
+            document.getElementById('log-tasks-container').classList.remove('hidden');
+        }
+        // Restore photos
+        document.getElementById('log-photos').classList.remove('hidden');
+
+        // Restore Buttons
+        document.getElementById('btn-send-email-confirm').classList.add('hidden');
+        document.getElementById('btn-cancel-email').classList.add('hidden');
+
+        // Show standard buttons based on perms
+        // Need to re-check perms from currentLogData
+        if (currentLogData.can_edit) {
+            document.getElementById('btn-edit').classList.remove('hidden');
+        }
+        if (currentLogData.is_admin) {
+            document.getElementById('btn-email').classList.remove('hidden');
+        }
+    }
+
+    async function submitSendEmail() {
+        const recipients = [];
+        document.querySelectorAll('input[name="recipients"]:checked').forEach(cb => {
+            recipients.push(cb.value);
+        });
+
+        if (recipients.length === 0) {
+            alert("Por favor seleccione al menos un destinatario.");
             return;
         }
+
+        const additionalText = document.getElementById('email-additional-text').value;
+
+        // Show loading state? 
+        const btn = document.getElementById('btn-send-email-confirm');
+        const originalText = btn.textContent;
+        btn.textContent = "Enviando...";
+        btn.disabled = true;
 
         try {
             const response = await fetch(`/logs/${currentLogId}/send-email`, {
@@ -306,19 +448,26 @@
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ recipient: recipient })
+                body: JSON.stringify({
+                    recipients: recipients,
+                    additional_text: additionalText
+                })
             });
 
             const result = await response.json();
 
             if (response.ok) {
                 alert("Correo enviado exitosamente.");
+                disableEmailMode(); // Close mode
             } else {
                 alert("Error: " + (result.detail || result.message || "No se pudo enviar el correo."));
             }
         } catch (error) {
             console.error(error);
             alert("Ocurrió un error al intentar enviar el correo.");
+        } finally {
+            btn.textContent = originalText;
+            btn.disabled = false;
         }
     }
 </script>
