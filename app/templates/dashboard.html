@@ -185,46 +185,112 @@
 
 <!-- CLIENT VIEW -->
 {% elif user.role == 'client' %}
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-    <div class="px-6 py-4 border-b border-gray-100">
-        <h3 class="font-bold text-gray-900">Actividad Reciente (Bitácoras)</h3>
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+    <div>
+        <h3 class="font-bold text-gray-900 text-lg">Bitácora Global</h3>
+        <p class="text-sm text-gray-500">Reportes de tus proyectos asignados.</p>
     </div>
-    <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha
-                    </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Proyecto
-                    </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notas
-                    </th>
-                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acción
-                    </th>
-                </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-                {% for log in data.recent_activity %}
-                <tr>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ log.date | format_date }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ log.project.name if
-                        log.project else 'N/A' }}</td>
-                    <td class="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">{{ log.notes or '-' }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <a href="/projects/{{ log.project_id }}/logs"
-                            class="text-indigo-600 hover:text-indigo-900">Ver</a>
-                    </td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="4" class="px-6 py-8 text-center text-sm text-gray-500 italic">No hay bitácoras
-                        recientes.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+
+    <!-- Filter Form -->
+    <form action="/dashboard" method="get" class="flex items-center gap-2 w-full sm:w-auto">
+        <select name="project_id" onchange="this.form.submit()"
+            class="block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6 sm:w-64">
+            <option value="">Todos mis Proyectos</option>
+            {% for p in data.projects %}
+            <option value="{{ p.id }}" {% if data.selected_project_id==p.id %}selected{% endif %}>{{ p.name }}</option>
+            {% endfor %}
+        </select>
+    </form>
 </div>
+
+<div class="bg-white shadow-sm rounded-lg border border-gray-200 overflow-x-auto mb-6">
+    <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+            <tr>
+                <th scope="col"
+                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer group"
+                    onclick="window.location.href='?sort=date&order={{ 'asc' if data.sort == 'date' and data.order == 'desc' else 'desc' }}{% if data.selected_project_id %}&project_id={{ data.selected_project_id }}{% endif %}'">
+                    <div class="flex items-center">
+                        Fecha
+                        <span class="ml-1 text-gray-400">
+                            {% if data.sort == 'date' %}
+                            {% if data.order == 'asc' %}
+                            &#8593;
+                            {% else %}
+                            &#8595;
+                            {% endif %}
+                            {% else %}
+                            &#8597;
+                            {% endif %}
+                        </span>
+                    </div>
+                </th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Proyecto</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Usuario</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Detalle</th>
+                <th scope="col" class="relative px-6 py-3"><span class="sr-only">Ver</span></th>
+            </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+            {% for log in data.logs %}
+            <tr>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {{ log.date | format_date }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="text-sm font-medium text-gray-900">{{ log.project.name }}</span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center">
+                        <div
+                            class="h-6 w-6 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-600 mr-2">
+                            {{ log.user.username[:2].upper() }}
+                        </div>
+                        <div class="text-sm font-medium text-gray-900">{{ log.user.full_name or log.user.username }}
+                        </div>
+                    </div>
+                </td>
+                <td class="px-6 py-4 text-sm text-gray-500 truncate max-w-xs block">
+                    {{ log.notes or '-' }}
+                    {% if log.photos %}
+                    <span
+                        class="inline-flex items-center rounded-md bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600 ml-1">
+                        <svg class="h-3 w-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path
+                                d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" />
+                        </svg>
+                        {{ log.photos|length }}
+                    </span>
+                    {% endif %}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <button onclick="openLogModal({{ log.id }})" class="text-indigo-600 hover:text-indigo-900">Ver
+                        Detalle</button>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5" class="px-6 py-10 text-center text-sm text-gray-500">
+                    No se encontraron bitácoras para tus proyectos.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% from "components/pagination.html" import render_pagination %}
+    <!-- Construct endpoint with existing query params -->
+    {% set base_url = '/dashboard' %}
+    {% if data.selected_project_id %}
+    {% set base_url = base_url ~ '?project_id=' ~ data.selected_project_id %}
+    {% endif %}
+
+    {{ render_pagination(data.page, data.total_pages, base_url) }}
+</div>
+
+{% include 'components/log_modal.html' %}
 
 <!-- WORKER VIEW -->
 {% elif user.role == 'worker' %}

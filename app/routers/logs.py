@@ -35,31 +35,59 @@ async def list_logs(
     project_id: Optional[int] = None,
     page: int = 1,
     limit: int = 10,
+    sort: str = "date",
+    order: str = "desc",
     db: Session = Depends(deps.get_db), 
     user: User = Depends(deps.get_current_user)
 ):
-    # RBAC: Only Admin can access the global logs list
-    if user.role != "admin":
-        raise HTTPException(status_code=403, detail="Not authorized")
-        
-    query = db.query(DailyLog).join(Project)
-    
-    # Filter by Project if provided
-    if project_id:
-        query = query.filter(DailyLog.project_id == project_id)
+    # RBAC: Admin sees all, others see only assigned projects
+    if user.role == "admin":
+        count_query = db.query(func.count(DailyLog.id)).join(Project)
+        query = db.query(DailyLog).join(Project)
+    else:
+        # Filter for Client/Worker
+        count_query = db.query(func.count(DailyLog.id))\
+            .join(Project)\
+            .join(project_users, Project.id == project_users.c.project_id)\
+            .filter(project_users.c.user_id == user.id)
+            
+        query = db.query(DailyLog)\
+            .join(Project)\
+            .join(project_users, Project.id == project_users.c.project_id)\
+            .filter(project_users.c.user_id == user.id)
 
-    # Count Total
-    count_query = db.query(func.count(DailyLog.id)).join(Project)
+    # Filter by Project if provided (and authorized)
     if project_id:
+        # Check authorization for specific project if not admin
+        if user.role != "admin":
+            # Verify user belongs to this project
+            is_member = db.query(project_users).filter(
+                project_users.c.user_id == user.id,
+                project_users.c.project_id == project_id
+            ).first()
+            if not is_member:
+                raise HTTPException(status_code=403, detail="Not authorized for this project")
+                
+        query = query.filter(DailyLog.project_id == project_id)
         count_query = count_query.filter(DailyLog.project_id == project_id)
+
     total_records = count_query.scalar()
+
+    # Sorting
+    if sort == "project":
+        if order == "asc":
+            query = query.order_by(Project.name.asc())
+        else:
+            query = query.order_by(Project.name.desc())
+    else: # Default date
+        if order == "asc":
+            query = query.order_by(DailyLog.date.asc(), DailyLog.created_at.asc())
+        else:
+            query = query.order_by(DailyLog.date.desc(), DailyLog.created_at.desc())
 
     # Pagination
     offset = (page - 1) * limit
-    logs = query.order_by(desc(DailyLog.date), desc(DailyLog.created_at))\
-        .offset(offset)\
-        .limit(limit)\
-        .all()
+    logs = query.offset(offset).limit(limit).all()
     
     # Get all projects for filter dropdown
     projects = db.query(Project).all()
@@ -75,7 +103,9 @@ async def list_logs(
         "selected_project_id": project_id,
         "page": page,
         "total_pages": total_pages,
-        "total_records": total_records
+        "total_records": total_records,
+        "sort": sort,
+        "order": order
     })
 
 @router.get("/{id}/detail")

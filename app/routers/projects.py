@@ -367,3 +367,7 @@ async def get_project_detail(
         "total_pages": total_pages,
         "total_records": total_records
     })
+
+@router.get("/{id}/logs")
+async def project_logs_redirect(id: int):
+    return RedirectResponse(url=f"/logs?project_id={id}")

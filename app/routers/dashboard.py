@@ -90,16 +90,58 @@ async def dashboard(
         data["recent_activity"] = recent_invoices
         
     elif user.role == "client":
-        # 1. Get Client Projects
+        # 1. Get Client Projects for Dropdown & Filter
         client_projects = db.query(Project).join(project_users).filter(project_users.c.user_id == user.id).all()
         project_ids = [p.id for p in client_projects]
         
-        # 2. Recent Activity: Logs (Bitácoras)
-        recent_logs = db.query(DailyLog).filter(
-            DailyLog.project_id.in_(project_ids)
-        ).order_by(DailyLog.date.desc()).limit(20).all()
+        # 2. Logs Query
+        # If project_id param is provided, verify it belongs to client
+        query = db.query(DailyLog).filter(DailyLog.project_id.in_(project_ids))
         
-        data["recent_activity"] = recent_logs
+        selected_project_id = None
+        if request.query_params.get("project_id"):
+            try:
+                pid = int(request.query_params.get("project_id"))
+                if pid in project_ids:
+                    query = query.filter(DailyLog.project_id == pid)
+                    selected_project_id = pid
+            except ValueError:
+                pass
+        
+        # Sorting
+        sort = request.query_params.get("sort", "date")
+        order = request.query_params.get("order", "desc")
+        
+        if sort == "project":
+            if order == "asc":
+                query = query.join(Project).order_by(Project.name.asc())
+            else:
+                query = query.join(Project).order_by(Project.name.desc())
+        else: # Default date
+            if order == "asc":
+                query = query.order_by(DailyLog.date.asc(), DailyLog.created_at.asc())
+            else:
+                query = query.order_by(DailyLog.date.desc(), DailyLog.created_at.desc())
+        
+        # Pagination
+        page = int(request.query_params.get("page", 1))
+        limit = 10
+        total_records = query.count()
+        
+        from math import ceil
+        total_pages = ceil(total_records / limit)
+        offset = (page - 1) * limit
+        
+        logs = query.offset(offset).limit(limit).all()
+        
+        data["logs"] = logs
+        data["projects"] = client_projects
+        data["selected_project_id"] = selected_project_id
+        data["page"] = page
+        data["total_pages"] = total_pages
+        data["total_records"] = total_records
+        data["sort"] = sort
+        data["order"] = order
         
     elif user.role == "worker":
         # 1. Recent Activity: Assignments (Schedule)
