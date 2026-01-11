@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, Form, File, UploadFile, status, Request,
 from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-from sqlalchemy import desc
+from sqlalchemy import desc, func
 
 from app.db.session import SessionLocal
 from app.db.models.log import DailyLog, Photo
@@ -27,36 +27,85 @@ router = APIRouter(
     dependencies=[Depends(deps.get_current_user)]
 )
 
-templates = Jinja2Templates(directory="app/templates")
+from app.core.templates import templates
 
 @router.get("/")
 async def list_logs(
     request: Request, 
     project_id: Optional[int] = None,
+    page: int = 1,
+    limit: int = 10,
+    sort: str = "date",
+    order: str = "desc",
     db: Session = Depends(deps.get_db), 
     user: User = Depends(deps.get_current_user)
 ):
-    # RBAC: Only Admin can access the global logs list
-    if user.role != "admin":
-        raise HTTPException(status_code=403, detail="Not authorized")
-        
-    query = db.query(DailyLog).join(Project)
-    
-    # Filter by Project if provided
+    # RBAC: Admin sees all, others see only assigned projects
+    if user.role == "admin":
+        count_query = db.query(func.count(DailyLog.id)).join(Project)
+        query = db.query(DailyLog).join(Project)
+    else:
+        # Filter for Client/Worker
+        count_query = db.query(func.count(DailyLog.id))\
+            .join(Project)\
+            .join(project_users, Project.id == project_users.c.project_id)\
+            .filter(project_users.c.user_id == user.id)
+            
+        query = db.query(DailyLog)\
+            .join(Project)\
+            .join(project_users, Project.id == project_users.c.project_id)\
+            .filter(project_users.c.user_id == user.id)
+
+    # Filter by Project if provided (and authorized)
     if project_id:
+        # Check authorization for specific project if not admin
+        if user.role != "admin":
+            # Verify user belongs to this project
+            is_member = db.query(project_users).filter(
+                project_users.c.user_id == user.id,
+                project_users.c.project_id == project_id
+            ).first()
+            if not is_member:
+                raise HTTPException(status_code=403, detail="Not authorized for this project")
+                
         query = query.filter(DailyLog.project_id == project_id)
-        
-    logs = query.order_by(desc(DailyLog.date), desc(DailyLog.created_at)).all()
+        count_query = count_query.filter(DailyLog.project_id == project_id)
+
+    total_records = count_query.scalar()
+
+    # Sorting
+    if sort == "project":
+        if order == "asc":
+            query = query.order_by(Project.name.asc())
+        else:
+            query = query.order_by(Project.name.desc())
+    else: # Default date
+        if order == "asc":
+            query = query.order_by(DailyLog.date.asc(), DailyLog.created_at.asc())
+        else:
+            query = query.order_by(DailyLog.date.desc(), DailyLog.created_at.desc())
+
+    # Pagination
+    offset = (page - 1) * limit
+    logs = query.offset(offset).limit(limit).all()
     
     # Get all projects for filter dropdown
     projects = db.query(Project).all()
+    
+    from math import ceil
+    total_pages = ceil(total_records / limit)
     
     return templates.TemplateResponse("logs/list.html", {
         "request": request, 
         "logs": logs, 
         "user": user,
         "projects": projects,
-        "selected_project_id": project_id
+        "selected_project_id": project_id,
+        "page": page,
+        "total_pages": total_pages,
+        "total_records": total_records,
+        "sort": sort,
+        "order": order
     })
 
 @router.get("/{id}/detail")
@@ -193,14 +242,14 @@ async def new_log_form(request: Request, project_id: Optional[int] = None, db: S
     today = date.today()
     project_tasks_json = json.dumps(project_tasks_map)
     
-    return templates.TemplateResponse("logs/form.html", {
+    return templates.TemplateResponse("logs/form_fixed.html", {
         "request": request,
         "user": user, 
         "projects": projects,
         "today": today,
         "project_tasks_json": project_tasks_json,
         "selected_project_id": project_id,
-        "project_tasks_json": json.dumps(project_tasks_map)
+
     })
 
 @router.post("/new")

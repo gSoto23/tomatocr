@@ -18,18 +18,21 @@ router = APIRouter(
     dependencies=[Depends(deps.get_current_user)]
 )
 
-templates = Jinja2Templates(directory="app/templates")
+from app.core.templates import templates
 
 @router.get("/")
 async def calendar_view(request: Request, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
+    # Supervisor sees admin view (can manage), Worker sees their own calendar
+    # Client is redirected
     if user.role == "client":
         return RedirectResponse(url="/projects", status_code=status.HTTP_303_SEE_OTHER)
 
     projects = []
     workers = []
-    if user.role == "admin":
+    # Admin and Supervisor get full list
+    if user.role in ["admin", "supervisor"]:
         projects = db.query(Project).filter(Project.is_active == True).all()
-        workers = db.query(User).filter(User.role == "worker").all()
+        workers = db.query(User).filter(User.role.in_(["worker", "supervisor"])).all()
 
     return templates.TemplateResponse("calendar/index.html", {
         "request": request, 
@@ -42,28 +45,29 @@ async def calendar_view(request: Request, db: Session = Depends(deps.get_db), us
 async def get_events(start: str, end: str, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
     query = db.query(ProjectSchedule)
     
-    if user.role != "admin":
+    # Admin and Supervisor see all
+    if user.role not in ["admin", "supervisor"]:
         query = query.filter(ProjectSchedule.user_id == user.id)
     
     schedules = query.filter(ProjectSchedule.date >= start, ProjectSchedule.date <= end).all()
     
     events = []
     for s in schedules:
+        is_manager = user.role in ["admin", "supervisor"]
         evt = {
             "id": s.id,
             "title": f"{s.project.name} ({s.user.username})",
             "start": s.date.isoformat(),
-            # Workers click to go to project, Admins click to Edit (handled in JS)
-            "url": f"/projects/{s.project.id}" if user.role != "admin" else None, 
+            # Workers click to go to project, Managers click to Edit (handled in JS)
+            "url": f"/projects/{s.project.id}" if not is_manager else None, 
             "extendedProps": {
                 "worker_id": s.user_id,
                 "project_id": s.project_id,
                 "project_name": s.project.name,
-                "project_name": s.project.name,
                 "worker_name": s.user.full_name or s.user.username,
-                "tasks": [{"id": t.id, "description": t.description, "completed": t.completed} for t in s.tasks]
+                "tasks": [{"id": t.id, "title": t.title, "description": t.description, "completed": t.completed} for t in s.tasks]
             },
-            "color": "#000000" if user.role == "admin" else "#2563eb"
+            "color": "#000000" if is_manager else "#2563eb"
         }
         events.append(evt)
         
@@ -74,11 +78,11 @@ async def create_schedule(
     project_id: int = Form(...),
     user_id: int = Form(...),
     date_val: str = Form(..., alias="date"),
-    tasks: List[str] = Form([], alias="tasks"),
+    tasks_json: str = Form("[]"),
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
-    if user.role != "admin":
+    if user.role not in ["admin", "supervisor"]:
         raise HTTPException(status_code=403, detail="Not authorized")
         
     new_schedule = ProjectSchedule(
@@ -90,9 +94,20 @@ async def create_schedule(
     db.flush()
     
     # Save manual tasks
-    for task_desc in tasks:
-        if task_desc.strip():
-            db.add(ScheduleTask(schedule_id=new_schedule.id, description=task_desc.strip()))
+    import json
+    try:
+        tasks_data = json.loads(tasks_json)
+        for task in tasks_data:
+            title = task.get("title", "")
+            desc = task.get("description", "")
+            if title.strip() or desc.strip():
+                db.add(ScheduleTask(
+                    schedule_id=new_schedule.id, 
+                    title=title.strip(),
+                    description=desc.strip()
+                ))
+    except json.JSONDecodeError:
+        pass # Handle error or ignore
 
     db.commit()
     
@@ -100,7 +115,7 @@ async def create_schedule(
 
 @router.post("/schedule/{id}/delete")
 async def delete_schedule(id: int, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
-    if user.role != "admin":
+    if user.role not in ["admin", "supervisor"]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
     schedule = db.query(ProjectSchedule).filter(ProjectSchedule.id == id).first()
@@ -117,11 +132,11 @@ async def update_schedule(
     project_id: int = Form(...),
     user_id: int = Form(...),
     date_val: str = Form(..., alias="date"),
-    tasks: List[str] = Form([], alias="tasks"),
+    tasks_json: str = Form("[]"),
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
-    if user.role != "admin":
+    if user.role not in ["admin", "supervisor"]:
         raise HTTPException(status_code=403, detail="Not authorized")
 
     schedule = db.query(ProjectSchedule).filter(ProjectSchedule.id == id).first()
@@ -134,9 +149,21 @@ async def update_schedule(
     
     # Update tasks (Replace all)
     db.query(ScheduleTask).filter(ScheduleTask.schedule_id == id).delete()
-    for task_desc in tasks:
-        if task_desc.strip():
-            db.add(ScheduleTask(schedule_id=schedule.id, description=task_desc.strip()))
+    
+    import json
+    try:
+        tasks_data = json.loads(tasks_json)
+        for task in tasks_data:
+            title = task.get("title", "")
+            desc = task.get("description", "")
+            if title.strip() or desc.strip():
+                db.add(ScheduleTask(
+                    schedule_id=schedule.id, 
+                    title=title.strip(),
+                    description=desc.strip()
+                ))
+    except json.JSONDecodeError:
+        pass
 
     db.commit()
     return JSONResponse({"status": "success", "message": "Asignación actualizada correctamente"})
@@ -147,8 +174,8 @@ async def toggle_task_status(id: int, db: Session = Depends(deps.get_db), user: 
     if not task:
         return JSONResponse({"status": "error", "message": "Tarea no encontrada"}, status_code=404)
     
-    # Check authorization: Admin or the assigned worker
-    if user.role != "admin" and task.schedule.user_id != user.id:
+    # Check authorization: Admin, Supervisor, or the assigned worker
+    if user.role not in ["admin", "supervisor"] and task.schedule.user_id != user.id:
          raise HTTPException(status_code=403, detail="Not authorized")
 
     task.completed = not task.completed

@@ -9,12 +9,14 @@
         <p class="mt-1 text-sm text-gray-500">
             {% if user.role == 'admin' %}
             Asignación de proyectos y personal.
+            {% elif user.role == 'supervisor' %}
+            Gestión de asignaciones y proyectos personales.
             {% else %}
             Tus proyectos asignados.
             {% endif %}
         </p>
     </div>
-    {% if user.role == 'admin' %}
+    {% if user.role in ['admin', 'supervisor'] %}
     <button onclick="openModal()"
         class="inline-flex items-center justify-center rounded-md bg-black px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black">
         <svg class="-ml-0.5 mr-1.5 h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -31,8 +33,8 @@
     <div id='calendar'></div>
 </div>
 
-<!-- Scheduling Modal (Admin Only) -->
-{% if user.role == 'admin' %}
+<!-- Scheduling Modal (Admin/Supervisor) -->
+{% if user.role in ['admin', 'supervisor'] %}
 <div id="scheduleModal" class="relative z-50 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
     <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
 
@@ -144,7 +146,7 @@
 {% endif %}
 
 <!-- Worker Task Modal (Read Only + Checkboxes) -->
-{% if user.role != 'admin' %}
+{% if user.role not in ['admin', 'supervisor'] %}
 <div id="workerScheduleModal" class="relative z-50 hidden" aria-labelledby="modal-title" role="dialog"
     aria-modal="true">
     <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
@@ -194,24 +196,28 @@
 
 <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
 <script>
-    {% if user.role == 'admin' %}
+    {% if user.role in ['admin', 'supervisor'] %}
     let currentScheduleId = null;
 
     // Handle Project Change (No longer needed for tasks, but kept if we need logic later)
     // document.getElementById('project_id').addEventListener('change', ...);
 
-    function addTaskInput(value = '') {
+    function addTaskInput(titleVal = '', descVal = '') {
         const container = document.getElementById('tasks-list');
         const div = document.createElement('div');
-        div.className = "flex items-center gap-2";
+        div.className = "flex flex-col gap-2 p-3 border rounded-md bg-gray-50 relative task-item";
         div.innerHTML = `
-            <input type="text" name="tasks" value="${value}" placeholder="Descripción de la tarea"
-                class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
-            <button type="button" onclick="this.parentElement.remove()" class="text-gray-400 hover:text-red-500">
-                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
+            <div class="flex justify-between">
+                 <input type="text" class="task-title block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6 mr-2" 
+                        placeholder="Título de la tarea" value="${titleVal}">
+                 <button type="button" onclick="this.closest('.task-item').remove()" class="text-gray-400 hover:text-red-500">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <textarea class="task-desc block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6"
+                      rows="2" placeholder="Descripción detallada">${descVal}</textarea>
         `;
         container.appendChild(div);
     }
@@ -243,7 +249,7 @@
             document.getElementById('tasks-list').innerHTML = '';
             const tasks = schedule.extendedProps.tasks || [];
             if (tasks.length > 0) {
-                tasks.forEach(t => addTaskInput(t.description));
+                tasks.forEach(t => addTaskInput(t.title || '', t.description));
             } else {
                 addTaskInput(); // Add one empty by default
             }
@@ -272,7 +278,22 @@
     // Handle Form Submit (Fetch + Toaster)
     document.getElementById('scheduleForm').addEventListener('submit', async function (e) {
         e.preventDefault();
+
+        // Serialize tasks
+        const tasks = [];
+        document.querySelectorAll('.task-item').forEach(item => {
+            const title = item.querySelector('.task-title').value;
+            const desc = item.querySelector('.task-desc').value;
+            if (title.trim() || desc.trim()) {
+                tasks.push({ title: title, description: desc });
+            }
+        });
+
+        // Create FormData but override tasks
         const formData = new FormData(this);
+        formData.delete('tasks'); // Clear old if any
+        formData.append('tasks_json', JSON.stringify(tasks));
+
         const action = this.action;
 
         try {
@@ -285,13 +306,6 @@
             if (response.ok) {
                 closeModal();
                 showGlobalToast("Éxito", result.message || "Operación exitosa");
-                // Refresh calendar logic? FullCalendar has refetchEvents if we had a proper source
-                // For simplified setup, we reload or refetch events source.
-                // Since events are from URL, we can refetch.
-                // But we need reference to calendar instance.
-                // Storing calendar instance in window or global var is easier.
-                // Or just reload page as requested: "cargue de nuevo el calendario".
-                // Reloading page is simplest and robust.
                 setTimeout(() => window.location.reload(), 1000);
             } else {
                 showGlobalToast("Error", result.message || "Error desconocido", "error");
@@ -314,7 +328,6 @@
 
     async function executeDelete() {
         if (!currentScheduleId) return;
-        // if (!confirm('¿Estás seguro de eliminar esta asignación?')) return; // Removed native confirm
 
         try {
             const response = await fetch(`/calendar/schedule/${currentScheduleId}/delete`, {
@@ -336,11 +349,19 @@
     }
     {% endif %}
 
-    {% if user.role != 'admin' %}
+    {% if user.role not in ['admin', 'supervisor'] %}
     function openWorkerModal(event) {
         document.getElementById('workerScheduleModal').classList.remove('hidden');
         document.getElementById('worker-project-name').innerText = event.extendedProps.project_name;
-        document.getElementById('worker-date').innerText = event.startStr; // Or format nicely
+        let dateDisplay = event.startStr;
+        if (dateDisplay.includes('T')) {
+            dateDisplay = dateDisplay.split('T')[0];
+        }
+        const parts = dateDisplay.split('-');
+        if (parts.length === 3) {
+            dateDisplay = `${parts[2]}-${parts[1]}-${parts[0]}`;
+        }
+        document.getElementById('worker-date').innerText = dateDisplay;
         document.getElementById('worker-project-link').href = `/projects/${event.extendedProps.project_id}`;
 
         const container = document.getElementById('worker-tasks-list');
@@ -354,13 +375,14 @@
                 const div = document.createElement('div');
                 div.className = "flex items-start p-2 hover:bg-gray-100 rounded";
                 div.innerHTML = `
-                    <div class="flex h-5 items-center">
+                    <div class="flex h-5 items-center mt-1">
                         <input id="w-task-${task.id}" type="checkbox" ${task.completed ? 'checked' : ''}
                             onchange="toggleTask(${task.id}, this)"
                             class="h-4 w-4 rounded border-gray-300 text-black focus:ring-black cursor-pointer">
                     </div>
-                    <div class="ml-3 text-sm">
-                        <label for="w-task-${task.id}" class="font-medium text-gray-700 cursor-pointer ${task.completed ? 'line-through text-gray-400' : ''}">${task.description}</label>
+                    <div class="ml-3 text-sm w-full">
+                        ${task.title ? `<strong class="block text-gray-900 ${task.completed ? 'line-through text-gray-500' : ''}">${task.title}</strong>` : ''}
+                        <label for="w-task-${task.id}" class="block text-gray-700 cursor-pointer ${task.completed ? 'line-through text-gray-400' : ''}">${task.description}</label>
                     </div>
                 `;
                 container.appendChild(div);
@@ -373,24 +395,32 @@
     }
 
     async function toggleTask(taskId, checkbox) {
-        const label = checkbox.parentElement.nextElementSibling.querySelector('label');
+        const container = checkbox.closest('.flex').nextElementSibling;
+        const titleEl = container.querySelector('strong');
+        const descEl = container.querySelector('label');
+
         // Optimistic UI update
         if (checkbox.checked) {
-            label.classList.add('line-through', 'text-gray-400');
+            if (titleEl) titleEl.classList.add('line-through', 'text-gray-500');
+            descEl.classList.add('line-through', 'text-gray-400');
         } else {
-            label.classList.remove('line-through', 'text-gray-400');
+            if (titleEl) titleEl.classList.remove('line-through', 'text-gray-500');
+            descEl.classList.remove('line-through', 'text-gray-400');
         }
 
         try {
             const response = await fetch(`/calendar/task/${taskId}/toggle`, { method: 'POST' });
             const result = await response.json();
             if (!response.ok) {
-                // Revert on error
+                // Revert
                 checkbox.checked = !checkbox.checked;
+                // Re-apply optimistic logic reversed
                 if (checkbox.checked) {
-                    label.classList.add('line-through', 'text-gray-400');
+                    if (titleEl) titleEl.classList.add('line-through', 'text-gray-500');
+                    descEl.classList.add('line-through', 'text-gray-400');
                 } else {
-                    label.classList.remove('line-through', 'text-gray-400');
+                    if (titleEl) titleEl.classList.remove('line-through', 'text-gray-500');
+                    descEl.classList.remove('line-through', 'text-gray-400');
                 }
                 showGlobalToast("Error", result.message || "Error al actualizar", "error");
             } else {
@@ -398,7 +428,6 @@
             }
         } catch (e) {
             console.error(e);
-            // Revert on error
             checkbox.checked = !checkbox.checked;
             showGlobalToast("Error", "Error de conexión", "error");
         }
@@ -425,15 +454,15 @@
                 // Prevent default navigation for everyone first, or handle logic
                 info.jsEvent.preventDefault();
 
-                {% if user.role == 'admin' %}
-                // Admin: Edit Modal
+                {% if user.role in ['admin', 'supervisor'] %}
+                // Admin/Supervisor: Edit Modal
                 openModal(null, info.event);
                 {% else %}
                     // Worker: Task Modal
                     openWorkerModal(info.event);
         {% endif %}
     },
-        {% if user.role == 'admin' %}
+        {% if user.role in ['admin', 'supervisor'] %}
     dateClick: function (info) {
         openModal(info.dateStr);
     }

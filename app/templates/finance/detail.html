@@ -1,0 +1,538 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Finanzas: {{ project.name }} | TOMATO{% endblock %}
+
+{% block content %}
+<div class="px-4 sm:px-6 lg:px-8" x-data="financeDetail()">
+    <!-- Header -->
+    <div class="md:flex md:items-center md:justify-between mb-6 border-b pb-6">
+        <div class="min-w-0 flex-1">
+            <nav class="flex" aria-label="Breadcrumb">
+                <ol role="list" class="flex items-center space-x-4">
+                    <li>
+                        <div class="flex">
+                            <a href="/finance"
+                                class="text-sm font-medium text-gray-500 hover:text-gray-700">Finanzas</a>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="flex items-center">
+                            <svg class="h-5 w-5 flex-shrink-0 text-gray-400" fill="currentColor" viewBox="0 0 20 20"
+                                aria-hidden="true">
+                                <path d="M5.555 17.776l8-16 .894.448-8 16-.894-.448z" />
+                            </svg>
+                            <span class="ml-4 text-sm font-medium text-gray-900">{{ project.name }}</span>
+                        </div>
+                    </li>
+                </ol>
+            </nav>
+            <h2 class="mt-2 text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
+                Detalle Financiero
+            </h2>
+            <div class="mt-1 flex flex-col sm:mt-0 sm:flex-row sm:flex-wrap sm:space-x-6">
+                <div class="mt-2 flex items-center text-sm text-gray-500">
+                    Licitación: <span class="font-medium text-gray-900 ml-1">{{ budget.licitation_number if budget else
+                        "N/A" }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Indicators -->
+    <div class="grid grid-cols-1 gap-5 sm:grid-cols-3 mb-8">
+        <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6 border border-gray-200">
+            <dt class="truncate text-sm font-medium text-gray-500 uppercase">Total Adjudicado</dt>
+            <dd class="mt-1 text-3xl font-semibold tracking-tight text-gray-900">{{
+                "{:,.2f}".format(summary.total_adjudicated) }}</dd>
+        </div>
+        <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6 border border-gray-200">
+            <dt class="truncate text-sm font-medium text-gray-500 uppercase">Total Facturado</dt>
+            <dd class="mt-1 text-3xl font-semibold tracking-tight text-gray-900">{{
+                "{:,.2f}".format(summary.total_invoiced) }}</dd>
+        </div>
+        <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6 border border-gray-200">
+            <dt class="truncate text-sm font-medium text-gray-500 uppercase">Saldo Actual</dt>
+            <dd
+                class="mt-1 text-3xl font-semibold tracking-tight {{ 'text-green-600' if summary.balance >= 0 else 'text-red-600' }}">
+                {{ "{:,.2f}".format(summary.balance) }}</dd>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+        <!-- Budget Info Pane (Left) -->
+        <div class="lg:col-span-1 space-y-6">
+            <div class="bg-white shadow sm:rounded-lg overflow-hidden border border-gray-200">
+                <div class="px-4 py-5 sm:px-6 bg-gray-50 border-b border-gray-200">
+                    <h3 class="text-base font-semibold leading-6 text-gray-900">Presupuesto Base</h3>
+                </div>
+                <div class="px-4 py-5 sm:p-6 text-sm text-gray-700 space-y-3">
+                    {% if budget %}
+                    <div class="flex justify-between border-b pb-2">
+                        <span class="text-gray-500">Contrato</span>
+                        <span class="font-medium">{{ budget.contract_duration or 'N/A' }}</span>
+                    </div>
+                    <div class="flex justify-between border-b pb-2">
+                        <span class="text-gray-500">Fecha Inicio</span>
+                        <span class="font-medium">{{ budget.start_date | format_date if budget.start_date else
+                            'N/A' }}</span>
+                    </div>
+                    <div class="flex justify-between border-b pb-2">
+                        <span class="text-gray-500">Fecha Fin</span>
+                        <span class="font-medium">{{ budget.end_date | format_date if budget.end_date else 'N/A'
+                            }}</span>
+                    </div>
+                    {% if budget.is_prorrogable %}
+                    <div class="flex justify-between border-b pb-2">
+                        <span class="text-green-600 font-medium">Prorrogable</span>
+                        <span>
+                            {% if budget.active_prorogue %}
+                            <span
+                                class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Activa</span>
+                            {% else %}
+                            <span class="text-gray-500 text-xs">Inactiva</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="flex justify-between border-b pb-2">
+                        <span class="text-gray-500">Tiempo Prórroga</span>
+                        <span>{{ budget.prorrogable_time or 'N/A' }}</span>
+                    </div>
+                    <div class="flex justify-between border-b pb-2">
+                        <span class="text-gray-500">Monto Prórroga</span>
+                        <span class="font-medium">{{ "{:,.2f}".format(budget.prorrogable_amount or 0) }}</span>
+                    </div>
+                    {% else %}
+                    <div class="flex justify-between border-b pb-2">
+                        <span class="text-gray-500">Prorrogable</span>
+                        <span>No</span>
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <p class="italic text-gray-500">No hay información de presupuesto definida.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Adjudicated Lines Mini Table -->
+            <div class="bg-white shadow sm:rounded-lg overflow-hidden border border-gray-200">
+                <div class="px-4 py-5 sm:px-6 bg-gray-50 border-b border-gray-200">
+                    <h3 class="text-base font-semibold leading-6 text-gray-900">Líneas Adjudicadas</h3>
+                </div>
+                <ul role="list" class="divide-y divide-gray-100 max-h-96 overflow-y-auto">
+                    {% for line in lines %}
+                    <li class="flex items-center justify-between gap-x-6 py-3 px-4 sm:px-6 hover:bg-gray-50">
+                        <div class="min-w-0">
+                            <div class="flex items-start gap-x-3">
+                                <p class="text-sm font-semibold leading-6 text-gray-900">{{ line.name }}</p>
+                            </div>
+                            <div class="mt-1 flex items-center gap-x-2 text-xs leading-5 text-gray-500">
+                                <p class="whitespace-nowrap">Sub: {{ "{:,.2f}".format(line.subtotal) }}</p>
+                                <svg viewBox="0 0 2 2" class="h-0.5 w-0.5 fill-current">
+                                    <circle cx="1" cy="1" r="1" />
+                                </svg>
+                                <p class="whitespace-nowrap">Imp: {{ line.tax_percentage }}%</p>
+                            </div>
+                        </div>
+                        <div class="flex flex-none items-center gap-x-4">
+                            <div class="text-sm font-bold text-gray-900">{{ "{:,.2f}".format(line.total) }}</div>
+                        </div>
+                    </li>
+                    {% else %}
+                    <li class="px-4 py-4 text-sm text-gray-500 italic text-center">Sin líneas definidas.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <!-- Invoices Pane (Main) -->
+        <div class="lg:col-span-2">
+            <div class="bg-white shadow sm:rounded-lg overflow-hidden border border-gray-200">
+                <div
+                    class="border-b border-gray-200 bg-white px-4 py-5 sm:px-6 flex justify-between items-center flex-wrap gap-4">
+                    <h3 class="text-base font-semibold leading-6 text-gray-900">Facturación</h3>
+                    {% if user.role == 'admin' %}
+                    <button @click="openInvoiceModal" type="button"
+                        class="rounded-md bg-black px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black">Nueva
+                        Factura</button>
+                    {% endif %}
+                </div>
+
+                <!-- Filters -->
+                <div class="bg-gray-50 px-4 py-4 border-b border-gray-200">
+                    <form method="GET" class="grid grid-cols-1 sm:grid-cols-4 gap-4 items-end">
+                        <input type="hidden" name="sort_by" value="{{ sort_by }}">
+                        <input type="hidden" name="order" value="{{ order }}">
+
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Estado</label>
+                            <select name="status"
+                                class="block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm h-9">
+                                <option value="all" {% if f_status=='all' %}selected{% endif %}>Todos</option>
+                                <option value="pendiente" {% if f_status=='pendiente' %}selected{% endif %}>Pendiente
+                                </option>
+                                <option value="pago_parcial" {% if f_status=='pago_parcial' %}selected{% endif %}>Pago
+                                    Parcial</option>
+                                <option value="pagada" {% if f_status=='pagada' %}selected{% endif %}>Pagada</option>
+                                <option value="vencida" {% if f_status=='vencida' %}selected{% endif %}>Vencida</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Desde</label>
+                            <input type="date" name="start_date" value="{{ f_start_date or '' }}"
+                                class="block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm h-9">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Hasta</label>
+                            <input type="date" name="end_date" value="{{ f_end_date or '' }}"
+                                class="block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm h-9">
+                        </div>
+                        <div class="flex gap-2">
+                            <button type="submit"
+                                class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Filtrar</button>
+                            <a href="/finance/{{ project.id }}"
+                                class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-500 hover:text-gray-700">Limpiar</a>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-300">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col"
+                                    class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">
+                                    <a href="{{ request.url.include_query_params(sort_by='invoice_number', order='asc' if sort_by == 'invoice_number' and order == 'desc' else 'desc') }}"
+                                        class="group inline-flex">
+                                        # Factura
+                                        {% if sort_by == 'invoice_number' %}
+                                        <span class="ml-2 flex-none rounded text-gray-900 group-hover:bg-gray-200">
+                                            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"
+                                                aria-hidden="true">
+                                                <path fill-rule="evenodd"
+                                                    d="{{ 'M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z' if order == 'desc' else 'M14.77 12.79a.75.75 0 01-1.06-.02L10 8.832 6.29 12.79a.75.75 0 01-1.08-1.04l4.25-4.5a.75.75 0 011.08 0l4.25 4.5a.75.75 0 01-.02 1.06z' }}"
+                                                    clip-rule="evenodd" />
+                                            </svg>
+                                        </span>
+                                        {% endif %}
+                                    </a>
+                                </th>
+                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                                    <a href="{{ request.url.include_query_params(sort_by='issue_date', order='asc' if sort_by == 'issue_date' and order == 'desc' else 'desc') }}"
+                                        class="group inline-flex">
+                                        Emisión
+                                        {% if sort_by == 'issue_date' %}
+                                        <span class="ml-2 flex-none rounded text-gray-900 group-hover:bg-gray-200">
+                                            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"
+                                                aria-hidden="true">
+                                                <path fill-rule="evenodd"
+                                                    d="{{ 'M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z' if order == 'desc' else 'M14.77 12.79a.75.75 0 01-1.06-.02L10 8.832 6.29 12.79a.75.75 0 01-1.08-1.04l4.25-4.5a.75.75 0 011.08 0l4.25 4.5a.75.75 0 01-.02 1.06z' }}"
+                                                    clip-rule="evenodd" />
+                                            </svg>
+                                        </span>
+                                        {% endif %}
+                                    </a>
+                                </th>
+                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                                    <a href="{{ request.url.include_query_params(sort_by='due_date', order='asc' if sort_by == 'due_date' and order == 'desc' else 'desc') }}"
+                                        class="group inline-flex">
+                                        Vencimiento
+                                        {% if sort_by == 'due_date' %}
+                                        <span class="ml-2 flex-none rounded text-gray-900 group-hover:bg-gray-200">
+                                            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"
+                                                aria-hidden="true">
+                                                <path fill-rule="evenodd"
+                                                    d="{{ 'M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z' if order == 'desc' else 'M14.77 12.79a.75.75 0 01-1.06-.02L10 8.832 6.29 12.79a.75.75 0 01-1.08-1.04l4.25-4.5a.75.75 0 011.08 0l4.25 4.5a.75.75 0 01-.02 1.06z' }}"
+                                                    clip-rule="evenodd" />
+                                            </svg>
+                                        </span>
+                                        {% endif %}
+                                    </a>
+                                </th>
+                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Línea
+                                </th>
+                                <th scope="col" class="px-3 py-3.5 text-right text-sm font-semibold text-gray-900">
+                                    <a href="{{ request.url.include_query_params(sort_by='amount', order='asc' if sort_by == 'amount' and order == 'desc' else 'desc') }}"
+                                        class="group inline-flex">
+                                        Monto
+                                        {% if sort_by == 'amount' %}
+                                        <span class="ml-2 flex-none rounded text-gray-900 group-hover:bg-gray-200">
+                                            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"
+                                                aria-hidden="true">
+                                                <path fill-rule="evenodd"
+                                                    d="{{ 'M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z' if order == 'desc' else 'M14.77 12.79a.75.75 0 01-1.06-.02L10 8.832 6.29 12.79a.75.75 0 01-1.08-1.04l4.25-4.5a.75.75 0 011.08 0l4.25 4.5a.75.75 0 01-.02 1.06z' }}"
+                                                    clip-rule="evenodd" />
+                                            </svg>
+                                        </span>
+                                        {% endif %}
+                                    </a>
+                                </th>
+                                <th scope="col" class="px-3 py-3.5 text-center text-sm font-semibold text-gray-900">
+                                    <a href="{{ request.url.include_query_params(sort_by='status', order='asc' if sort_by == 'status' and order == 'desc' else 'desc') }}"
+                                        class="group inline-flex">
+                                        Estado
+                                        {% if sort_by == 'status' %}
+                                        <span class="ml-2 flex-none rounded text-gray-900 group-hover:bg-gray-200">
+                                            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"
+                                                aria-hidden="true">
+                                                <path fill-rule="evenodd"
+                                                    d="{{ 'M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z' if order == 'desc' else 'M14.77 12.79a.75.75 0 01-1.06-.02L10 8.832 6.29 12.79a.75.75 0 01-1.08-1.04l4.25-4.5a.75.75 0 011.08 0l4.25 4.5a.75.75 0 01-.02 1.06z' }}"
+                                                    clip-rule="evenodd" />
+                                            </svg>
+                                        </span>
+                                        {% endif %}
+                                    </a>
+                                </th>
+                                {% if user.role == 'admin' %}
+                                <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6"><span
+                                        class="sr-only">Acciones</span></th>
+                                {% endif %}
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 bg-white">
+                            {% for inv in invoices %}
+                            <tr>
+                                <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
+                                    {{ inv.invoice_number }}</td>
+                                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{
+                                    inv.issue_date | format_date }}</td>
+                                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{
+                                    inv.due_date | format_date }}</td>
+                                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500 truncate max-w-xs"
+                                    title="{{ inv.line.name if inv.line else '?' }}">
+                                    {{ inv.line.name if inv.line else '?' }}
+                                </td>
+                                <td class="whitespace-nowrap px-3 py-4 text-sm text-right font-medium text-gray-900">{{
+                                    "{:,.2f}".format(inv.amount) }}</td>
+                                <td class="whitespace-nowrap px-3 py-4 text-sm text-center">
+                                    {% if inv.status == 'pagada' %}
+                                    <span
+                                        class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Pagada</span>
+                                    {% elif inv.status == 'pago_parcial' %}
+                                    <span
+                                        class="inline-flex items-center rounded-md bg-orange-50 px-2 py-1 text-xs font-medium text-orange-800 ring-1 ring-inset ring-orange-600/20">Pago
+                                        Parcial</span>
+                                    {% if inv.note %}
+                                    <div class="text-xs text-gray-500 mt-1 max-w-[150px] truncate"
+                                        title="{{ inv.note }}">{{ inv.note }}</div>
+                                    {% endif %}
+                                    {% elif inv.status == 'vencida' %}
+                                    <span
+                                        class="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/10">Vencida</span>
+                                    {% else %}
+                                    <span
+                                        class="inline-flex items-center rounded-md bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-800 ring-1 ring-inset ring-yellow-600/20">Pendiente</span>
+                                    {% endif %}
+                                </td>
+                                {% if user.role == 'admin' %}
+                                <td
+                                    class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                                    {% if inv.status != 'pagada' %}
+                                    <button
+                                        @click='openPayModal({{ inv.id | tojson }}, {{ inv.invoice_number | tojson }}, {{ inv.amount | tojson }})'
+                                        class="text-indigo-600 hover:text-indigo-900">Reporte</button>
+                                    {% else %}
+                                    <span class="text-gray-400 text-xs">Pago: {{
+                                        inv.payment.payment_date | format_date if inv.payment
+                                        else '?' }}</span>
+                                    {% endif %}
+                                </td>
+                                {% endif %}
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="{{ 7 if user.role == 'admin' else 6 }}"
+                                    class="text-center py-8 text-gray-500 italic">No hay facturas registradas.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% from "components/pagination.html" import render_pagination %}
+                    <div class="border-t border-gray-200">
+                        {{ render_pagination(page, total_pages, request.url.path ~ '?' ~ request.query_params | string |
+                        replace('&page=' ~ page, '') | replace('page=' ~ page, '') ) }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals (Admin Only) -->
+    {% if user.role == 'admin' %}
+
+    <!-- Invoice Modal -->
+    <div x-cloak x-show="showInvoiceModal" class="relative z-50" aria-labelledby="modal-title" role="dialog"
+        aria-modal="true">
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+        <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+            <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg"
+                    @click.away="showInvoiceModal = false">
+                    <form action="/finance/{{ project.id }}/invoice" method="POST">
+                        <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+                            <h3 class="text-base font-semibold leading-6 text-gray-900" id="modal-title">Nueva Factura
+                            </h3>
+                            <div class="mt-4 space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium leading-6 text-gray-900">Número de
+                                        Factura</label>
+                                    <input type="text" name="invoice_number" required
+                                        class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium leading-6 text-gray-900">Fecha
+                                            Emisión</label>
+                                        <input type="date" name="issue_date" required
+                                            class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium leading-6 text-gray-900">Fecha
+                                            Vencimiento</label>
+                                        <input type="date" name="due_date" required
+                                            class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium leading-6 text-gray-900">Línea a
+                                        Facturar</label>
+                                    <select name="budget_line_id" required
+                                        class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+                                        <option value="">Seleccione una línea...</option>
+                                        {% for line in lines %}
+                                        <option value="{{ line.id }}">{{ line.name }} ( Disp: {{
+                                            "{:,.2f}".format(line.total) }} )</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium leading-6 text-gray-900">Monto</label>
+                                    <input type="number" step="0.01" name="amount" required
+                                        class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                            <button type="submit"
+                                class="inline-flex w-full justify-center rounded-md bg-black px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 sm:ml-3 sm:w-auto">Crear
+                                Factura</button>
+                            <button type="button" @click="showInvoiceModal = false"
+                                class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pay Modal -->
+    <div x-cloak x-show="showPayModal" class="relative z-50" aria-labelledby="modal-title" role="dialog"
+        aria-modal="true">
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+        <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+            <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg"
+                    @click.away="showPayModal = false">
+                    <form :action="'/finance/invoice/' + payInvoiceId + '/pay'" method="POST">
+                        <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+                            <h3 class="text-base font-semibold leading-6 text-gray-900">Registrar Pago</h3>
+                            <p class="text-sm text-gray-500 mb-4">Factura #<span x-text="payInvoiceNumber"></span></p>
+
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium leading-6 text-gray-900">Fecha de
+                                        Pago</label>
+                                    <input type="date" name="payment_date" required
+                                        class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium leading-6 text-gray-900">Comprobante /
+                                        Depósito</label>
+                                    <input type="text" name="deposit_number" required
+                                        class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium leading-6 text-gray-900">Monto
+                                        Pagado</label>
+                                    <input type="number" step="0.01" name="amount" x-model="payAmount" required
+                                        class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+                                </div>
+
+                                <!-- Payment Type -->
+                                <div>
+                                    <label class="block text-sm font-medium leading-6 text-gray-900 mb-2">Estado del
+                                        Pago</label>
+                                    <div class="flex items-center gap-4">
+                                        <div class="flex items-center">
+                                            <input id="pay_full" name="payment_type" type="radio" value="full"
+                                                x-model="paymentType"
+                                                class="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-600">
+                                            <label for="pay_full"
+                                                class="ml-2 block text-sm font-medium text-gray-900">Pagado</label>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <input id="pay_partial" name="payment_type" type="radio" value="partial"
+                                                x-model="paymentType"
+                                                class="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-600">
+                                            <label for="pay_partial"
+                                                class="ml-2 block text-sm font-medium text-gray-900">Pago
+                                                Parcial</label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div x-show="paymentType === 'partial'">
+                                    <label class="block text-sm font-medium leading-6 text-gray-900">Nota (Requerido
+                                        para parcial)</label>
+                                    <textarea name="note" x-model="paymentNote" rows="2"
+                                        :required="paymentType === 'partial'"
+                                        placeholder="Detalles sobre el pago parcial..."
+                                        class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6"></textarea>
+                                </div>
+
+                            </div>
+                        </div>
+                        <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                            <button type="submit"
+                                class="inline-flex w-full justify-center rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 sm:ml-3 sm:w-auto">Confirmar
+                                Pago</button>
+                            <button type="button" @click="showPayModal = false"
+                                class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+<script>
+    function financeDetail() {
+        return {
+            showInvoiceModal: false,
+            showPayModal: false,
+
+            // Pay Modal Data
+            payInvoiceId: null,
+            payInvoiceNumber: '',
+            payAmount: 0,
+            paymentType: 'full',
+            paymentNote: '',
+
+            openInvoiceModal() {
+                this.showInvoiceModal = true;
+            },
+            openPayModal(id, number, amount) {
+                this.payInvoiceId = id;
+                this.payInvoiceNumber = number;
+                this.payAmount = amount;
+                this.paymentType = 'full';
+                this.paymentNote = '';
+                this.showPayModal = true;
+            }
+        }
+    }
+</script>
+{% endblock %}

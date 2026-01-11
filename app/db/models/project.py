@@ -27,3 +27,4 @@ class Project(Base):
 
     users = relationship("User", secondary=project_users, back_populates="projects")
     contacts = relationship("ProjectContact", back_populates="project", cascade="all, delete-orphan")
+    budget = relationship("ProjectBudget", uselist=False, back_populates="project", cascade="all, delete-orphan")

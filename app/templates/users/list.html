@@ -66,5 +66,7 @@
             {% endfor %}
         </tbody>
     </table>
+    {% from "components/pagination.html" import render_pagination %}
+    {{ render_pagination(page, total_pages, '/users') }}
 </div>
 {% endblock %}

@@ -37,42 +37,89 @@
                     </div>
                 </div>
 
-                <!-- Assignment -->
-                <div class="sm:col-span-3">
+                <!-- Clients Dropdown -->
+                <div class="sm:col-span-3" x-data="{ open: false }">
                     <label class="block text-sm font-medium leading-6 text-gray-900">Clientes (Usuarios)</label>
-                    <div class="mt-2 space-y-2 max-h-40 overflow-y-auto border rounded-md p-2">
-                        {% for client in clients %}
-                        <div class="relative flex gap-x-3">
-                            <div class="flex h-6 items-center">
-                                <input id="client-{{ client.id }}" value="{{ client.id }}" type="checkbox"
-                                    x-model.number="formData.client_ids"
-                                    class="h-4 w-4 rounded border-gray-300 text-black focus:ring-black">
-                            </div>
-                            <div class="text-sm leading-6">
-                                <label for="client-{{ client.id }}" class="font-medium text-gray-900">{{
-                                    client.full_name or client.username }}</label>
+                    <div class="relative mt-2">
+                        <button type="button" @click="open = !open" @click.outside="open = false"
+                            class="relative w-full cursor-default rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+                            <span class="block truncate"
+                                x-text="getSelectedNames(formData.client_ids, formData.available_clients, 'Seleccione Cliente')"></span>
+                            <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+                                <svg class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor"
+                                    aria-hidden="true">
+                                    <path fill-rule="evenodd"
+                                        d="M10 3a1 1 0 01.707.293l3 3a1 1 0 01-1.414 1.414L10 5.414 7.707 7.707a1 1 0 01-1.414-1.414l3-3A1 1 0 0110 3zm-3.707 9.293a1 1 0 011.414 0L10 14.586l2.293-2.293a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                            </span>
+                        </button>
+
+                        <div x-show="open" x-transition:leave="transition ease-in duration-100"
+                            x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+                            class="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm"
+                            style="display: none;">
+                            <div class="p-2 space-y-2">
+                                {% for client in clients %}
+                                <div class="relative flex gap-x-3 hover:bg-gray-50 p-1 rounded">
+                                    <div class="flex h-6 items-center">
+                                        <input id="client-{{ client.id }}" value="{{ client.id }}" type="checkbox"
+                                            x-model.number="formData.client_ids"
+                                            class="h-4 w-4 rounded border-gray-300 text-black focus:ring-black">
+                                    </div>
+                                    <div class="text-sm leading-6">
+                                        <label for="client-{{ client.id }}"
+                                            class="font-medium text-gray-900 cursor-pointer w-full block">
+                                            {{ client.full_name or client.username }}
+                                        </label>
+                                    </div>
+                                </div>
+                                {% endfor %}
                             </div>
                         </div>
-                        {% endfor %}
                     </div>
                 </div>
 
-                <div class="sm:col-span-3">
+                <!-- Workers Dropdown -->
+                <div class="sm:col-span-3" x-data="{ open: false }">
                     <label class="block text-sm font-medium leading-6 text-gray-900">Trabajadores</label>
-                    <div class="mt-2 space-y-2 max-h-40 overflow-y-auto border rounded-md p-2">
-                        {% for worker in workers %}
-                        <div class="relative flex gap-x-3">
-                            <div class="flex h-6 items-center">
-                                <input id="worker-{{ worker.id }}" value="{{ worker.id }}" type="checkbox"
-                                    x-model.number="formData.worker_ids"
-                                    class="h-4 w-4 rounded border-gray-300 text-black focus:ring-black">
-                            </div>
-                            <div class="text-sm leading-6">
-                                <label for="worker-{{ worker.id }}" class="font-medium text-gray-900">{{
-                                    worker.full_name or worker.username }}</label>
+                    <div class="relative mt-2">
+                        <button type="button" @click="open = !open" @click.outside="open = false"
+                            class="relative w-full cursor-default rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+                            <span class="block truncate"
+                                x-text="getSelectedNames(formData.worker_ids, formData.available_workers, 'Seleccione Trabajadores')"></span>
+                            <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+                                <svg class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor"
+                                    aria-hidden="true">
+                                    <path fill-rule="evenodd"
+                                        d="M10 3a1 1 0 01.707.293l3 3a1 1 0 01-1.414 1.414L10 5.414 7.707 7.707a1 1 0 01-1.414-1.414l3-3A1 1 0 0110 3zm-3.707 9.293a1 1 0 011.414 0L10 14.586l2.293-2.293a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                            </span>
+                        </button>
+
+                        <div x-show="open" x-transition:leave="transition ease-in duration-100"
+                            x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+                            class="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm"
+                            style="display: none;">
+                            <div class="p-2 space-y-2">
+                                {% for worker in workers %}
+                                <div class="relative flex gap-x-3 hover:bg-gray-50 p-1 rounded">
+                                    <div class="flex h-6 items-center">
+                                        <input id="worker-{{ worker.id }}" value="{{ worker.id }}" type="checkbox"
+                                            x-model.number="formData.worker_ids"
+                                            class="h-4 w-4 rounded border-gray-300 text-black focus:ring-black">
+                                    </div>
+                                    <div class="text-sm leading-6">
+                                        <label for="worker-{{ worker.id }}"
+                                            class="font-medium text-gray-900 cursor-pointer w-full block">
+                                            {{ worker.full_name or worker.username }}
+                                        </label>
+                                    </div>
+                                </div>
+                                {% endfor %}
                             </div>
                         </div>
-                        {% endfor %}
                     </div>
                 </div>
 
@@ -231,6 +278,148 @@
                     </div>
                 </div>
 
+                <!-- Budget (Visible only for Admin) -->
+                {% if user.role == 'admin' %}
+                <div class="col-span-full border-t pt-4 mt-4">
+                    <h3 class="text-base font-semibold leading-7 text-gray-900 mb-2">Definición de Presupuesto</h3>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium leading-6 text-gray-900">Número de
+                                Licitación</label>
+                            <input type="text" x-model="formData.licitation_number"
+                                class="mt-2 block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium leading-6 text-gray-900">Duración del
+                                Contrato</label>
+                            <input type="text" x-model="formData.contract_duration"
+                                class="mt-2 block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+                        </div>
+                    </div>
+
+                    <!-- New Dates -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                        <div>
+                            <label class="block text-sm font-medium leading-6 text-gray-900">Fecha de Inicio</label>
+                            <input type="date" x-model="formData.start_date"
+                                class="mt-2 block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium leading-6 text-gray-900">Fecha de
+                                Finalización</label>
+                            <input type="date" x-model="formData.end_date"
+                                class="mt-2 block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+                        </div>
+                    </div>
+
+                    <div class="mt-4 flex items-center gap-2">
+                        <input type="checkbox" x-model="formData.is_prorrogable" id="is_prorrogable_check"
+                            class="h-4 w-4 rounded border-gray-300 text-black focus:ring-black">
+                        <label for="is_prorrogable_check" class="text-sm font-medium text-gray-900">Prorrogable</label>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4" x-show="formData.is_prorrogable">
+                        <div>
+                            <label class="block text-sm font-medium leading-6 text-gray-900">Tiempo de Prórroga</label>
+                            <input type="text" x-model="formData.prorrogable_time"
+                                class="mt-2 block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium leading-6 text-gray-900">Monto Prórroga</label>
+                            <input type="number" step="0.01" x-model.number="formData.prorrogable_amount"
+                                class="mt-2 block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+                        </div>
+
+                        <!-- Active Prorogue Toggle -->
+                        <div class="col-span-full flex items-center gap-2 mt-2">
+                            <div
+                                class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                                <input type="checkbox" x-model="formData.active_prorogue" id="active_prorogue_toggle"
+                                    class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer border-gray-300 checked:right-0 checked:border-green-500 checked:bg-green-500" />
+                                <label for="active_prorogue_toggle"
+                                    class="toggle-label block overflow-hidden h-5 rounded-full bg-gray-300 cursor-pointer"></label>
+                            </div>
+                            <label for="active_prorogue_toggle" class="text-sm font-medium text-gray-900">
+                                Prórroga Activa (Sumar al total)
+                            </label>
+                        </div>
+                    </div>
+                    <!-- Custom style for simple toggle if Tailwind form plugin not full -->
+                    <style>
+                        .toggle-checkbox:checked {
+                            right: 0;
+                            border-color: #22c55e;
+                        }
+
+                        .toggle-checkbox:checked+.toggle-label {
+                            background-color: #22c55e;
+                        }
+
+                        .toggle-checkbox {
+                            right: auto;
+                            left: 0;
+                            transition: all 0.3s;
+                        }
+
+                        .toggle-label {
+                            width: 2.5rem;
+                            height: 1.25rem;
+                        }
+                    </style>
+
+                    <!-- Budget Lines -->
+                    <div class="mt-6">
+                        <h4 class="text-sm font-semibold leading-6 text-gray-900 mb-2">Líneas Adjudicadas</h4>
+                        <div class="space-y-4">
+                            <template x-for="(line, index) in formData.budget_lines" :key="index">
+                                <div
+                                    class="grid grid-cols-12 gap-2 items-center border p-2 rounded relative bg-gray-50">
+                                    <div class="col-span-4">
+                                        <label class="block text-xs font-medium text-gray-500">Descripción</label>
+                                        <input type="text" x-model="line.name" required
+                                            class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-xs">
+                                    </div>
+                                    <div class="col-span-3">
+                                        <label class="block text-xs font-medium text-gray-500">Subtotal</label>
+                                        <input type="number" step="0.01" x-model.number="line.subtotal" required
+                                            class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-xs">
+                                    </div>
+                                    <div class="col-span-2">
+                                        <label class="block text-xs font-medium text-gray-500">Imp %</label>
+                                        <input type="number" step="0.01" x-model.number="line.tax_percentage"
+                                            class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-xs">
+                                    </div>
+                                    <div class="col-span-3 flex justify-between items-end">
+                                        <div class="truncate">
+                                            <label class="block text-xs font-medium text-gray-500">Total</label>
+                                            <span class="text-xs font-bold"
+                                                x-text="((line.subtotal || 0) * (1 + (line.tax_percentage || 0)/100)).toLocaleString('en-US', {style: 'currency', currency: 'CRC'})"></span>
+                                        </div>
+                                        <button type="button" @click="removeBudgetLine(index)"
+                                            class="text-red-500 hover:text-red-700 ml-2 flex-shrink-0">
+                                            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd"
+                                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                                    clip-rule="evenodd" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                            <button type="button" @click="addBudgetLine()"
+                                class="text-sm text-indigo-600 hover:text-indigo-900 flex items-center gap-1 font-semibold">
+                                <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                    <path
+                                        d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+                                </svg>
+                                Agregar Línea
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
                 {% if project %}
                 <div class="col-span-full border-t pt-4 mt-4">
                     <div class="relative flex gap-x-3">
@@ -264,13 +453,36 @@
     province: {{ (project.province if project and project.province else "") | tojson | safe }},
     address: {{ (project.address if project and project.address else "") | tojson | safe }},
     waze_link: {{ (project.waze_link if project and project.waze_link else "") | tojson | safe }},
-    is_active: {{ "true" if (not project or project.is_active) else "false" }},
+    {% if project %}
+    is_active: {{ "true" if project.is_active else "false" }},
+    {% else %}
+    is_active: true,
+        {% endif %}
     description: {{ (project.description if project and project.description else "") | tojson | safe }},
     contacts: [],
         client_ids: [],
             worker_ids: [],
                 supplies: [],
-                    tasks: []
+                    tasks: [],
+                        licitation_number: {{ (project.budget.licitation_number if project and project.budget else "") | tojson | safe }},
+    contract_duration: {{ (project.budget.contract_duration if project and project.budget else "") | tojson | safe }},
+    {% if project and project.budget and project.budget.is_prorrogable %}
+    is_prorrogable: true,
+        {% else %}
+    is_prorrogable: false,
+        {% endif %}
+    {% if project and project.budget and project.budget.active_prorogue %}
+    active_prorogue: true,
+        {% else %}
+    active_prorogue: false,
+        {% endif %}
+    prorrogable_time: {{ (project.budget.prorrogable_time if project and project.budget else "") | tojson | safe }},
+    prorrogable_amount: {{ (project.budget.prorrogable_amount if project and project.budget else 0) | tojson | safe }},
+
+    start_date: {{ (project.budget.start_date.isoformat() if project and project.budget and project.budget.start_date else None) | tojson | safe }},
+    end_date: {{ (project.budget.end_date.isoformat() if project and project.budget and project.budget.end_date else None) | tojson | safe }},
+
+    budget_lines: []
     };
 
     {% if project %}
@@ -315,11 +527,40 @@
         is_required: {{ "true" if t.is_required else "false" }}
     });
     {% endfor %}
+
+    {% if project.budget and project.budget.lines %}
+    {% for line in project.budget.lines %}
+    _initialData.budget_lines.push({
+        name: {{ line.name | tojson | safe }},
+        subtotal: {{ line.subtotal | tojson | safe }},
+        tax_percentage: {{ line.tax_percentage | tojson | safe }}
+    });
+    {% endfor %}
     {% endif %}
+    {% endif %}
+
+    // Inject available resources for JS usage (labels)
+    _initialData.available_clients = [
+        {% for c in clients %}
+    { id: {{ c.id }}, name: {{ (c.full_name or c.username) | tojson | safe }} },
+    {% endfor %}
+    ];
+    _initialData.available_workers = [
+        {% for w in workers %}
+    { id: {{ w.id }}, name: {{ (w.full_name or w.username) | tojson | safe }} },
+    {% endfor %}
+    ];
 
     function projectForm() {
         return {
             formData: _initialData,
+
+            getSelectedNames(ids, source, placeholder = 'Seleccione...') {
+                if (!ids || ids.length === 0) return placeholder;
+                const selected = source.filter(i => ids.includes(i.id)).map(i => i.name);
+                if (selected.length > 2) return selected.length + ' seleccionados';
+                return selected.join(', ');
+            },
 
             addContact() {
                 this.formData.contacts.push({ name: '', phone: '', email: '', position: '' });
@@ -339,34 +580,42 @@
             removeTask(index) {
                 this.formData.tasks.splice(index, 1);
             },
+            addBudgetLine() {
+                this.formData.budget_lines.push({ name: '', subtotal: 0, tax_percentage: 13.0 });
+            },
+            removeBudgetLine(index) {
+                this.formData.budget_lines.splice(index, 1);
+            },
             async submitForm() {
-                const isEdit = {{ "true" if project else "false" }};
+                {% if project %}
+                const isEdit = true;
+                {% else %}
+        const isEdit = false;
+        {% endif %}
+        const url = isEdit ? '/projects/{{ (project.id if project else "") | safe }}/edit' : '/projects/new';
 
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(this.formData)
+            });
 
-            const url = isEdit ? '/projects/{{ (project.id if project else "") | safe }}/edit' : '/projects/new';
+            const result = await response.json();
 
-            try {
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(this.formData)
-                });
-
-                const result = await response.json();
-
-                if(response.ok) {
-            window.location.href = result.redirect_url;
-        } else {
-            alert('Error al guardar: ' + (result.detail || 'Error desconocido'));
-        }
-    } catch (error) {
-        console.error(error);
-        alert('Error de red');
-    }
+            if (response.ok) {
+                window.location.href = result.redirect_url;
+            } else {
+                alert('Error al guardar: ' + (result.detail || 'Error desconocido'));
             }
+        } catch (error) {
+            console.error(error);
+            alert('Error de red');
         }
+    }
+        };
     }
 </script>
 {% endblock %}

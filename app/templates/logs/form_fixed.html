@@ -138,95 +138,97 @@
 </div>
 
 <script>
+    // Define the data globally first to bypass parsing issues
+    const projectTasksData = {{ project_tasks_json | safe }};
+
     function logForm() {
         return {
             selectedProjectId: '{{ selected_project_id or "" }}',
-            tasksMap: {{ project_tasks_json | safe }
-    },
-    formNotes: '',
-        selectedTasks: [],
+            tasksMap: projectTasksData,
+            formNotes: '',
+            selectedTasks: [],
             files: [],
-                isSubmitting: false,
+            isSubmitting: false,
 
-                    get currentTasks() {
-        if (!this.selectedProjectId) return [];
-        return this.tasksMap[parseInt(this.selectedProjectId)] || [];
-    },
+            get currentTasks() {
+                if (!this.selectedProjectId) return [];
+                return this.tasksMap[parseInt(this.selectedProjectId)] || [];
+            },
 
-    updateTasks() {
-        this.selectedTasks = [];
-    },
+            updateTasks() {
+                this.selectedTasks = [];
+            },
 
-    handleFiles(fileList) {
-        for (let i = 0; i < fileList.length; i++) {
-            this.files.push(fileList[i]);
-        }
-        document.getElementById('file-upload').value = '';
-    },
+            handleFiles(fileList) {
+                for (let i = 0; i < fileList.length; i++) {
+                    this.files.push(fileList[i]);
+                }
+                document.getElementById('file-upload').value = '';
+            },
 
-    handleDrop(event) {
-        const droppedFiles = event.dataTransfer.files;
-        this.handleFiles(droppedFiles);
-    },
+            handleDrop(event) {
+                const droppedFiles = event.dataTransfer.files;
+                this.handleFiles(droppedFiles);
+            },
 
-    removeFile(index) {
-        this.files.splice(index, 1);
-    },
+            removeFile(index) {
+                this.files.splice(index, 1);
+            },
 
             async submitForm() {
-        if (this.isSubmitting) return;
+                if (this.isSubmitting) return;
 
-        if (!this.selectedProjectId) {
-            alert('Seleccione un proyecto');
-            return;
-        }
+                if (!this.selectedProjectId) {
+                    alert('Seleccione un proyecto');
+                    return;
+                }
 
-        // Required Tasks Validation
-        const requiredTasks = this.currentTasks.filter(t => t.is_required);
-        for (let task of requiredTasks) {
-            // Check mixed types (String/Number)
-            const isChecked = this.selectedTasks.some(id => String(id) === String(task.id));
-            if (!isChecked) {
-                alert(`La tarea "${task.description}" es requerida.`);
-                return;
+                // Required Tasks Validation
+                const requiredTasks = this.currentTasks.filter(t => t.is_required);
+                for (let task of requiredTasks) {
+                    // Check mixed types (String/Number)
+                    const isChecked = this.selectedTasks.some(id => String(id) === String(task.id));
+                    if (!isChecked) {
+                        alert(`La tarea "${task.description}" es requerida.`);
+                        return;
+                    }
+                }
+
+                this.isSubmitting = true;
+                const formData = new FormData();
+                formData.append('project_id', this.selectedProjectId);
+                formData.append('date', '{{ today.strftime("%Y-%m-%d") }}');
+                formData.append('notes', this.formNotes);
+
+                this.selectedTasks.forEach(taskId => {
+                    formData.append('tasks', taskId);
+                });
+
+                this.files.forEach(file => {
+                    formData.append('photos', file);
+                });
+
+                try {
+                    const response = await fetch('/logs/new', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (response.redirected) {
+                        window.location.href = response.url;
+                    } else if (response.ok) {
+                        window.location.href = '/projects/' + this.selectedProjectId;
+                    } else {
+                        const errorData = await response.json();
+                        alert('Error al guardar: ' + (errorData.detail || 'Error desconocido'));
+                        this.isSubmitting = false;
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Error de conexión');
+                    this.isSubmitting = false;
+                }
             }
-        }
-
-        this.isSubmitting = true;
-        const formData = new FormData();
-        formData.append('project_id', this.selectedProjectId);
-        formData.append('date', '{{ today.strftime("%Y-%m-%d") }}');
-        formData.append('notes', this.formNotes);
-
-        this.selectedTasks.forEach(taskId => {
-            formData.append('tasks', taskId);
-        });
-
-        this.files.forEach(file => {
-            formData.append('photos', file);
-        });
-
-        try {
-            const response = await fetch('/logs/new', {
-                method: 'POST',
-                body: formData
-            });
-
-            if (response.redirected) {
-                window.location.href = response.url;
-            } else if (response.ok) {
-                window.location.href = '/projects/' + this.selectedProjectId;
-            } else {
-                const errorData = await response.json();
-                alert('Error al guardar: ' + (errorData.detail || 'Error desconocido'));
-                this.isSubmitting = false;
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            alert('Error de conexión');
-            this.isSubmitting = false;
-        }
-    }
         }
     }
 </script>
