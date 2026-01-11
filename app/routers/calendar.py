@@ -61,7 +61,7 @@ async def get_events(start: str, end: str, db: Session = Depends(deps.get_db), u
                 "project_name": s.project.name,
                 "project_name": s.project.name,
                 "worker_name": s.user.full_name or s.user.username,
-                "tasks": [{"id": t.id, "description": t.description} for t in s.tasks]
+                "tasks": [{"id": t.id, "description": t.description, "completed": t.completed} for t in s.tasks]
             },
             "color": "#000000" if user.role == "admin" else "#2563eb"
         }
@@ -140,3 +140,22 @@ async def update_schedule(
 
     db.commit()
     return JSONResponse({"status": "success", "message": "Asignación actualizada correctamente"})
+
+@router.post("/task/{id}/toggle")
+async def toggle_task_status(id: int, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
+    task = db.query(ScheduleTask).filter(ScheduleTask.id == id).first()
+    if not task:
+        return JSONResponse({"status": "error", "message": "Tarea no encontrada"}, status_code=404)
+    
+    # Check authorization: Admin or the assigned worker
+    if user.role != "admin" and task.schedule.user_id != user.id:
+         raise HTTPException(status_code=403, detail="Not authorized")
+
+    task.completed = not task.completed
+    db.commit()
+    
+    return JSONResponse({
+        "status": "success", 
+        "message": "Estado actualizado", 
+        "completed": task.completed
+    })

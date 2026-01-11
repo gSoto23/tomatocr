@@ -40,7 +40,7 @@
         <div class="flex min-h-full items-center justify-center p-4 text-center">
 
             <div
-                class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+                class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all w-full sm:my-8 sm:w-full sm:max-w-lg">
                 <form id="scheduleForm" action="/calendar/schedule" method="post">
                     <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
                         <div class="sm:flex sm:items-start">
@@ -137,6 +137,55 @@
 
                 <!-- Hidden Delete Form -->
                 <form id="deleteForm" method="post" class="hidden"></form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Worker Task Modal (Read Only + Checkboxes) -->
+{% if user.role != 'admin' %}
+<div id="workerScheduleModal" class="relative z-50 hidden" aria-labelledby="modal-title" role="dialog"
+    aria-modal="true">
+    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+    <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+        <div class="flex min-h-full items-center justify-center p-4 text-center">
+            <div
+                class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all w-full sm:my-8 sm:w-full sm:max-w-lg">
+                <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
+                            <h3 class="text-base font-semibold leading-6 text-gray-900" id="worker-modal-title">Detalles
+                                de Asignación</h3>
+                            <div class="mt-4 space-y-4">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500">Proyecto</p>
+                                    <p class="text-lg font-bold text-gray-900" id="worker-project-name">-</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500">Fecha</p>
+                                    <p class="text-base text-gray-900" id="worker-date">-</p>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium leading-6 text-gray-900 mb-2">Tareas
+                                        Asignadas</label>
+                                    <div id="worker-tasks-list"
+                                        class="space-y-2 mb-2 border rounded-md p-3 bg-gray-50 max-h-60 overflow-y-auto">
+                                        <!-- Checkboxes injected here -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                    <button type="button" onclick="closeWorkerModal()"
+                        class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">Cerrar</button>
+                    <!-- Optional: Go to Project Button -->
+                    <a id="worker-project-link" href="#"
+                        class="inline-flex w-full justify-center rounded-md bg-black px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 sm:w-auto sm:mr-3">Ir
+                        al Proyecto</a>
+                </div>
             </div>
         </div>
     </div>
@@ -287,6 +336,75 @@
     }
     {% endif %}
 
+    {% if user.role != 'admin' %}
+    function openWorkerModal(event) {
+        document.getElementById('workerScheduleModal').classList.remove('hidden');
+        document.getElementById('worker-project-name').innerText = event.extendedProps.project_name;
+        document.getElementById('worker-date').innerText = event.startStr; // Or format nicely
+        document.getElementById('worker-project-link').href = `/projects/${event.extendedProps.project_id}`;
+
+        const container = document.getElementById('worker-tasks-list');
+        container.innerHTML = '';
+        const tasks = event.extendedProps.tasks || [];
+
+        if (tasks.length === 0) {
+            container.innerHTML = '<p class="text-sm text-gray-400 italic">No hay tareas específicas asignadas.</p>';
+        } else {
+            tasks.forEach(task => {
+                const div = document.createElement('div');
+                div.className = "flex items-start p-2 hover:bg-gray-100 rounded";
+                div.innerHTML = `
+                    <div class="flex h-5 items-center">
+                        <input id="w-task-${task.id}" type="checkbox" ${task.completed ? 'checked' : ''}
+                            onchange="toggleTask(${task.id}, this)"
+                            class="h-4 w-4 rounded border-gray-300 text-black focus:ring-black cursor-pointer">
+                    </div>
+                    <div class="ml-3 text-sm">
+                        <label for="w-task-${task.id}" class="font-medium text-gray-700 cursor-pointer ${task.completed ? 'line-through text-gray-400' : ''}">${task.description}</label>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+    }
+
+    function closeWorkerModal() {
+        document.getElementById('workerScheduleModal').classList.add('hidden');
+    }
+
+    async function toggleTask(taskId, checkbox) {
+        const label = checkbox.parentElement.nextElementSibling.querySelector('label');
+        // Optimistic UI update
+        if (checkbox.checked) {
+            label.classList.add('line-through', 'text-gray-400');
+        } else {
+            label.classList.remove('line-through', 'text-gray-400');
+        }
+
+        try {
+            const response = await fetch(`/calendar/task/${taskId}/toggle`, { method: 'POST' });
+            const result = await response.json();
+            if (!response.ok) {
+                // Revert on error
+                checkbox.checked = !checkbox.checked;
+                if (checkbox.checked) {
+                    label.classList.add('line-through', 'text-gray-400');
+                } else {
+                    label.classList.remove('line-through', 'text-gray-400');
+                }
+                showGlobalToast("Error", result.message || "Error al actualizar", "error");
+            } else {
+                showGlobalToast("Actualizado", "Estado de tarea actualizado");
+            }
+        } catch (e) {
+            console.error(e);
+            // Revert on error
+            checkbox.checked = !checkbox.checked;
+            showGlobalToast("Error", "Error de conexión", "error");
+        }
+    }
+    {% endif %}
+
     document.addEventListener('DOMContentLoaded', function () {
         var calendarEl = document.getElementById('calendar');
         var calendar = new FullCalendar.Calendar(calendarEl, {
@@ -304,25 +422,22 @@
             },
             events: '/calendar/events',
             eventClick: function (info) {
-                if (info.event.url) {
-                    // Navigate only if there is a URL (Worker)
-                    if (!info.event.extendedProps.worker_id) { // Not strictly needed if backend controls URL
-                        window.location.href = info.event.url;
-                    }
-                    // For Admin, url is null or we prevent default if we want to edit
-                }
+                // Prevent default navigation for everyone first, or handle logic
+                info.jsEvent.preventDefault();
 
                 {% if user.role == 'admin' %}
-                info.jsEvent.preventDefault(); // Stop navigation even if URL exists (should be null for admin anyway)
-                // Open edit modal
+                // Admin: Edit Modal
                 openModal(null, info.event);
-                {% endif %}
-            },
-            {% if user.role == 'admin' %}
-            dateClick: function (info) {
+                {% else %}
+                    // Worker: Task Modal
+                    openWorkerModal(info.event);
+        {% endif %}
+    },
+        {% if user.role == 'admin' %}
+    dateClick: function (info) {
         openModal(info.dateStr);
     }
-            {% endif %}
+    {% endif %}
         });
     calendar.render();
     });
