@@ -8,6 +8,7 @@ class InvoiceStatus(str, enum.Enum):
     PENDING = "pendiente"
     OVERDUE = "vencida"
     PAID = "pagada"
+    PARTIAL = "pago_parcial"
 
 class ProjectBudget(Base):
     __tablename__ = "project_budgets"
@@ -70,6 +71,7 @@ class Invoice(Base):
     due_date = Column(Date, nullable=False)
     amount = Column(Float, default=0.0)
     status = Column(Enum(InvoiceStatus), default=InvoiceStatus.PENDING)
+    note = Column(String, nullable=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

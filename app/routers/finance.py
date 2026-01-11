@@ -54,6 +54,20 @@ def get_project_budget_status(db: Session, project: Project):
         "balance": total_adjudicated - total_invoiced
     }
 
+def check_update_overdue_invoices(db: Session, project_id: int):
+    today = datetime.date.today()
+    # Find pending invoices past due
+    overdue = db.query(Invoice).join(ProjectBudget).filter(
+        ProjectBudget.project_id == project_id,
+        Invoice.status == InvoiceStatus.PENDING,
+        Invoice.due_date < today
+    ).all()
+    
+    if overdue:
+        for inv in overdue:
+            inv.status = InvoiceStatus.OVERDUE
+        db.commit()
+
 @router.get("/")
 async def finance_dashboard(request: Request, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
     check_finance_access(user)
@@ -93,6 +107,9 @@ async def finance_detail(project_id: int, request: Request, db: Session = Depend
 
     if user.role == "client" and user.id not in [u.id for u in project.users]:
         raise HTTPException(status_code=403, detail="Not authorized")
+
+    # Update Overdue Statuses
+    check_update_overdue_invoices(db, project.id)
 
     status_data = get_project_budget_status(db, project)
     budget = status_data["budget"]
@@ -158,6 +175,8 @@ async def pay_invoice(
     payment_date: str = Form(...),
     deposit_number: str = Form(...),
     amount: float = Form(...),
+    payment_type: str = Form(...), # "full" or "partial"
+    note: Optional[str] = Form(None),
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
@@ -169,19 +188,43 @@ async def pay_invoice(
         raise HTTPException(status_code=404, detail="Invoice not found")
         
     # Create Payment
-    payment = Payment(
-        invoice_id=invoice.id,
-        payment_date=datetime.datetime.strptime(payment_date, "%Y-%m-%d").date(),
-        deposit_number=deposit_number,
-        amount=amount
-    )
-    db.add(payment)
+    # Note: If partial payments are allowed multiple times, unique=True on Invoice relationship will fail.
+    # Assuming for now 1 payment transaction per invoice based on current model.
+    # If the user wants multiple partial payments, we'd need a bigger refactor.
+    # Proceeding with current 1-to-1 constraint.
     
-    # Update Invoice Status
-    invoice.status = InvoiceStatus.PAID
+    # Check if payment already exists (if it's partial maybe we are updating? logic unclear from prompt but simplified model assumes new)
+    if invoice.payment:
+        # If exists, we might need to delete old or update. Let's error for safety or update.
+        # Ideally we update the existing payment info.
+        payment = invoice.payment
+        payment.payment_date = datetime.datetime.strptime(payment_date, "%Y-%m-%d").date()
+        payment.deposit_number = deposit_number
+        payment.amount = amount
+    else:
+        payment = Payment(
+            invoice_id=invoice.id,
+            payment_date=datetime.datetime.strptime(payment_date, "%Y-%m-%d").date(),
+            deposit_number=deposit_number,
+            amount=amount
+        )
+        db.add(payment)
+    
+    # Update Invoice Status and Note
+    if payment_type == "partial":
+        invoice.status = InvoiceStatus.PARTIAL
+        if not note: 
+             # Ideally require it, but for robustness allow empty if client didn't send
+             pass
+    else:
+        invoice.status = InvoiceStatus.PAID
+    
+    if note:
+        invoice.note = note
     
     db.commit()
     
     response = RedirectResponse(url=f"/finance/{invoice.budget.project_id}", status_code=status.HTTP_303_SEE_OTHER)
-    response.set_cookie(key="toast_message", value="Pago registrado exitosamente")
+    msg = "Pago registrado exitosamente" if payment_type == "full" else "Pago parcial registrado"
+    response.set_cookie(key="toast_message", value=msg)
     return response

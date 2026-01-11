@@ -197,8 +197,15 @@
                                     {% if inv.status == 'pagada' %}
                                     <span
                                         class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Pagada</span>
+                                    {% elif inv.status == 'pago_parcial' %}
+                                    <span
+                                        class="inline-flex items-center rounded-md bg-orange-50 px-2 py-1 text-xs font-medium text-orange-800 ring-1 ring-inset ring-orange-600/20">Pago
+                                        Parcial</span>
+                                    {% if inv.note %}
+                                    <div class="text-xs text-gray-500 mt-1 max-w-[150px] truncate"
+                                        title="{{ inv.note }}">{{ inv.note }}</div>
+                                    {% endif %}
                                     {% elif inv.status == 'vencida' %}
-                                    <!-- Logic for overdue needs checking date vs today unless updated by job -->
                                     <span
                                         class="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/10">Vencida</span>
                                     {% else %}
@@ -211,7 +218,7 @@
                                     class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                                     {% if inv.status != 'pagada' %}
                                     <button
-                                        @click="openPayModal({{ inv.id | tojson }}, {{ inv.invoice_number | tojson }}, {{ inv.amount | tojson }})"
+                                        @click='openPayModal({{ inv.id | tojson }}, {{ inv.invoice_number | tojson }}, {{ inv.amount | tojson }})'
                                         class="text-indigo-600 hover:text-indigo-900">Pagar</button>
                                     {% else %}
                                     <span class="text-gray-400 text-xs">Pago: {{ inv.payment.payment_date if inv.payment
@@ -331,12 +338,46 @@
                                     <input type="number" step="0.01" name="amount" x-model="payAmount" required
                                         class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
                                 </div>
+
+                                <!-- Payment Type -->
+                                <div>
+                                    <label class="block text-sm font-medium leading-6 text-gray-900 mb-2">Estado del
+                                        Pago</label>
+                                    <div class="flex items-center gap-4">
+                                        <div class="flex items-center">
+                                            <input id="pay_full" name="payment_type" type="radio" value="full"
+                                                x-model="paymentType"
+                                                class="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-600">
+                                            <label for="pay_full"
+                                                class="ml-2 block text-sm font-medium text-gray-900">Pagado
+                                                (Verde)</label>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <input id="pay_partial" name="payment_type" type="radio" value="partial"
+                                                x-model="paymentType"
+                                                class="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-600">
+                                            <label for="pay_partial"
+                                                class="ml-2 block text-sm font-medium text-gray-900">Pago Parcial
+                                                (Naranja)</label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div x-show="paymentType === 'partial'">
+                                    <label class="block text-sm font-medium leading-6 text-gray-900">Nota (Requerido
+                                        para parcial)</label>
+                                    <textarea name="note" x-model="paymentNote" rows="2"
+                                        :required="paymentType === 'partial'"
+                                        placeholder="Detalles sobre el pago parcial..."
+                                        class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6"></textarea>
+                                </div>
+
                             </div>
                         </div>
                         <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
                             <button type="submit"
-                                class="inline-flex w-full justify-center rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 sm:ml-3 sm:w-auto">Marcar
-                                como Pagada</button>
+                                class="inline-flex w-full justify-center rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 sm:ml-3 sm:w-auto">Confirmar
+                                Pago</button>
                             <button type="button" @click="showPayModal = false"
                                 class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">Cancelar</button>
                         </div>
@@ -359,6 +400,8 @@
             payInvoiceId: null,
             payInvoiceNumber: '',
             payAmount: 0,
+            paymentType: 'full',
+            paymentNote: '',
 
             openInvoiceModal() {
                 this.showInvoiceModal = true;
@@ -367,6 +410,8 @@
                 this.payInvoiceId = id;
                 this.payInvoiceNumber = number;
                 this.payAmount = amount;
+                this.paymentType = 'full';
+                this.paymentNote = '';
                 this.showPayModal = true;
             }
         }
