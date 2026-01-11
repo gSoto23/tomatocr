@@ -124,7 +124,7 @@ async def new_project_form(request: Request, db: Session = Depends(deps.get_db),
         return RedirectResponse(url="/projects", status_code=status.HTTP_303_SEE_OTHER)
 
     clients = db.query(User).filter(User.role == "client").all()
-    workers = db.query(User).filter(User.role == "worker").all()
+    workers = db.query(User).filter(User.role.in_(["worker", "supervisor"])).all()
     
     return templates.TemplateResponse("projects/form.html", {
         "request": request, 
@@ -229,7 +229,7 @@ async def edit_project_form(id: int, request: Request, db: Session = Depends(dep
         return RedirectResponse(url="/projects", status_code=status.HTTP_303_SEE_OTHER)
         
     clients = db.query(User).filter(User.role == "client").all()
-    workers = db.query(User).filter(User.role == "worker").all()
+    workers = db.query(User).filter(User.role.in_(["worker", "supervisor"])).all()
     
     return templates.TemplateResponse("projects/form.html", {
         "request": request, 
@@ -343,7 +343,7 @@ async def get_project_detail(
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    if user.role != "admin" and user.id not in [u.id for u in project.users]:
+    if user.role not in ["admin", "supervisor"] and user.id not in [u.id for u in project.users]:
         raise HTTPException(status_code=403, detail="Not authorized")
 
     # Pagination for Logs

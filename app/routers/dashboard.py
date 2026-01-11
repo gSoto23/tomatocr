@@ -143,7 +143,7 @@ async def dashboard(
         data["sort"] = sort
         data["order"] = order
         
-    elif user.role == "worker":
+    elif user.role in ["worker", "supervisor"]:
         # 1. Recent Activity: Assignments (Schedule)
         # Order by date desc (future first? or past? typically recent means latest)
         # User said "lista de Asignación definidas en el calendario"

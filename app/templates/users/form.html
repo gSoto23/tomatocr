@@ -68,6 +68,9 @@
                         class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
                         <option value="worker" {% if edit_user and edit_user.role=='worker' %}selected{% endif %}>
                             Trabajador (worker)</option>
+                        <option value="supervisor" {% if edit_user and edit_user.role=='supervisor' %}selected{% endif
+                            %}>
+                            Supervisor (supervisor)</option>
                         <option value="client" {% if edit_user and edit_user.role=='client' %}selected{% endif %}>
                             Cliente (client)</option>
                         <option value="admin" {% if edit_user and edit_user.role=='admin' %}selected{% endif %}>

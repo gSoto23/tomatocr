@@ -22,6 +22,7 @@ class ScheduleTask(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     schedule_id = Column(Integer, ForeignKey("project_schedules.id"), nullable=False)
+    title = Column(String(100), nullable=True)
     description = Column(String(255), nullable=False)
     completed = Column(Boolean, default=False)
 

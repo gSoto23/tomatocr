@@ -292,11 +292,17 @@
 
 {% include 'components/log_modal.html' %}
 
-<!-- WORKER VIEW -->
-{% elif user.role == 'worker' %}
+<!-- WORKER / SUPERVISOR VIEW -->
+{% elif user.role in ['worker', 'supervisor'] %}
 <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-    <div class="px-6 py-4 border-b border-gray-100">
+    <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
         <h3 class="font-bold text-gray-900">Mis Asignaciones (Calendario)</h3>
+        {% if user.role == 'supervisor' %}
+        <a href="/calendar"
+            class="inline-flex items-center justify-center rounded-md bg-black px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800">
+            Gestionar Calendario
+        </a>
+        {% endif %}
     </div>
     <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
@@ -330,8 +336,9 @@
                     <td class="px-6 py-4 text-sm text-gray-500">
                         <ul class="list-disc pl-4 space-y-1">
                             {% for task in schedule.tasks %}
-                            <li class="{{ 'line-through text-gray-400' if task.completed else '' }}">{{ task.description
-                                }}</li>
+                            <li class="{{ 'line-through text-gray-400' if task.completed else '' }}">
+                                {% if task.title %}<strong>{{ task.title }}</strong>: {% endif %}{{ task.description }}
+                            </li>
                             {% else %}
                             <li class="italic text-gray-400">Sin tareas definidas</li>
                             {% endfor %}
@@ -345,7 +352,7 @@
                             project_id: "{{ schedule.project_id }}",
                             tasks: [
                                 {% for t in schedule.tasks %}
-                                { id: {{ t.id }}, description: "{{ t.description }}", completed: {{ "true" if t.completed else "false" }} },
+                                { id: {{ t.id }}, title: "{{ t.title or '' }}", description: "{{ t.description }}", completed: {{ "true" if t.completed else "false" }} },
                                 {% endfor %}
                             ]
                         })' class="text-indigo-600 hover:text-indigo-900 font-semibold">
@@ -366,7 +373,7 @@
 {% endif %}
 
 <!-- Worker Modal & Scripts -->
-{% if user.role == 'worker' %}
+{% if user.role in ['worker', 'supervisor'] %}
 <div id="workerScheduleModal" class="relative z-50 hidden" aria-labelledby="modal-title" role="dialog"
     aria-modal="true">
     <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
@@ -431,13 +438,14 @@
                 const div = document.createElement('div');
                 div.className = "flex items-start p-2 hover:bg-gray-100 rounded";
                 div.innerHTML = `
-                    <div class="flex h-5 items-center">
+                    <div class="flex h-5 items-center mt-1">
                         <input id="w-task-${task.id}" type="checkbox" ${task.completed ? 'checked' : ''}
                             onchange="toggleTask(${task.id}, this)"
                             class="h-4 w-4 rounded border-gray-300 text-black focus:ring-black cursor-pointer">
                     </div>
-                    <div class="ml-3 text-sm">
-                        <label for="w-task-${task.id}" class="font-medium text-gray-700 cursor-pointer ${task.completed ? 'line-through text-gray-400' : ''}">${task.description}</label>
+                    <div class="ml-3 text-sm w-full">
+                        ${task.title ? `<strong class="block text-gray-900 ${task.completed ? 'line-through text-gray-500' : ''}">${task.title}</strong>` : ''}
+                        <label for="w-task-${task.id}" class="block text-gray-700 cursor-pointer ${task.completed ? 'line-through text-gray-400' : ''}">${task.description}</label>
                     </div>
                 `;
                 container.appendChild(div);
