@@ -72,10 +72,27 @@
                         <span class="text-gray-500">Contrato</span>
                         <span class="font-medium">{{ budget.contract_duration or 'N/A' }}</span>
                     </div>
+                    <div class="flex justify-between border-b pb-2">
+                        <span class="text-gray-500">Fecha Inicio</span>
+                        <span class="font-medium">{{ budget.start_date.strftime('%d/%m/%Y') if budget.start_date else
+                            'N/A' }}</span>
+                    </div>
+                    <div class="flex justify-between border-b pb-2">
+                        <span class="text-gray-500">Fecha Fin</span>
+                        <span class="font-medium">{{ budget.end_date.strftime('%d/%m/%Y') if budget.end_date else 'N/A'
+                            }}</span>
+                    </div>
                     {% if budget.is_prorrogable %}
                     <div class="flex justify-between border-b pb-2">
                         <span class="text-green-600 font-medium">Prorrogable</span>
-                        <span>Sí</span>
+                        <span>
+                            {% if budget.active_prorogue %}
+                            <span
+                                class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Activa</span>
+                            {% else %}
+                            <span class="text-gray-500 text-xs">Inactiva</span>
+                            {% endif %}
+                        </span>
                     </div>
                     <div class="flex justify-between border-b pb-2">
                         <span class="text-gray-500">Tiempo Prórroga</span>

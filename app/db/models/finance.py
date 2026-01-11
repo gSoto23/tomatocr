@@ -23,6 +23,11 @@ class ProjectBudget(Base):
     is_prorrogable = Column(Boolean, default=False)
     prorrogable_time = Column(String, nullable=True)
     prorrogable_amount = Column(Float, default=0.0)
+    active_prorogue = Column(Boolean, default=False)
+
+    # Dates
+    start_date = Column(Date, nullable=True)
+    end_date = Column(Date, nullable=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

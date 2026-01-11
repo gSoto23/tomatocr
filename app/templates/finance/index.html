@@ -38,7 +38,7 @@
                         </thead>
                         <tbody class="divide-y divide-gray-200 bg-white">
                             {% for item in projects %}
-                            <tr>
+                            <tr class="{{ 'bg-gray-50 opacity-75' if not item.project.is_active else '' }}">
                                 <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
                                     {{ item.project.name }}
                                     <div class="text-xs text-gray-500">{{ item.project.client_display_name or '' }}

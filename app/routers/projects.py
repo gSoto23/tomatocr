@@ -62,8 +62,11 @@ class ProjectCreate(BaseModel):
     licitation_number: Optional[str] = None
     contract_duration: Optional[str] = None
     is_prorrogable: bool = False
+    active_prorogue: bool = False
     prorrogable_time: Optional[str] = None
     prorrogable_amount: Optional[float] = None
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
     budget_lines: List[BudgetLineCreate] = []
 
 @router.get("/")
@@ -141,13 +144,26 @@ async def create_project(
         db.add(ProjectTask(project_id=project.id, description=t.description, is_required=t.is_required))
 
     # Add Budget Info
+    import datetime
+    
+    start_date_obj = None
+    if project_in.start_date:
+        start_date_obj = datetime.datetime.strptime(project_in.start_date, "%Y-%m-%d").date()
+
+    end_date_obj = None
+    if project_in.end_date:
+        end_date_obj = datetime.datetime.strptime(project_in.end_date, "%Y-%m-%d").date()
+
     budget = ProjectBudget(
         project_id=project.id,
         licitation_number=project_in.licitation_number,
         contract_duration=project_in.contract_duration,
         is_prorrogable=project_in.is_prorrogable,
+        active_prorogue=project_in.active_prorogue if project_in.is_prorrogable else False,
         prorrogable_time=project_in.prorrogable_time,
-        prorrogable_amount=project_in.prorrogable_amount or 0.0
+        prorrogable_amount=project_in.prorrogable_amount or 0.0,
+        start_date=start_date_obj,
+        end_date=end_date_obj
     )
     db.add(budget)
     db.flush()
@@ -237,6 +253,7 @@ async def update_project(
         db.add(ProjectTask(project_id=id, description=t.description, is_required=t.is_required))
 
     # Update Budget
+    import datetime
     budget = db.query(ProjectBudget).filter(ProjectBudget.project_id == id).first()
     if not budget:
         budget = ProjectBudget(project_id=id)
@@ -245,8 +262,19 @@ async def update_project(
     budget.licitation_number = project_in.licitation_number
     budget.contract_duration = project_in.contract_duration
     budget.is_prorrogable = project_in.is_prorrogable
+    budget.active_prorogue = project_in.active_prorogue if project_in.is_prorrogable else False
     budget.prorrogable_time = project_in.prorrogable_time
     budget.prorrogable_amount = project_in.prorrogable_amount or 0.0
+    
+    if project_in.start_date:
+        budget.start_date = datetime.datetime.strptime(project_in.start_date, "%Y-%m-%d").date()
+    else:
+        budget.start_date = None
+
+    if project_in.end_date:
+        budget.end_date = datetime.datetime.strptime(project_in.end_date, "%Y-%m-%d").date()
+    else:
+        budget.end_date = None
     
     db.flush() # Ensure budget.id if new
 

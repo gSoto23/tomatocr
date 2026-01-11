@@ -40,7 +40,7 @@ def get_project_budget_status(db: Session, project: Project):
              total_adjudicated += line.subtotal * (1 + (line.tax_percentage / 100.0))
         
         # Add Prorogue
-        if budget.is_prorrogable:
+        if budget.is_prorrogable and budget.active_prorogue:
             total_adjudicated += budget.prorrogable_amount or 0.0
             
         # Sum Invoices
