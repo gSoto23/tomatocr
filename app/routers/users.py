@@ -17,7 +17,7 @@ router = APIRouter(
     dependencies=[Depends(deps.get_current_user)]
 )
 
-templates = Jinja2Templates(directory="app/templates")
+from app.core.templates import templates
 
 def check_admin(user: User):
     if user.role != "admin":

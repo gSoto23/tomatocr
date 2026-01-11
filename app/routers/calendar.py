@@ -18,7 +18,7 @@ router = APIRouter(
     dependencies=[Depends(deps.get_current_user)]
 )
 
-templates = Jinja2Templates(directory="app/templates")
+from app.core.templates import templates
 
 @router.get("/")
 async def calendar_view(request: Request, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):

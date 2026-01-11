@@ -27,7 +27,7 @@ router = APIRouter(
     dependencies=[Depends(deps.get_current_user)]
 )
 
-templates = Jinja2Templates(directory="app/templates")
+from app.core.templates import templates
 
 @router.get("/")
 async def list_logs(
@@ -212,14 +212,14 @@ async def new_log_form(request: Request, project_id: Optional[int] = None, db: S
     today = date.today()
     project_tasks_json = json.dumps(project_tasks_map)
     
-    return templates.TemplateResponse("logs/form.html", {
+    return templates.TemplateResponse("logs/form_fixed.html", {
         "request": request,
         "user": user, 
         "projects": projects,
         "today": today,
         "project_tasks_json": project_tasks_json,
         "selected_project_id": project_id,
-        "project_tasks_json": json.dumps(project_tasks_map)
+
     })
 
 @router.post("/new")

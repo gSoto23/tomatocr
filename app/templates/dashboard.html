@@ -206,7 +206,7 @@
             <tbody class="bg-white divide-y divide-gray-200">
                 {% for log in data.recent_activity %}
                 <tr>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ log.date }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ log.date | format_date }}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ log.project.name if
                         log.project else 'N/A' }}</td>
                     <td class="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">{{ log.notes or '-' }}</td>
@@ -249,7 +249,8 @@
             <tbody class="bg-white divide-y divide-gray-200">
                 {% for schedule in data.recent_activity %}
                 <tr>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ schedule.date }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ schedule.date |
+                        format_date }}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ schedule.project.name if
                         schedule.project else 'N/A' }}</td>
                     <td class="px-6 py-4 text-sm text-gray-500">
@@ -266,7 +267,7 @@
                         <button type="button" onclick='openWorkerModal({
                             id: {{ schedule.id }},
                             project_name: "{{ schedule.project.name if schedule.project else "N/A" }}",
-                            date: "{{ schedule.date }}",
+                            date: "{{ schedule.date | format_date }}",
                             project_id: "{{ schedule.project_id }}",
                             tasks: [
                                 {% for t in schedule.tasks %}

@@ -40,7 +40,7 @@
             {% for log in logs %}
             <tr>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {{ log.date.strftime('%Y-%m-%d') }}
+                    {{ log.date | format_date }}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                     <a href="/projects/{{ log.project.id }}"

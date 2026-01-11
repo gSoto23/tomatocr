@@ -18,7 +18,7 @@ app = FastAPI(title=settings.PROJECT_NAME)
 # Directory structure is app/static, so we mount it to /static path
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
-templates = Jinja2Templates(directory="app/templates")
+from app.core.templates import templates
 
 @app.get("/")
 async def read_root(request: Request):

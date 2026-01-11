@@ -174,13 +174,24 @@
                 const data = await response.json();
                 currentLogData = data;
 
+                function formatDateJS(isoDate) {
+                    if (!isoDate) return '';
+                    if (isoDate.includes('T')) isoDate = isoDate.split('T')[0];
+                    const parts = isoDate.split('-');
+                    if (parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`;
+                    return isoDate;
+                }
+
                 // Populate
                 document.getElementById('log-project').textContent = data.project_name;
-                document.getElementById('log-date').textContent = data.date;
+                document.getElementById('log-date').textContent = formatDateJS(data.date);
                 document.getElementById('log-user').textContent = data.user_name;
                 document.getElementById('log-notes').textContent = data.notes;
                 document.getElementById('edit-notes').value = data.notes;
-                document.getElementById('log-updated').textContent = data.updated_at ? new Date(data.updated_at).toLocaleString() : 'Nunca';
+                // For updated_at, let's keep toLocaleString (includes time) or format manually?
+                // Usually timestamps are fine as is, but let's stick to user request "Formato de fecha". 
+                // "updated_at" is secondary. "data.date" is Primary.
+                document.getElementById('log-updated').textContent = data.updated_at ? new Date(data.updated_at).toLocaleString('es-CR') : 'Nunca';
 
                 // Tasks (View Mode)
                 const tasksContainer = document.getElementById('log-tasks-container');
@@ -358,7 +369,7 @@
 
             // Populate Preview
             document.getElementById('email-preview-project').textContent = currentLogData.project_name;
-            document.getElementById('email-preview-date').textContent = currentLogData.date;
+            document.getElementById('email-preview-date').textContent = formatDateJS(currentLogData.date);
             document.getElementById('email-preview-notes').textContent = currentLogData.notes || "Sin notas";
 
             const doneTasksCount = currentLogData.tasks.filter(t => t.completed).length;

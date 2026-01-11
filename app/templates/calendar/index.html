@@ -340,7 +340,15 @@
     function openWorkerModal(event) {
         document.getElementById('workerScheduleModal').classList.remove('hidden');
         document.getElementById('worker-project-name').innerText = event.extendedProps.project_name;
-        document.getElementById('worker-date').innerText = event.startStr; // Or format nicely
+        let dateDisplay = event.startStr;
+        if (dateDisplay.includes('T')) {
+            dateDisplay = dateDisplay.split('T')[0];
+        }
+        const parts = dateDisplay.split('-');
+        if (parts.length === 3) {
+            dateDisplay = `${parts[2]}-${parts[1]}-${parts[0]}`;
+        }
+        document.getElementById('worker-date').innerText = dateDisplay;
         document.getElementById('worker-project-link').href = `/projects/${event.extendedProps.project_id}`;
 
         const container = document.getElementById('worker-tasks-list');

@@ -74,12 +74,12 @@
                     </div>
                     <div class="flex justify-between border-b pb-2">
                         <span class="text-gray-500">Fecha Inicio</span>
-                        <span class="font-medium">{{ budget.start_date.strftime('%d/%m/%Y') if budget.start_date else
+                        <span class="font-medium">{{ budget.start_date | format_date if budget.start_date else
                             'N/A' }}</span>
                     </div>
                     <div class="flex justify-between border-b pb-2">
                         <span class="text-gray-500">Fecha Fin</span>
-                        <span class="font-medium">{{ budget.end_date.strftime('%d/%m/%Y') if budget.end_date else 'N/A'
+                        <span class="font-medium">{{ budget.end_date | format_date if budget.end_date else 'N/A'
                             }}</span>
                     </div>
                     {% if budget.is_prorrogable %}
@@ -295,9 +295,9 @@
                                 <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
                                     {{ inv.invoice_number }}</td>
                                 <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{
-                                    inv.issue_date.strftime('%d/%m/%Y') }}</td>
+                                    inv.issue_date | format_date }}</td>
                                 <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{
-                                    inv.due_date.strftime('%d/%m/%Y') }}</td>
+                                    inv.due_date | format_date }}</td>
                                 <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500 truncate max-w-xs"
                                     title="{{ inv.line.name if inv.line else '?' }}">
                                     {{ inv.line.name if inv.line else '?' }}
@@ -330,10 +330,10 @@
                                     {% if inv.status != 'pagada' %}
                                     <button
                                         @click='openPayModal({{ inv.id | tojson }}, {{ inv.invoice_number | tojson }}, {{ inv.amount | tojson }})'
-                                        class="text-indigo-600 hover:text-indigo-900">Pagar</button>
+                                        class="text-indigo-600 hover:text-indigo-900">Reporte</button>
                                     {% else %}
                                     <span class="text-gray-400 text-xs">Pago: {{
-                                        inv.payment.payment_date.strftime('%d/%m/%Y') if inv.payment
+                                        inv.payment.payment_date | format_date if inv.payment
                                         else '?' }}</span>
                                     {% endif %}
                                 </td>
