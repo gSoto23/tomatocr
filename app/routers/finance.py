@@ -98,7 +98,19 @@ async def finance_dashboard(request: Request, db: Session = Depends(deps.get_db)
     })
 
 @router.get("/{project_id}")
-async def finance_detail(project_id: int, request: Request, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
+async def finance_detail(
+    project_id: int, 
+    request: Request, 
+    page: int = 1,
+    limit: int = 10,
+    status: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    sort_by: str = "issue_date",
+    order: str = "desc",
+    db: Session = Depends(deps.get_db), 
+    user: User = Depends(deps.get_current_user)
+):
     check_finance_access(user)
     
     project = db.query(Project).filter(Project.id == project_id).first()
@@ -115,10 +127,53 @@ async def finance_detail(project_id: int, request: Request, db: Session = Depend
     budget = status_data["budget"]
     
     lines = budget.lines if budget else []
-    invoices = budget.invoices if budget else []
+    
+    # Paginated Invoices
+    invoices = []
+    total_records = 0
+    total_pages = 0
+    
+    if budget:
+        query = db.query(Invoice).filter(Invoice.budget_id == budget.id)
 
-    # Sort invoices by date desc
-    invoices.sort(key=lambda x: x.issue_date, reverse=True)
+        # Filters
+        if status and status != 'all':
+            query = query.filter(Invoice.status == status)
+        
+        if start_date:
+            s_date = datetime.datetime.strptime(start_date, "%Y-%m-%d").date()
+            query = query.filter(Invoice.issue_date >= s_date)
+            
+        if end_date:
+            e_date = datetime.datetime.strptime(end_date, "%Y-%m-%d").date()
+            query = query.filter(Invoice.issue_date <= e_date)
+
+        # Count
+        total_records = query.count()
+        
+        # Sorting
+        if sort_by == 'invoice_number':
+            column = Invoice.invoice_number
+        elif sort_by == 'amount':
+            column = Invoice.amount
+        elif sort_by == 'status':
+            column = Invoice.status
+        elif sort_by == 'due_date':
+            column = Invoice.due_date
+        else:
+            column = Invoice.issue_date # default
+
+        if order == 'asc':
+            query = query.order_by(column.asc())
+        else:
+            query = query.order_by(column.desc())
+
+        # Fetch Page
+        offset = (page - 1) * limit
+        invoices = query.offset(offset).limit(limit).all()
+            
+        from math import ceil
+        total_pages = ceil(total_records / limit)
 
     return templates.TemplateResponse("finance/detail.html", {
         "request": request,
@@ -127,7 +182,16 @@ async def finance_detail(project_id: int, request: Request, db: Session = Depend
         "budget": budget,
         "lines": lines,
         "invoices": invoices,
-        "summary": status_data
+        "summary": status_data,
+        "page": page,
+        "total_pages": total_pages,
+        "total_records": total_records,
+        # Filters context
+        "f_status": status,
+        "f_start_date": start_date,
+        "f_end_date": end_date,
+        "sort_by": sort_by,
+        "order": order
     })
 
 @router.post("/{project_id}/invoice")

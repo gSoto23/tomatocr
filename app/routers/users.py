@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Form, Request, status, HTTPException
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 
 from app.db.session import SessionLocal
 from app.db.models.user import User
@@ -23,10 +24,35 @@ def check_admin(user: User):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
 
 @router.get("/")
-async def list_users(request: Request, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
+async def list_users(
+    request: Request, 
+    page: int = 1,
+    limit: int = 10,
+    db: Session = Depends(deps.get_db), 
+    user: User = Depends(deps.get_current_user)
+):
     check_admin(user)
-    users = db.query(User).all()
-    return templates.TemplateResponse("users/list.html", {"request": request, "users": users, "user": user})
+    
+    count_query = db.query(func.count(User.id))
+    total_records = count_query.scalar()
+    
+    offset = (page - 1) * limit
+    users = db.query(User)\
+        .offset(offset)\
+        .limit(limit)\
+        .all()
+        
+    from math import ceil
+    total_pages = ceil(total_records / limit)
+    
+    return templates.TemplateResponse("users/list.html", {
+        "request": request, 
+        "users": users, 
+        "user": user,
+        "page": page,
+        "total_pages": total_pages,
+        "total_records": total_records
+    })
 
 @router.get("/new")
 async def new_user_form(request: Request, user: User = Depends(deps.get_current_user)):

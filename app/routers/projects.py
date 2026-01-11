@@ -13,7 +13,10 @@ from app.db.models.project_details import ProjectSupply, ProjectTask, ProjectCon
 from app.db.models.finance import ProjectBudget, BudgetLine
 from app.db.models.user import User
 from app.db.models.user import User
+from app.db.models.log import DailyLog
 from app.db.models.associations import project_users
+from sqlalchemy import desc, func
+from math import ceil
 from app.routers import deps
 
 router = APIRouter(
@@ -70,16 +73,50 @@ class ProjectCreate(BaseModel):
     budget_lines: List[BudgetLineCreate] = []
 
 @router.get("/")
-async def list_projects(request: Request, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
+async def list_projects(
+    request: Request, 
+    page: int = 1, 
+    limit: int = 10,
+    db: Session = Depends(deps.get_db), 
+    user: User = Depends(deps.get_current_user)
+):
+    offset = (page - 1) * limit
+    
     if user.role == "admin":
-        projects = db.query(Project).all()
+        count_query = db.query(func.count(Project.id))
+        total_records = count_query.scalar()
+        
+        projects = db.query(Project)\
+            .order_by(Project.id.desc())\
+            .offset(offset)\
+            .limit(limit)\
+            .all()
     else:
         # Explicit query
+        count_query = db.query(func.count(Project.id))\
+            .join(project_users)\
+            .filter(project_users.c.user_id == user.id)
+        total_records = count_query.scalar()
+        
         projects = db.query(Project)\
             .join(project_users)\
             .filter(project_users.c.user_id == user.id)\
-            .all()   
-    return templates.TemplateResponse("projects/list.html", {"request": request, "projects": projects, "user": user})
+            .order_by(Project.id.desc())\
+            .offset(offset)\
+            .limit(limit)\
+            .all()
+    
+    from math import ceil
+    total_pages = ceil(total_records / limit)
+    
+    return templates.TemplateResponse("projects/list.html", {
+        "request": request, 
+        "projects": projects, 
+        "user": user,
+        "page": page,
+        "total_pages": total_pages,
+        "total_records": total_records
+    })
 
 @router.get("/new")
 async def new_project_form(request: Request, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
@@ -297,6 +334,8 @@ async def update_project(
 async def get_project_detail(
     id: int, 
     request: Request, 
+    page: int = 1,
+    limit: int = 10,
     db: Session = Depends(deps.get_db), 
     user: User = Depends(deps.get_current_user)
 ):
@@ -307,11 +346,24 @@ async def get_project_detail(
     if user.role != "admin" and user.id not in [u.id for u in project.users]:
         raise HTTPException(status_code=403, detail="Not authorized")
 
-    logs = sorted(project.logs, key=lambda x: (x.date, x.created_at), reverse=True)
+    # Pagination for Logs
+    offset = (page - 1) * limit
+    logs_query = db.query(DailyLog).filter(DailyLog.project_id == id)
+    total_records = logs_query.count()
+    
+    logs = logs_query.order_by(desc(DailyLog.date), desc(DailyLog.created_at))\
+        .offset(offset)\
+        .limit(limit)\
+        .all()
+        
+    total_pages = ceil(total_records / limit)
 
     return templates.TemplateResponse("projects/detail.html", {
         "request": request, 
         "project": project, 
         "user": user,
-        "logs": logs
+        "logs": logs,
+        "page": page,
+        "total_pages": total_pages,
+        "total_records": total_records
     })

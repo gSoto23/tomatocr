@@ -148,7 +148,8 @@
         <!-- Invoices Pane (Main) -->
         <div class="lg:col-span-2">
             <div class="bg-white shadow sm:rounded-lg overflow-hidden border border-gray-200">
-                <div class="border-b border-gray-200 bg-white px-4 py-5 sm:px-6 flex justify-between items-center">
+                <div
+                    class="border-b border-gray-200 bg-white px-4 py-5 sm:px-6 flex justify-between items-center flex-wrap gap-4">
                     <h3 class="text-base font-semibold leading-6 text-gray-900">Facturación</h3>
                     {% if user.role == 'admin' %}
                     <button @click="openInvoiceModal" type="button"
@@ -157,23 +158,131 @@
                     {% endif %}
                 </div>
 
+                <!-- Filters -->
+                <div class="bg-gray-50 px-4 py-4 border-b border-gray-200">
+                    <form method="GET" class="grid grid-cols-1 sm:grid-cols-4 gap-4 items-end">
+                        <input type="hidden" name="sort_by" value="{{ sort_by }}">
+                        <input type="hidden" name="order" value="{{ order }}">
+
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Estado</label>
+                            <select name="status"
+                                class="block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm h-9">
+                                <option value="all" {% if f_status=='all' %}selected{% endif %}>Todos</option>
+                                <option value="pendiente" {% if f_status=='pendiente' %}selected{% endif %}>Pendiente
+                                </option>
+                                <option value="pago_parcial" {% if f_status=='pago_parcial' %}selected{% endif %}>Pago
+                                    Parcial</option>
+                                <option value="pagada" {% if f_status=='pagada' %}selected{% endif %}>Pagada</option>
+                                <option value="vencida" {% if f_status=='vencida' %}selected{% endif %}>Vencida</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Desde</label>
+                            <input type="date" name="start_date" value="{{ f_start_date or '' }}"
+                                class="block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm h-9">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Hasta</label>
+                            <input type="date" name="end_date" value="{{ f_end_date or '' }}"
+                                class="block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm h-9">
+                        </div>
+                        <div class="flex gap-2">
+                            <button type="submit"
+                                class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Filtrar</button>
+                            <a href="/finance/{{ project.id }}"
+                                class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-500 hover:text-gray-700">Limpiar</a>
+                        </div>
+                    </form>
+                </div>
+
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-gray-300">
                         <thead class="bg-gray-50">
                             <tr>
                                 <th scope="col"
-                                    class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">#
-                                    Factura</th>
+                                    class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">
+                                    <a href="{{ request.url.include_query_params(sort_by='invoice_number', order='asc' if sort_by == 'invoice_number' and order == 'desc' else 'desc') }}"
+                                        class="group inline-flex">
+                                        # Factura
+                                        {% if sort_by == 'invoice_number' %}
+                                        <span class="ml-2 flex-none rounded text-gray-900 group-hover:bg-gray-200">
+                                            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"
+                                                aria-hidden="true">
+                                                <path fill-rule="evenodd"
+                                                    d="{{ 'M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z' if order == 'desc' else 'M14.77 12.79a.75.75 0 01-1.06-.02L10 8.832 6.29 12.79a.75.75 0 01-1.08-1.04l4.25-4.5a.75.75 0 011.08 0l4.25 4.5a.75.75 0 01-.02 1.06z' }}"
+                                                    clip-rule="evenodd" />
+                                            </svg>
+                                        </span>
+                                        {% endif %}
+                                    </a>
+                                </th>
                                 <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                                    Emisión</th>
+                                    <a href="{{ request.url.include_query_params(sort_by='issue_date', order='asc' if sort_by == 'issue_date' and order == 'desc' else 'desc') }}"
+                                        class="group inline-flex">
+                                        Emisión
+                                        {% if sort_by == 'issue_date' %}
+                                        <span class="ml-2 flex-none rounded text-gray-900 group-hover:bg-gray-200">
+                                            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"
+                                                aria-hidden="true">
+                                                <path fill-rule="evenodd"
+                                                    d="{{ 'M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z' if order == 'desc' else 'M14.77 12.79a.75.75 0 01-1.06-.02L10 8.832 6.29 12.79a.75.75 0 01-1.08-1.04l4.25-4.5a.75.75 0 011.08 0l4.25 4.5a.75.75 0 01-.02 1.06z' }}"
+                                                    clip-rule="evenodd" />
+                                            </svg>
+                                        </span>
+                                        {% endif %}
+                                    </a>
+                                </th>
                                 <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                                    Vencimiento</th>
+                                    <a href="{{ request.url.include_query_params(sort_by='due_date', order='asc' if sort_by == 'due_date' and order == 'desc' else 'desc') }}"
+                                        class="group inline-flex">
+                                        Vencimiento
+                                        {% if sort_by == 'due_date' %}
+                                        <span class="ml-2 flex-none rounded text-gray-900 group-hover:bg-gray-200">
+                                            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"
+                                                aria-hidden="true">
+                                                <path fill-rule="evenodd"
+                                                    d="{{ 'M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z' if order == 'desc' else 'M14.77 12.79a.75.75 0 01-1.06-.02L10 8.832 6.29 12.79a.75.75 0 01-1.08-1.04l4.25-4.5a.75.75 0 011.08 0l4.25 4.5a.75.75 0 01-.02 1.06z' }}"
+                                                    clip-rule="evenodd" />
+                                            </svg>
+                                        </span>
+                                        {% endif %}
+                                    </a>
+                                </th>
                                 <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Línea
                                 </th>
-                                <th scope="col" class="px-3 py-3.5 text-right text-sm font-semibold text-gray-900">Monto
+                                <th scope="col" class="px-3 py-3.5 text-right text-sm font-semibold text-gray-900">
+                                    <a href="{{ request.url.include_query_params(sort_by='amount', order='asc' if sort_by == 'amount' and order == 'desc' else 'desc') }}"
+                                        class="group inline-flex">
+                                        Monto
+                                        {% if sort_by == 'amount' %}
+                                        <span class="ml-2 flex-none rounded text-gray-900 group-hover:bg-gray-200">
+                                            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"
+                                                aria-hidden="true">
+                                                <path fill-rule="evenodd"
+                                                    d="{{ 'M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z' if order == 'desc' else 'M14.77 12.79a.75.75 0 01-1.06-.02L10 8.832 6.29 12.79a.75.75 0 01-1.08-1.04l4.25-4.5a.75.75 0 011.08 0l4.25 4.5a.75.75 0 01-.02 1.06z' }}"
+                                                    clip-rule="evenodd" />
+                                            </svg>
+                                        </span>
+                                        {% endif %}
+                                    </a>
                                 </th>
                                 <th scope="col" class="px-3 py-3.5 text-center text-sm font-semibold text-gray-900">
-                                    Estado</th>
+                                    <a href="{{ request.url.include_query_params(sort_by='status', order='asc' if sort_by == 'status' and order == 'desc' else 'desc') }}"
+                                        class="group inline-flex">
+                                        Estado
+                                        {% if sort_by == 'status' %}
+                                        <span class="ml-2 flex-none rounded text-gray-900 group-hover:bg-gray-200">
+                                            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"
+                                                aria-hidden="true">
+                                                <path fill-rule="evenodd"
+                                                    d="{{ 'M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z' if order == 'desc' else 'M14.77 12.79a.75.75 0 01-1.06-.02L10 8.832 6.29 12.79a.75.75 0 01-1.08-1.04l4.25-4.5a.75.75 0 011.08 0l4.25 4.5a.75.75 0 01-.02 1.06z' }}"
+                                                    clip-rule="evenodd" />
+                                            </svg>
+                                        </span>
+                                        {% endif %}
+                                    </a>
+                                </th>
                                 {% if user.role == 'admin' %}
                                 <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6"><span
                                         class="sr-only">Acciones</span></th>
@@ -185,8 +294,10 @@
                             <tr>
                                 <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
                                     {{ inv.invoice_number }}</td>
-                                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ inv.issue_date }}</td>
-                                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ inv.due_date }}</td>
+                                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{
+                                    inv.issue_date.strftime('%d/%m/%Y') }}</td>
+                                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{
+                                    inv.due_date.strftime('%d/%m/%Y') }}</td>
                                 <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500 truncate max-w-xs"
                                     title="{{ inv.line.name if inv.line else '?' }}">
                                     {{ inv.line.name if inv.line else '?' }}
@@ -221,7 +332,8 @@
                                         @click='openPayModal({{ inv.id | tojson }}, {{ inv.invoice_number | tojson }}, {{ inv.amount | tojson }})'
                                         class="text-indigo-600 hover:text-indigo-900">Pagar</button>
                                     {% else %}
-                                    <span class="text-gray-400 text-xs">Pago: {{ inv.payment.payment_date if inv.payment
+                                    <span class="text-gray-400 text-xs">Pago: {{
+                                        inv.payment.payment_date.strftime('%d/%m/%Y') if inv.payment
                                         else '?' }}</span>
                                     {% endif %}
                                 </td>
@@ -235,6 +347,11 @@
                             {% endfor %}
                         </tbody>
                     </table>
+                    {% from "components/pagination.html" import render_pagination %}
+                    <div class="border-t border-gray-200">
+                        {{ render_pagination(page, total_pages, request.url.path ~ '?' ~ request.query_params | string |
+                        replace('&page=' ~ page, '') | replace('page=' ~ page, '') ) }}
+                    </div>
                 </div>
             </div>
         </div>
@@ -244,7 +361,8 @@
     {% if user.role == 'admin' %}
 
     <!-- Invoice Modal -->
-    <div x-show="showInvoiceModal" class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div x-cloak x-show="showInvoiceModal" class="relative z-50" aria-labelledby="modal-title" role="dialog"
+        aria-modal="true">
         <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
         <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
             <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
@@ -308,7 +426,8 @@
     </div>
 
     <!-- Pay Modal -->
-    <div x-show="showPayModal" class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div x-cloak x-show="showPayModal" class="relative z-50" aria-labelledby="modal-title" role="dialog"
+        aria-modal="true">
         <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
         <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
             <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
@@ -349,16 +468,15 @@
                                                 x-model="paymentType"
                                                 class="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-600">
                                             <label for="pay_full"
-                                                class="ml-2 block text-sm font-medium text-gray-900">Pagado
-                                                (Verde)</label>
+                                                class="ml-2 block text-sm font-medium text-gray-900">Pagado</label>
                                         </div>
                                         <div class="flex items-center">
                                             <input id="pay_partial" name="payment_type" type="radio" value="partial"
                                                 x-model="paymentType"
                                                 class="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-600">
                                             <label for="pay_partial"
-                                                class="ml-2 block text-sm font-medium text-gray-900">Pago Parcial
-                                                (Naranja)</label>
+                                                class="ml-2 block text-sm font-medium text-gray-900">Pago
+                                                Parcial</label>
                                         </div>
                                     </div>
                                 </div>

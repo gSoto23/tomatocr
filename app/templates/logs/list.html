@@ -83,6 +83,14 @@
             {% endfor %}
         </tbody>
     </table>
+    {% from "components/pagination.html" import render_pagination %}
+    <!-- Construct endpoint with existing query params -->
+    {% set base_url = '/logs' %}
+    {% if selected_project_id %}
+    {% set base_url = base_url ~ '?project_id=' ~ selected_project_id %}
+    {% endif %}
+
+    {{ render_pagination(page, total_pages, base_url) }}
 </div>
 
 {% include 'components/log_modal.html' %}

@@ -5,64 +5,272 @@
 {% block content %}
 <div class="mb-8">
     <h1 class="text-2xl font-bold text-gray-900">Bienvenido, {{ user.full_name or user.username }}</h1>
-    <p class="mt-1 text-sm text-gray-500">Resumen de operaciones del día.</p>
+    <p class="mt-1 text-sm text-gray-500">Resumen de operaciones.</p>
 </div>
 
-<!-- Stats -->
+<!-- ADMIN VIEW -->
+{% if user.role == 'admin' %}
+
+<!-- Filters -->
+<div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6" x-data="{ showFilters: false }">
+    <div class="flex justify-between items-center mb-4 cursor-pointer" @click="showFilters = !showFilters">
+        <h3 class="font-bold text-gray-900 flex items-center gap-2">
+            <svg class="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+            Filtros
+        </h3>
+        <svg class="w-5 h-5 text-gray-500 transform transition-transform" :class="showFilters ? 'rotate-180' : ''"
+            fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+        </svg>
+    </div>
+
+    <form action="/dashboard" method="GET" x-show="showFilters" x-transition>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Fecha Inicio</label>
+                <input type="date" name="start_date" value="{{ request.query_params.get('start_date', '') }}"
+                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Fecha Fin</label>
+                <input type="date" name="end_date" value="{{ request.query_params.get('end_date', '') }}"
+                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+                <select name="invoice_status"
+                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm">
+                    <option value="all" {% if request.query_params.get('invoice_status')=='all' %}selected{% endif %}>
+                        Todos</option>
+                    <option value="pendiente" {% if request.query_params.get('invoice_status')=='pendiente' %}selected{%
+                        endif %}>Pendiente (Amarillo)</option>
+                    <option value="pago_parcial" {% if request.query_params.get('invoice_status')=='pago_parcial'
+                        %}selected{% endif %}>Pago Parcial (Naranja)</option>
+                    <option value="vencida" {% if request.query_params.get('invoice_status')=='vencida' %}selected{%
+                        endif %}>Vencida (Rojo)</option>
+                    <option value="pagada" {% if request.query_params.get('invoice_status')=='pagada' %}selected{% endif
+                        %}>Pagada (Verde)</option>
+                </select>
+            </div>
+            <div class="flex gap-2">
+                <button type="submit"
+                    class="rounded-md bg-black px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black flex-1">
+                    Filtrar
+                </button>
+                <a href="/dashboard"
+                    class="rounded-md bg-white px-4 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 flex-1 text-center">
+                    Limpiar
+                </a>
+            </div>
+        </div>
+    </form>
+</div>
 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <!-- Active Projects -->
     <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
         <div class="flex items-center gap-4">
             <div class="p-3 bg-green-50 text-green-600 rounded-lg">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2">
+                        d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10">
                     </path>
                 </svg>
             </div>
             <div>
                 <p class="text-sm font-medium text-gray-500">Proyectos Activos</p>
-                <p class="text-2xl font-bold text-gray-900">0</p>
+                <p class="text-2xl font-bold text-gray-900">{{ data.stats.active_projects }}</p>
             </div>
         </div>
     </div>
 
+    <!-- Total Adjudicated -->
     <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
         <div class="flex items-center gap-4">
             <div class="p-3 bg-blue-50 text-blue-600 rounded-lg">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                    </path>
                 </svg>
             </div>
             <div>
-                <p class="text-sm font-medium text-gray-500">Horas Registradas</p>
-                <p class="text-2xl font-bold text-gray-900">0h</p>
+                <p class="text-sm font-medium text-gray-500">Total Adjudicado</p>
+                <p class="text-2xl font-bold text-gray-900">{{ "{:,.2f}".format(data.stats.total_adjudicated) }}</p>
             </div>
         </div>
     </div>
 
+    <!-- Total Invoiced -->
     <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
         <div class="flex items-center gap-4">
             <div class="p-3 bg-purple-50 text-purple-600 rounded-lg">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z">
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
                     </path>
                 </svg>
             </div>
             <div>
-                <p class="text-sm font-medium text-gray-500">Personal Activo</p>
-                <p class="text-2xl font-bold text-gray-900">0</p>
+                <p class="text-sm font-medium text-gray-500">Total Facturado</p>
+                <p class="text-2xl font-bold text-gray-900">{{ "{:,.2f}".format(data.stats.total_invoiced) }}</p>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Empty State / Activity -->
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-    <h3 class="font-bold text-gray-900 mb-4">Actividad Reciente</h3>
-    <div class="text-center py-10 text-gray-500">
-        <p>No hay registros recientes.</p>
+<!-- Admin Recent Activity: Invoices -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-100">
+        <h3 class="font-bold text-gray-900">Actividad Reciente (Facturación)</h3>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Factura
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Proyecto
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Monto
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Vencimiento</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado
+                    </th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acción
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for inv in data.recent_activity %}
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ inv.invoice_number }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ inv.budget.project.name if
+                        inv.budget and inv.budget.project else 'N/A' }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ "{:,.2f}".format(inv.amount) }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ inv.due_date }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        {% if inv.status == 'vencida' %}
+                        <span
+                            class="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/10">Vencida</span>
+                        {% elif inv.status == 'pago_parcial' %}
+                        <span
+                            class="inline-flex items-center rounded-md bg-orange-50 px-2 py-1 text-xs font-medium text-orange-800 ring-1 ring-inset ring-orange-600/20">Pago
+                            Parcial</span>
+                        {% else %}
+                        <span
+                            class="inline-flex items-center rounded-md bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-800 ring-1 ring-inset ring-yellow-600/20">Pendiente</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <a href="/finance/{{ inv.budget.project_id }}"
+                            class="text-indigo-600 hover:text-indigo-900">Ver</a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="px-6 py-8 text-center text-sm text-gray-500 italic">No hay facturas
+                        pendientes recientes.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
+
+<!-- CLIENT VIEW -->
+{% elif user.role == 'client' %}
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-100">
+        <h3 class="font-bold text-gray-900">Actividad Reciente (Bitácoras)</h3>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Proyecto
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notas
+                    </th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acción
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for log in data.recent_activity %}
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ log.date }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ log.project.name if
+                        log.project else 'N/A' }}</td>
+                    <td class="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">{{ log.notes or '-' }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <a href="/projects/{{ log.project_id }}/logs"
+                            class="text-indigo-600 hover:text-indigo-900">Ver</a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" class="px-6 py-8 text-center text-sm text-gray-500 italic">No hay bitácoras
+                        recientes.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- WORKER VIEW -->
+{% elif user.role == 'worker' %}
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-100">
+        <h3 class="font-bold text-gray-900">Mis Asignaciones (Calendario)</h3>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Proyecto
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tareas
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for schedule in data.recent_activity %}
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ schedule.date }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ schedule.project.name if
+                        schedule.project else 'N/A' }}</td>
+                    <td class="px-6 py-4 text-sm text-gray-500">
+                        <ul class="list-disc pl-4 space-y-1">
+                            {% for task in schedule.tasks %}
+                            <li class="{{ 'line-through text-gray-400' if task.completed else '' }}">{{ task.description
+                                }}</li>
+                            {% else %}
+                            <li class="italic text-gray-400">Sin tareas definidas</li>
+                            {% endfor %}
+                        </ul>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="3" class="px-6 py-8 text-center text-sm text-gray-500 italic">No tienes asignaciones
+                        recientes.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
 {% endblock %}

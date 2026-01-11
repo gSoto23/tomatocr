@@ -416,6 +416,10 @@
                         {% endfor %}
                     </tbody>
                 </table>
+                {% from "components/pagination.html" import render_pagination %}
+                <div class="border-t border-gray-200">
+                    {{ render_pagination(page, total_pages, '/projects/' ~ project.id) }}
+                </div>
             </div>
         </div>
     </div>

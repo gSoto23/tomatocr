@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, Form, File, UploadFile, status, Request,
 from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-from sqlalchemy import desc
+from sqlalchemy import desc, func
 
 from app.db.session import SessionLocal
 from app.db.models.log import DailyLog, Photo
@@ -33,6 +33,8 @@ templates = Jinja2Templates(directory="app/templates")
 async def list_logs(
     request: Request, 
     project_id: Optional[int] = None,
+    page: int = 1,
+    limit: int = 10,
     db: Session = Depends(deps.get_db), 
     user: User = Depends(deps.get_current_user)
 ):
@@ -45,18 +47,35 @@ async def list_logs(
     # Filter by Project if provided
     if project_id:
         query = query.filter(DailyLog.project_id == project_id)
-        
-    logs = query.order_by(desc(DailyLog.date), desc(DailyLog.created_at)).all()
+
+    # Count Total
+    count_query = db.query(func.count(DailyLog.id)).join(Project)
+    if project_id:
+        count_query = count_query.filter(DailyLog.project_id == project_id)
+    total_records = count_query.scalar()
+
+    # Pagination
+    offset = (page - 1) * limit
+    logs = query.order_by(desc(DailyLog.date), desc(DailyLog.created_at))\
+        .offset(offset)\
+        .limit(limit)\
+        .all()
     
     # Get all projects for filter dropdown
     projects = db.query(Project).all()
+    
+    from math import ceil
+    total_pages = ceil(total_records / limit)
     
     return templates.TemplateResponse("logs/list.html", {
         "request": request, 
         "logs": logs, 
         "user": user,
         "projects": projects,
-        "selected_project_id": project_id
+        "selected_project_id": project_id,
+        "page": page,
+        "total_pages": total_pages,
+        "total_records": total_records
     })
 
 @router.get("/{id}/detail")
