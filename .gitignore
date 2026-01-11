@@ -1,0 +1,40 @@
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environment
+.venv/
+venv/
+env/
+
+# Environment Variables
+.env
+
+# Database
+sql_app.db
+*.sqlite3
+
+# Uploads (Keep directory structure but ignore files)
+app/static/uploads/*
+!app/static/uploads/.gitkeep
+
+# IDE / Editor
+.vscode/
+.idea/
+.DS_Store
+
+# Logs
+*.log
+
+
+# Local Development Scripts
+debug_client.py
+debug_server.py
+reproduce_issue.py
+reset_db.py
+create_user.py
+verify_login.py
+migrate_project_overhaul.py
+experimental_client.py
