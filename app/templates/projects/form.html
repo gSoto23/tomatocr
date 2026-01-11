@@ -231,6 +231,97 @@
                     </div>
                 </div>
 
+                <!-- Budget (Visible only for Admin) -->
+                {% if user.role == 'admin' %}
+                <div class="col-span-full border-t pt-4 mt-4">
+                    <h3 class="text-base font-semibold leading-7 text-gray-900 mb-2">Definición de Presupuesto</h3>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium leading-6 text-gray-900">Número de
+                                Licitación</label>
+                            <input type="text" x-model="formData.licitation_number"
+                                class="mt-2 block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium leading-6 text-gray-900">Duración del
+                                Contrato</label>
+                            <input type="text" x-model="formData.contract_duration"
+                                class="mt-2 block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+                        </div>
+                    </div>
+
+                    <div class="mt-4 flex items-center gap-2">
+                        <input type="checkbox" x-model="formData.is_prorrogable" id="is_prorrogable_check"
+                            class="h-4 w-4 rounded border-gray-300 text-black focus:ring-black">
+                        <label for="is_prorrogable_check" class="text-sm font-medium text-gray-900">Prorrogable</label>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4" x-show="formData.is_prorrogable">
+                        <div>
+                            <label class="block text-sm font-medium leading-6 text-gray-900">Tiempo de Prórroga</label>
+                            <input type="text" x-model="formData.prorrogable_time"
+                                class="mt-2 block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium leading-6 text-gray-900">Monto Prórroga</label>
+                            <input type="number" step="0.01" x-model.number="formData.prorrogable_amount"
+                                class="mt-2 block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+                        </div>
+                    </div>
+
+                    <!-- Budget Lines -->
+                    <div class="mt-6">
+                        <h4 class="text-sm font-semibold leading-6 text-gray-900 mb-2">Líneas Adjudicadas</h4>
+                        <div class="space-y-4">
+                            <template x-for="(line, index) in formData.budget_lines" :key="index">
+                                <div
+                                    class="grid grid-cols-12 gap-2 items-center border p-2 rounded relative bg-gray-50">
+                                    <div class="col-span-4">
+                                        <label class="block text-xs font-medium text-gray-500">Descripción</label>
+                                        <input type="text" x-model="line.name" required
+                                            class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-xs">
+                                    </div>
+                                    <div class="col-span-3">
+                                        <label class="block text-xs font-medium text-gray-500">Subtotal</label>
+                                        <input type="number" step="0.01" x-model.number="line.subtotal" required
+                                            class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-xs">
+                                    </div>
+                                    <div class="col-span-2">
+                                        <label class="block text-xs font-medium text-gray-500">Imp %</label>
+                                        <input type="number" step="0.01" x-model.number="line.tax_percentage"
+                                            class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-xs">
+                                    </div>
+                                    <div class="col-span-3 flex justify-between items-end">
+                                        <div class="truncate">
+                                            <label class="block text-xs font-medium text-gray-500">Total</label>
+                                            <span class="text-xs font-bold"
+                                                x-text="((line.subtotal || 0) * (1 + (line.tax_percentage || 0)/100)).toLocaleString('en-US', {style: 'currency', currency: 'CRC'})"></span>
+                                        </div>
+                                        <button type="button" @click="removeBudgetLine(index)"
+                                            class="text-red-500 hover:text-red-700 ml-2 flex-shrink-0">
+                                            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd"
+                                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                                    clip-rule="evenodd" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                            <button type="button" @click="addBudgetLine()"
+                                class="text-sm text-indigo-600 hover:text-indigo-900 flex items-center gap-1 font-semibold">
+                                <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                    <path
+                                        d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+                                </svg>
+                                Agregar Línea
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
                 {% if project %}
                 <div class="col-span-full border-t pt-4 mt-4">
                     <div class="relative flex gap-x-3">
@@ -264,13 +355,27 @@
     province: {{ (project.province if project and project.province else "") | tojson | safe }},
     address: {{ (project.address if project and project.address else "") | tojson | safe }},
     waze_link: {{ (project.waze_link if project and project.waze_link else "") | tojson | safe }},
-    is_active: {{ "true" if (not project or project.is_active) else "false" }},
+    {% if project %}
+    is_active: {{ "true" if project.is_active else "false" }},
+    {% else %}
+    is_active: true,
+        {% endif %}
     description: {{ (project.description if project and project.description else "") | tojson | safe }},
     contacts: [],
         client_ids: [],
             worker_ids: [],
                 supplies: [],
-                    tasks: []
+                    tasks: [],
+                        licitation_number: {{ (project.budget.licitation_number if project and project.budget else "") | tojson | safe }},
+    contract_duration: {{ (project.budget.contract_duration if project and project.budget else "") | tojson | safe }},
+    {% if project and project.budget and project.budget.is_prorrogable %}
+    is_prorrogable: true,
+        {% else %}
+    is_prorrogable: false,
+        {% endif %}
+    prorrogable_time: {{ (project.budget.prorrogable_time if project and project.budget else "") | tojson | safe }},
+    prorrogable_amount: {{ (project.budget.prorrogable_amount if project and project.budget else 0) | tojson | safe }},
+    budget_lines: []
     };
 
     {% if project %}
@@ -315,6 +420,16 @@
         is_required: {{ "true" if t.is_required else "false" }}
     });
     {% endfor %}
+
+    {% if project.budget and project.budget.lines %}
+    {% for line in project.budget.lines %}
+    _initialData.budget_lines.push({
+        name: {{ line.name | tojson | safe }},
+        subtotal: {{ line.subtotal | tojson | safe }},
+        tax_percentage: {{ line.tax_percentage | tojson | safe }}
+    });
+    {% endfor %}
+    {% endif %}
     {% endif %}
 
     function projectForm() {
@@ -339,34 +454,42 @@
             removeTask(index) {
                 this.formData.tasks.splice(index, 1);
             },
+            addBudgetLine() {
+                this.formData.budget_lines.push({ name: '', subtotal: 0, tax_percentage: 13.0 });
+            },
+            removeBudgetLine(index) {
+                this.formData.budget_lines.splice(index, 1);
+            },
             async submitForm() {
-                const isEdit = {{ "true" if project else "false" }};
+                {% if project %}
+                const isEdit = true;
+                {% else %}
+        const isEdit = false;
+        {% endif %}
+        const url = isEdit ? '/projects/{{ (project.id if project else "") | safe }}/edit' : '/projects/new';
 
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(this.formData)
+            });
 
-            const url = isEdit ? '/projects/{{ (project.id if project else "") | safe }}/edit' : '/projects/new';
+            const result = await response.json();
 
-            try {
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(this.formData)
-                });
-
-                const result = await response.json();
-
-                if(response.ok) {
-            window.location.href = result.redirect_url;
-        } else {
-            alert('Error al guardar: ' + (result.detail || 'Error desconocido'));
-        }
-    } catch (error) {
-        console.error(error);
-        alert('Error de red');
-    }
+            if (response.ok) {
+                window.location.href = result.redirect_url;
+            } else {
+                alert('Error al guardar: ' + (result.detail || 'Error desconocido'));
             }
+        } catch (error) {
+            console.error(error);
+            alert('Error de red');
         }
+    }
+        };
     }
 </script>
 {% endblock %}

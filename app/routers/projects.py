@@ -10,6 +10,8 @@ from pydantic import BaseModel
 from app.db.session import SessionLocal
 from app.db.models.project import Project
 from app.db.models.project_details import ProjectSupply, ProjectTask, ProjectContact
+from app.db.models.finance import ProjectBudget, BudgetLine
+from app.db.models.user import User
 from app.db.models.user import User
 from app.db.models.associations import project_users
 from app.routers import deps
@@ -37,6 +39,11 @@ class ContactCreate(BaseModel):
     email: Optional[str] = None
     position: Optional[str] = None
 
+class BudgetLineCreate(BaseModel):
+    name: str
+    subtotal: float
+    tax_percentage: float = 13.0
+
 class ProjectCreate(BaseModel):
     name: str
     client_ids: List[int] = []
@@ -51,6 +58,13 @@ class ProjectCreate(BaseModel):
     supplies: List[SupplyCreate] = []
     tasks: List[TaskCreate] = []
     is_active: bool = True
+    # Budget Information
+    licitation_number: Optional[str] = None
+    contract_duration: Optional[str] = None
+    is_prorrogable: bool = False
+    prorrogable_time: Optional[str] = None
+    prorrogable_amount: Optional[float] = None
+    budget_lines: List[BudgetLineCreate] = []
 
 @router.get("/")
 async def list_projects(request: Request, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
@@ -125,6 +139,26 @@ async def create_project(
     # Add Tasks
     for t in project_in.tasks:
         db.add(ProjectTask(project_id=project.id, description=t.description, is_required=t.is_required))
+
+    # Add Budget Info
+    budget = ProjectBudget(
+        project_id=project.id,
+        licitation_number=project_in.licitation_number,
+        contract_duration=project_in.contract_duration,
+        is_prorrogable=project_in.is_prorrogable,
+        prorrogable_time=project_in.prorrogable_time,
+        prorrogable_amount=project_in.prorrogable_amount or 0.0
+    )
+    db.add(budget)
+    db.flush()
+
+    for line in project_in.budget_lines:
+        db.add(BudgetLine(
+            budget_id=budget.id,
+            name=line.name,
+            subtotal=line.subtotal,
+            tax_percentage=line.tax_percentage
+        ))
 
     db.commit()
     # Return JSON redirect instruction with Toast Cookie
@@ -201,6 +235,30 @@ async def update_project(
     db.query(ProjectTask).filter(ProjectTask.project_id == id).delete()
     for t in project_in.tasks:
         db.add(ProjectTask(project_id=id, description=t.description, is_required=t.is_required))
+
+    # Update Budget
+    budget = db.query(ProjectBudget).filter(ProjectBudget.project_id == id).first()
+    if not budget:
+        budget = ProjectBudget(project_id=id)
+        db.add(budget)
+    
+    budget.licitation_number = project_in.licitation_number
+    budget.contract_duration = project_in.contract_duration
+    budget.is_prorrogable = project_in.is_prorrogable
+    budget.prorrogable_time = project_in.prorrogable_time
+    budget.prorrogable_amount = project_in.prorrogable_amount or 0.0
+    
+    db.flush() # Ensure budget.id if new
+
+    # Update Lines (Delete and Recreate)
+    db.query(BudgetLine).filter(BudgetLine.budget_id == budget.id).delete()
+    for line in project_in.budget_lines:
+        db.add(BudgetLine(
+            budget_id=budget.id,
+            name=line.name,
+            subtotal=line.subtotal,
+            tax_percentage=line.tax_percentage
+        ))
 
     db.commit()
     response = JSONResponse(content={"status": "success", "redirect_url": "/projects"})

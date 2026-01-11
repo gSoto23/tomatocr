@@ -1,7 +1,5 @@
 
-from sqlalchemy.ext.declarative import declarative_base
-
-Base = declarative_base()
+from app.db.base_class import Base
 
 # Import models here for Alembic/create_all to find them
 # from app.db.models.user import User  # This causes circular import if User imports Base
@@ -11,3 +9,4 @@ from app.db.models.log import DailyLog, Photo
 from app.db.models.schedule import ProjectSchedule
 from app.db.models.project_details import ProjectSupply, ProjectTask
 from app.db.models.log_task import DailyLogTask
+from app.db.models.finance import ProjectBudget, BudgetLine, Invoice, Payment
