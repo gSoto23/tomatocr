@@ -82,3 +82,29 @@ app/
 │   └── ...
 └── main.py         # Punto de entrada de la aplicación
 ```
+
+## 🔄 Cómo Actualizar (Redeploy)
+
+Cuando hagas cambios en tu código y quieras actualizarlos en el servidor:
+
+1. **Sube los cambios**:
+   - Si usas Git: `cd /home/ubuntu/tomatocr` y luego `git pull`.
+   - Si usas SFTP: Sube los archivos nuevos y reemplaza los viejos.
+
+2. **Activa el entorno**:
+   ```bash
+   cd /home/ubuntu/tomatocr
+   source .venv/bin/activate
+   ```
+
+3. **Instala nuevas librerías (si agregaste alguna)**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Reinicia el servicio**:
+   ```bash
+   sudo systemctl restart tomato
+   ```
+
+¡Listo! Los cambios estarán en vivo inmediatamente.
