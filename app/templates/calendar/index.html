@@ -69,7 +69,6 @@
                                         </select>
                                     </div>
 
-                                    <!-- Worker -->
                                     <div>
                                         <label for="user_id"
                                             class="block text-sm font-medium leading-6 text-gray-900">Trabajador</label>
@@ -81,22 +80,58 @@
                                         </select>
                                     </div>
 
+                                    <!-- Tasks Checklist -->
+                                    <!-- Tasks Checklist (Manual) -->
+                                    <div>
+                                        <label class="block text-sm font-medium leading-6 text-gray-900 mb-2">Tareas
+                                            Asignadas</label>
+                                        <div id="tasks-list" class="space-y-2 mb-2">
+                                            <!-- Inputs injected here -->
+                                        </div>
+                                        <button type="button" onclick="addTaskInput()"
+                                            class="inline-flex items-center text-sm font-medium text-black hover:text-gray-700">
+                                            <svg class="mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                                                stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                    d="M12 4.5v15m7.5-7.5h-15" />
+                                            </svg>
+                                            Agregar Tarea
+                                        </button>
+                                    </div>
+
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 gap-2">
-                        <!-- Save Button -->
-                        <button type="submit"
-                            class="inline-flex w-full justify-center rounded-md bg-black px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 sm:w-auto">Guardar</button>
+                    <div id="defaultButtons">
+                        <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 gap-2">
+                            <!-- Save Button -->
+                            <button type="submit"
+                                class="inline-flex w-full justify-center rounded-md bg-black px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 sm:w-auto">Guardar</button>
 
-                        <!-- Delete Button (Only for editing) -->
-                        <button type="button" id="deleteBtn" onclick="deleteSchedule()"
-                            class="hidden inline-flex w-full justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:w-auto">Eliminar</button>
+                            <!-- Delete Button (Only for editing) -->
+                            <button type="button" id="deleteBtn" onclick="showDeleteConfirmation()"
+                                class="hidden inline-flex w-full justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:w-auto">Eliminar</button>
 
-                        <!-- Cancel -->
-                        <button type="button" onclick="closeModal()"
-                            class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">Cancelar</button>
+                            <!-- Cancel -->
+                            <button type="button" onclick="closeModal()"
+                                class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">Cancelar</button>
+                        </div>
+                    </div>
+
+                    <!-- Delete Confirmation Buttons -->
+                    <!-- Delete Confirmation Buttons -->
+                    <div id="confirmDeleteButtons" class="hidden">
+                        <div class="bg-red-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 gap-2">
+                            <button type="button" onclick="executeDelete()"
+                                class="inline-flex w-full justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:w-auto">Sí,
+                                Eliminar</button>
+                            <button type="button" onclick="cancelDelete()"
+                                class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">Cancelar</button>
+                            <p class="text-sm text-red-700 font-semibold self-center mr-auto hidden sm:block">¿Estás
+                                seguro?
+                            </p>
+                        </div>
                     </div>
                 </form>
 
@@ -113,11 +148,34 @@
     {% if user.role == 'admin' %}
     let currentScheduleId = null;
 
+    // Handle Project Change (No longer needed for tasks, but kept if we need logic later)
+    // document.getElementById('project_id').addEventListener('change', ...);
+
+    function addTaskInput(value = '') {
+        const container = document.getElementById('tasks-list');
+        const div = document.createElement('div');
+        div.className = "flex items-center gap-2";
+        div.innerHTML = `
+            <input type="text" name="tasks" value="${value}" placeholder="Descripción de la tarea"
+                class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+            <button type="button" onclick="this.parentElement.remove()" class="text-gray-400 hover:text-red-500">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        `;
+        container.appendChild(div);
+    }
+
     function openModal(dateStr = '', schedule = null) {
         const modal = document.getElementById('scheduleModal');
         const form = document.getElementById('scheduleForm');
         const deleteBtn = document.getElementById('deleteBtn');
         const title = document.getElementById('modal-title');
+
+        // Reset UI state
+        document.getElementById('defaultButtons').classList.remove('hidden');
+        document.getElementById('confirmDeleteButtons').classList.add('hidden');
 
         modal.classList.remove('hidden');
 
@@ -131,6 +189,15 @@
             document.getElementById('date').value = schedule.start; // YYYY-MM-DD
             document.getElementById('project_id').value = schedule.extendedProps.project_id;
             document.getElementById('user_id').value = schedule.extendedProps.worker_id;
+
+            // Load manual tasks
+            document.getElementById('tasks-list').innerHTML = '';
+            const tasks = schedule.extendedProps.tasks || [];
+            if (tasks.length > 0) {
+                tasks.forEach(t => addTaskInput(t.description));
+            } else {
+                addTaskInput(); // Add one empty by default
+            }
         } else {
             // Create Mode
             currentScheduleId = null;
@@ -141,6 +208,10 @@
             document.getElementById('date').value = dateStr || new Date().toISOString().split('T')[0];
             document.getElementById('project_id').selectedIndex = 0;
             document.getElementById('user_id').selectedIndex = 0;
+
+            // Reset tasks list
+            document.getElementById('tasks-list').innerHTML = '';
+            addTaskInput(); // Add one empty
         }
     }
 
@@ -149,13 +220,70 @@
         currentScheduleId = null;
     }
 
-    function deleteSchedule() {
-        if (!currentScheduleId) return;
-        if (!confirm('¿Estás seguro de eliminar esta asignación?')) return;
+    // Handle Form Submit (Fetch + Toaster)
+    document.getElementById('scheduleForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        const action = this.action;
 
-        const deleteForm = document.getElementById('deleteForm');
-        deleteForm.action = `/calendar/schedule/${currentScheduleId}/delete`;
-        deleteForm.submit();
+        try {
+            const response = await fetch(action, {
+                method: 'POST',
+                body: formData
+            });
+            const result = await response.json();
+
+            if (response.ok) {
+                closeModal();
+                showGlobalToast("Éxito", result.message || "Operación exitosa");
+                // Refresh calendar logic? FullCalendar has refetchEvents if we had a proper source
+                // For simplified setup, we reload or refetch events source.
+                // Since events are from URL, we can refetch.
+                // But we need reference to calendar instance.
+                // Storing calendar instance in window or global var is easier.
+                // Or just reload page as requested: "cargue de nuevo el calendario".
+                // Reloading page is simplest and robust.
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                showGlobalToast("Error", result.message || "Error desconocido", "error");
+            }
+        } catch (error) {
+            console.error(error);
+            showGlobalToast("Error", "Error de conexión", "error");
+        }
+    });
+
+    function showDeleteConfirmation() {
+        document.getElementById('defaultButtons').classList.add('hidden');
+        document.getElementById('confirmDeleteButtons').classList.remove('hidden');
+    }
+
+    function cancelDelete() {
+        document.getElementById('defaultButtons').classList.remove('hidden');
+        document.getElementById('confirmDeleteButtons').classList.add('hidden');
+    }
+
+    async function executeDelete() {
+        if (!currentScheduleId) return;
+        // if (!confirm('¿Estás seguro de eliminar esta asignación?')) return; // Removed native confirm
+
+        try {
+            const response = await fetch(`/calendar/schedule/${currentScheduleId}/delete`, {
+                method: 'POST'
+            });
+            const result = await response.json();
+
+            if (response.ok) {
+                closeModal();
+                showGlobalToast("Éxito", result.message || "Eliminado correctamente");
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                showGlobalToast("Error", result.message || "Error al eliminar", "error");
+            }
+        } catch (error) {
+            console.error(error);
+            showGlobalToast("Error", "Error de conexión", "error");
+        }
     }
     {% endif %}
 

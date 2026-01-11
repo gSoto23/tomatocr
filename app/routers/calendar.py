@@ -7,7 +7,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.db.session import SessionLocal
-from app.db.models.schedule import ProjectSchedule
+from app.db.models.schedule import ProjectSchedule, ScheduleTask
 from app.db.models.project import Project
 from app.db.models.user import User
 from app.routers import deps
@@ -59,7 +59,9 @@ async def get_events(start: str, end: str, db: Session = Depends(deps.get_db), u
                 "worker_id": s.user_id,
                 "project_id": s.project_id,
                 "project_name": s.project.name,
-                "worker_name": s.user.full_name or s.user.username
+                "project_name": s.project.name,
+                "worker_name": s.user.full_name or s.user.username,
+                "tasks": [{"id": t.id, "description": t.description} for t in s.tasks]
             },
             "color": "#000000" if user.role == "admin" else "#2563eb"
         }
@@ -72,6 +74,7 @@ async def create_schedule(
     project_id: int = Form(...),
     user_id: int = Form(...),
     date_val: str = Form(..., alias="date"),
+    tasks: List[str] = Form([], alias="tasks"),
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
@@ -84,9 +87,16 @@ async def create_schedule(
         date=datetime.strptime(date_val, "%Y-%m-%d").date()
     )
     db.add(new_schedule)
+    db.flush()
+    
+    # Save manual tasks
+    for task_desc in tasks:
+        if task_desc.strip():
+            db.add(ScheduleTask(schedule_id=new_schedule.id, description=task_desc.strip()))
+
     db.commit()
     
-    return RedirectResponse(url="/calendar", status_code=status.HTTP_303_SEE_OTHER)
+    return JSONResponse({"status": "success", "message": "Asignación creada correctamente"})
 
 @router.post("/schedule/{id}/delete")
 async def delete_schedule(id: int, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
@@ -95,11 +105,11 @@ async def delete_schedule(id: int, db: Session = Depends(deps.get_db), user: Use
     
     schedule = db.query(ProjectSchedule).filter(ProjectSchedule.id == id).first()
     if not schedule:
-        raise HTTPException(status_code=404, detail="Schedule not found")
+        return JSONResponse({"status": "error", "message": "Asignación no encontrada"}, status_code=404)
         
     db.delete(schedule)
     db.commit()
-    return RedirectResponse(url="/calendar", status_code=status.HTTP_303_SEE_OTHER)
+    return JSONResponse({"status": "success", "message": "Asignación eliminada correctamente"})
 
 @router.post("/schedule/{id}/edit")
 async def update_schedule(
@@ -107,6 +117,7 @@ async def update_schedule(
     project_id: int = Form(...),
     user_id: int = Form(...),
     date_val: str = Form(..., alias="date"),
+    tasks: List[str] = Form([], alias="tasks"),
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
@@ -115,11 +126,17 @@ async def update_schedule(
 
     schedule = db.query(ProjectSchedule).filter(ProjectSchedule.id == id).first()
     if not schedule:
-        raise HTTPException(status_code=404, detail="Schedule not found")
+        return JSONResponse({"status": "error", "message": "Asignación no encontrada"}, status_code=404)
     
     schedule.project_id = project_id
     schedule.user_id = user_id
     schedule.date = datetime.strptime(date_val, "%Y-%m-%d").date()
     
+    # Update tasks (Replace all)
+    db.query(ScheduleTask).filter(ScheduleTask.schedule_id == id).delete()
+    for task_desc in tasks:
+        if task_desc.strip():
+            db.add(ScheduleTask(schedule_id=schedule.id, description=task_desc.strip()))
+
     db.commit()
-    return RedirectResponse(url="/calendar", status_code=status.HTTP_303_SEE_OTHER)
+    return JSONResponse({"status": "success", "message": "Asignación actualizada correctamente"})
