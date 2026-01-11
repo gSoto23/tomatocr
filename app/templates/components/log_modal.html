@@ -147,69 +147,70 @@
             </div>
         </div>
     </div>
-</div>
 
-<form id="delete-log-form" method="post" class="hidden"></form>
 
-<script>
-    let currentLogId = null;
-    let currentLogData = null;
 
-    async function openLogModal(logId) {
-        currentLogId = logId;
-        const modal = document.getElementById('logModal');
-        const loading = document.getElementById('log-loading');
-        const content = document.getElementById('log-content');
+    <form id="delete-log-form" method="post" class="hidden"></form>
 
-        // Reset state
-        modal.classList.remove('hidden');
-        loading.classList.remove('hidden');
-        content.classList.add('hidden');
-        disableEditMode(); // Ensure we start in view mode
+    <script>
+        let currentLogId = null;
+        let currentLogData = null;
 
-        try {
-            const response = await fetch(`/logs/${logId}/detail`);
-            if (!response.ok) throw new Error('Failed to load');
-            const data = await response.json();
-            currentLogData = data;
+        async function openLogModal(logId) {
+            currentLogId = logId;
+            const modal = document.getElementById('logModal');
+            const loading = document.getElementById('log-loading');
+            const content = document.getElementById('log-content');
 
-            // Populate
-            document.getElementById('log-project').textContent = data.project_name;
-            document.getElementById('log-date').textContent = data.date;
-            document.getElementById('log-user').textContent = data.user_name;
-            document.getElementById('log-notes').textContent = data.notes;
-            document.getElementById('edit-notes').value = data.notes;
-            document.getElementById('log-updated').textContent = data.updated_at ? new Date(data.updated_at).toLocaleString() : 'Nunca';
+            // Reset state
+            modal.classList.remove('hidden');
+            loading.classList.remove('hidden');
+            content.classList.add('hidden');
+            disableEditMode(); // Ensure we start in view mode
 
-            // Tasks (View Mode)
-            const tasksContainer = document.getElementById('log-tasks-container');
-            const tasksList = document.getElementById('log-tasks-list');
-            tasksList.innerHTML = '';
+            try {
+                const response = await fetch(`/logs/${logId}/detail`);
+                if (!response.ok) throw new Error('Failed to load');
+                const data = await response.json();
+                currentLogData = data;
 
-            // Tasks (Edit Mode)
-            const editTasksContainer = document.getElementById('edit-tasks-container');
-            editTasksContainer.innerHTML = '';
+                // Populate
+                document.getElementById('log-project').textContent = data.project_name;
+                document.getElementById('log-date').textContent = data.date;
+                document.getElementById('log-user').textContent = data.user_name;
+                document.getElementById('log-notes').textContent = data.notes;
+                document.getElementById('edit-notes').value = data.notes;
+                document.getElementById('log-updated').textContent = data.updated_at ? new Date(data.updated_at).toLocaleString() : 'Nunca';
 
-            if (data.tasks && data.tasks.length > 0) {
-                tasksContainer.classList.remove('hidden');
-                data.tasks.forEach(task => {
-                    // View Mode Item
-                    if (task.completed) {
-                        const li = document.createElement('li');
-                        li.className = "flex items-center text-sm text-gray-700";
-                        li.innerHTML = `
+                // Tasks (View Mode)
+                const tasksContainer = document.getElementById('log-tasks-container');
+                const tasksList = document.getElementById('log-tasks-list');
+                tasksList.innerHTML = '';
+
+                // Tasks (Edit Mode)
+                const editTasksContainer = document.getElementById('edit-tasks-container');
+                editTasksContainer.innerHTML = '';
+
+                if (data.tasks && data.tasks.length > 0) {
+                    tasksContainer.classList.remove('hidden');
+                    data.tasks.forEach(task => {
+                        // View Mode Item
+                        if (task.completed) {
+                            const li = document.createElement('li');
+                            li.className = "flex items-center text-sm text-gray-700";
+                            li.innerHTML = `
                             <svg class="h-4 w-4 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                             </svg>
                             ${task.description}
                         `;
-                        tasksList.appendChild(li);
-                    }
+                            tasksList.appendChild(li);
+                        }
 
-                    // Edit Mode Item
-                    const div = document.createElement('div');
-                    div.className = "flex items-start";
-                    div.innerHTML = `
+                        // Edit Mode Item
+                        const div = document.createElement('div');
+                        div.className = "flex items-start";
+                        div.innerHTML = `
                         <div class="flex h-5 items-center">
                             <input id="edit-task-${task.task_id}" name="tasks" value="${task.task_id}" type="checkbox" ${task.completed ? 'checked' : ''}
                                 class="h-4 w-4 rounded border-gray-300 text-black focus:ring-black">
@@ -219,160 +220,160 @@
                             ${task.is_required ? '<span class="text-red-500 ml-1 text-xs">*Requerido</span>' : ''}
                         </div>
                     `;
-                    editTasksContainer.appendChild(div);
-                });
-            } else {
-                tasksContainer.classList.add('hidden');
-                editTasksContainer.innerHTML = '<p class="text-sm text-gray-400">No hay tareas configuradas.</p>';
+                        editTasksContainer.appendChild(div);
+                    });
+                } else {
+                    tasksContainer.classList.add('hidden');
+                    editTasksContainer.innerHTML = '<p class="text-sm text-gray-400">No hay tareas configuradas.</p>';
+                }
+
+                // Photos
+                const photosContainer = document.getElementById('log-photos');
+                photosContainer.innerHTML = '';
+                if (data.photos && data.photos.length > 0) {
+                    data.photos.forEach(p => {
+                        const img = document.createElement('img');
+                        img.src = p.file_path;
+                        img.className = "w-full h-32 object-cover rounded-lg border";
+                        // Wrap in link
+                        const a = document.createElement('a');
+                        a.href = p.file_path;
+                        a.target = "_blank";
+                        a.appendChild(img);
+                        photosContainer.appendChild(a);
+                    });
+                } else {
+                    photosContainer.innerHTML = '<p class="text-sm text-gray-400 col-span-2 text-center">Sin fotos adjuntas.</p>';
+                }
+
+                // Permissions
+                const btnEdit = document.getElementById('btn-edit');
+                if (data.can_edit) {
+                    btnEdit.classList.remove('hidden');
+                } else {
+                    btnEdit.classList.add('hidden');
+                }
+
+                // Email Button (Admin only)
+                const btnEmail = document.getElementById('btn-email');
+                if (data.is_admin) {
+                    btnEmail.classList.remove('hidden');
+                } else {
+                    btnEmail.classList.add('hidden');
+                }
+
+                loading.classList.add('hidden');
+                content.classList.remove('hidden');
+
+            } catch (error) {
+                console.error(error);
+                alert('Error al cargar el reporte.');
+                closeLogModal();
             }
-
-            // Photos
-            const photosContainer = document.getElementById('log-photos');
-            photosContainer.innerHTML = '';
-            if (data.photos && data.photos.length > 0) {
-                data.photos.forEach(p => {
-                    const img = document.createElement('img');
-                    img.src = p.file_path;
-                    img.className = "w-full h-32 object-cover rounded-lg border";
-                    // Wrap in link
-                    const a = document.createElement('a');
-                    a.href = p.file_path;
-                    a.target = "_blank";
-                    a.appendChild(img);
-                    photosContainer.appendChild(a);
-                });
-            } else {
-                photosContainer.innerHTML = '<p class="text-sm text-gray-400 col-span-2 text-center">Sin fotos adjuntas.</p>';
-            }
-
-            // Permissions
-            const btnEdit = document.getElementById('btn-edit');
-            if (data.can_edit) {
-                btnEdit.classList.remove('hidden');
-            } else {
-                btnEdit.classList.add('hidden');
-            }
-
-            // Email Button (Admin only)
-            const btnEmail = document.getElementById('btn-email');
-            if (data.is_admin) {
-                btnEmail.classList.remove('hidden');
-            } else {
-                btnEmail.classList.add('hidden');
-            }
-
-            loading.classList.add('hidden');
-            content.classList.remove('hidden');
-
-        } catch (error) {
-            console.error(error);
-            alert('Error al cargar el reporte.');
-            closeLogModal();
         }
-    }
 
-    function closeLogModal() {
-        document.getElementById('logModal').classList.add('hidden');
-        currentLogId = null;
-    }
-
-    function enableEditMode() {
-        document.getElementById('view-mode').classList.add('hidden');
-        document.getElementById('edit-log-form').classList.remove('hidden');
-        document.getElementById('btn-edit').classList.add('hidden');
-        document.getElementById('btn-save').classList.remove('hidden');
-        document.getElementById('btn-delete').classList.remove('hidden');
-        // Hide View Tasks container in edit mode?
-        document.getElementById('log-tasks-container').classList.add('hidden');
-    }
-
-    function disableEditMode() {
-        document.getElementById('view-mode').classList.remove('hidden');
-        document.getElementById('edit-log-form').classList.add('hidden');
-        document.getElementById('btn-save').classList.add('hidden');
-        document.getElementById('btn-delete').classList.add('hidden');
-        // Show View Tasks container in view mode
-        // Only if not empty? It will be handled in openLogModal or need simple logic
-        // Easier: openLogModal sets it correctly based on data. 
-        // But switching modes needs to toggle it.
-        const list = document.getElementById('log-tasks-list');
-        if (list.children.length > 0) {
-            document.getElementById('log-tasks-container').classList.remove('hidden');
+        function closeLogModal() {
+            document.getElementById('logModal').classList.add('hidden');
+            currentLogId = null;
         }
-    }
 
-    function submitEditLog() {
-        if (!currentLogId) return;
-        const form = document.getElementById('edit-log-form');
+        function enableEditMode() {
+            document.getElementById('view-mode').classList.add('hidden');
+            document.getElementById('edit-log-form').classList.remove('hidden');
+            document.getElementById('btn-edit').classList.add('hidden');
+            document.getElementById('btn-save').classList.remove('hidden');
+            document.getElementById('btn-delete').classList.remove('hidden');
+            // Hide View Tasks container in edit mode?
+            document.getElementById('log-tasks-container').classList.add('hidden');
+        }
 
-        // Validation for edit?
-        // User asked for validation on Reporte (Create). 
-        // Should we validate Edit too?
-        // "en el edit no se pueden modificar el check list" -> Implicitly means they want to.
-        // If I enforce required tasks on edit, I should add JS check here.
-        // Let's add basic JS check here to be safe/consistent.
+        function disableEditMode() {
+            document.getElementById('view-mode').classList.remove('hidden');
+            document.getElementById('edit-log-form').classList.add('hidden');
+            document.getElementById('btn-save').classList.add('hidden');
+            document.getElementById('btn-delete').classList.add('hidden');
+            // Show View Tasks container in view mode
+            // Only if not empty? It will be handled in openLogModal or need simple logic
+            // Easier: openLogModal sets it correctly based on data. 
+            // But switching modes needs to toggle it.
+            const list = document.getElementById('log-tasks-list');
+            if (list.children.length > 0) {
+                document.getElementById('log-tasks-container').classList.remove('hidden');
+            }
+        }
 
-        // Check required tasks
-        const container = document.getElementById('edit-tasks-container');
-        // Need to know which ones are required. 
-        // I rendered *Requerido* span.
-        // I can select inputs where sibling label has *Requerido ... or use data attributes.
-        // Let's iterate inputs and check properly.
-        // Actually, easier to let backend handle it? No, form submit.
+        function submitEditLog() {
+            if (!currentLogId) return;
+            const form = document.getElementById('edit-log-form');
 
-        // I'll skip complex validation on edit for now unless explicitly asked, 
-        // as "El reporte no tiene validacion" usually refers to creation flow.
-        // But for completeness, I should ensure required tasks are checked.
+            // Validation for edit?
+            // User asked for validation on Reporte (Create). 
+            // Should we validate Edit too?
+            // "en el edit no se pueden modificar el check list" -> Implicitly means they want to.
+            // If I enforce required tasks on edit, I should add JS check here.
+            // Let's add basic JS check here to be safe/consistent.
 
-        form.action = `/logs/${currentLogId}/edit`;
-        form.submit();
-    }
+            // Check required tasks
+            const container = document.getElementById('edit-tasks-container');
+            // Need to know which ones are required. 
+            // I rendered *Requerido* span.
+            // I can select inputs where sibling label has *Requerido ... or use data attributes.
+            // Let's iterate inputs and check properly.
+            // Actually, easier to let backend handle it? No, form submit.
 
-    function deleteLog() {
-        if (!currentLogId) return;
-        if (!confirm('¿Estás seguro de eliminar este reporte de forma permanente?')) return;
+            // I'll skip complex validation on edit for now unless explicitly asked, 
+            // as "El reporte no tiene validacion" usually refers to creation flow.
+            // But for completeness, I should ensure required tasks are checked.
 
-        const form = document.getElementById('delete-log-form');
-        form.action = `/logs/${currentLogId}/delete`;
-        form.submit();
-    }
+            form.action = `/logs/${currentLogId}/edit`;
+            form.submit();
+        }
 
-    function enableEmailMode() {
-        if (!currentLogData) return;
+        function deleteLog() {
+            if (!currentLogId) return;
+            if (!confirm('¿Estás seguro de eliminar este reporte de forma permanente?')) return;
 
-        // Toggle Views
-        document.getElementById('view-mode').classList.add('hidden');
-        document.getElementById('log-tasks-container').classList.add('hidden'); // Hide tasks summary
-        document.getElementById('log-photos').classList.add('hidden'); // Hide photos
-        document.getElementById('email-mode').classList.remove('hidden');
+            const form = document.getElementById('delete-log-form');
+            form.action = `/logs/${currentLogId}/delete`;
+            form.submit();
+        }
 
-        // Toggle Buttons
-        document.getElementById('btn-email').classList.add('hidden'); // Hide entry button
-        document.getElementById('btn-edit').classList.add('hidden');
-        document.getElementById('btn-save').classList.add('hidden'); // Should be hidden anyway
-        document.getElementById('btn-delete').classList.add('hidden');
+        function enableEmailMode() {
+            if (!currentLogData) return;
 
-        document.getElementById('btn-send-email-confirm').classList.remove('hidden');
-        document.getElementById('btn-cancel-email').classList.remove('hidden');
+            // Toggle Views
+            document.getElementById('view-mode').classList.add('hidden');
+            document.getElementById('log-tasks-container').classList.add('hidden'); // Hide tasks summary
+            document.getElementById('log-photos').classList.add('hidden'); // Hide photos
+            document.getElementById('email-mode').classList.remove('hidden');
 
-        // Populate Preview
-        document.getElementById('email-preview-project').textContent = currentLogData.project_name;
-        document.getElementById('email-preview-date').textContent = currentLogData.date;
-        document.getElementById('email-preview-notes').textContent = currentLogData.notes || "Sin notas";
+            // Toggle Buttons
+            document.getElementById('btn-email').classList.add('hidden'); // Hide entry button
+            document.getElementById('btn-edit').classList.add('hidden');
+            document.getElementById('btn-save').classList.add('hidden'); // Should be hidden anyway
+            document.getElementById('btn-delete').classList.add('hidden');
 
-        const doneTasksCount = currentLogData.tasks.filter(t => t.completed).length;
-        document.getElementById('email-preview-tasks').textContent = `${doneTasksCount} / ${currentLogData.tasks.length}`;
+            document.getElementById('btn-send-email-confirm').classList.remove('hidden');
+            document.getElementById('btn-cancel-email').classList.remove('hidden');
 
-        // Populate Recipients
-        const container = document.getElementById('email-recipients-container');
-        container.innerHTML = '';
+            // Populate Preview
+            document.getElementById('email-preview-project').textContent = currentLogData.project_name;
+            document.getElementById('email-preview-date').textContent = currentLogData.date;
+            document.getElementById('email-preview-notes').textContent = currentLogData.notes || "Sin notas";
 
-        if (currentLogData.project_contacts && currentLogData.project_contacts.length > 0) {
-            currentLogData.project_contacts.forEach((contact, index) => {
-                if (contact.email) {
-                    const div = document.createElement('div');
-                    div.className = "flex items-start";
-                    div.innerHTML = `
+            const doneTasksCount = currentLogData.tasks.filter(t => t.completed).length;
+            document.getElementById('email-preview-tasks').textContent = `${doneTasksCount} / ${currentLogData.tasks.length}`;
+
+            // Populate Recipients
+            const container = document.getElementById('email-recipients-container');
+            container.innerHTML = '';
+
+            if (currentLogData.project_contacts && currentLogData.project_contacts.length > 0) {
+                currentLogData.project_contacts.forEach((contact, index) => {
+                    if (contact.email) {
+                        const div = document.createElement('div');
+                        div.className = "flex items-start";
+                        div.innerHTML = `
                         <div class="flex h-5 items-center">
                             <input id="recipient-${index}" name="recipients" value="${contact.email}" type="checkbox" checked
                                 class="h-4 w-4 rounded border-gray-300 text-black focus:ring-black">
@@ -382,92 +383,97 @@
                             <p class="text-gray-500 text-xs">${contact.email} ${contact.position ? `(${contact.position})` : ''}</p>
                         </div>
                     `;
-                    container.appendChild(div);
-                }
-            });
-        }
-
-        // Always add option to send to self? or manually add? 
-        // For now, if no contacts with email, show message.
-        if (container.children.length === 0) {
-            container.innerHTML = '<p class="text-sm text-gray-500 italic">No hay contactos con correo registrados en el proyecto.</p>';
-        }
-
-        // Clear additional text
-        document.getElementById('email-additional-text').value = '';
-    }
-
-    function disableEmailMode() {
-        document.getElementById('email-mode').classList.add('hidden');
-        document.getElementById('view-mode').classList.remove('hidden');
-
-        // Restore Task list if not empty
-        const list = document.getElementById('log-tasks-list');
-        if (list.children.length > 0) {
-            document.getElementById('log-tasks-container').classList.remove('hidden');
-        }
-        // Restore photos
-        document.getElementById('log-photos').classList.remove('hidden');
-
-        // Restore Buttons
-        document.getElementById('btn-send-email-confirm').classList.add('hidden');
-        document.getElementById('btn-cancel-email').classList.add('hidden');
-
-        // Show standard buttons based on perms
-        // Need to re-check perms from currentLogData
-        if (currentLogData.can_edit) {
-            document.getElementById('btn-edit').classList.remove('hidden');
-        }
-        if (currentLogData.is_admin) {
-            document.getElementById('btn-email').classList.remove('hidden');
-        }
-    }
-
-    async function submitSendEmail() {
-        const recipients = [];
-        document.querySelectorAll('input[name="recipients"]:checked').forEach(cb => {
-            recipients.push(cb.value);
-        });
-
-        if (recipients.length === 0) {
-            alert("Por favor seleccione al menos un destinatario.");
-            return;
-        }
-
-        const additionalText = document.getElementById('email-additional-text').value;
-
-        // Show loading state? 
-        const btn = document.getElementById('btn-send-email-confirm');
-        const originalText = btn.textContent;
-        btn.textContent = "Enviando...";
-        btn.disabled = true;
-
-        try {
-            const response = await fetch(`/logs/${currentLogId}/send-email`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    recipients: recipients,
-                    additional_text: additionalText
-                })
-            });
-
-            const result = await response.json();
-
-            if (response.ok) {
-                alert("Correo enviado exitosamente.");
-                disableEmailMode(); // Close mode
-            } else {
-                alert("Error: " + (result.detail || result.message || "No se pudo enviar el correo."));
+                        container.appendChild(div);
+                    }
+                });
             }
-        } catch (error) {
-            console.error(error);
-            alert("Ocurrió un error al intentar enviar el correo.");
-        } finally {
-            btn.textContent = originalText;
-            btn.disabled = false;
+
+            // Always add option to send to self? or manually add? 
+            // For now, if no contacts with email, show message.
+            if (container.children.length === 0) {
+                container.innerHTML = '<p class="text-sm text-gray-500 italic">No hay contactos con correo registrados en el proyecto.</p>';
+            }
+
+            // Clear additional text
+            document.getElementById('email-additional-text').value = '';
         }
-    }
-</script>
+
+        function disableEmailMode() {
+            document.getElementById('email-mode').classList.add('hidden');
+            document.getElementById('view-mode').classList.remove('hidden');
+
+            // Restore Task list if not empty
+            const list = document.getElementById('log-tasks-list');
+            if (list.children.length > 0) {
+                document.getElementById('log-tasks-container').classList.remove('hidden');
+            }
+            // Restore photos
+            document.getElementById('log-photos').classList.remove('hidden');
+
+            // Restore Buttons
+            document.getElementById('btn-send-email-confirm').classList.add('hidden');
+            document.getElementById('btn-cancel-email').classList.add('hidden');
+
+            // Show standard buttons based on perms
+            // Need to re-check perms from currentLogData
+            if (currentLogData.can_edit) {
+                document.getElementById('btn-edit').classList.remove('hidden');
+            }
+            if (currentLogData.is_admin) {
+                document.getElementById('btn-email').classList.remove('hidden');
+            }
+        }
+
+        async function submitSendEmail() {
+            const recipients = [];
+            document.querySelectorAll('input[name="recipients"]:checked').forEach(cb => {
+                recipients.push(cb.value);
+            });
+
+            if (recipients.length === 0) {
+                showGlobalToast("Error", "Por favor seleccione al menos un destinatario.", "error");
+                return;
+            }
+
+            const additionalText = document.getElementById('email-additional-text').value;
+
+            // Show loading state? 
+            const btn = document.getElementById('btn-send-email-confirm');
+            const originalText = btn.textContent;
+            btn.textContent = "Enviando...";
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(`/logs/${currentLogId}/send-email`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        recipients: recipients,
+                        additional_text: additionalText
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    disableEmailMode();
+                    showGlobalToast("Éxito", "Correo enviado exitosamente.", "success");
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    showGlobalToast("Error", result.detail || result.message || "No se pudo enviar el correo.", "error");
+                }
+            } catch (error) {
+                console.error(error);
+                showGlobalToast("Error", "Ocurrió un error al intentar enviar el correo.", "error");
+            } finally {
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }
+        }
+
+
+    </script>

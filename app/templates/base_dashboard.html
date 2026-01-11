@@ -154,6 +154,94 @@
         </div>
     </main>
 
+    <!-- Global Toast Notification -->
+    <div id="global-toast"
+        class="fixed bottom-4 right-4 z-[100] hidden transition-all duration-300 transform translate-y-full opacity-0">
+        <div class="bg-black text-white px-6 py-4 rounded-lg shadow-xl flex items-center gap-3 min-w-[300px]">
+            <div id="toast-icon-container" class="rounded-full bg-green-500/20 p-1">
+                <svg class="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+            </div>
+            <div class="flex-1">
+                <h4 id="toast-title" class="font-semibold text-sm">Éxito</h4>
+                <p id="toast-message" class="text-xs text-gray-300 mt-0.5">Operación realizada correctamente.</p>
+            </div>
+            <button onclick="closeGlobalToast()" class="text-gray-400 hover:text-white">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Global Toast Functions
+        function showGlobalToast(title, message, type = 'success') {
+            const toast = document.getElementById('global-toast');
+            const iconContainer = document.getElementById('toast-icon-container');
+
+            if (title) document.getElementById('toast-title').textContent = title;
+            if (message) document.getElementById('toast-message').textContent = message;
+
+            // Icon Logic
+            if (type === 'error') {
+                // Red X
+                iconContainer.className = "rounded-full bg-red-500/20 p-1";
+                iconContainer.innerHTML = `
+                    <svg class="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                `;
+            } else {
+                // Green Check (Success)
+                iconContainer.className = "rounded-full bg-green-500/20 p-1";
+                iconContainer.innerHTML = `
+                    <svg class="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                `;
+            }
+
+            toast.classList.remove('hidden');
+            // Small delay for transition
+            setTimeout(() => {
+                toast.classList.remove('translate-y-full', 'opacity-0');
+            }, 10);
+
+            // Auto close after 3s
+            setTimeout(() => {
+                closeGlobalToast();
+            }, 5000);
+        }
+
+        function closeGlobalToast() {
+            const toast = document.getElementById('global-toast');
+            toast.classList.add('translate-y-full', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 300);
+        }
+
+        // Check for toast cookie on load
+        document.addEventListener('DOMContentLoaded', function () {
+            const getCookie = (name) => {
+                const value = `; ${document.cookie}`;
+                const parts = value.split(`; ${name}=`);
+                if (parts.length === 2) return parts.pop().split(';').shift();
+            }
+
+            const toastMsg = getCookie('toast_message');
+            if (toastMsg) {
+                // Decode URI component because cookie value might be encoded
+                const decodedMsg = decodeURIComponent(toastMsg).replace(/\+/g, ' ');
+                showGlobalToast('Éxito', decodedMsg);
+
+                // Delete cookie
+                document.cookie = "toast_message=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+            }
+        });
+    </script>
 </body>
 
 </html>

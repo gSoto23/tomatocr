@@ -127,8 +127,10 @@ async def create_project(
         db.add(ProjectTask(project_id=project.id, description=t.description, is_required=t.is_required))
 
     db.commit()
-    # Return JSON redirect instruction
-    return {"status": "success", "redirect_url": "/projects"}
+    # Return JSON redirect instruction with Toast Cookie
+    response = JSONResponse(content={"status": "success", "redirect_url": "/projects"})
+    response.set_cookie(key="toast_message", value="Proyecto creado correctamente")
+    return response
 
 @router.get("/{id}/edit")
 async def edit_project_form(id: int, request: Request, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
@@ -201,7 +203,9 @@ async def update_project(
         db.add(ProjectTask(project_id=id, description=t.description, is_required=t.is_required))
 
     db.commit()
-    return {"status": "success", "redirect_url": "/projects"}
+    response = JSONResponse(content={"status": "success", "redirect_url": "/projects"})
+    response.set_cookie(key="toast_message", value="Proyecto actualizado correctamente")
+    return response
 
 @router.get("/{id}")
 async def get_project_detail(

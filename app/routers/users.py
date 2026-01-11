@@ -48,7 +48,10 @@ async def create_user(
     # Check if user exists
     existing = db.query(User).filter(User.username == username).first()
     if existing:
-         return RedirectResponse(url="/users/new?error=username_exists", status_code=status.HTTP_303_SEE_OTHER)
+         response = RedirectResponse(url="/users/new", status_code=status.HTTP_303_SEE_OTHER)
+         response.set_cookie(key="toast_message", value="El nombre de usuario ya existe")
+         response.set_cookie(key="toast_type", value="error")
+         return response
 
     new_user = User(
         username=username,
@@ -59,7 +62,10 @@ async def create_user(
     )
     db.add(new_user)
     db.commit()
-    return RedirectResponse(url="/users", status_code=status.HTTP_303_SEE_OTHER)
+    db.commit()
+    response = RedirectResponse(url="/users", status_code=status.HTTP_303_SEE_OTHER)
+    response.set_cookie(key="toast_message", value="Usuario creado correctamente")
+    return response
 
 @router.get("/{id}/edit")
 async def edit_user_form(id: int, request: Request, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
@@ -92,4 +98,7 @@ async def update_user(
              edit_user.hashed_password = get_password_hash(password)
              
         db.commit()
-    return RedirectResponse(url="/users", status_code=status.HTTP_303_SEE_OTHER)
+        db.commit()
+    response = RedirectResponse(url="/users", status_code=status.HTTP_303_SEE_OTHER)
+    response.set_cookie(key="toast_message", value="Usuario actualizado correctamente")
+    return response

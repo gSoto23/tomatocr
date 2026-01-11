@@ -129,7 +129,9 @@ async def delete_log(id: int, db: Session = Depends(deps.get_db), user: User = D
     db.delete(log)
     db.commit()
     
-    return RedirectResponse(url=f"/projects/{project_id}", status_code=status.HTTP_303_SEE_OTHER)
+    response = RedirectResponse(url=f"/projects/{project_id}", status_code=status.HTTP_303_SEE_OTHER)
+    response.set_cookie(key="toast_message", value="Reporte eliminado correctamente")
+    return response
 
 @router.post("/{id}/edit")
 async def update_log(
@@ -157,7 +159,10 @@ async def update_log(
         db.add(DailyLogTask(log_id=log.id, task_id=t_id, completed=True))
 
     db.commit()
-    return RedirectResponse(url=f"/projects/{log.project_id}", status_code=status.HTTP_303_SEE_OTHER)
+    db.commit()
+    response = RedirectResponse(url=f"/projects/{log.project_id}", status_code=status.HTTP_303_SEE_OTHER)
+    response.set_cookie(key="toast_message", value="Reporte actualizado correctamente")
+    return response
 
 @router.get("/new")
 async def new_log_form(request: Request, project_id: Optional[int] = None, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
@@ -215,7 +220,10 @@ async def create_log(
     if user.role != "admin":
         assigned = db.query(Project).filter(Project.id == project_id, Project.users.any(id=user.id)).first()
         if not assigned:
-             return RedirectResponse(url="/projects?error=access_denied", status_code=status.HTTP_303_SEE_OTHER)
+             response = RedirectResponse(url="/projects", status_code=status.HTTP_303_SEE_OTHER)
+             response.set_cookie(key="toast_message", value="No tienes permiso para reportar en este proyecto")
+             response.set_cookie(key="toast_type", value="error")
+             return response
 
     # Create Log
     log_date = datetime.strptime(date_val, "%Y-%m-%d").date()
@@ -260,7 +268,10 @@ async def create_log(
                 db.add(db_photo)
 
     db.commit()
-    return RedirectResponse(url=f"/projects/{project_id}", status_code=status.HTTP_303_SEE_OTHER)
+    db.commit()
+    response = RedirectResponse(url=f"/projects/{project_id}", status_code=status.HTTP_303_SEE_OTHER)
+    response.set_cookie(key="toast_message", value="Reporte creado correctamente")
+    return response
 
 from app.utils.email import send_log_email
 from pydantic import EmailStr, BaseModel
