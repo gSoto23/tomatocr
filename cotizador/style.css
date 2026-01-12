@@ -1,0 +1,106 @@
+:root {
+  /* Light Mode (Default) */
+  --bg: #f5f5f5;
+  --card: #ffffff;
+  --muted: #71717a;
+  --line: #e4e4e7;
+  --text: #09090b;
+  --accent: #09090b;
+  --danger: #ef4444;
+  --inp-bg: #fcfcfc;
+  --btn-hover: #f4f4f5;
+}
+
+body.dark-mode {
+  /* Dark Mode */
+  --bg: #0b0b0b;
+  --card: #111111;
+  --muted: #a3a3a3;
+  --line: #262626;
+  --text: #f5f5f5;
+  --accent: #ffffff;
+  --danger: #fca5a5;
+  --inp-bg: #0f0f0f;
+  --btn-hover: #18181b;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  transition: background 0.3s, color 0.3s;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  transition: background 0.3s, border-color 0.3s;
+}
+
+.muted { color: var(--muted); }
+
+.inp {
+  background: var(--inp-bg);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  width: 100%;
+  outline: none;
+  color: var(--text);
+  transition: all 0.2s;
+}
+
+.inp:focus { border-color: #52525b; }
+
+.btn {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 10px 16px;
+  background: var(--inp-bg);
+  color: var(--text);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.btn:hover { border-color: #52525b; background: var(--btn-hover); }
+.btn:active { transform: translateY(1px); }
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+}
+
+.btn-primary:hover { filter: brightness(0.9); }
+
+.pill {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--muted);
+  font-family: ui-monospace, monospace;
+}
+
+.table th, .table td {
+  border-bottom: 1px solid var(--line);
+  padding: 12px 10px;
+}
+
+.table th {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.danger { color: var(--danger); }
+
+@media print {
+  .no-print { display: none !important; }
+}
