@@ -17,6 +17,7 @@ app = FastAPI(title=settings.PROJECT_NAME)
 # Mount static files
 # Directory structure is app/static, so we mount it to /static path
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
+app.mount("/cotizador", StaticFiles(directory="app/cotizador", html=True), name="cotizador")
 
 from app.core.templates import templates
 
