@@ -10,6 +10,7 @@ from app.db.session import SessionLocal
 from app.db.models.user import User
 from app.routers import deps
 from app.core.security import get_password_hash
+from sqlalchemy.exc import IntegrityError
 
 router = APIRouter(
     prefix="/users",
@@ -123,8 +124,22 @@ async def update_user(
         if password and password.strip():
              edit_user.hashed_password = get_password_hash(password)
              
-        db.commit()
-        db.commit()
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            response = RedirectResponse(url=f"/users/{id}/edit", status_code=status.HTTP_303_SEE_OTHER)
+            response.set_cookie(key="toast_message", value="Error: El nombre de usuario ya existe o hubo un problema de datos.")
+            response.set_cookie(key="toast_type", value="error")
+            return response
+        except Exception as e:
+            db.rollback()
+            print(f"Error updating user: {e}")
+            response = RedirectResponse(url=f"/users/{id}/edit", status_code=status.HTTP_303_SEE_OTHER)
+            response.set_cookie(key="toast_message", value="Error interno al actualizar usuario.")
+            response.set_cookie(key="toast_type", value="error")
+            return response
+
     response = RedirectResponse(url="/users", status_code=status.HTTP_303_SEE_OTHER)
     response.set_cookie(key="toast_message", value="Usuario actualizado correctamente")
     return response
