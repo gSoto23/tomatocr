@@ -160,27 +160,8 @@
             },
 
             handleFiles(fileList) {
-                const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-                const MAX_TOTAL_SIZE = 50 * 1024 * 1024; // 50MB
-
-                // Calculate current total size
-                let currentTotalSize = this.files.reduce((acc, file) => acc + file.size, 0);
-
                 for (let i = 0; i < fileList.length; i++) {
-                    const file = fileList[i];
-
-                    if (file.size > MAX_FILE_SIZE) {
-                        alert(`El archivo "${file.name}" excede el límite de 10MB.`);
-                        continue;
-                    }
-
-                    if (currentTotalSize + file.size > MAX_TOTAL_SIZE) {
-                        alert(`No se puede agregar "${file.name}" porque el total excedería el límite de 50MB.`);
-                        continue;
-                    }
-
-                    this.files.push(file);
-                    currentTotalSize += file.size;
+                    this.files.push(fileList[i]);
                 }
                 document.getElementById('file-upload').value = '';
             },
