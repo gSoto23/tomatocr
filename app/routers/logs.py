@@ -138,8 +138,24 @@ async def get_log_detail(id: int, db: Session = Depends(deps.get_db), user: User
     
     # Get Project Contacts for Email Dropdown
     contacts_data = []
+    # Main Project Contact
+    if log.project.contact_email:
+        contacts_data.append({
+            "id": "main",
+            "name": log.project.contact_name or "Contacto Principal",
+            "email": log.project.contact_email,
+            "position": "Contacto Principal"
+        })
+    
+    # Additional Project Contacts
     if log.project and log.project.contacts:
-        contacts_data = [{"id": c.id, "name": c.name, "email": c.email} for c in log.project.contacts]
+        for c in log.project.contacts:
+            contacts_data.append({
+                "id": c.id, 
+                "name": c.name, 
+                "email": c.email,
+                "position": c.position
+            })
 
     return {
         "id": log.id,
