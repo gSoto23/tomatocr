@@ -509,7 +509,7 @@
     {% for u in project.users %}
     {% if u.role == 'client' %}
     _initialData.client_ids.push({{ u.id }});
-    {% elif u.role == 'worker' %}
+    {% elif u.role in ['worker', 'supervisor'] %}
     _initialData.worker_ids.push({{ u.id }});
     {% endif %}
     {% endfor %}

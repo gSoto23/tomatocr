@@ -53,6 +53,9 @@ async def get_events(start: str, end: str, db: Session = Depends(deps.get_db), u
     
     events = []
     for s in schedules:
+        if not s.user or not s.project:
+            continue
+            
         is_manager = user.role in ["admin", "supervisor"]
         evt = {
             "id": s.id,
