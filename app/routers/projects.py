@@ -18,6 +18,7 @@ from app.db.models.associations import project_users
 from sqlalchemy import desc, func
 from math import ceil
 from app.routers import deps
+from app.utils.activity import log_activity
 
 router = APIRouter(
     prefix="/projects",
@@ -214,6 +215,13 @@ async def create_project(
         ))
 
     db.commit()
+    
+    # Audit Log
+    try:
+        log_activity(db, user, "CREATE", "PROJECT", project.id, f"Created project {project.name}")
+    except Exception as e:
+        print(f"Audit Log Error: {e}")
+        
     # Return JSON redirect instruction with Toast Cookie
     response = JSONResponse(content={"status": "success", "redirect_url": "/projects"})
     response.set_cookie(key="toast_message", value="Proyecto creado correctamente")
@@ -234,7 +242,7 @@ async def edit_project_form(id: int, request: Request, db: Session = Depends(dep
     return templates.TemplateResponse("projects/form.html", {
         "request": request, 
         "user": user, 
-        "project": project,
+        "project": project, 
         "clients": clients,
         "workers": workers
     })
@@ -326,6 +334,13 @@ async def update_project(
         ))
 
     db.commit()
+    
+    # Audit Log
+    try:
+        log_activity(db, user, "UPDATE", "PROJECT", project.id, f"Updated project {project.name}")
+    except Exception as e:
+        print(f"Audit Log Error: {e}")
+        
     response = JSONResponse(content={"status": "success", "redirect_url": "/projects"})
     response.set_cookie(key="toast_message", value="Proyecto actualizado correctamente")
     return response

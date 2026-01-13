@@ -90,17 +90,6 @@
                                         class="space-y-2 border rounded-md p-3 bg-gray-50 max-h-40 overflow-y-auto">
                                         <!-- Populated via JS -->
                                     </div>
-
-                                    <!-- Manual Add -->
-                                    <div class="mt-2 flex gap-2">
-                                        <input type="email" id="manual-email-input" placeholder="Agregar otro correo..."
-                                            class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
-                                        <button type="button" onclick="addManualRecipient()"
-                                            class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
-                                            Agregar
-                                        </button>
-                                    </div>
-
                                     <p class="mt-1 text-xs text-gray-500">Seleccione los contactos a los que desea
                                         enviar el reporte.</p>
                                 </div>
@@ -415,8 +404,24 @@
             // Always add option to send to self? or manually add? 
             // For now, if no contacts with email, show message.
             if (container.children.length === 0) {
-                container.innerHTML = '<p class="text-sm text-gray-500 italic">No hay contactos con correo registrados en el proyecto.</p>';
+                container.innerHTML = '<p class="text-sm text-gray-500 italic" id="no-recipients-msg">No hay contactos con correo registrados en el proyecto.</p>';
             }
+
+            // Manual recipient addition
+            const manualDiv = document.createElement('div');
+            manualDiv.className = "mt-4 pt-4 border-t border-gray-200";
+            manualDiv.innerHTML = `
+                <label class="block text-sm font-medium text-gray-700 mb-2">Agregar Destinatario Manualmente</label>
+                <div class="flex gap-2">
+                    <input type="email" id="manual-email-input" placeholder="correo@ejemplo.com"
+                        class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
+                    <button type="button" onclick="addManualRecipient()"
+                        class="rounded-md bg-gray-200 px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm hover:bg-gray-300">
+                        Agregar
+                    </button>
+                </div>
+            `;
+            container.parentElement.appendChild(manualDiv);
 
             // Clear additional text
             document.getElementById('email-additional-text').value = '';
@@ -446,46 +451,6 @@
             if (currentLogData.is_admin) {
                 document.getElementById('btn-email').classList.remove('hidden');
             }
-        }
-
-        function addManualRecipient() {
-            const input = document.getElementById('manual-email-input');
-            const email = input.value.trim();
-
-            if (!email) return;
-
-            // Simple email validation
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(email)) {
-                alert('Por favor ingrese un correo válido.');
-                return;
-            }
-
-            const container = document.getElementById('email-recipients-container');
-
-            // Remove "No contacts" message if present
-            if (container.children.length === 1 && container.firstElementChild.tagName === 'P') {
-                container.innerHTML = '';
-            }
-
-            // Generate ID
-            const timestamp = new Date().getTime();
-
-            const div = document.createElement('div');
-            div.className = "flex items-start";
-            div.innerHTML = `
-                <div class="flex h-5 items-center">
-                    <input id="recipient-manual-${timestamp}" name="recipients" value="${email}" type="checkbox" checked
-                        class="h-4 w-4 rounded border-gray-300 text-black focus:ring-black">
-                </div>
-                <div class="ml-3 text-sm">
-                    <label for="recipient-manual-${timestamp}" class="font-medium text-gray-700">${email}</label>
-                    <p class="text-gray-500 text-xs">Agregado manualmente</p>
-                </div>
-            `;
-            container.appendChild(div);
-
-            input.value = '';
         }
 
         async function submitSendEmail() {
@@ -540,4 +505,48 @@
         }
 
 
+        function addManualRecipient() {
+            const input = document.getElementById('manual-email-input');
+            const email = input.value.trim();
+
+            if (!email) return;
+            // Simple email validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                showGlobalToast("Error", "Correo electrónico inválido", "error");
+                return;
+            }
+
+            const container = document.getElementById('email-recipients-container');
+
+            // Remove "no recipients" message if exists
+            const noMsg = document.getElementById('no-recipients-msg');
+            if (noMsg) noMsg.remove();
+
+            // Check if already exists
+            if (document.querySelector(`input[value="${email}"]`)) {
+                showGlobalToast("Info", "Este correo ya está en la lista", "info");
+                input.value = '';
+                return;
+            }
+
+            const timestamp = Date.now();
+            const div = document.createElement('div');
+            div.className = "flex items-start";
+            div.innerHTML = `
+                <div class="flex h-5 items-center">
+                    <input id="recipient-manual-${timestamp}" name="recipients" value="${email}" type="checkbox" checked
+                        class="h-4 w-4 rounded border-gray-300 text-black focus:ring-black">
+                </div>
+                <div class="ml-3 text-sm">
+                    <label for="recipient-manual-${timestamp}" class="font-medium text-gray-700">Manual</label>
+                    <p class="text-gray-500 text-xs">${email}</p>
+                </div>
+            `;
+
+            // If we are appending, we need to make sure we append to the container, not the parent manual div
+            // The manual div was appended to container.parentElement
+            container.appendChild(div);
+            input.value = '';
+        }
     </script>

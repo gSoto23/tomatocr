@@ -103,7 +103,7 @@ async def send_log_email(log: DailyLog, recipients: List[EmailStr], additional_t
                 attachments.append(str(abs_path))
             
     # Subject
-    date_str = log.date.strftime('%d-%m-%Y')
+    date_str = log.date.strftime('%Y-%m-%d')
     subject = f"Reporte {log.project.name} {date_str}"
 
     message = MessageSchema(
