@@ -113,6 +113,7 @@ async def update_user(
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
+    print(f"DEBUG_UPDATE_USER: payload_is_active={is_active}")
     check_admin(user)
     edit_user = db.query(User).filter(User.id == id).first()
     if edit_user:
