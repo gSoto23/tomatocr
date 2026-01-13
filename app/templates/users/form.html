@@ -27,7 +27,7 @@
                 <label for="username" class="block text-sm font-medium leading-6 text-gray-900">Usuario <span
                         class="text-red-500">*</span></label>
                 <div class="mt-2">
-                    <input type="text" name="username" id="username" required
+                    <input type="text" name="username" id="username" required autocomplete="off"
                         value="{{ edit_user.username if edit_user else '' }}"
                         class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
                 </div>
@@ -52,6 +52,7 @@
                 </label>
                 <div class="mt-2">
                     <input type="password" name="password" id="password" {% if not edit_user %}required{% endif %}
+                        autocomplete="new-password"
                         class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
                     {% if edit_user %}
                     <p class="mt-1 text-xs text-gray-500">Dejar en blanco para mantener la contraseña actual.</p>
