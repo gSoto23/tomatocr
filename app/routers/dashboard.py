@@ -158,3 +158,33 @@ async def dashboard(
         "user": user, 
         "data": data
     })
+
+@router.get("/activity")
+async def activity_log(
+    request: Request,
+    page: int = 1,
+    limit: int = 50,
+    db: Session = Depends(deps.get_db), 
+    user: User = Depends(deps.get_current_user)
+):
+    if user.role != "admin":
+        return RedirectResponse(url="/dashboard", status_code=status.HTTP_303_SEE_OTHER)
+
+    from math import ceil
+    from app.db.models.activity import ActivityLog
+
+    offset = (page - 1) * limit
+    total_records = db.query(ActivityLog).count()
+    
+    logs = db.query(ActivityLog).order_by(desc(ActivityLog.created_at)).offset(offset).limit(limit).all()
+    
+    total_pages = ceil(total_records / limit)
+
+    return templates.TemplateResponse("admin/activity.html", {
+        "request": request,
+        "user": user,
+        "logs": logs,
+        "page": page,
+        "total_pages": total_pages,
+        "total_records": total_records
+    })

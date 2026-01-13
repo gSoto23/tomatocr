@@ -11,6 +11,7 @@ from app.db.models.user import User
 from app.routers import deps
 from app.core.security import get_password_hash
 from sqlalchemy.exc import IntegrityError
+from app.utils.activity import log_activity
 
 router = APIRouter(
     prefix="/users",
@@ -90,6 +91,10 @@ async def create_user(
     db.add(new_user)
     db.commit()
     db.commit()
+    
+    # Audit Log
+    log_activity(db, user, "CREATE", "USER", new_user.id, f"Created user {username} ({role})")
+    
     response = RedirectResponse(url="/users", status_code=status.HTTP_303_SEE_OTHER)
     response.set_cookie(key="toast_message", value="Usuario creado correctamente")
     return response
@@ -113,7 +118,6 @@ async def update_user(
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
-    print(f"DEBUG_UPDATE_USER: payload_is_active={is_active}")
     check_admin(user)
     edit_user = db.query(User).filter(User.id == id).first()
     if edit_user:
@@ -135,6 +139,8 @@ async def update_user(
              
         try:
             db.commit()
+            # Audit Log
+            log_activity(db, user, "UPDATE", "USER", edit_user.id, f"Updated user {username}")
         except IntegrityError:
             db.rollback()
             response = RedirectResponse(url=f"/users/{id}/edit", status_code=status.HTTP_303_SEE_OTHER)
@@ -172,8 +178,12 @@ async def delete_user(
     if not user_to_delete:
          raise HTTPException(status_code=404, detail="User not found")
          
+    deleted_username = user_to_delete.username    
     db.delete(user_to_delete)
     db.commit()
+    
+    # Audit Log
+    log_activity(db, user, "DELETE", "USER", id, f"Deleted user {deleted_username}")
     
     response = RedirectResponse(url="/users", status_code=status.HTTP_303_SEE_OTHER)
     response.set_cookie(key="toast_message", value="Usuario eliminado correctamente")

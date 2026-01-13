@@ -20,6 +20,7 @@ from app.db.models.project_details import ProjectTask
 from app.db.models.user import User
 from app.db.models.associations import project_users
 from app.routers import deps
+from app.utils.activity import log_activity
 
 router = APIRouter(
     prefix="/logs",
@@ -178,6 +179,12 @@ async def delete_log(id: int, db: Session = Depends(deps.get_db), user: User = D
     db.delete(log)
     db.commit()
     
+    # Audit Log
+    try:
+        log_activity(db, user, "DELETE", "REPORT", id, "Deleted report")
+    except Exception as e:
+        print(f"Audit Log Error: {e}")
+        
     response = RedirectResponse(url=f"/projects/{project_id}", status_code=status.HTTP_303_SEE_OTHER)
     response.set_cookie(key="toast_message", value="Reporte eliminado correctamente")
     return response
@@ -209,6 +216,13 @@ async def update_log(
 
     db.commit()
     db.commit()
+    
+    # Audit Log
+    try:
+        log_activity(db, user, "UPDATE", "REPORT", log.id, "Updated report details")
+    except Exception as e:
+        print(f"Audit Log Error: {e}")
+        
     response = RedirectResponse(url=f"/projects/{log.project_id}", status_code=status.HTTP_303_SEE_OTHER)
     response.set_cookie(key="toast_message", value="Reporte actualizado correctamente")
     return response
@@ -318,6 +332,13 @@ async def create_log(
 
     db.commit()
     db.commit()
+    
+    # Audit Log
+    try:
+        log_activity(db, user, "CREATE", "REPORT", new_log.id, f"Created report for {log_date}")
+    except Exception as e:
+        print(f"Audit Log Error: {e}")
+        
     response = RedirectResponse(url=f"/projects/{project_id}", status_code=status.HTTP_303_SEE_OTHER)
     response.set_cookie(key="toast_message", value="Reporte creado correctamente")
     return response
