@@ -116,6 +116,14 @@ async def update_user(
     check_admin(user)
     edit_user = db.query(User).filter(User.id == id).first()
     if edit_user:
+        # Check for duplicate username
+        existing_user = db.query(User).filter(User.username == username, User.id != id).first()
+        if existing_user:
+            response = RedirectResponse(url=f"/users/{id}/edit", status_code=status.HTTP_303_SEE_OTHER)
+            response.set_cookie(key="toast_message", value="Error: Ese nombre de usuario ya está ocupado.")
+            response.set_cookie(key="toast_type", value="error")
+            return response
+            
         edit_user.username = username
         edit_user.full_name = full_name
         edit_user.role = role
@@ -142,4 +150,30 @@ async def update_user(
 
     response = RedirectResponse(url="/users", status_code=status.HTTP_303_SEE_OTHER)
     response.set_cookie(key="toast_message", value="Usuario actualizado correctamente")
+    return response
+
+@router.post("/{id}/delete")
+async def delete_user(
+    id: int,
+    db: Session = Depends(deps.get_db),
+    user: User = Depends(deps.get_current_user)
+):
+    check_admin(user)
+    
+    # Prevent self-deletion
+    if user.id == id:
+        response = RedirectResponse(url=f"/users/{id}/edit", status_code=status.HTTP_303_SEE_OTHER)
+        response.set_cookie(key="toast_message", value="Error: No puedes eliminar tu propio usuario.")
+        response.set_cookie(key="toast_type", value="error")
+        return response
+
+    user_to_delete = db.query(User).filter(User.id == id).first()
+    if not user_to_delete:
+         raise HTTPException(status_code=404, detail="User not found")
+         
+    db.delete(user_to_delete)
+    db.commit()
+    
+    response = RedirectResponse(url="/users", status_code=status.HTTP_303_SEE_OTHER)
+    response.set_cookie(key="toast_message", value="Usuario eliminado correctamente")
     return response
