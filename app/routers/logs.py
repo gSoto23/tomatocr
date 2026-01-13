@@ -138,24 +138,8 @@ async def get_log_detail(id: int, db: Session = Depends(deps.get_db), user: User
     
     # Get Project Contacts for Email Dropdown
     contacts_data = []
-    # Main Project Contact
-    if log.project.contact_email:
-        contacts_data.append({
-            "id": "main",
-            "name": log.project.contact_name or "Contacto Principal",
-            "email": log.project.contact_email,
-            "position": "Contacto Principal"
-        })
-    
-    # Additional Project Contacts
     if log.project and log.project.contacts:
-        for c in log.project.contacts:
-            contacts_data.append({
-                "id": c.id, 
-                "name": c.name, 
-                "email": c.email,
-                "position": c.position
-            })
+        contacts_data = [{"id": c.id, "name": c.name, "email": c.email} for c in log.project.contacts]
 
     return {
         "id": log.id,
@@ -345,10 +329,13 @@ class EmailSchema(BaseModel):
     recipients: List[EmailStr]
     additional_text: Optional[str] = None
 
+from fastapi import BackgroundTasks
+
 @router.post("/{id}/send-email")
 async def send_email(
     id: int, 
     email_data: EmailSchema,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
@@ -359,9 +346,7 @@ async def send_email(
     if not log:
         raise HTTPException(status_code=404, detail="Log not found")
 
-    try:
-        await send_log_email(log, email_data.recipients, email_data.additional_text)
-        return JSONResponse({"status": "success", "message": "Correo enviado correctamente"})
-    except Exception as e:
-        print(f"Error sending email: {e}")
-        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+    # Send in background to avoid blocking
+    background_tasks.add_task(send_log_email, log, email_data.recipients, email_data.additional_text)
+    
+    return JSONResponse({"status": "success", "message": "Correo programado para envío"})
