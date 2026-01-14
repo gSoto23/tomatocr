@@ -1,0 +1,44 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Liquidaciones - Lista de Usuarios | TOMATO{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">Liquidaciones</h1>
+    <p class="mt-1 text-sm text-gray-500">Seleccione un usuario para procesar su liquidación o ver historial.</p>
+</div>
+
+<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    {% for worker in workers %}
+    <a href="/liquidation/history/{{ worker.id }}"
+        class="block p-6 bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md hover:border-black transition-all">
+        <div class="flex items-center gap-4">
+            <div
+                class="h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 font-bold text-lg">
+                {{ worker.username[:2].upper() }}
+            </div>
+            <div>
+                <h3 class="text-lg font-medium text-gray-900">{{ worker.full_name or worker.username }}</h3>
+                <p
+                    class="text-sm {{ 'text-red-500' if worker.status == 'liquidated' else 'text-gray-500' }} capitalize">
+                    {{ 'Liquidado' if worker.status == 'liquidated' else worker.role }}
+                </p>
+                {% if worker.start_date %}
+                <p class="text-xs text-gray-400 mt-1">Inicio: {{ worker.start_date | format_date }}</p>
+                {% endif %}
+            </div>
+        </div>
+        <div class="mt-4 pt-4 border-t border-gray-100 flex justify-between items-center">
+            <span class="text-sm text-gray-500">Gestionar Liquidación</span>
+            <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+        </div>
+    </a>
+    {% else %}
+    <div class="col-span-3 text-center py-10">
+        <p class="text-gray-500">No hay trabajadores registrados.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

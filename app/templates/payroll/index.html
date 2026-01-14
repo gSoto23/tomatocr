@@ -1,0 +1,192 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Planilla | TOMATO{% endblock %}
+
+{% block content %}
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900">Módulo de Planilla</h1>
+        <p class="mt-1 text-sm text-gray-500">Gestión de pagos, planilla y liquidaciones.</p>
+    </div>
+    <div class="flex gap-2">
+        {% if user.role in ['admin', 'supervisor'] %}
+        <a href="/payroll/approval"
+            class="inline-flex items-center justify-center rounded-md bg-white px-4 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+            Aprobar Horas
+        </a>
+        {% endif %}
+
+        {% if user.role == 'admin' %}
+        <button onclick="openGenerateModal()"
+            class="inline-flex items-center justify-center rounded-md bg-black px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800">
+            <svg class="-ml-0.5 mr-1.5 h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z"
+                    clip-rule="evenodd" />
+            </svg>
+            Generar Planilla
+        </button>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Tabs or Cards for Sub-modules -->
+{% if user.role == 'admin' %}
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+    <a href="/payments" class="block p-6 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 shadow-sm">
+        <h5 class="mb-2 text-lg font-bold tracking-tight text-gray-900">Historial de Pagos</h5>
+        <p class="font-normal text-gray-700">Ver registro histórico de todos los pagos realizados.</p>
+    </a>
+    <a href="/liquidation" class="block p-6 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 shadow-sm">
+        <h5 class="mb-2 text-lg font-bold tracking-tight text-gray-900">Liquidaciones</h5>
+        <p class="font-normal text-gray-700">Calcular y procesar liquidaciones de personal.</p>
+    </a>
+</div>
+{% endif %}
+
+<!-- Recent Payroll Periods -->
+<div class="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
+    <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+        <h3 class="text-base font-semibold leading-6 text-gray-900">Periodos de Planilla</h3>
+    </div>
+    <ul role="list" class="divide-y divide-gray-100">
+        {% for period in periods %}
+        <li class="relative flex justify-between gap-x-6 px-4 py-5 hover:bg-gray-50 sm:px-6">
+            <div class="flex min-w-0 gap-x-4">
+                <div class="min-w-0 flex-auto">
+                    <p class="text-sm font-semibold leading-6 text-gray-900">
+                        <a href="/payroll/detail/{{ period.id }}">
+                            <span class="absolute inset-x-0 -top-px bottom-0"></span>
+                            Periodo: {{ period.start_date | format_date }} - {{ period.end_date | format_date }}
+                        </a>
+                    </p>
+                    <p class="mt-1 flex text-xs leading-5 text-gray-500">
+                        Estado: <span
+                            class="capitalize ml-1 font-medium {{ 'text-green-600' if period.status == 'final' else 'text-yellow-600' }}">{{
+                            period.status }}</span>
+                    </p>
+                </div>
+            </div>
+            <div class="flex shrink-0 items-center gap-x-4">
+                <div class="hidden sm:flex sm:flex-col sm:items-end">
+                    <p class="text-sm leading-6 text-gray-900">Generado el {{ period.created_at | format_date }}
+                    </p>
+                    {% if user.role == 'admin' %}
+                    <button onclick="event.preventDefault(); deletePayroll({{ period.id }})"
+                        class="mt-1 text-xs text-red-600 hover:text-red-900 font-semibold relative z-10">Eliminar</button>
+                    {% endif %}
+                </div>
+                <svg class="h-5 w-5 flex-none text-gray-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd"
+                        d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z"
+                        clip-rule="evenodd" />
+                </svg>
+            </div>
+        </li>
+        {% else %}
+        <li class="px-4 py-5 sm:px-6 text-sm text-gray-500 text-center">No hay planillas generadas.</li>
+        {% endfor %}
+    </ul>
+</div>
+
+<!-- Convert to Modal -->
+{% if user.role == 'admin' %}
+<div id="generateModal" class="relative z-50 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+    <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+        <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+            <div
+                class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+                <form onsubmit="submitGenerate(event)">
+                    <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+                        <div class="sm:flex sm:items-start">
+                            <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
+                                <h3 class="text-base font-semibold leading-6 text-gray-900" id="modal-title">Generar
+                                    Planilla</h3>
+                                <div class="mt-4 space-y-4">
+                                    <div>
+                                        <label for="start_date"
+                                            class="block text-sm font-medium leading-6 text-gray-900">Fecha
+                                            Inicio</label>
+                                        <input type="date" id="start_date" required
+                                            class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+                                    </div>
+                                    <div>
+                                        <label for="end_date"
+                                            class="block text-sm font-medium leading-6 text-gray-900">Fecha Fin</label>
+                                        <input type="date" id="end_date" required
+                                            class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                        <button type="submit"
+                            class="inline-flex w-full justify-center rounded-md bg-black px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 sm:ml-3 sm:w-auto">Generar</button>
+                        <button type="button" onclick="closeGenerateModal()"
+                            class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script>
+    function openGenerateModal() {
+        document.getElementById('generateModal').classList.remove('hidden');
+    }
+
+    function closeGenerateModal() {
+        document.getElementById('generateModal').classList.add('hidden');
+    }
+
+    async function deletePayroll(id) {
+        if (!confirm("¿Estás seguro de eliminar esta planilla? Esta acción no se puede deshacer.")) return;
+
+        try {
+            const response = await fetch(`/payroll/${id}`, {
+                method: 'DELETE'
+            });
+            const result = await response.json();
+
+            if (response.ok) {
+                // Remove row or reload
+                window.location.reload();
+            } else {
+                alert("Error: " + result.detail);
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Error de conexión");
+        }
+    }
+    async function submitGenerate(e) {
+        e.preventDefault();
+        const start = document.getElementById('start_date').value;
+        const end = document.getElementById('end_date').value;
+
+        try {
+            const response = await fetch('/payroll/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ start_date: start, end_date: end })
+            });
+            const result = await response.json();
+
+            if (response.ok) {
+                showGlobalToast("Éxito", "Planilla generada correctamente");
+                closeGenerateModal();
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                showGlobalToast("Error", result.detail || result.message || "Error al generar", "error");
+            }
+        } catch (error) {
+            console.error(error);
+            showGlobalToast("Error", "Error de conexión", "error");
+        }
+    }
+</script>
+{% endblock %}

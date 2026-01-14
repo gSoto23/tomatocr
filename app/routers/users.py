@@ -67,6 +67,11 @@ async def create_user(
     password: str = Form(...),
     full_name: str = Form(...),
     role: str = Form(...),
+    phone: Optional[str] = Form(None),
+    email: Optional[str] = Form(None),
+    start_date: Optional[str] = Form(None),
+    hourly_rate: Optional[float] = Form(None),
+    monthly_salary: Optional[float] = Form(None),
     is_active: bool = Form(False),
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
@@ -81,11 +86,24 @@ async def create_user(
          response.set_cookie(key="toast_type", value="error")
          return response
 
+    from datetime import datetime
+    s_date = None
+    if start_date:
+        try:
+            s_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+        except ValueError:
+            pass            
+
     new_user = User(
         username=username,
         hashed_password=get_password_hash(password),
         full_name=full_name,
         role=role,
+        phone=phone,
+        email=email,
+        start_date=s_date,
+        hourly_rate=hourly_rate,
+        monthly_salary=monthly_salary,
         is_active=is_active
     )
     db.add(new_user)
@@ -114,6 +132,11 @@ async def update_user(
     password: Optional[str] = Form(None),
     full_name: str = Form(...),
     role: str = Form(...),
+    phone: Optional[str] = Form(None),
+    email: Optional[str] = Form(None),
+    start_date: Optional[str] = Form(None),
+    hourly_rate: Optional[float] = Form(None),
+    monthly_salary: Optional[float] = Form(None),
     is_active: bool = Form(False),
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
@@ -128,10 +151,23 @@ async def update_user(
             response.set_cookie(key="toast_message", value="Error: Ese nombre de usuario ya está ocupado.")
             response.set_cookie(key="toast_type", value="error")
             return response
+
+        from datetime import datetime
+        s_date = None
+        if start_date:
+            try:
+                s_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+            except ValueError:
+                pass
             
         edit_user.username = username
         edit_user.full_name = full_name
         edit_user.role = role
+        edit_user.phone = phone
+        edit_user.email = email
+        edit_user.start_date = s_date
+        edit_user.hourly_rate = hourly_rate
+        edit_user.monthly_salary = monthly_salary
         edit_user.is_active = is_active
         
         if password and password.strip():

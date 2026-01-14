@@ -3,7 +3,7 @@ from datetime import datetime
 
 templates = Jinja2Templates(directory="app/templates")
 
-def format_date_filter(value, format_str="%d-%m-%Y"):
+def format_date_filter(value, format_str="%d/%m/%Y"):
     if value is None:
         return ""
     if isinstance(value, str):

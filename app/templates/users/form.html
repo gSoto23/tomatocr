@@ -80,6 +80,67 @@
                 </div>
             </div>
 
+            <!-- Payroll Information -->
+            <div class="border-t border-gray-200 pt-6">
+                <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">Información de Planilla</h3>
+
+                <div class="grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-2">
+                    <!-- Email -->
+                    <div>
+                        <label for="email" class="block text-sm font-medium leading-6 text-gray-900">Correo
+                            Electrónico</label>
+                        <div class="mt-2">
+                            <input type="email" name="email" id="email"
+                                value="{{ edit_user.email if edit_user and edit_user.email else '' }}"
+                                class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
+                        </div>
+                    </div>
+
+                    <!-- Phone -->
+                    <div>
+                        <label for="phone" class="block text-sm font-medium leading-6 text-gray-900">Teléfono</label>
+                        <div class="mt-2">
+                            <input type="text" name="phone" id="phone"
+                                value="{{ edit_user.phone if edit_user and edit_user.phone else '' }}"
+                                class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
+                        </div>
+                    </div>
+
+                    <!-- Start Date -->
+                    <div>
+                        <label for="start_date" class="block text-sm font-medium leading-6 text-gray-900">Fecha de
+                            Inicio</label>
+                        <div class="mt-2">
+                            <input type="date" name="start_date" id="start_date"
+                                value="{{ edit_user.start_date if edit_user and edit_user.start_date else '' }}"
+                                class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
+                        </div>
+                    </div>
+
+                    <!-- Hourly Rate -->
+                    <div>
+                        <label for="hourly_rate" class="block text-sm font-medium leading-6 text-gray-900">Tarifa por
+                            Hora (₡)</label>
+                        <div class="mt-2">
+                            <input type="number" step="0.01" name="hourly_rate" id="hourly_rate"
+                                value="{{ edit_user.hourly_rate if edit_user and edit_user.hourly_rate else '' }}"
+                                class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
+                        </div>
+                    </div>
+
+                    <!-- Monthly Salary -->
+                    <div>
+                        <label for="monthly_salary" class="block text-sm font-medium leading-6 text-gray-900">Salario
+                            Mensual (₡)</label>
+                        <div class="mt-2">
+                            <input type="number" step="0.01" name="monthly_salary" id="monthly_salary"
+                                value="{{ edit_user.monthly_salary if edit_user and edit_user.monthly_salary else '' }}"
+                                class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Is Active -->
             <div class="relative flex gap-x-3">
                 <div class="flex h-6 items-center">

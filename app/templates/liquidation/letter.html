@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carta de Liquidación - {{ data.name }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @media print {
+            body {
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
+            }
+
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 min-h-screen p-8 text-gray-900" style="font-family: Arial, sans-serif;">
+
+    <!-- Action Bar -->
+    <div class="max-w-4xl mx-auto mb-8 flex justify-end gap-2 no-print">
+        <button onclick="window.print()"
+            class="bg-black text-white px-4 py-2 rounded-md shadow hover:bg-gray-800 font-sans text-sm font-semibold">
+            Imprimir / Guardar como PDF
+        </button>
+        <button onclick="window.close()"
+            class="bg-white text-gray-900 px-4 py-2 rounded-md shadow border border-gray-300 hover:bg-gray-50 font-sans text-sm font-semibold">
+            Cerrar
+        </button>
+    </div>
+
+    <!-- Letter Content -->
+    <div class="max-w-4xl mx-auto bg-white p-12 shadow-md" style="min-height: 11in;">
+
+        <!-- Header -->
+        <div class="text-center mb-12">
+            <div class="flex justify-center mb-4">
+                <img src="/static/images/LogoTomatoB.png" alt="TOMATO COSTA RICA" class="h-20 object-contain">
+            </div>
+            <h1 class="text-xl font-bold uppercase tracking-wide">TOMATO COSTA RICA SRL</h1>
+            <p class="text-sm text-gray-600">Cédula Jurídica: 3-101-876296</p>
+            <p class="text-sm text-gray-600">Teléfono: 80708316 | Web: www.tomatocr.com</p>
+        </div>
+
+        <div class="mb-8 text-right">
+            <p>San José, {{ data.calculation_date.strftime('%d de %B de %Y') }}</p>
+        </div>
+
+        <div class="mb-8">
+            <p class="font-bold text-lg mb-2">Estimado(a) {{ data.name }}</p>
+            <!-- <p>Cédula: {{ data.identity_card or '________________' }}</p> -->
+            <p class="mt-4 text-justify leading-relaxed">
+                Por medio de la presente, hacemos constar el detalle de su liquidación laboral, correspondiente al
+                periodo laborado desde el
+                <span class="font-semibold">{{ data.start_date.strftime('%d/%m/%Y') if data.start_date else 'INICIO'
+                    }}</span>
+                hasta el
+                <span class="font-semibold">{{ data.calculation_date.strftime('%d/%m/%Y') }}</span>.
+            </p>
+            <p class="mt-4 text-justify leading-relaxed">
+                Agradecemos profundamente el tiempo y esfuerzo dedicado a la empresa durante su periodo de labores.
+            </p>
+        </div>
+
+        <!-- Calculation Table -->
+        <div class="mb-12">
+            <h3 class="text-lg font-bold border-b-2 border-black pb-2 mb-4 uppercase">Detalle de Liquidación</h3>
+            <table class="w-full text-left border-collapse">
+                <tbody>
+                    <tr class="border-b border-gray-200">
+                        <td class="py-3 pr-4 font-semibold text-gray-700">Meses trabajados (Ref)</td>
+                        <td class="py-3 text-right">{{ data.months_worked }} meses</td>
+                    </tr>
+                    <tr class="border-b border-gray-200">
+                        <td class="py-3 pr-4 font-semibold text-gray-700">Vacaciones Pendientes ({{ data.vacation_days
+                            }} días)</td>
+                        <td class="py-3 text-right">₡{{ "{:,.2f}".format(data.vacation_amount) }}</td>
+                    </tr>
+                    <tr class="border-b border-gray-200">
+                        <td class="py-3 pr-4 font-semibold text-gray-700">Aguinaldo Proporcional</td>
+                        <td class="py-3 text-right">₡{{ "{:,.2f}".format(data.aguinaldo_amount) }}</td>
+                    </tr>
+                    <tr class="border-b border-black">
+                        <td class="py-3 pr-4 font-semibold text-gray-700">Salario Pendiente</td>
+                        <td class="py-3 text-right">₡{{ "{:,.2f}".format(data.salary_due) }}</td>
+                    </tr>
+                    <tr class="bg-gray-100">
+                        <td class="py-4 pl-4 font-bold text-black uppercase">Total Neto a Pagar</td>
+                        <td class="py-4 pr-4 text-right font-bold text-black text-xl">₡{{ "{:,.2f}".format(data.total)
+                            }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Footer -->
+        <div class="mt-24 grid grid-cols-2 gap-16">
+            <div class="text-center">
+                <div class="border-t border-black pt-2">
+                    <p class="font-bold">TOMATO COSTA RICA SRL</p>
+                    <p class="text-sm text-gray-500">Empleador</p>
+                </div>
+            </div>
+            <div class="text-center">
+                <div class="border-t border-black pt-2">
+                    <p class="font-bold">{{ data.name }}</p>
+                    <p class="text-sm text-gray-500">Recibido Conforme</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-12 text-center text-xs text-gray-400">
+            <p>Este documento es un comprobante de pago de derechos laborales.</p>
+        </div>
+
+    </div>
+
+</body>
+
+</html>

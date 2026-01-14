@@ -1,8 +1,8 @@
 
-from sqlalchemy import Column, Integer, Date, DateTime, ForeignKey, String, Boolean
+from sqlalchemy import Column, Integer, Date, DateTime, ForeignKey, String, Boolean, Float
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from app.db.base import Base
+from app.db.base_class import Base
 
 class ProjectSchedule(Base):
     __tablename__ = "project_schedules"
@@ -11,6 +11,8 @@ class ProjectSchedule(Base):
     project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     date = Column(Date, nullable=False, index=True)
+    hours_worked = Column(Float, default=8.0)
+    is_confirmed = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     project = relationship("Project")
