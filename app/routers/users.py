@@ -73,6 +73,8 @@ async def create_user(
     hourly_rate: Optional[float] = Form(None),
     monthly_salary: Optional[float] = Form(None),
     is_active: bool = Form(False),
+    payment_method: str = Form("Efectivo"),
+    account_number: Optional[str] = Form(None),
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
@@ -104,7 +106,9 @@ async def create_user(
         start_date=s_date,
         hourly_rate=hourly_rate,
         monthly_salary=monthly_salary,
-        is_active=is_active
+        is_active=is_active,
+        payment_method=payment_method,
+        account_number=account_number if payment_method in ["Transferencia", "Sinpe"] else None
     )
     db.add(new_user)
     db.commit()
@@ -138,6 +142,8 @@ async def update_user(
     hourly_rate: Optional[float] = Form(None),
     monthly_salary: Optional[float] = Form(None),
     is_active: bool = Form(False),
+    payment_method: str = Form("Efectivo"),
+    account_number: Optional[str] = Form(None),
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
@@ -169,6 +175,10 @@ async def update_user(
         edit_user.hourly_rate = hourly_rate
         edit_user.monthly_salary = monthly_salary
         edit_user.is_active = is_active
+        
+        # Update Payment Info
+        edit_user.payment_method = payment_method
+        edit_user.account_number = account_number if payment_method in ["Transferencia", "Sinpe"] else None
         
         if password and password.strip():
              edit_user.hashed_password = get_password_hash(password)

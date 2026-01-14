@@ -193,7 +193,9 @@ async def payroll_report(
             "name": entry.user.full_name or entry.user.username,
             "phone": entry.user.phone or "N/A",
             "hours": entry.total_hours,
-            "net_pay": entry.net_salary
+            "net_pay": entry.net_salary,
+            "payment_method": entry.user.payment_method,
+            "account_number": entry.user.account_number
         })
         total_net += entry.net_salary
         

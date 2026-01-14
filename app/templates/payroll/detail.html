@@ -124,6 +124,15 @@
                     <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-900 text-right bg-gray-50">₡{{
                         "{:,.2f}".format(entry.previsiones) }}</td>
                     {% endif %}
+                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                        <div class="flex flex-col">
+                            <span class="font-medium text-gray-900">{{ entry.user.payment_method }}</span>
+                            {% if entry.user.payment_method in ['Transferencia', 'Sinpe'] and entry.user.account_number
+                            %}
+                            <span class="text-xs text-gray-400">{{ entry.user.account_number }}</span>
+                            {% endif %}
+                        </div>
+                    </td>
                     <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                         <button
                             onclick='showBreakdown({{ entry.details | tojson | safe }}, "{{ entry.user.full_name or entry.user.username }}")'

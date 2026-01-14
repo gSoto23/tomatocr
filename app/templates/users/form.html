@@ -138,8 +138,50 @@
                                 class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
                         </div>
                     </div>
+
+                    <!-- Payment Method -->
+                    <div>
+                        <label for="payment_method" class="block text-sm font-medium leading-6 text-gray-900">Método de
+                            Pago</label>
+                        <div class="mt-2">
+                            <select id="payment_method" name="payment_method" onchange="toggleAccountField()"
+                                class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
+                                <option value="Efectivo" {% if edit_user and edit_user.payment_method=='Efectivo'
+                                    %}selected{% endif %}>Efectivo</option>
+                                <option value="Transferencia" {% if edit_user and
+                                    edit_user.payment_method=='Transferencia' %}selected{% endif %}>Transferencia
+                                </option>
+                                <option value="Sinpe" {% if edit_user and edit_user.payment_method=='Sinpe' %}selected{%
+                                    endif %}>Sinpe</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Account Number -->
+                    <div id="account_number_container"
+                        class="{% if edit_user and edit_user.payment_method in ['Transferencia', 'Sinpe'] %}{% else %}hidden{% endif %}">
+                        <label for="account_number" class="block text-sm font-medium leading-6 text-gray-900">Número de
+                            Cuenta / Sinpe</label>
+                        <div class="mt-2">
+                            <input type="text" name="account_number" id="account_number"
+                                value="{{ edit_user.account_number if edit_user and edit_user.account_number else '' }}"
+                                class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
+                        </div>
+                    </div>
                 </div>
             </div>
+
+            <script>
+                function toggleAccountField() {
+                    const method = document.getElementById('payment_method').value;
+                    const container = document.getElementById('account_number_container');
+                    if (method === 'Transferencia' || method === 'Sinpe') {
+                        container.classList.remove('hidden');
+                    } else {
+                        container.classList.add('hidden');
+                    }
+                }
+            </script>
 
             <!-- Is Active -->
             <div class="relative flex gap-x-3">

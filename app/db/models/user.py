@@ -21,5 +21,9 @@ class User(Base):
     hourly_rate = Column(Float, default=0.0)
     monthly_salary = Column(Float, default=0.0) # Informative
     status = Column(Enum("active", "inactive", "liquidated", name="worker_status"), default="active")
+    
+    # Payment Info
+    payment_method = Column(String(20), default="Efectivo") # Transferencia, Sinpe, Efectivo
+    account_number = Column(String(50), nullable=True)
 
     projects = relationship("Project", secondary=project_users, back_populates="users")

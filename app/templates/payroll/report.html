@@ -48,6 +48,7 @@
                     <th class="py-2 text-sm font-bold uppercase">Trabajador</th>
                     <th class="py-2 text-sm font-bold uppercase text-center">Horas</th>
                     <th class="py-2 text-sm font-bold uppercase text-center">Teléfono</th>
+                    <th class="py-2 text-sm font-bold uppercase">Forma de Pago</th>
                     <th class="py-2 text-sm font-bold uppercase text-right">Neto a Pagar</th>
                 </tr>
             </thead>
@@ -57,6 +58,14 @@
                     <td class="py-3 text-sm">{{ entry.name }}</td>
                     <td class="py-3 text-sm text-center">{{ entry.hours }}</td>
                     <td class="py-3 text-sm text-center">{{ entry.phone }}</td>
+                    <td class="py-3 text-sm">
+                        <div class="flex flex-col">
+                            <span class="font-bold">{{ entry.payment_method }}</span>
+                            {% if entry.payment_method in ['Transferencia', 'Sinpe'] and entry.account_number %}
+                            <span class="text-xs text-gray-500">{{ entry.account_number }}</span>
+                            {% endif %}
+                        </div>
+                    </td>
                     <td class="py-3 text-sm font-bold text-right">₡{{ "{:,.2f}".format(entry.net_pay) }}</td>
                 </tr>
                 {% endfor %}
