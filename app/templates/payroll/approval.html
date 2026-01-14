@@ -1,0 +1,310 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Aprobación de Horas | TOMATO{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900">Aprobación de Horas</h1>
+        <p class="mt-1 text-sm text-gray-500">Confirma las horas trabajadas antes de generar la planilla.</p>
+    </div>
+    <a href="/payroll" class="text-sm font-semibold text-gray-900 hover:underline">← Volver a Planilla</a>
+</div>
+
+<!-- View 1: Project Selection -->
+<div id="view-projects" class="block">
+    <div class="mb-6">
+        <h2 class="text-lg font-medium text-gray-900">Mis Proyectos Asignados</h2>
+        <p class="text-sm text-gray-500">Selecciona un proyecto para revisar horas.</p>
+    </div>
+
+    <div id="projects-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Loaded via JS -->
+        <p class="text-gray-500">Cargando proyectos...</p>
+    </div>
+</div>
+
+<!-- View 2: Hours Approval (Hidden by default) -->
+<div id="view-approval" class="hidden">
+    <!-- Filters -->
+    <div
+        class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-6 flex flex-col sm:flex-row gap-4 items-end">
+        <div class="w-full sm:w-auto">
+            <button onclick="showProjectsView()"
+                class="mb-2 sm:mb-0 text-sm font-semibold text-gray-900 hover:text-black">
+                ← Volver a Proyectos
+            </button>
+        </div>
+        <div class="w-full sm:w-auto ml-auto flex flex-col sm:flex-row gap-4 items-end">
+            <div class="w-full sm:w-auto">
+                <label for="filter_date" class="block text-sm font-medium leading-6 text-gray-900">Fecha</label>
+                <input type="date" id="filter_date"
+                    class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+            </div>
+            <div class="w-full sm:w-auto">
+                <button onclick="loadSchedules()"
+                    class="w-full sm:w-auto inline-flex items-center justify-center rounded-md bg-black px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800">
+                    Buscar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Selected Project Info -->
+    <div class="mb-4">
+        <h3 class="text-lg font-bold text-gray-900" id="selected-project-name">Proyecto</h3>
+    </div>
+
+    <!-- Table -->
+    <div class="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
+        <table class="min-w-full divide-y divide-gray-300">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">
+                        Trabajador</th>
+                    <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Fecha</th>
+                    <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Horas</th>
+                    <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Estado</th>
+                    <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6">
+                        <span class="sr-only">Acciones</span>
+                    </th>
+                </tr>
+            </thead>
+            <tbody id="schedules-body" class="divide-y divide-gray-200 bg-white">
+                <!-- Loaded via JS -->
+                <tr>
+                    <td colspan="5" class="px-4 py-8 text-center text-sm text-gray-500">
+                        Cargando...
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    let currentProjectId = null;
+    let currentProjectName = "";
+
+    // Initialize with today
+    document.getElementById('filter_date').valueAsDate = new Date();
+
+    // Load projects on start
+    window.addEventListener('load', loadProjects);
+
+    function formatDate(isoStr) {
+        if (!isoStr) return "";
+        const [y, m, d] = isoStr.split('-');
+        return `${d}/${m}/${y}`;
+    }
+
+    async function loadProjects() {
+        try {
+            const response = await fetch('/payroll/supervisor/projects');
+            if (!response.ok) throw new Error("Error loading projects");
+            const projects = await response.json();
+            renderProjects(projects);
+        } catch (e) {
+            console.error(e);
+            document.getElementById('projects-grid').innerHTML = `<p class="text-red-500">Error cargando proyectos asignados.</p>`;
+        }
+    }
+
+    function renderProjects(projects) {
+        const grid = document.getElementById('projects-grid');
+        grid.innerHTML = '';
+
+        if (projects.length === 0) {
+            grid.innerHTML = `<div class="col-span-3 text-center py-10 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                <p class="text-gray-500">No tienes proyectos asignados.</p>
+            </div>`;
+            return;
+        }
+
+        projects.forEach(p => {
+            const card = document.createElement('div');
+            card.className = "bg-white overflow-hidden shadow rounded-lg border border-gray-200 hover:shadow-md transition-shadow cursor-pointer";
+            card.onclick = () => selectProject(p.id, p.name);
+            card.innerHTML = `
+                <div class="px-4 py-5 sm:p-6 text-center">
+                    <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
+                         <svg class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                    </div>
+                    <h3 class="mt-2 text-lg font-medium text-gray-900">${p.name}</h3>
+                    <p class="mt-1 text-sm text-gray-500">Click para aprobar horas</p>
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+    }
+
+    function selectProject(id, name) {
+        currentProjectId = id;
+        currentProjectName = name;
+        document.getElementById('selected-project-name').textContent = name;
+
+        // Switch view
+        document.getElementById('view-projects').classList.add('hidden');
+        document.getElementById('view-approval').classList.remove('hidden');
+
+        loadSchedules();
+    }
+
+    function showProjectsView() {
+        currentProjectId = null;
+        document.getElementById('view-approval').classList.add('hidden');
+        document.getElementById('view-projects').classList.remove('hidden');
+    }
+
+    async function loadSchedules() {
+        const date = document.getElementById('filter_date').value;
+        if (!date || !currentProjectId) return;
+
+        try {
+            const response = await fetch(`/payroll/schedules?date=${date}&project_id=${currentProjectId}`);
+            if (!response.ok) throw new Error("Error fetching");
+            const data = await response.json();
+            renderTable(data);
+        } catch (e) {
+            console.error(e);
+            document.getElementById('schedules-body').innerHTML = `<tr><td colspan="5" class="px-4 py-4 text-center text-red-500">Error al cargar datos.</td></tr>`;
+        }
+    }
+
+    function renderTable(data) {
+        const tbody = document.getElementById('schedules-body');
+        tbody.innerHTML = '';
+
+        if (data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-8 text-center text-sm text-gray-500">No hay registros para esta fecha en este proyecto.</td></tr>`;
+            return;
+        }
+
+        data.forEach(s => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">${s.worker_name}</td>
+                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">${formatDate(s.date)}</td>
+                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                    <input type="number" id="hours-${s.id}" value="${s.hours_worked}" step="0.5" class="block w-20 rounded-md border-0 py-1 px-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+                </td>
+                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                    ${s.is_confirmed
+                    ? '<span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Confirmado</span>'
+                    : '<span class="inline-flex items-center rounded-md bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-800 ring-1 ring-inset ring-yellow-600/20">Pendiente</span>'}
+                </td>
+                <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                    <button onclick="confirmSchedule(${s.id})" class="text-black hover:text-gray-900 font-bold">Confirmar</button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+
+        // Initialize Pagination
+        setupPagination('schedules-body', 'tr', 10);
+    }
+
+    // Pagination Logic
+    function setupPagination(containerId, itemsSelector, pageSize = 10) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        const items = container.querySelectorAll(itemsSelector);
+
+        // Always reset controls
+        const controls = document.getElementById(containerId + '-controls');
+        if (controls) controls.innerHTML = '';
+
+        if (items.length <= pageSize) {
+            // Include logic to make sure all are visible if previously hidden?
+            items.forEach(i => i.style.display = '');
+            return;
+        }
+
+        const pageCount = Math.ceil(items.length / pageSize);
+        let currentPage = 1;
+
+        // Define function in global scope with unique name for onclick
+        window['changePage_' + containerId] = (newPage) => {
+            if (newPage < 1 || newPage > pageCount) return;
+            currentPage = newPage;
+            showPage();
+        };
+
+        function showPage() {
+            items.forEach((item, index) => {
+                if (index >= (currentPage - 1) * pageSize && index < currentPage * pageSize) {
+                    item.style.display = '';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+            renderControls();
+        }
+
+        function renderControls() {
+            const start = (currentPage - 1) * pageSize + 1;
+            const end = Math.min(currentPage * pageSize, items.length);
+
+            controls.innerHTML = `
+                <div class="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
+                    <div class="flex flex-1 justify-between sm:hidden">
+                        <button onclick="changePage_${containerId}(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''} class="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">Anterior</button>
+                        <button onclick="changePage_${containerId}(${currentPage + 1})" ${currentPage === pageCount ? 'disabled' : ''} class="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">Siguiente</button>
+                    </div>
+                    <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                        <div>
+                            <p class="text-sm text-gray-700">
+                                Mostrando <span class="font-medium">${start}</span> a <span class="font-medium">${end}</span> de <span class="font-medium">${items.length}</span> resultados
+                            </p>
+                        </div>
+                        <div>
+                            <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                                <button onclick="changePage_${containerId}(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''} class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50">
+                                    <span class="sr-only">Anterior</span>
+                                    <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                        <path fill-rule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clip-rule="evenodd" />
+                                    </svg>
+                                </button>
+                                <span class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 focus:outline-offset-0">Página ${currentPage} de ${pageCount}</span>
+                                <button onclick="changePage_${containerId}(${currentPage + 1})" ${currentPage === pageCount ? 'disabled' : ''} class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50">
+                                    <span class="sr-only">Siguiente</span>
+                                    <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                        <path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" />
+                                    </svg>
+                                </button>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        showPage(); // Init
+    }
+
+    async function confirmSchedule(id) {
+        const hours = document.getElementById(`hours-${id}`).value;
+
+        try {
+            const response = await fetch('/payroll/hours/confirm', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ schedule_id: id, hours: parseFloat(hours) })
+            });
+            const result = await response.json();
+
+            if (response.ok) {
+                showGlobalToast("Éxito", "Horas confirmadas");
+                loadSchedules(); // Refresh
+            } else {
+                showGlobalToast("Error", result.message, "error");
+            }
+        } catch (e) {
+            console.error(e);
+            showGlobalToast("Error", "Error de conexión", "error");
+        }
+    }
+</script>
+{% endblock %}

@@ -8,7 +8,7 @@ from app.db.base import Base
 from app.db.session import engine
 from app.db.models import user as user_model
 from app.db.models import project as project_model
-from app.routers import auth, deps, projects, logs, users, calendar, finance, dashboard
+from app.routers import auth, deps, projects, logs, users, calendar, finance, dashboard, payroll, payments, liquidation
 from fastapi import FastAPI, Request, Depends
 from app.db.models.user import User
 
@@ -32,6 +32,9 @@ app.include_router(logs.router)
 app.include_router(users.router)
 app.include_router(calendar.router)
 app.include_router(finance.router)
+app.include_router(payroll.router)
+app.include_router(payments.router)
+app.include_router(liquidation.router)
 
 # Create tables on startup (Simple approach)
 @app.on_event("startup")

@@ -1,0 +1,201 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Historial de Pagos - {{ target_user.full_name }} | TOMATO{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div>
+        <div class="flex items-center gap-2 mb-1">
+            <a href="/payments" class="text-gray-500 hover:text-gray-900">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
+            </a>
+            <h1 class="text-2xl font-bold text-gray-900">{{ target_user.full_name or target_user.username }}</h1>
+        </div>
+        <p class="text-sm text-gray-500">Historial de pagos realizados.</p>
+    </div>
+    {% if user.role == 'admin' %}
+    <button onclick="document.getElementById('new-payment-modal').classList.remove('hidden')"
+        class="inline-flex items-center justify-center rounded-md bg-black px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800">
+        Registrar Nuevo Pago
+    </button>
+    {% endif %}
+</div>
+
+<!-- History Table -->
+<div class="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
+    <table class="min-w-full divide-y divide-gray-300">
+        <thead class="bg-gray-50">
+            <tr>
+                <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">Fecha
+                </th>
+                <th scope="col" class="px-3 py-3.5 text-right text-sm font-semibold text-gray-900">Monto</th>
+                <th scope="col" class="px-3 py-3.5 text-right text-sm font-semibold text-gray-900">Horas Pagadas</th>
+                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Notas</th>
+                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Registrado Por</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 bg-white">
+            {% for payment in payments %}
+            <tr>
+                <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
+                    {{ payment.date | format_date }}
+                </td>
+                <td class="whitespace-nowrap px-3 py-4 text-sm text-green-600 font-bold text-right">
+                    ₡{{ "{:,.2f}".format(payment.amount) }}
+                </td>
+                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500 text-right">
+                    {{ payment.hours_paid }}
+                </td>
+                <td class="px-3 py-4 text-sm text-gray-500">
+                    {{ payment.notes or '-' }}
+                </td>
+                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-400">
+                    {{ payment.created_by.full_name or payment.created_by.username }}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5" class="px-4 py-8 text-center text-sm text-gray-500">
+                    No hay pagos registrados para este usuario.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Modal -->
+{% if user.role == 'admin' %}
+<div id="new-payment-modal" class="relative z-10 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+    <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+        <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+            <div
+                class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+                <form action="/payments/create" method="post" id="paymentForm">
+                    <input type="hidden" name="user_id" value="{{ target_user.id }}">
+                    <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+                        <div class="sm:flex sm:items-start">
+                            <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
+                                <h3 class="text-base font-semibold leading-6 text-gray-900" id="modal-title">Registrar
+                                    Nuevo Pago</h3>
+                                <div class="mt-4 grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-6">
+                                    <div class="sm:col-span-3">
+                                        <label for="date"
+                                            class="block text-sm font-medium leading-6 text-gray-900">Fecha</label>
+                                        <div class="mt-2">
+                                            <input type="date" name="date" id="date" required
+                                                class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
+                                        </div>
+                                    </div>
+                                    <div class="sm:col-span-3">
+                                        <label for="amount"
+                                            class="block text-sm font-medium leading-6 text-gray-900">Monto
+                                            (₡)</label>
+                                        <div class="mt-2">
+                                            <input type="number" step="0.01" name="amount" id="amount" required
+                                                class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
+                                        </div>
+                                    </div>
+                                    <div class="sm:col-span-3">
+                                        <label for="hours_paid"
+                                            class="block text-sm font-medium leading-6 text-gray-900">Horas
+                                            Pagadas</label>
+                                        <div class="mt-2">
+                                            <input type="number" step="0.5" name="hours_paid" id="hours_paid" required
+                                                class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
+                                        </div>
+                                    </div>
+                                    <div class="sm:col-span-3">
+                                        <label for="whatsapp_phone"
+                                            class="block text-sm font-medium leading-6 text-gray-900">
+                                            Teléfono (WhatsApp)
+                                            {% if target_user.phone %}
+                                            <span
+                                                class="ml-2 inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Del
+                                                Perfil</span>
+                                            {% else %}
+                                            <span
+                                                class="ml-2 inline-flex items-center rounded-md bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-800 ring-1 ring-inset ring-yellow-600/20">No
+                                                registrado</span>
+                                            {% endif %}
+                                        </label>
+                                        <div class="mt-2">
+                                            <input type="text" id="whatsapp_phone" value="{{ target_user.phone or '' }}"
+                                                placeholder="50688888888"
+                                                class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
+                                        </div>
+                                    </div>
+                                    <div class="sm:col-span-full">
+                                        <label for="notes"
+                                            class="block text-sm font-medium leading-6 text-gray-900">Notas</label>
+                                        <div class="mt-2">
+                                            <textarea name="notes" id="notes" rows="3"
+                                                class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6"></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 gap-2">
+                        <button type="submit"
+                            class="inline-flex w-full justify-center rounded-md bg-black px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 sm:w-auto">Guardar
+                            Pago</button>
+
+                        <button type="button" onclick="notifyWhatsapp()"
+                            class="inline-flex w-full justify-center rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-700 sm:w-auto">
+                            <svg class="mr-1.5 h-5 w-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path
+                                    d="M12.012 2.01c-5.506 0-9.989 4.478-9.99 9.984a9.964 9.964 0 001.333 4.993L2 22l5.233-1.237a9.993 9.993 0 004.779 1.217h.004c5.505 0 9.988-4.478 9.989-9.983.003-2.671-1.036-5.18-2.92-7.062A9.957 9.957 0 0012.012 2.01ZM12 19.98H11.996a7.96 7.96 0 01-4.06-1.11l-.29-.172-3.024.717.808-2.94-.19-.304A7.973 7.973 0 014.022 12c.002-4.402 3.587-7.982 7.99-7.983 2.132.001 4.137.832 5.642 2.34a7.95 7.95 0 012.338 5.645c-.001 4.403-3.585 7.98-7.992 7.979Zm4.375-5.968c-.239-.12-1.417-.698-1.637-.779-.22-.08-.38-.12-.54.12-.16.24-.618.779-.758.939-.14.16-.28.18-.52.06-.24-.12-1.014-.374-1.933-1.193-.715-.638-1.198-1.426-1.338-1.666-.14-.24-.015-.37.105-.489.108-.108.24-.28.36-.42.12-.14.16-.24.24-.4.08-.16.039-.3-.02-.42-.06-.12-.54-1.298-.739-1.777-.195-.466-.395-.405-.54-.411-.137-.008-.297-.008-.457-.008-.16 0-.42.06-.64.299-.22.24-.838.818-.838 1.995 0 1.177.858 2.316.978 2.475.12.16 1.687 2.576 4.088 3.612.572.247 1.018.394 1.366.505.576.183 1.1.157 1.516.095.46-.07 1.417-.578 1.617-1.136.2-.558.2-1.037.14-1.136-.06-.1-.22-.16-.46-.28Z" />
+                            </svg>
+                            Notificar Whatsapp
+                        </button>
+
+                        <button type="button"
+                            onclick="document.getElementById('new-payment-modal').classList.add('hidden')"
+                            class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    document.getElementById('date').valueAsDate = new Date();
+
+    function notifyWhatsapp() {
+        const amount = document.getElementById('amount').value;
+        const date = document.getElementById('date').value;
+        const notes = document.getElementById('notes').value;
+        const phone = document.getElementById('whatsapp_phone').value;
+
+        if (!amount || !date) {
+            alert("Por favor complete el monto y la fecha primero.");
+            return;
+        }
+
+        if (!phone) {
+            if (!confirm("No hay teléfono ingresado. ¿Desea abrir WhatsApp sin número destinatario?")) {
+                return;
+            }
+        }
+
+        // Format date DD/MM/YYYY
+        const [y, m, d] = date.split('-');
+        const formattedDate = `${d}/${m}/${y}`;
+
+        const message = `TOMATO COSTA RICA ha realizado el pago de la planilla.\n\n📅 Fecha: ${formattedDate}\n💰 Monto: ₡${amount}\n📝 Notas: ${notes || 'Sin notas adicionales'}\n\nGracias.`;
+
+        const encodedMessage = encodeURIComponent(message);
+        const url = phone
+            ? `https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodedMessage}`
+            : `https://wa.me/?text=${encodedMessage}`;
+
+        window.open(url, '_blank');
+    }
+</script>
+{% endif %}
+{% endblock %}

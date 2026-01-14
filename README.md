@@ -88,7 +88,7 @@ app/
 Cuando hagas cambios en tu código y quieras actualizarlos en el servidor:
 
 1. **Sube los cambios**:
-   - Si usas Git: `cd /home/ubuntu/tomatocr` y luego `git pull`.
+   - Si usas Git: `cd /home/ubuntu/tomatocr` y luego `git pull origin <nombre_del_branch>` (ej: `main`).
    - Si usas SFTP: Sube los archivos nuevos y reemplaza los viejos.
 
 2. **Activa el entorno**:

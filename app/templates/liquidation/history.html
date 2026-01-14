@@ -1,0 +1,311 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Liquidación - {{ target_user.full_name }} | TOMATO{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div>
+        <div class="flex items-center gap-2 mb-1">
+            <a href="/liquidation" class="text-gray-500 hover:text-gray-900">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
+            </a>
+            <h1 class="text-2xl font-bold text-gray-900">{{ target_user.full_name or target_user.username }}</h1>
+        </div>
+        <p class="text-sm text-gray-500">Historial y cálculo de liquidación.</p>
+    </div>
+    {% if user.role == 'admin' and target_user.status != 'liquidated' %}
+    <button onclick="openLiquidationModal({{ target_user.id }})"
+        class="inline-flex items-center justify-center rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500">
+        Calcular Liquidación
+    </button>
+    {% elif target_user.status == 'liquidated' %}
+    <div class="flex items-center gap-2">
+        <span
+            class="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-sm font-medium text-red-700 ring-1 ring-inset ring-red-600/10">
+            Usuario Liquidado
+        </span>
+        {% if user.role == 'admin' %}
+        <form action="/liquidation/reactivate/{{ target_user.id }}" method="post"
+            onsubmit="return confirm('¿Desea reactivar este usuario? Esto establecerá su Fecha de Inicio al día de hoy para futuros cálculos.');">
+            <button type="submit"
+                class="inline-flex items-center justify-center rounded-md bg-white border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50">
+                Reactivar Contrato
+            </button>
+        </form>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- History Table -->
+<div class="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden mb-8">
+    <div class="px-4 py-5 sm:px-6 bg-gray-50 border-b border-gray-200">
+        <h3 class="text-base font-semibold leading-6 text-gray-900">Historial de Liquidaciones</h3>
+    </div>
+    <ul role="list" class="divide-y divide-gray-100">
+        {% for liq in liquidations %}
+        <li class="flex items-center justify-between gap-x-6 py-5 px-6">
+            <div class="min-w-0">
+                <div class="flex items-start gap-x-3">
+                    <p class="text-sm font-semibold leading-6 text-gray-900">₡{{ "{:,.2f}".format(liq.total_amount) }}
+                    </p>
+                    <p
+                        class="rounded-md whitespace-nowrap mt-0.5 px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset text-green-700 bg-green-50 ring-green-600/20">
+                        Pagado</p>
+                </div>
+                <div class="mt-1 flex items-center gap-x-2 text-xs leading-5 text-gray-500">
+                    <p class="whitespace-nowrap">Fecha: {{ liq.date | format_date }}</p>
+                    <svg viewBox="0 0 2 2" class="h-0.5 w-0.5 fill-current">
+                        <circle cx="1" cy="1" r="1" />
+                    </svg>
+                    <p class="truncate">Vacaciones: ₡{{ "{:,.2f}".format(liq.vacation_amount) }} ({{ liq.vacation_days
+                        }} días)</p>
+                    <svg viewBox="0 0 2 2" class="h-0.5 w-0.5 fill-current">
+                        <circle cx="1" cy="1" r="1" />
+                    </svg>
+                    <p class="truncate">Aguinaldo: ₡{{ "{:,.2f}".format(liq.aguinaldo_amount) }}</p>
+                </div>
+            </div>
+            <div class="flex flex-none items-center gap-x-4">
+                <!-- Actions if needed (e.g., Download PDF) -->
+            </div>
+        </li>
+        {% else %}
+        <li class="px-6 py-8 text-center text-sm text-gray-500">
+            No hay liquidaciones registradas.
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+
+<!-- Liquidation Modal -->
+{% if user.role == 'admin' %}
+<div id="liquidation-modal" class="relative z-10 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+    <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+        <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+            <div
+                class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-xl">
+                <form action="/liquidation/create" method="post" id="liquidation-form">
+                    <input type="hidden" name="user_id" value="{{ target_user.id }}">
+                    <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+                        <div class="sm:flex sm:items-start">
+                            <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
+                                <h3 class="text-base font-semibold leading-6 text-gray-900" id="modal-title">Calcular
+                                    Liquidación</h3>
+
+                                <div id="preview-loading" class="text-center py-4 hidden">
+                                    <p class="text-gray-500">Calculando...</p>
+                                </div>
+
+                                <div id="preview-content" class="mt-4 space-y-4">
+                                    <div class="flex justify-between border-b border-gray-100 pb-2">
+                                        <span class="text-sm text-gray-500">Salario Base:</span>
+                                        <span class="text-sm font-medium" id="monthly-salary-text">-</span>
+                                    </div>
+                                    <div class="flex justify-between border-b border-gray-100 pb-2">
+                                        <span class="text-sm text-gray-500">Meses trabajados (aprox):</span>
+                                        <span class="text-sm font-medium" id="months-worked">-</span>
+                                    </div>
+                                    <div class="flex justify-between border-b border-gray-100 pb-2">
+                                        <span class="text-sm text-gray-500">Días de vacaciones:</span>
+                                        <span class="text-sm font-medium" id="vacation-days-text">-</span>
+                                        <input type="hidden" name="vacation_days" id="vacation-days-input">
+                                    </div>
+                                    <div class="flex justify-between border-b border-gray-100 pb-2">
+                                        <span class="text-sm text-gray-500">Monto Vacaciones:</span>
+                                        <span class="text-sm font-medium" id="vacation-amount-text">-</span>
+                                        <input type="hidden" name="vacation_amount" id="vacation-amount-input">
+                                    </div>
+                                    <div class="flex justify-between border-b border-gray-100 pb-2">
+                                        <span class="text-sm text-gray-500">Aguinaldo Proporcional:</span>
+                                        <span class="text-sm font-medium" id="aguinaldo-amount-text">-</span>
+                                        <input type="hidden" name="aguinaldo_amount" id="aguinaldo-amount-input">
+                                    </div>
+                                    <div class="flex justify-between border-b border-gray-100 pb-2 items-center">
+                                        <span class="text-sm text-gray-500">Salario Pendiente:</span>
+                                        <div class="relative rounded-md shadow-sm w-32">
+                                            <div
+                                                class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                                <span class="text-gray-500 sm:text-sm">₡</span>
+                                            </div>
+                                            <input type="number" step="0.01" name="salary_due" value="0.0"
+                                                class="block w-full rounded-md border-0 py-1.5 pl-7 pr-2 text-right text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6"
+                                                onchange="updateTotal()">
+                                        </div>
+                                    </div>
+
+                                    <div class="flex justify-between pt-2">
+                                        <span class="font-bold text-gray-900">Total a Pagar:</span>
+                                        <span class="font-bold text-gray-900 text-lg" id="total-text">-</span>
+                                        <input type="hidden" name="total" id="total-input">
+                                    </div>
+
+                                    <div class="grid grid-cols-2 gap-4 pt-4">
+                                        <div>
+                                            <label for="start_date"
+                                                class="block text-sm font-medium text-gray-700">Fecha de Inicio</label>
+                                            <input type="date" name="start_date" id="start_date"
+                                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm">
+                                            <p class="text-[10px] text-gray-500 mt-1">Fecha base cálculo</p>
+                                        </div>
+                                        <div>
+                                            <label for="date" class="block text-sm font-medium text-gray-700">Fecha de
+                                                Liquidación</label>
+                                            <input type="date" name="date" id="date" required
+                                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm">
+                                        </div>
+                                    </div>
+
+                                    <div class="bg-yellow-50 p-3 rounded-md mt-2">
+                                        <p class="text-xs text-yellow-700">Al confirmar, el usuario será desactivado y
+                                            marcado como liquidado.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                        <button type="submit"
+                            class="inline-flex w-full justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:ml-3 sm:w-auto">Confirmar
+                            Liquidación</button>
+
+                        <button type="button" onclick="generateLetter()"
+                            class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:ml-3 sm:w-auto">Generar
+                            Carta</button>
+
+                        <button type="button"
+                            onclick="document.getElementById('liquidation-modal').classList.add('hidden')"
+                            class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    document.getElementById('date').valueAsDate = new Date();
+
+    let currentData = null;
+    const currentUserId = {{ target_user.id }};
+    const userStartDate = "{{ target_user.start_date.isoformat() if target_user.start_date else '' }}";
+
+    function generateLetter() {
+        const dateInput = document.getElementById('date').value;
+        const startDateInput = document.getElementById('start_date').value;
+
+        let url = `/liquidation/letter/${currentUserId}?`;
+        if (dateInput) {
+            url += `calculation_date=${dateInput}&`;
+        }
+        if (startDateInput) {
+            url += `start_date=${startDateInput}`;
+        }
+        // Remove trailing '&' if any
+        if (url.endsWith('&')) url = url.slice(0, -1);
+        window.open(url, '_blank');
+    }
+
+    async function openLiquidationModal(userId, calcDate = null, startDate = null) {
+        const modal = document.getElementById('liquidation-modal');
+        const dateInput = document.getElementById('date');
+        const startDateInput = document.getElementById('start_date');
+
+        // Setup initial state if opening fresh
+        if (modal.classList.contains('hidden')) {
+            modal.classList.remove('hidden');
+            dateInput.valueAsDate = new Date(); // Default today
+
+            // Set default start date from user profile if not set manually yet
+            if (!startDateInput.value && userStartDate) {
+                startDateInput.value = userStartDate;
+            }
+
+            // Allow override
+            startDateInput.onchange = () => openLiquidationModal(userId, dateInput.value, startDateInput.value);
+            dateInput.onchange = () => openLiquidationModal(userId, dateInput.value, startDateInput.value);
+        }
+
+        document.getElementById('preview-loading').classList.remove('hidden');
+        document.getElementById('preview-content').classList.add('opacity-50', 'pointer-events-none');
+
+        try {
+            // Build URL with params
+            const currentCalcDate = calcDate || dateInput.value;
+            const currentStartDate = startDate || startDateInput.value;
+
+            let url = `/liquidation/preview/${userId}?`;
+            if (currentCalcDate) url += `calculation_date=${currentCalcDate}&`;
+            if (currentStartDate) url += `start_date=${currentStartDate}`;
+            // Remove trailing '&' if any
+            if (url.endsWith('&')) url = url.slice(0, -1);
+
+            console.log("Fetching:", url);
+
+            const response = await fetch(url);
+            if (!response.ok) {
+                const errText = await response.text();
+                console.error("API Error:", response.status, errText);
+                alert("Error del servidor: " + response.status);
+                return;
+            }
+
+            const data = await response.json();
+            console.log("Liquidation Data:", data);
+
+            if (!data) {
+                console.error("Data is null");
+                alert("Error: No se recibieron datos del servidor.");
+                return;
+            }
+
+            currentData = data;
+
+            const monthlySalaryElem = document.getElementById('monthly-salary-text');
+            if (monthlySalaryElem) monthlySalaryElem.textContent = '₡' + (data.monthly_salary || 0).toLocaleString();
+
+            const monthsWorkedElem = document.getElementById('months-worked');
+            if (monthsWorkedElem) monthsWorkedElem.textContent = data.months_worked;
+
+            const vacDaysText = document.getElementById('vacation-days-text');
+            if (vacDaysText) vacDaysText.textContent = data.vacation_days;
+
+            const vacDaysInput = document.getElementById('vacation-days-input');
+            if (vacDaysInput) vacDaysInput.value = data.vacation_days;
+
+            const vacAmountText = document.getElementById('vacation-amount-text');
+            if (vacAmountText) vacAmountText.textContent = '₡' + (data.vacation_amount || 0).toLocaleString();
+
+            document.getElementById('vacation-amount-input').value = data.vacation_amount;
+
+            document.getElementById('aguinaldo-amount-text').textContent = '₡' + data.aguinaldo_amount.toLocaleString();
+            document.getElementById('aguinaldo-amount-input').value = data.aguinaldo_amount;
+
+            // Populate Salary Due
+            document.querySelector('input[name="salary_due"]').value = data.salary_due; // Update input
+
+            updateTotal();
+
+        } catch (e) {
+            console.error(e);
+            alert("Error calculando liquidación");
+        } finally {
+            document.getElementById('preview-loading').classList.add('hidden');
+            document.getElementById('preview-content').classList.remove('opacity-50', 'pointer-events-none');
+        }
+    }
+
+    function updateTotal() {
+        if (!currentData) return;
+
+        const salaryDue = parseFloat(document.querySelector('input[name="salary_due"]').value) || 0;
+        const total = currentData.vacation_amount + currentData.aguinaldo_amount + salaryDue;
+
+        document.getElementById('total-text').textContent = '₡' + total.toLocaleString();
+        document.getElementById('total-input').value = total;
+    }
+</script>
+{% endif %}
+{% endblock %}

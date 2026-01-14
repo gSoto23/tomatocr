@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte Planilla #{{ period.id }}</title>
+    <!-- Tailwind CSS for Print -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        @media print {
+            .no-print {
+                display: none;
+            }
+
+            body {
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 min-h-screen p-8 text-gray-900">
+
+    <div class="max-w-4xl mx-auto bg-white p-8 shadow-md print:shadow-none print:p-0">
+
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-8 border-b pb-4">
+            <div>
+                <h1 class="text-2xl font-bold uppercase">Reporte de Planilla</h1>
+                <p class="text-sm text-gray-600">TOMATO COSTA RICA SRL</p>
+            </div>
+            <div class="text-right">
+                <p class="font-bold text-lg">Periodo #{{ period.id }}</p>
+                <p class="text-sm text-gray-600">{{ period.start_date.strftime('%d/%m/%Y') }} - {{
+                    period.end_date.strftime('%d/%m/%Y') }}</p>
+            </div>
+        </div>
+
+        <!-- Content Table -->
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="border-b-2 border-gray-800">
+                    <th class="py-2 text-sm font-bold uppercase">Trabajador</th>
+                    <th class="py-2 text-sm font-bold uppercase text-center">Horas</th>
+                    <th class="py-2 text-sm font-bold uppercase text-center">Teléfono</th>
+                    <th class="py-2 text-sm font-bold uppercase">Forma de Pago</th>
+                    <th class="py-2 text-sm font-bold uppercase text-right">Neto a Pagar</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                {% for entry in entries %}
+                <tr>
+                    <td class="py-3 text-sm">{{ entry.name }}</td>
+                    <td class="py-3 text-sm text-center">{{ entry.hours }}</td>
+                    <td class="py-3 text-sm text-center">{{ entry.phone }}</td>
+                    <td class="py-3 text-sm">
+                        <div class="flex flex-col">
+                            <span class="font-bold">{{ entry.payment_method }}</span>
+                            {% if entry.payment_method in ['Transferencia', 'Sinpe'] and entry.account_number %}
+                            <span class="text-xs text-gray-500">{{ entry.account_number }}</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="py-3 text-sm font-bold text-right">₡{{ "{:,.2f}".format(entry.net_pay) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr class="border-t-2 border-gray-800">
+                    <td colspan="3" class="py-4 text-right font-bold text-lg">Total General:</td>
+                    <td class="py-4 text-right font-bold text-lg">₡{{ "{:,.2f}".format(total_net) }}</td>
+                </tr>
+            </tfoot>
+        </table>
+
+        <!-- Footer -->
+        <div class="mt-12 text-center text-xs text-gray-500 border-t pt-4">
+            <p>Generado el {{ today.strftime('%d/%m/%Y') }}</p>
+        </div>
+    </div>
+
+    <!-- Auto Print Script -->
+    <script>
+        window.onload = function () {
+            window.print();
+        }
+    </script>
+</body>
+
+</html>
