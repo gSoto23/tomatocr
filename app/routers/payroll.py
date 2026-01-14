@@ -11,6 +11,7 @@ from app.db.models.user import User
 from app.db.models.schedule import ProjectSchedule
 from app.db.models.payroll import PayrollPeriod, PayrollEntry
 from app.db.models.project import Project
+from app.db.models.project import Project
 from app.utils.activity import log_activity
 from app.core.templates import templates
 
@@ -219,6 +220,8 @@ async def confirm_payroll(
         
     period.status = "final"
     db.commit()
+
+    log_activity(db, user, "Finalizar Planilla", "PAYROLL", period.id, f"Periodo ID: {period.id} finalizado")
     
     return {"status": "success", "message": "Planilla finalizada"}
 
@@ -237,6 +240,8 @@ async def delete_payroll(
         
     db.delete(period)
     db.commit()
+
+    log_activity(db, user, "Eliminar Planilla", "PAYROLL", period_id, f"Periodo ID: {period_id} eliminado")
     
     return {"status": "success", "message": "Planilla eliminada"}
 
@@ -332,6 +337,8 @@ async def confirm_hours(
     schedule.is_confirmed = True
     db.commit()
 
+    log_activity(db, user, "Aprobar Horas", "SCHEDULE", schedule.id, f"Horas: {hours} para Proyecto: {schedule.project.name if schedule.project else 'Unknown'}")
+
     return {"status": "success", "message": "Horas confirmadas"}
 
 @router.post("/hours/confirm-batch")
@@ -425,5 +432,7 @@ async def generate_payroll(
         entries.append(entry)
 
     db.commit()
+
+    log_activity(db, user, "Generar Planilla", "PAYROLL", period.id, f"Periodo: {start_date} - {end_date}")
     
     return {"status": "success", "message": "Planilla generada (Borrador)", "period_id": period.id}
