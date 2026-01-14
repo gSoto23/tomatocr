@@ -33,12 +33,32 @@ async def payroll_dashboard(
     # Supervisor: Approval view redirect? Or dashboard with limited options?
     # Worker: My payments/payroll?
     
-    periods = db.query(PayrollPeriod).order_by(PayrollPeriod.start_date.desc()).all()
+    query = db.query(PayrollPeriod).order_by(PayrollPeriod.start_date.desc())
+    
+    if user.role in ["worker", "supervisor"]:
+        # Only periods where user has an entry, OR allows seeing active/draft if they are scheduled?
+        # Usually they only see finalized payrolls or drafts where they are calculated.
+        # Filtering by existence of PayrollEntry for this user
+        query = query.join(PayrollEntry).filter(PayrollEntry.user_id == user.id)
+        
+    periods = query.all()
+
+    # Calculate stats for Worker/Supervisor
+    worker_stats = {}
+    if user.role in ["worker", "supervisor"]:
+        vacation_days = 0
+        if user.start_date:
+            delta = date.today() - user.start_date
+            if delta.days > 0:
+                months_worked = delta.days / 30.44
+                vacation_days = months_worked 
+        worker_stats["vacation_days"] = round(vacation_days, 2)
     
     return templates.TemplateResponse("payroll/index.html", {
         "request": request,
         "user": user,
-        "periods": periods
+        "periods": periods,
+        "worker_stats": worker_stats
     })
 
 @router.get("/approval", response_class=HTMLResponse)
@@ -89,8 +109,8 @@ async def payroll_detail(
     enhanced_entries = []
     
     for entry in entries:
-        # Filter for worker if needed
-        if user.role == "worker" and entry.user_id != user.id:
+        # Filter for worker/supervisor (only see own)
+        if user.role in ["worker", "supervisor"] and entry.user_id != user.id:
             continue
             
         gross = entry.gross_salary
@@ -123,12 +143,65 @@ async def payroll_detail(
         
     totals["company_cost"] = totals["gross"] + totals["cs_empresa"] + totals["previsiones"]
 
+    # For Worker/Supervisor view: Calculate Vacation Days
+    worker_stats = {}
+    if user.role in ["worker", "supervisor"]:
+        # Logic from liquidation: 1 day per month worked
+        vacation_days = 0
+        if user.start_date:
+            delta = date.today() - user.start_date
+            if delta.days > 0:
+                months_worked = delta.days / 30.44
+                vacation_days = months_worked # 1 day per month
+        worker_stats["vacation_days"] = round(vacation_days, 2)
+
     return templates.TemplateResponse("payroll/detail.html", {
         "request": request,
         "user": user,
         "period": period,
         "entries": enhanced_entries,
-        "totals": totals
+        "totals": totals,
+        "worker_stats": worker_stats
+    })
+
+@router.get("/report/{period_id}", response_class=HTMLResponse)
+async def payroll_report(
+    period_id: int,
+    request: Request,
+    db: Session = Depends(deps.get_db),
+    user: User = Depends(deps.get_current_user)
+):
+    if user.role not in ["admin", "supervisor", "worker"]:
+         raise HTTPException(status_code=403, detail="Not authorized")
+
+    period = db.query(PayrollPeriod).filter(PayrollPeriod.id == period_id).first()
+    if not period:
+        raise HTTPException(status_code=404, detail="Payroll period not found")
+        
+    entries = db.query(PayrollEntry).filter(PayrollEntry.payroll_period_id == period_id).all()
+    
+    report_data = []
+    total_net = 0.0
+
+    for entry in entries:
+        # Filter logic: Admin sees all. Worker/Supervisor sees only own.
+        if user.role in ["worker", "supervisor"] and entry.user_id != user.id:
+            continue
+            
+        report_data.append({
+            "name": entry.user.full_name or entry.user.username,
+            "phone": entry.user.phone or "N/A",
+            "hours": entry.total_hours,
+            "net_pay": entry.net_salary
+        })
+        total_net += entry.net_salary
+        
+    return templates.TemplateResponse("payroll/report.html", {
+        "request": request,
+        "period": period,
+        "entries": report_data,
+        "total_net": total_net,
+        "today": date.today()
     })
 
 @router.post("/confirm")
@@ -213,6 +286,10 @@ async def get_schedules_for_approval(
              
         if not project_id:
              query = query.filter(ProjectSchedule.project_id.in_(supervisor_project_ids))
+
+        # Prevent seeing own records (Self-approval not allowed)
+        # These must be approved by Admin
+        query = query.filter(ProjectSchedule.user_id != user.id)
         
     schedules = query.all()
     

@@ -30,6 +30,23 @@
     </div>
 </div>
 
+{% if user.role in ['worker', 'supervisor'] %}
+<div class="mb-8">
+    <dl class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6 border border-gray-100">
+            <dt class="truncate text-sm font-medium text-gray-500">Fecha de Inicio</dt>
+            <dd class="mt-1 text-2xl font-semibold tracking-tight text-gray-900">{{ user.start_date | format_date if
+                user.start_date else 'N/A' }}</dd>
+        </div>
+        <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6 border border-gray-100">
+            <dt class="truncate text-sm font-medium text-gray-500">Vacaciones Disponibles</dt>
+            <dd class="mt-1 text-3xl font-semibold tracking-tight text-gray-900">{{ worker_stats.vacation_days }} días
+            </dd>
+        </div>
+    </dl>
+</div>
+{% endif %}
+
 <!-- Tabs or Cards for Sub-modules -->
 {% if user.role == 'admin' %}
 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
@@ -49,7 +66,7 @@
     <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
         <h3 class="text-base font-semibold leading-6 text-gray-900">Periodos de Planilla</h3>
     </div>
-    <ul role="list" class="divide-y divide-gray-100">
+    <ul id="payroll-periods-list" role="list" class="divide-y divide-gray-100">
         {% for period in periods %}
         <li class="relative flex justify-between gap-x-6 px-4 py-5 hover:bg-gray-50 sm:px-6">
             <div class="flex min-w-0 gap-x-4">
@@ -87,6 +104,8 @@
         <li class="px-4 py-5 sm:px-6 text-sm text-gray-500 text-center">No hay planillas generadas.</li>
         {% endfor %}
     </ul>
+    <!-- Pagination Controls Placeholder -->
+    <div id="payroll-periods-list-controls"></div>
 </div>
 
 <!-- Convert to Modal -->
@@ -135,6 +154,81 @@
 {% endif %}
 
 <script>
+    // Pagination Logic
+    function setupPagination(containerId, itemsSelector, pageSize = 10) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        const items = container.querySelectorAll(itemsSelector);
+        if (items.length <= pageSize) return; // No pagination needed
+
+        const pageCount = Math.ceil(items.length / pageSize);
+        let currentPage = 1;
+        const controls = document.getElementById(containerId + '-controls');
+
+        // Define function in global scope with unique name for onclick
+        window['changePage_' + containerId] = (newPage) => {
+            if (newPage < 1 || newPage > pageCount) return;
+            currentPage = newPage;
+            showPage();
+        };
+
+        function showPage() {
+            items.forEach((item, index) => {
+                if (index >= (currentPage - 1) * pageSize && index < currentPage * pageSize) {
+                    item.style.display = '';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+            renderControls();
+        }
+
+        function renderControls() {
+            const start = (currentPage - 1) * pageSize + 1;
+            const end = Math.min(currentPage * pageSize, items.length);
+
+            controls.innerHTML = `
+                <div class="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
+                    <div class="flex flex-1 justify-between sm:hidden">
+                        <button onclick="changePage_${containerId}(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''} class="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">Anterior</button>
+                        <button onclick="changePage_${containerId}(${currentPage + 1})" ${currentPage === pageCount ? 'disabled' : ''} class="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">Siguiente</button>
+                    </div>
+                    <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                        <div>
+                            <p class="text-sm text-gray-700">
+                                Mostrando <span class="font-medium">${start}</span> a <span class="font-medium">${end}</span> de <span class="font-medium">${items.length}</span> resultados
+                            </p>
+                        </div>
+                        <div>
+                            <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                                <button onclick="changePage_${containerId}(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''} class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50">
+                                    <span class="sr-only">Anterior</span>
+                                    <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                        <path fill-rule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clip-rule="evenodd" />
+                                    </svg>
+                                </button>
+                                <span class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 focus:outline-offset-0">Página ${currentPage} de ${pageCount}</span>
+                                <button onclick="changePage_${containerId}(${currentPage + 1})" ${currentPage === pageCount ? 'disabled' : ''} class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50">
+                                    <span class="sr-only">Siguiente</span>
+                                    <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                        <path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" />
+                                    </svg>
+                                </button>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        showPage(); // Init
+    }
+
+    // Initialize Pagination
+    document.addEventListener('DOMContentLoaded', () => {
+        setupPagination('payroll-periods-list', 'li');
+    });
+
     function openGenerateModal() {
         document.getElementById('generateModal').classList.remove('hidden');
     }
