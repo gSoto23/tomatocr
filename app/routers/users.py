@@ -73,6 +73,7 @@ async def create_user(
     hourly_rate: Optional[float] = Form(None),
     monthly_salary: Optional[float] = Form(None),
     is_active: bool = Form(False),
+    apply_deductions: bool = Form(False),
     payment_method: str = Form("Efectivo"),
     account_number: Optional[str] = Form(None),
     db: Session = Depends(deps.get_db),
@@ -107,6 +108,7 @@ async def create_user(
         hourly_rate=hourly_rate,
         monthly_salary=monthly_salary,
         is_active=is_active,
+        apply_deductions=apply_deductions,
         payment_method=payment_method,
         account_number=account_number if payment_method in ["Transferencia", "Sinpe"] else None
     )
@@ -142,6 +144,7 @@ async def update_user(
     hourly_rate: Optional[float] = Form(None),
     monthly_salary: Optional[float] = Form(None),
     is_active: bool = Form(False),
+    apply_deductions: bool = Form(False),
     payment_method: str = Form("Efectivo"),
     account_number: Optional[str] = Form(None),
     db: Session = Depends(deps.get_db),
@@ -175,6 +178,7 @@ async def update_user(
         edit_user.hourly_rate = hourly_rate
         edit_user.monthly_salary = monthly_salary
         edit_user.is_active = is_active
+        edit_user.apply_deductions = apply_deductions
         
         # Update Payment Info
         edit_user.payment_method = payment_method

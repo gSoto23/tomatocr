@@ -13,6 +13,7 @@ class User(Base):
     full_name = Column(String(100))
     role = Column(String(20), default="worker") # admin, worker, client, supervisor
     is_active = Column(Boolean, default=True)
+    apply_deductions = Column(Boolean, default=True)
 
     # Payroll Fields
     phone = Column(String(20), nullable=True)
