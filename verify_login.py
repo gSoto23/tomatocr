@@ -1,25 +1,32 @@
 
-from app.db.session import SessionLocal
-from app.db.models.user import User
-from app.db.models.project import Project
-from app.db.models.log import DailyLog
-from app.core.security import verify_password
+import requests
+
+BASE_URL = "http://localhost:8000"
 
 def verify_login():
-    db = SessionLocal()
-    user = db.query(User).filter(User.username == "admin").first()
+    print("Attempting login...")
+    # Using 'user' and 'pass' as field names to match HTML form
+    data = {
+        "user": "admin",
+        "pass": "adminpassword" # Assuming default or known valid credentials
+    }
     
-    if not user:
-        print("User 'admin' does not exist in the database.")
-    else:
-        print(f"User 'admin' found. Role: {user.role}")
-        if verify_password("admin123", user.hashed_password):
-            print("Password 'admin123' works!")
+    try:
+        resp = requests.post(f"{BASE_URL}/login", data=data, allow_redirects=False)
+        print(f"Status Code: {resp.status_code}")
+        if resp.status_code == 303:
+            print("Login Redirect Successful (303)")
+            print(f"Location: {resp.headers.get('Location')}")
+            print(f"Cookies: {resp.cookies.get_dict()}")
+        elif resp.status_code == 200:
+             print("Login Returned 200 (Maybe not redirecting? Or error page?)")
+             print(resp.text[:500])
         else:
-            print("Password 'admin123' invalid.")
-            print(f"Hash in DB: {user.hashed_password}")
-            
-    db.close()
+             print("Login Failed")
+             print(resp.text)
+             
+    except Exception as e:
+        print(f"An error occurred: {e}")
 
 if __name__ == "__main__":
     verify_login()
