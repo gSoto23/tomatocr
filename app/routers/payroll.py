@@ -138,7 +138,8 @@ async def payroll_detail(
             "net_salary": net,
             "details": entry.details,
             "cs_empresa": cs_empresa,
-            "previsiones": previsiones
+            "previsiones": previsiones,
+            "apply_deductions": entry.apply_deductions
         }
         enhanced_entries.append(entry_dict)
         
@@ -415,10 +416,10 @@ async def generate_payroll(
         rate = worker.hourly_rate or 0.0
         gross = data["total_hours"] * rate
         # Social Charges (9.17% - user specified "Aplicar cargas sociales")
-        # Let's assume applied for now, or make it configurable?
-        # User said "checkbox: Aplicar cargas sociales". defaulting to YES for standard payroll?
-        # Let's subtract simple 9.17%
-        charges = gross * 0.0917
+        charges = 0.0
+        if worker.apply_deductions:
+             charges = gross * 0.0917
+        
         net = gross - charges
 
         entry = PayrollEntry(
@@ -428,6 +429,7 @@ async def generate_payroll(
             gross_salary=round(gross, 2),
             social_charges=round(charges, 2),
             net_salary=round(net, 2),
+            apply_deductions=worker.apply_deductions,
             details=data["details"] # JSON
         )
         db.add(entry)
@@ -438,3 +440,39 @@ async def generate_payroll(
     log_activity(db, user, "Generar Planilla", "PAYROLL", period.id, f"Periodo: {start_date} - {end_date}")
     
     return {"status": "success", "message": "Planilla generada (Borrador)", "period_id": period.id}
+
+@router.patch("/entry/{entry_id}")
+async def update_payroll_entry_deductions(
+    entry_id: int,
+    apply_deductions: bool = Body(..., embed=True),
+    db: Session = Depends(deps.get_db),
+    user: User = Depends(deps.get_current_user)
+):
+    if user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    entry = db.query(PayrollEntry).get(entry_id)
+    if not entry:
+        raise HTTPException(status_code=404, detail="Entry not found")
+
+    log_activity(db, user, "Actualizar Deducciones", "PAYROLL_ENTRY", entry_id, f"Planilla cambio deducciones a: {apply_deductions}")
+
+    entry.apply_deductions = apply_deductions
+    
+    # Recalculate
+    gross = entry.gross_salary
+    charges = 0.0
+    if apply_deductions:
+        charges = gross * 0.0917
+        
+    entry.social_charges = round(charges, 2)
+    entry.net_salary = round(gross - charges, 2)
+    
+    db.commit()
+    
+    return {
+        "status": "success", 
+        "message": "Actualizado", 
+        "net_salary": entry.net_salary,
+        "social_charges": entry.social_charges
+    }

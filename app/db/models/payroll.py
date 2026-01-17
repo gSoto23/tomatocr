@@ -26,6 +26,7 @@ class PayrollEntry(Base):
     gross_salary = Column(Float, default=0.0)
     social_charges = Column(Float, default=0.0)
     net_salary = Column(Float, default=0.0)
+    apply_deductions = Column(Boolean, default=True)
     details = Column(JSON, nullable=True) # Breakdown
 
     period = relationship("PayrollPeriod", back_populates="entries")

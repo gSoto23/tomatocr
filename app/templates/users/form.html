@@ -196,6 +196,18 @@
                 </div>
             </div>
 
+            <!-- Apply Deductions -->
+            <div class="relative flex gap-x-3 mt-4">
+                <div class="flex h-6 items-center">
+                    <input id="apply_deductions" name="apply_deductions" type="checkbox" value="true" {% if not edit_user or edit_user.apply_deductions %}checked{% endif %}
+                        class="h-4 w-4 rounded border-gray-300 text-black focus:ring-black">
+                </div>
+                <div class="text-sm leading-6">
+                    <label for="apply_deductions" class="font-medium text-gray-900">Aplicar Deducciones</label>
+                    <p class="text-gray-500">Si se marca, se rebajarán las cargas sociales (9.17%) en la planilla.</p>
+                </div>
+            </div>
+
             <div class="pt-4 flex items-center justify-between gap-x-6">
                 <!-- Left side: Delete (only if edit) -->
                 <div>

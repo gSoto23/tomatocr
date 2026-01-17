@@ -93,6 +93,20 @@
                         class="px-3 py-3.5 text-right text-xs font-bold text-gray-500 uppercase tracking-wider bg-gray-50 text-gray-900">
                         Previsiones</th>
                     {% endif %}
+                    {% if user.role == 'admin' %}
+                    <th scope="col"
+                        class="px-3 py-3.5 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">
+                        Deducciones
+                    </th>
+                    <th scope="col"
+                        class="px-3 py-3.5 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">
+                        Deducciones
+                    </th>
+                    {% endif %}
+                    <th scope="col"
+                        class="px-3 py-3.5 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                        Pago
+                    </th>
                     <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6">
                         <span class="sr-only">Detalles</span>
                     </th>
@@ -123,6 +137,13 @@
                         "{:,.2f}".format(entry.cs_empresa) }}</td>
                     <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-900 text-right bg-gray-50">₡{{
                         "{:,.2f}".format(entry.previsiones) }}</td>
+                    {% endif %}
+                    {% if user.role == 'admin' %}
+                    <td class="whitespace-nowrap px-3 py-4 text-center">
+                        <input type="checkbox" onchange="toggleDeductions({{ entry.id }}, this.checked, this)"
+                            class="h-4 w-4 rounded border-gray-300 text-black focus:ring-black" {% if
+                            entry.apply_deductions %}checked{% endif %}>
+                    </td>
                     {% endif %}
                     <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                         <div class="flex flex-col">
@@ -162,6 +183,9 @@
                         "{:,.2f}".format(totals.cs_empresa) }}</td>
                     <td class="px-3 pt-4 pb-4 text-right text-sm text-gray-900 bg-gray-200">₡{{
                         "{:,.2f}".format(totals.previsiones) }}</td>
+                    {% endif %}
+                    {% if user.role == 'admin' %}
+                    <td></td>
                     {% endif %}
                     <td></td>
                 </tr>
@@ -353,6 +377,30 @@
 
     function closeBreakdown() {
         document.getElementById('breakdown-modal').classList.add('hidden');
+    }
+
+    async function toggleDeductions(entryId, checked, checkboxElement) {
+        try {
+            const response = await fetch(`/payroll/entry/${entryId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ apply_deductions: checked })
+            });
+            const result = await response.json();
+
+            if (response.ok) {
+                showGlobalToast("Actualizado", "Salario recalculado");
+                setTimeout(() => window.location.reload(), 500); // Reload to update totals
+            } else {
+                showGlobalToast("Error", result.message || "Error al actualizar", "error");
+                // Revert checkbox
+                checkboxElement.checked = !checked;
+            }
+        } catch (e) {
+            console.error(e);
+            showGlobalToast("Error", "Error de conexión", "error");
+            if (checkboxElement) checkboxElement.checked = !checked;
+        }
     }
 </script>
 {% endblock %}
