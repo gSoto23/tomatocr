@@ -51,12 +51,23 @@
                                     Asignación</h3>
                                 <div class="mt-4 space-y-4">
 
-                                    <!-- Date -->
-                                    <div>
-                                        <label for="date"
-                                            class="block text-sm font-medium leading-6 text-gray-900">Fecha</label>
-                                        <input type="date" name="date" id="date" required
-                                            class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+                                    <!-- Date Range -->
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <label for="date"
+                                                class="block text-sm font-medium leading-6 text-gray-900">Fecha
+                                                Inicio</label>
+                                            <input type="date" name="date" id="date" required
+                                                class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+                                        </div>
+                                        <div id="end-date-container">
+                                            <label for="end_date"
+                                                class="block text-sm font-medium leading-6 text-gray-900">Fecha Fin
+                                                (Opcional)</label>
+                                            <input type="date" name="end_date" id="end_date"
+                                                class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+                                            <p class="text-xs text-gray-500 mt-1">Dejar vacío para un solo día</p>
+                                        </div>
                                     </div>
 
                                     <!-- Project -->
@@ -227,6 +238,7 @@
         const form = document.getElementById('scheduleForm');
         const deleteBtn = document.getElementById('deleteBtn');
         const title = document.getElementById('modal-title');
+        const endDateContainer = document.getElementById('end-date-container');
 
         // Reset UI state
         document.getElementById('defaultButtons').classList.remove('hidden');
@@ -241,7 +253,11 @@
             form.action = `/calendar/schedule/${schedule.id}/edit`;
             deleteBtn.classList.remove('hidden');
 
+            // Hide End Date for Edit (Single Instance)
+            if (endDateContainer) endDateContainer.classList.add('hidden');
+
             document.getElementById('date').value = schedule.start; // YYYY-MM-DD
+            document.getElementById('end_date').value = ''; // Clear it
             document.getElementById('project_id').value = schedule.extendedProps.project_id;
             document.getElementById('user_id').value = schedule.extendedProps.worker_id;
 
@@ -260,7 +276,11 @@
             form.action = '/calendar/schedule';
             deleteBtn.classList.add('hidden');
 
+            // Show End Date for Create
+            if (endDateContainer) endDateContainer.classList.remove('hidden');
+
             document.getElementById('date').value = dateStr || new Date().toISOString().split('T')[0];
+            document.getElementById('end_date').value = ''; // Default to empty (single day)
             document.getElementById('project_id').selectedIndex = 0;
             document.getElementById('user_id').selectedIndex = 0;
 

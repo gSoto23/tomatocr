@@ -81,6 +81,7 @@ async def create_schedule(
     project_id: int = Form(...),
     user_id: int = Form(...),
     date_val: str = Form(..., alias="date"),
+    end_date: Optional[str] = Form(None),
     tasks_json: str = Form("[]"),
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
@@ -88,18 +89,36 @@ async def create_schedule(
     if user.role not in ["admin", "supervisor"]:
         raise HTTPException(status_code=403, detail="Not authorized")
         
-    new_schedule = ProjectSchedule(
-        project_id=project_id,
-        user_id=user_id,
-        date=datetime.strptime(date_val, "%Y-%m-%d").date()
-    )
-    db.add(new_schedule)
-    db.flush()
+    start_date = datetime.strptime(date_val, "%Y-%m-%d").date()
+    final_date = start_date
+    if end_date:
+        final_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+        if final_date < start_date:
+             return JSONResponse({"status": "error", "message": "La fecha final no puede ser menor a la inicial"}, status_code=400)
     
-    # Save manual tasks
+    # Iterate from start to end
+    from datetime import timedelta
+    delta = final_date - start_date
+    
     import json
+    tasks_data = []
     try:
         tasks_data = json.loads(tasks_json)
+    except json.JSONDecodeError:
+        pass
+
+    for i in range(delta.days + 1):
+        current_day = start_date + timedelta(days=i)
+        
+        new_schedule = ProjectSchedule(
+            project_id=project_id,
+            user_id=user_id,
+            date=current_day
+        )
+        db.add(new_schedule)
+        db.flush()
+        
+        # Save tasks for this day
         for task in tasks_data:
             title = task.get("title", "")
             desc = task.get("description", "")
@@ -109,8 +128,6 @@ async def create_schedule(
                     title=title.strip(),
                     description=desc.strip()
                 ))
-    except json.JSONDecodeError:
-        pass # Handle error or ignore
 
     db.commit()
     
