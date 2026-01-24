@@ -456,8 +456,10 @@
 
     document.addEventListener('DOMContentLoaded', function () {
         var calendarEl = document.getElementById('calendar');
+        var initialView = window.innerWidth < 768 ? 'listWeek' : 'dayGridMonth';
+
         var calendar = new FullCalendar.Calendar(calendarEl, {
-            initialView: 'dayGridMonth',
+            initialView: initialView,
             locale: 'es',
             headerToolbar: {
                 left: 'prev,next today',
@@ -469,25 +471,57 @@
                 month: 'Mes',
                 list: 'Lista'
             },
+            height: 'auto',
+            aspectRatio: 1.5,
+            windowResize: function (view) {
+                if (window.innerWidth < 768) {
+                    calendar.changeView('listWeek');
+                    calendar.setOption('headerToolbar', {
+                        left: 'prev,next',
+                        center: 'title',
+                        right: 'today' // Simplified for mobile
+                    });
+                } else {
+                    calendar.changeView('dayGridMonth');
+                    calendar.setOption('headerToolbar', {
+                        left: 'prev,next today',
+                        center: 'title',
+                        right: 'dayGridMonth,listWeek'
+                    });
+                }
+            },
             events: '/calendar/events',
             eventClick: function (info) {
-                // Prevent default navigation for everyone first, or handle logic
                 info.jsEvent.preventDefault();
 
                 {% if user.role in ['admin', 'supervisor'] %}
-                // Admin/Supervisor: Edit Modal
                 openModal(null, info.event);
                 {% else %}
-                    // Worker: Task Modal
-                    openWorkerModal(info.event);
+                openWorkerModal(info.event);
         {% endif %}
     },
         {% if user.role in ['admin', 'supervisor'] %}
     dateClick: function (info) {
         openModal(info.dateStr);
-    }
+    },
     {% endif %}
+    eventDidMount: function(info) {
+        // Style improvements for events in list view or month view
+        if (info.view.type === 'dayGridMonth') {
+            // Make them look pill-like or similar to design
+        }
+    }
         });
+
+    // Initial mobile adjustment
+    if (window.innerWidth < 768) {
+        calendar.setOption('headerToolbar', {
+            left: 'prev,next',
+            center: 'title',
+            right: 'today'
+        });
+    }
+
     calendar.render();
     });
 </script>
