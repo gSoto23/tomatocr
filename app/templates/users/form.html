@@ -181,6 +181,17 @@
                         container.classList.add('hidden');
                     }
                 }
+
+                // Auto-calculate Hourly Rate
+                document.getElementById('monthly_salary').addEventListener('input', function () {
+                    const monthly = parseFloat(this.value);
+                    if (!isNaN(monthly) && monthly > 0) {
+                        // Formula: Monthly / 192, rounded to nearest 100 (centenas)
+                        const rawHourly = monthly / 192;
+                        const roundedHourly = Math.round(rawHourly / 100) * 100;
+                        document.getElementById('hourly_rate').value = roundedHourly;
+                    }
+                });
             </script>
 
             <!-- Is Active -->
@@ -199,7 +210,8 @@
             <!-- Apply Deductions -->
             <div class="relative flex gap-x-3 mt-4">
                 <div class="flex h-6 items-center">
-                    <input id="apply_deductions" name="apply_deductions" type="checkbox" value="true" {% if not edit_user or edit_user.apply_deductions %}checked{% endif %}
+                    <input id="apply_deductions" name="apply_deductions" type="checkbox" value="true" {% if not
+                        edit_user or edit_user.apply_deductions %}checked{% endif %}
                         class="h-4 w-4 rounded border-gray-300 text-black focus:ring-black">
                 </div>
                 <div class="text-sm leading-6">

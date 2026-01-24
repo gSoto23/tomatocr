@@ -1,0 +1,79 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Finanzas | TOMATO{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">Gestión Financiera</h1>
+    <p class="mt-1 text-sm text-gray-500">Resumen presupuestario por proyecto.</p>
+</div>
+
+<!-- Filters (Simple JS or server side? Simple JS for now or just visual) -->
+<div class="mb-4 flex gap-4">
+    <!-- Placeholder for filters if needed later -->
+</div>
+
+<div class="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
+    <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+            <tr>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Proyecto</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Total Adjudicado</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Total Facturado</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Saldo</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Estado</th>
+                <th scope="col" class="relative px-6 py-3">
+                    <span class="sr-only">Ver</span>
+                </th>
+            </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+            {% for item in data %}
+            <tr>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm font-medium text-gray-900">{{ item.project.name }}</div>
+                    {% if item.budget and item.budget.licitation_number %}
+                    <div class="text-xs text-gray-500">Lic: {{ item.budget.licitation_number }}</div>
+                    {% endif %}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    Calculando... <!-- Logic in router passed as item.total_adjudicated -->
+                    {{ "{:,.2f}".format(item.total_adjudicated) }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {{ "{:,.2f}".format(item.total_invoiced) }}
+                </td>
+                <td
+                    class="px-6 py-4 whitespace-nowrap text-sm font-bold {{ 'text-green-600' if item.balance > 0 else 'text-gray-500' }}">
+                    {{ "{:,.2f}".format(item.balance) }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    {% if item.balance == 0 and item.total_adjudicated > 0 %}
+                    <span
+                        class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Finalizado</span>
+                    {% elif item.total_invoiced > 0 %}
+                    <span
+                        class="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">En
+                        Progreso</span>
+                    {% else %}
+                    <span
+                        class="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">Sin
+                        Movimiento</span>
+                    {% endif %}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <a href="/finance/project/{{ item.project.id }}" class="text-indigo-600 hover:text-indigo-900">Ver
+                        Detalle</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}

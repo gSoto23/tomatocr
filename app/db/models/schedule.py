@@ -12,6 +12,7 @@ class ProjectSchedule(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     date = Column(Date, nullable=False, index=True)
     hours_worked = Column(Float, default=8.0)
+    overtime_hours = Column(Float, default=0.0)
     is_confirmed = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

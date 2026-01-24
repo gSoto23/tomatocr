@@ -23,6 +23,7 @@ class PayrollEntry(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     
     total_hours = Column(Float, default=0.0)
+    overtime_hours = Column(Float, default=0.0)
     gross_salary = Column(Float, default=0.0)
     social_charges = Column(Float, default=0.0)
     net_salary = Column(Float, default=0.0)

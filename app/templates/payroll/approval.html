@@ -28,57 +28,80 @@
 <div id="view-approval" class="hidden">
     <!-- Filters -->
     <div
-        class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-6 flex flex-col sm:flex-row gap-4 items-end">
-        <div class="w-full sm:w-auto">
+        class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-6 flex flex-col xl:flex-row gap-4 xl:items-center justify-between">
+
+        <div class="flex flex-col sm:flex-row gap-4 w-full xl:w-auto">
             <button onclick="showProjectsView()"
-                class="mb-2 sm:mb-0 text-sm font-semibold text-gray-900 hover:text-black">
-                ← Volver a Proyectos
+                class="text-sm font-semibold text-gray-900 hover:text-black flex items-center gap-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                </svg>
+                Volver
+            </button>
+
+            <h3 class="text-lg font-bold text-gray-900 truncate" id="selected-project-name">Proyecto</h3>
+        </div>
+
+        <div class="flex flex-col lg:flex-row gap-4 w-full xl:w-auto items-end lg:items-center">
+            <div class="grid grid-cols-2 gap-2 w-full lg:w-auto">
+                <div class="w-full">
+                    <label for="start_date" class="block text-xs font-medium leading-6 text-gray-500 mb-1">Desde</label>
+                    <input type="date" id="start_date"
+                        class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+                </div>
+                <div class="w-full">
+                    <label for="end_date" class="block text-xs font-medium leading-6 text-gray-500 mb-1">Hasta</label>
+                    <input type="date" id="end_date"
+                        class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+                </div>
+            </div>
+
+            <div class="flex gap-2 w-full lg:w-auto">
+                <button onclick="setRange('today')"
+                    class="text-xs bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded border">Hoy</button>
+                <button onclick="setRange('week')"
+                    class="text-xs bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded border">Semana</button>
+            </div>
+
+            <button onclick="loadSchedules()"
+                class="w-full lg:w-auto inline-flex items-center justify-center rounded-md bg-white border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50">
+                Refrescar
+            </button>
+            <button onclick="confirmAll()"
+                class="w-full lg:w-auto inline-flex items-center justify-center rounded-md bg-black px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800">
+                Confirmar Todo
             </button>
         </div>
-        <div class="w-full sm:w-auto ml-auto flex flex-col sm:flex-row gap-4 items-end">
-            <div class="w-full sm:w-auto">
-                <label for="filter_date" class="block text-sm font-medium leading-6 text-gray-900">Fecha</label>
-                <input type="date" id="filter_date"
-                    class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
-            </div>
-            <div class="w-full sm:w-auto">
-                <button onclick="loadSchedules()"
-                    class="w-full sm:w-auto inline-flex items-center justify-center rounded-md bg-black px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800">
-                    Buscar
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Selected Project Info -->
-    <div class="mb-4">
-        <h3 class="text-lg font-bold text-gray-900" id="selected-project-name">Proyecto</h3>
     </div>
 
     <!-- Table -->
     <div class="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
-        <table class="min-w-full divide-y divide-gray-300">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">
-                        Trabajador</th>
-                    <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Fecha</th>
-                    <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Horas</th>
-                    <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Estado</th>
-                    <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6">
-                        <span class="sr-only">Acciones</span>
-                    </th>
-                </tr>
-            </thead>
-            <tbody id="schedules-body" class="divide-y divide-gray-200 bg-white">
-                <!-- Loaded via JS -->
-                <tr>
-                    <td colspan="5" class="px-4 py-8 text-center text-sm text-gray-500">
-                        Cargando...
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+        <div class="overflow-x-auto min-h-[300px]">
+            <table class="min-w-full divide-y divide-gray-300">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">
+                            Trabajador</th>
+                        <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Fecha</th>
+                        <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Horas</th>
+                        <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Extra (1.5x)
+                        </th>
+                        <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Estado</th>
+                    </tr>
+                </thead>
+                <tbody id="schedules-body" class="divide-y divide-gray-200 bg-white">
+                    <!-- Loaded via JS -->
+                    <tr>
+                        <td colspan="5" class="px-4 py-8 text-center text-sm text-gray-500">
+                            Cargando...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <!-- Pagination Controls -->
+        <div id="schedules-body-controls" class="border-t border-gray-200"></div>
     </div>
 </div>
 
@@ -87,7 +110,9 @@
     let currentProjectName = "";
 
     // Initialize with today
-    document.getElementById('filter_date').valueAsDate = new Date();
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('start_date').value = today;
+    document.getElementById('end_date').value = today;
 
     // Load projects on start
     window.addEventListener('load', loadProjects);
@@ -96,6 +121,22 @@
         if (!isoStr) return "";
         const [y, m, d] = isoStr.split('-');
         return `${d}/${m}/${y}`;
+    }
+
+    function setRange(type) {
+        const today = new Date();
+        const end = today.toISOString().split('T')[0];
+        let start = end;
+
+        if (type === 'week') {
+            const first = today.getDate() - today.getDay(); // First day is the day of the month - the day of the week
+            const firstDay = new Date(today.setDate(first));
+            start = firstDay.toISOString().split('T')[0];
+        }
+
+        document.getElementById('start_date').value = start;
+        document.getElementById('end_date').value = end;
+        loadSchedules();
     }
 
     async function loadProjects() {
@@ -159,11 +200,13 @@
     }
 
     async function loadSchedules() {
-        const date = document.getElementById('filter_date').value;
-        if (!date || !currentProjectId) return;
+        const start = document.getElementById('start_date').value;
+        const end = document.getElementById('end_date').value;
+
+        if (!start || !end || !currentProjectId) return;
 
         try {
-            const response = await fetch(`/payroll/schedules?date=${date}&project_id=${currentProjectId}`);
+            const response = await fetch(`/payroll/schedules?start_date=${start}&end_date=${end}&project_id=${currentProjectId}`);
             if (!response.ok) throw new Error("Error fetching");
             const data = await response.json();
             renderTable(data);
@@ -188,26 +231,26 @@
                 <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">${s.worker_name}</td>
                 <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">${formatDate(s.date)}</td>
                 <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                    <input type="number" id="hours-${s.id}" value="${s.hours_worked}" step="0.5" class="block w-20 rounded-md border-0 py-1 px-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+                    <input type="number" id="hours-${s.id}" data-id="${s.id}" value="${s.hours_worked}" step="0.5" class="block w-24 rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+                </td>
+                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                    <input type="number" id="overtime-${s.id}" value="${s.overtime_hours || 0}" step="0.5" class="block w-20 rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
                 </td>
                 <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                     ${s.is_confirmed
                     ? '<span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Confirmado</span>'
                     : '<span class="inline-flex items-center rounded-md bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-800 ring-1 ring-inset ring-yellow-600/20">Pendiente</span>'}
                 </td>
-                <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                    <button onclick="confirmSchedule(${s.id})" class="text-black hover:text-gray-900 font-bold">Confirmar</button>
-                </td>
             `;
             tbody.appendChild(row);
         });
 
         // Initialize Pagination
-        setupPagination('schedules-body', 'tr', 10);
+        setupPagination('schedules-body', 'tr', 50); // Increased page size for "all at once" feel, or logic can handle it
     }
 
     // Pagination Logic
-    function setupPagination(containerId, itemsSelector, pageSize = 10) {
+    function setupPagination(containerId, itemsSelector, pageSize = 50) {
         const container = document.getElementById(containerId);
         if (!container) return;
         const items = container.querySelectorAll(itemsSelector);
@@ -217,7 +260,6 @@
         if (controls) controls.innerHTML = '';
 
         if (items.length <= pageSize) {
-            // Include logic to make sure all are visible if previously hidden?
             items.forEach(i => i.style.display = '');
             return;
         }
@@ -225,7 +267,6 @@
         const pageCount = Math.ceil(items.length / pageSize);
         let currentPage = 1;
 
-        // Define function in global scope with unique name for onclick
         window['changePage_' + containerId] = (newPage) => {
             if (newPage < 1 || newPage > pageCount) return;
             currentPage = newPage;
@@ -248,7 +289,7 @@
             const end = Math.min(currentPage * pageSize, items.length);
 
             controls.innerHTML = `
-                <div class="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
+                <div class="flex items-center justify-between bg-white px-4 py-3 sm:px-6">
                     <div class="flex flex-1 justify-between sm:hidden">
                         <button onclick="changePage_${containerId}(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''} class="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">Anterior</button>
                         <button onclick="changePage_${containerId}(${currentPage + 1})" ${currentPage === pageCount ? 'disabled' : ''} class="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">Siguiente</button>
@@ -256,7 +297,7 @@
                     <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
                         <div>
                             <p class="text-sm text-gray-700">
-                                Mostrando <span class="font-medium">${start}</span> a <span class="font-medium">${end}</span> de <span class="font-medium">${items.length}</span> resultados
+                                Mostrando <span class="font-medium">${start}</span> a <span class="font-medium">${end}</span> de <span class="font-medium">${items.length}</span>
                             </p>
                         </div>
                         <div>
@@ -284,22 +325,43 @@
         showPage(); // Init
     }
 
-    async function confirmSchedule(id) {
-        const hours = document.getElementById(`hours-${id}`).value;
+    async function confirmAll() {
+        const inputs = document.querySelectorAll('input[id^="hours-"]');
+        if (inputs.length === 0) return;
+
+        const updates = [];
+        inputs.forEach(input => {
+            const id = input.getAttribute('data-id');
+            const hoursVal = parseFloat(input.value);
+
+            // Get Overtime
+            const overtimeInput = document.getElementById(`overtime-${id}`);
+            const overtimeVal = overtimeInput ? parseFloat(overtimeInput.value) : 0;
+
+            if (id && !isNaN(hoursVal)) {
+                updates.push({
+                    id: parseInt(id),
+                    hours: hoursVal,
+                    overtime: isNaN(overtimeVal) ? 0 : overtimeVal
+                });
+            }
+        });
+
+        if (updates.length === 0) return;
 
         try {
-            const response = await fetch('/payroll/hours/confirm', {
+            const response = await fetch('/payroll/hours/confirm-batch-update', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ schedule_id: id, hours: parseFloat(hours) })
+                body: JSON.stringify(updates)
             });
             const result = await response.json();
 
             if (response.ok) {
-                showGlobalToast("Éxito", "Horas confirmadas");
-                loadSchedules(); // Refresh
+                showGlobalToast("Éxito", result.message);
+                loadSchedules(); // Refresh to show confirmed status
             } else {
-                showGlobalToast("Error", result.message, "error");
+                showGlobalToast("Error", result.message || "Error al confirmar", "error");
             }
         } catch (e) {
             console.error(e);
