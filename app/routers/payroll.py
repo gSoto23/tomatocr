@@ -10,7 +10,7 @@ from app.routers import deps
 from app.db.models.user import User
 from app.db.models.schedule import ProjectSchedule
 from app.db.models.payroll import PayrollPeriod, PayrollEntry
-from app.db.models.project import Project
+import pydantic
 from app.db.models.project import Project
 from app.utils.activity import log_activity
 from app.core.templates import templates
@@ -271,7 +271,9 @@ async def get_supervisor_projects(
 
 @router.get("/schedules")
 async def get_schedules_for_approval(
-    date: str,
+    date: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
     project_id: Optional[int] = None,
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
@@ -279,9 +281,21 @@ async def get_schedules_for_approval(
     if user.role not in ["admin", "supervisor"]:
          raise HTTPException(status_code=403, detail="Not authorized")
     
-    date_val = datetime.strptime(date, "%Y-%m-%d").date()
-    
-    query = db.query(ProjectSchedule).filter(ProjectSchedule.date == date_val)
+    query = db.query(ProjectSchedule)
+
+    # Date Logic: Support single date (legacy) or range
+    if start_date and end_date:
+        s_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+        e_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+        query = query.filter(ProjectSchedule.date >= s_date, ProjectSchedule.date <= e_date)
+    elif date:
+        date_val = datetime.strptime(date, "%Y-%m-%d").date()
+        query = query.filter(ProjectSchedule.date == date_val)
+    else:
+        # Default to today if nothing provided? Or return empty?
+        # Let's default to today for safety if nothing is provided
+        today = datetime.now().date()
+        query = query.filter(ProjectSchedule.date == today)
 
     if project_id:
         query = query.filter(ProjectSchedule.project_id == project_id)
@@ -299,6 +313,9 @@ async def get_schedules_for_approval(
         # These must be approved by Admin
         query = query.filter(ProjectSchedule.user_id != user.id)
         
+    # Order by date desc, then worker
+    query = query.order_by(ProjectSchedule.date.desc(), ProjectSchedule.user_id)
+
     schedules = query.all()
     
     data = []
@@ -309,6 +326,7 @@ async def get_schedules_for_approval(
             "worker_name": s.user.full_name or s.user.username if s.user else "Unknown",
             "date": s.date.isoformat(),
             "hours_worked": s.hours_worked,
+            "overtime_hours": s.overtime_hours,
             "is_confirmed": s.is_confirmed
         })
         
@@ -322,6 +340,7 @@ async def get_schedules_for_approval(
 async def confirm_hours(
     schedule_id: int = Body(..., embed=True),
     hours: float = Body(..., embed=True),
+    overtime: float = Body(0.0, embed=True),
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
@@ -332,17 +351,47 @@ async def confirm_hours(
     if not schedule:
         raise HTTPException(status_code=404, detail="Schedule not found")
 
-    # Supervisor can only confirm their projects? Or all? 
-    # Requirement: "Supervisor... Solo puede ver los proyectos asignados"
-    # Assuming basic check, but for now allow role-based access.
-
     schedule.hours_worked = hours
+    schedule.overtime_hours = overtime
     schedule.is_confirmed = True
     db.commit()
 
-    log_activity(db, user, "Aprobar Horas", "SCHEDULE", schedule.id, f"Horas: {hours} para Proyecto: {schedule.project.name if schedule.project else 'Unknown'}")
+    log_activity(db, user, "Aprobar Horas", "SCHEDULE", schedule.id, f"Horas: {hours}, Extra: {overtime} para Proyecto: {schedule.project.name if schedule.project else 'Unknown'}")
 
     return {"status": "success", "message": "Horas confirmadas"}
+
+class ScheduleUpdateItem(pydantic.BaseModel):
+    id: int
+    hours: float
+    overtime: float = 0.0
+
+@router.post("/hours/confirm-batch-update")
+async def confirm_hours_batch_update(
+    updates: List[ScheduleUpdateItem] = Body(...),
+    db: Session = Depends(deps.get_db),
+    user: User = Depends(deps.get_current_user)
+):
+    if user.role not in ["admin", "supervisor"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    count = 0
+    for item in updates:
+        schedule = db.query(ProjectSchedule).filter(ProjectSchedule.id == item.id).first()
+        if schedule:
+            if user.role == "supervisor":
+                 if schedule.project not in user.projects:
+                     continue 
+            
+            schedule.hours_worked = item.hours
+            schedule.overtime_hours = item.overtime
+            schedule.is_confirmed = True
+            count += 1
+            
+    db.commit()
+    
+    log_activity(db, user, "Aprobar Lote", "SCHEDULE", 0, f"Se confirmaron {count} registros")
+
+    return {"status": "success", "message": f"{count} registros confirmados"}
 
 @router.post("/hours/confirm-batch")
 async def confirm_hours_batch(
@@ -397,12 +446,14 @@ async def generate_payroll(
     user_hours = {}
     for s in schedules:
         if s.user_id not in user_hours:
-            user_hours[s.user_id] = {"total_hours": 0.0, "details": []}
+            user_hours[s.user_id] = {"total_hours": 0.0, "overtime_hours": 0.0, "details": []}
         
         user_hours[s.user_id]["total_hours"] += s.hours_worked
+        user_hours[s.user_id]["overtime_hours"] += (s.overtime_hours or 0.0)
         user_hours[s.user_id]["details"].append({
             "date": s.date.isoformat(),
             "hours": s.hours_worked,
+            "overtime": s.overtime_hours,
             "project": s.project.name if s.project else "Unknown"
         })
 
@@ -414,7 +465,12 @@ async def generate_payroll(
             continue
         
         rate = worker.hourly_rate or 0.0
-        gross = data["total_hours"] * rate
+        # Calculate separately
+        regular_pay = data["total_hours"] * rate
+        overtime_pay = data["overtime_hours"] * rate * 1.5
+        
+        gross = regular_pay + overtime_pay
+        
         # Social Charges (9.17% - user specified "Aplicar cargas sociales")
         charges = 0.0
         if worker.apply_deductions:
@@ -426,6 +482,7 @@ async def generate_payroll(
             payroll_period_id=period.id,
             user_id=uid,
             total_hours=data["total_hours"],
+            overtime_hours=data["overtime_hours"],
             gross_salary=round(gross, 2),
             social_charges=round(charges, 2),
             net_salary=round(net, 2),
