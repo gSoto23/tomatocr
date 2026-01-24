@@ -75,6 +75,7 @@ async def create_payment(
     user_id: int = Form(...),
     amount: float = Form(...),
     hours_paid: float = Form(...),
+    overtime_hours: float = Form(0.0),
     date_val: str = Form(..., alias="date"),
     notes: Optional[str] = Form(None),
     db: Session = Depends(deps.get_db),
@@ -89,6 +90,7 @@ async def create_payment(
         user_id=user_id,
         amount=amount,
         hours_paid=hours_paid,
+        overtime_hours=overtime_hours,
         date=payment_date,
         notes=notes,
         created_by_id=user.id
