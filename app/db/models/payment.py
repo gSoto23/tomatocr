@@ -11,6 +11,7 @@ class PayrollPayment(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     amount = Column(Float, nullable=False)
     hours_paid = Column(Float, default=0.0)
+    overtime_hours = Column(Float, default=0.0)
     date = Column(Date, nullable=False)
     notes = Column(String(255), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

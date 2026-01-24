@@ -104,7 +104,10 @@ async def payroll_detail(
         "net": 0.0,
         "cs_empresa": 0.0,
         "previsiones": 0.0,
-        "company_cost": 0.0
+        "company_cost": 0.0,
+        "regular_amount": 0.0,
+        "overtime_amount": 0.0,
+        "overtime_hours": 0.0
     }
     
     enhanced_entries = []
@@ -118,17 +121,29 @@ async def payroll_detail(
         net = entry.net_salary
         social = entry.social_charges
         
+        # Split Amounts (Recalculate approximate split, ensuring sum matches gross)
+        rate = entry.user.hourly_rate or 0.0
+        # Round overtime to hundreds to match generation logic
+        overtime_amt = 0.0
+        if entry.overtime_hours:
+            overtime_amt = round((entry.overtime_hours * rate * 1.5) / 100) * 100
+        
+        regular_amt = gross - overtime_amt
+        
         # New Calculations
         cs_empresa = gross * 0.2667
         previsiones = gross * 0.18
         
         # Accumulate
         totals["hours"] += entry.total_hours
+        totals["overtime_hours"] += (entry.overtime_hours or 0.0)
         totals["gross"] += gross
         totals["social_charges"] += social
         totals["net"] += net
         totals["cs_empresa"] += cs_empresa
         totals["previsiones"] += previsiones
+        totals["regular_amount"] += regular_amt
+        totals["overtime_amount"] += overtime_amt
         
         entry_dict = {
             "user": entry.user,
@@ -139,7 +154,10 @@ async def payroll_detail(
             "details": entry.details,
             "cs_empresa": cs_empresa,
             "previsiones": previsiones,
-            "apply_deductions": entry.apply_deductions
+            "apply_deductions": entry.apply_deductions,
+            "regular_amount": regular_amt,
+            "overtime_amount": overtime_amt,
+            "overtime_hours": entry.overtime_hours or 0.0
         }
         enhanced_entries.append(entry_dict)
         
@@ -189,11 +207,19 @@ async def payroll_report(
         # Filter logic: Admin sees all. Worker/Supervisor sees only own.
         if user.role in ["worker", "supervisor"] and entry.user_id != user.id:
             continue
-            
+        
+        # Calculate overtime amount approx (or use what we stored if we stored it? We didn't stored overtime_pay separately)
+        # Using current rate might be slightly off if rate changed, but best effort.
+        rate = entry.user.hourly_rate or 0.0
+        overtime_hours = entry.overtime_hours or 0.0
+        overtime_amount = overtime_hours * rate * 1.5
+        
         report_data.append({
             "name": entry.user.full_name or entry.user.username,
             "phone": entry.user.phone or "N/A",
             "hours": entry.total_hours,
+            "overtime_hours": overtime_hours,
+            "overtime_amount": overtime_amount,
             "net_pay": entry.net_salary,
             "payment_method": entry.user.payment_method,
             "account_number": entry.user.account_number
@@ -449,7 +475,7 @@ async def generate_payroll(
             user_hours[s.user_id] = {"total_hours": 0.0, "overtime_hours": 0.0, "details": []}
         
         user_hours[s.user_id]["total_hours"] += s.hours_worked
-        user_hours[s.user_id]["overtime_hours"] += (s.overtime_hours or 0.0)
+        user_hours[s.user_id]["overtime_hours"] += (getattr(s, "overtime_hours", 0.0) or 0.0)
         user_hours[s.user_id]["details"].append({
             "date": s.date.isoformat(),
             "hours": s.hours_worked,
@@ -469,12 +495,13 @@ async def generate_payroll(
         regular_pay = data["total_hours"] * rate
         overtime_pay = data["overtime_hours"] * rate * 1.5
         
-        gross = regular_pay + overtime_pay
+        # Round Gross to hundreds
+        gross = round((regular_pay + overtime_pay) / 100) * 100
         
         # Social Charges (9.17% - user specified "Aplicar cargas sociales")
         charges = 0.0
         if worker.apply_deductions:
-             charges = gross * 0.0917
+             charges = round((gross * 0.0917) / 100) * 100
         
         net = gross - charges
 
@@ -483,9 +510,9 @@ async def generate_payroll(
             user_id=uid,
             total_hours=data["total_hours"],
             overtime_hours=data["overtime_hours"],
-            gross_salary=round(gross, 2),
-            social_charges=round(charges, 2),
-            net_salary=round(net, 2),
+            gross_salary=gross,
+            social_charges=charges,
+            net_salary=net,
             apply_deductions=worker.apply_deductions,
             details=data["details"] # JSON
         )
@@ -516,14 +543,15 @@ async def update_payroll_entry_deductions(
 
     entry.apply_deductions = apply_deductions
     
-    # Recalculate
-    gross = entry.gross_salary
+    # Recalculate with rounding
+    # Note: gross_salary is already rounded from creation, but if we want to be safe we use it as is.
+    gross = entry.gross_salary 
     charges = 0.0
     if apply_deductions:
-        charges = gross * 0.0917
+        charges = round((gross * 0.0917) / 100) * 100
         
-    entry.social_charges = round(charges, 2)
-    entry.net_salary = round(gross - charges, 2)
+    entry.social_charges = charges
+    entry.net_salary = gross - charges
     
     db.commit()
     

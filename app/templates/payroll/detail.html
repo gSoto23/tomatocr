@@ -77,7 +77,18 @@
                         class="px-3 py-3.5 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Horas
                     </th>
                     <th scope="col"
-                        class="px-3 py-3.5 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Salario
+                        class="px-3 py-3.5 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">H. Extra
+                    </th>
+                    <th scope="col"
+                        class="px-3 py-3.5 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Monto
+                        Salario
+                    </th>
+                    <th scope="col"
+                        class="px-3 py-3.5 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Monto
+                        Extra
+                    </th>
+                    <th scope="col"
+                        class="px-3 py-3.5 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Total
                         Bruto</th>
                     <th scope="col"
                         class="px-3 py-3.5 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">C.C.S.S
@@ -96,11 +107,7 @@
                     {% if user.role == 'admin' %}
                     <th scope="col"
                         class="px-3 py-3.5 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">
-                        Deducciones
-                    </th>
-                    <th scope="col"
-                        class="px-3 py-3.5 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">
-                        Deducciones
+                        Apl. Ded?
                     </th>
                     {% endif %}
                     <th scope="col"
@@ -126,7 +133,13 @@
                     </td>
                     <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500 text-right font-medium">{{
                         entry.total_hours }}</td>
+                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500 text-right font-medium">{{
+                        entry.overtime_hours }}</td>
                     <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-900 text-right">₡{{
+                        "{:,.2f}".format(entry.regular_amount) }}</td>
+                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-900 text-right">₡{{
+                        "{:,.2f}".format(entry.overtime_amount) }}</td>
+                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-900 text-right font-bold">₡{{
                         "{:,.2f}".format(entry.gross_salary) }}</td>
                     <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-900 text-right">-₡{{
                         "{:,.2f}".format(entry.social_charges) }}</td>
@@ -174,7 +187,10 @@
                 <tr>
                     <th scope="row" colspan="1" class="pl-4 pr-3 pt-4 pb-4 text-left text-sm sm:pl-6">Totales</th>
                     <td class="px-3 pt-4 pb-4 text-right text-sm">{{ totals.hours }}</td>
-                    <td class="px-3 pt-4 pb-4 text-right text-sm">₡{{ "{:,.2f}".format(totals.gross) }}</td>
+                    <td class="px-3 pt-4 pb-4 text-right text-sm">{{ totals.overtime_hours }}</td>
+                    <td class="px-3 pt-4 pb-4 text-right text-sm">₡{{ "{:,.2f}".format(totals.regular_amount) }}</td>
+                    <td class="px-3 pt-4 pb-4 text-right text-sm">₡{{ "{:,.2f}".format(totals.overtime_amount) }}</td>
+                    <td class="px-3 pt-4 pb-4 text-right text-sm font-bold">₡{{ "{:,.2f}".format(totals.gross) }}</td>
                     <td class="px-3 pt-4 pb-4 text-right text-sm text-gray-900">-₡{{
                         "{:,.2f}".format(totals.social_charges) }}</td>
                     <td class="px-3 pt-4 pb-4 text-right text-sm bg-gray-200">₡{{ "{:,.2f}".format(totals.net) }}</td>
@@ -224,6 +240,9 @@
                                             <th scope="col"
                                                 class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                 Horas</th>
+                                            <th scope="col"
+                                                class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                H. Extra</th>
                                         </tr>
                                     </thead>
                                     <tbody id="breakdown-body" class="divide-y divide-gray-200 bg-white">
@@ -348,8 +367,10 @@
         tbody.innerHTML = '';
 
         let total = 0;
+        let totalOvertime = 0;
         details.forEach(d => {
             total += d.hours;
+            totalOvertime += (d.overtime || 0);
             // Format date YYYY-MM-DD -> DD/MM/YYYY
             const [y, m, da] = d.date.split('-');
             const formattedDate = `${da}/${m}/${y}`;
@@ -359,6 +380,7 @@
                 <td class="whitespace-nowrap py-2 pl-3 pr-3 text-sm text-gray-900">${formattedDate}</td>
                 <td class="whitespace-nowrap px-3 py-2 text-sm text-gray-500">${d.project}</td>
                 <td class="whitespace-nowrap px-3 py-2 text-sm text-gray-500 text-right">${d.hours}</td>
+                <td class="whitespace-nowrap px-3 py-2 text-sm text-gray-500 text-right">${d.overtime || 0}</td>
             `;
             tbody.appendChild(tr);
         });
@@ -369,6 +391,7 @@
         totalRow.innerHTML = `
             <td colspan="2" class="whitespace-nowrap py-2 pl-3 pr-3 text-sm text-gray-900 text-right">Total</td>
             <td class="whitespace-nowrap px-3 py-2 text-sm text-gray-900 text-right">${total}</td>
+            <td class="whitespace-nowrap px-3 py-2 text-sm text-gray-900 text-right">${totalOvertime}</td>
         `;
         tbody.appendChild(totalRow);
 

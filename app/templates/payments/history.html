@@ -102,9 +102,17 @@
                                     <div class="sm:col-span-3">
                                         <label for="hours_paid"
                                             class="block text-sm font-medium leading-6 text-gray-900">Horas
-                                            Pagadas</label>
+                                            Regulares</label>
                                         <div class="mt-2">
                                             <input type="number" step="0.5" name="hours_paid" id="hours_paid" required
+                                                class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
+                                        </div>
+                                    </div>
+                                    <div class="sm:col-span-3">
+                                        <label for="overtime_hours"
+                                            class="block text-sm font-medium leading-6 text-gray-900">H. Extra</label>
+                                        <div class="mt-2">
+                                            <input type="number" step="0.5" name="overtime_hours" id="overtime_hours"
                                                 class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
                                         </div>
                                     </div>
@@ -171,6 +179,8 @@
         const date = document.getElementById('date').value;
         const notes = document.getElementById('notes').value;
         const phone = document.getElementById('whatsapp_phone').value;
+        const hours = document.getElementById('hours_paid').value;
+        const overtime = document.getElementById('overtime_hours').value;
 
         if (!amount || !date) {
             alert("Por favor complete el monto y la fecha primero.");
@@ -187,7 +197,13 @@
         const [y, m, d] = date.split('-');
         const formattedDate = `${d}/${m}/${y}`;
 
-        const message = `TOMATO COSTA RICA ha realizado el pago de la planilla.\n\n📅 Fecha: ${formattedDate}\n💰 Monto: ₡${amount}\n📝 Notas: ${notes || 'Sin notas adicionales'}\n\nGracias.`;
+        let message = `TOMATO COSTA RICA ha realizado el pago de la planilla.\n\n📅 Fecha: ${formattedDate}\n💰 Monto: ₡${amount}\n⏱️ Horas Reg: ${hours}`;
+
+        if (overtime && overtime > 0) {
+            message += `\n🔥 H. Extra: ${overtime}`;
+        }
+
+        message += `\n📝 Notas: ${notes || 'Sin notas adicionales'}\n\nGracias.`;
 
         const encodedMessage = encodeURIComponent(message);
         const url = phone

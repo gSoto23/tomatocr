@@ -47,6 +47,8 @@
                 <tr class="border-b-2 border-gray-800">
                     <th class="py-2 text-sm font-bold uppercase">Trabajador</th>
                     <th class="py-2 text-sm font-bold uppercase text-center">Horas</th>
+                    <th class="py-2 text-sm font-bold uppercase text-center">H. Extra</th>
+                    <th class="py-2 text-sm font-bold uppercase text-center">Monto Extra</th>
                     <th class="py-2 text-sm font-bold uppercase text-center">Teléfono</th>
                     <th class="py-2 text-sm font-bold uppercase">Forma de Pago</th>
                     <th class="py-2 text-sm font-bold uppercase text-right">Neto a Pagar</th>
@@ -57,6 +59,8 @@
                 <tr>
                     <td class="py-3 text-sm">{{ entry.name }}</td>
                     <td class="py-3 text-sm text-center">{{ entry.hours }}</td>
+                    <td class="py-3 text-sm text-center">{{ entry.overtime_hours }}</td>
+                    <td class="py-3 text-sm text-center">₡{{ "{:,.2f}".format(entry.overtime_amount) }}</td>
                     <td class="py-3 text-sm text-center">{{ entry.phone }}</td>
                     <td class="py-3 text-sm">
                         <div class="flex flex-col">
