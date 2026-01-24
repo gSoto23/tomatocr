@@ -1,0 +1,233 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Nuevo Reporte | TOMATO{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto" x-data="logForm()">
+    <div class="md:flex md:items-center md:justify-between mb-8">
+        <div class="min-w-0 flex-1">
+            <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
+                Bitácora Diaria
+            </h2>
+            <p class="mt-2 text-sm text-gray-500">
+                Fecha: {{ today | format_date }}
+            </p>
+        </div>
+    </div>
+
+    <form @submit.prevent="submitForm" class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl md:col-span-2">
+        <div class="px-4 py-6 sm:p-8">
+            <div class="grid max-w-2xl grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+
+                <!-- Project Selection -->
+                <div class="col-span-full">
+                    <label for="project_id" class="block text-sm font-medium leading-6 text-gray-900">Proyecto</label>
+                    <div class="mt-2">
+                        <select id="project_id" x-model="selectedProjectId" @change="updateTasks()"
+                            class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
+                            <option value="">Seleccione un proyecto...</option>
+                            {% for p in projects %}
+                            <option value="{{ p.id }}">{{ p.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Task Checklist (Dynamic) -->
+                <div class="col-span-full" x-show="selectedProjectId && currentTasks.length > 0">
+                    <h3 class="text-sm font-medium leading-6 text-gray-900 mb-2">Tareas Realizadas</h3>
+                    <div class="space-y-4 border rounded-md p-4 bg-gray-50">
+                        <template x-for="task in currentTasks" :key="task.id">
+                            <div class="relative flex items-start">
+                                <div class="flex h-6 items-center">
+                                    <input :id="'task-' + task.id" type="checkbox" :value="task.id"
+                                        x-model="selectedTasks"
+                                        class="h-4 w-4 rounded border-gray-300 text-black focus:ring-black">
+                                </div>
+                                <div class="ml-3 text-sm leading-6">
+                                    <label :for="'task-' + task.id" class="font-medium text-gray-900"
+                                        x-text="task.description"></label>
+                                    <span x-show="task.is_required" class="text-red-500 ml-1 text-xs">*Requerido</span>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Notes -->
+                <div class="col-span-full">
+                    <label for="notes" class="block text-sm font-medium leading-6 text-gray-900">Notas /
+                        Observaciones</label>
+                    <div class="mt-2">
+                        <textarea id="notes" x-model="formNotes" rows="4"
+                            class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6"></textarea>
+                    </div>
+                </div>
+
+                <!-- Photos -->
+                <div class="col-span-full">
+                    <label class="block text-sm font-medium leading-6 text-gray-900">Fotografías del avance</label>
+
+                    <!-- File List Display -->
+                    <div class="mt-2 mb-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4"
+                        x-show="files.length > 0">
+                        <template x-for="(file, index) in files" :key="index">
+                            <div
+                                class="relative group block w-full aspect-w-10 aspect-h-7 rounded-lg bg-gray-100 overflow-hidden">
+                                <img :src="URL.createObjectURL(file)" class="object-cover pointer-events-none"
+                                    :alt="file.name">
+                                <button type="button" @click="removeFile(index)"
+                                    class="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 shadow-sm hover:bg-red-600 focus:outline-none">
+                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                                <p class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs p-1 truncate"
+                                    x-text="file.name"></p>
+                            </div>
+                        </template>
+                    </div>
+
+                    <div class="mt-2 flex justify-center rounded-lg border border-dashed border-gray-900/25 px-6 py-10"
+                        @dragover.prevent="$el.classList.add('border-black')"
+                        @dragleave.prevent="$el.classList.remove('border-black')"
+                        @drop.prevent="$el.classList.remove('border-black'); handleDrop($event)">
+
+                        <div class="text-center">
+                            <svg class="mx-auto h-12 w-12 text-gray-300" viewBox="0 0 24 24" fill="currentColor"
+                                aria-hidden="true">
+                                <path fill-rule="evenodd"
+                                    d="M1.5 6a2.25 2.25 0 012.25-2.25h16.5A2.25 2.25 0 0122.5 6v12a2.25 2.25 0 01-2.25 2.25H3.75A2.25 2.25 0 011.5 18V6zM3 16.06V18c0 .414.336.75.75.75h16.5A.75.75 0 0021 18v-1.94l-2.69-2.689a1.5 1.5 0 00-2.12 0l-.88.879.97.97a.75.75 0 11-1.06 1.06l-5.16-5.159a1.5 1.5 0 00-2.12 0L3 16.061zm10.125-7.81a1.125 1.125 0 112.25 0 1.125 1.125 0 01-2.25 0z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                            <div class="mt-4 flex text-sm leading-6 text-gray-600">
+                                <label for="file-upload"
+                                    class="relative cursor-pointer rounded-md bg-white font-semibold text-black focus-within:outline-none focus-within:ring-2 focus-within:ring-black focus-within:ring-offset-2 hover:text-gray-500">
+                                    <span>Seleccionar archivos</span>
+                                    <input id="file-upload" type="file" class="sr-only" multiple accept="image/*"
+                                        @change="handleFiles($event.target.files)">
+                                </label>
+                                <p class="pl-1">o arrastrar y soltar</p>
+                            </div>
+                            <p class="text-xs leading-5 text-gray-600">PNG, JPG, GIF hasta 10MB</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        <div class="flex items-center justify-end gap-x-6 border-t border-gray-900/5 px-4 py-4 sm:px-8">
+            <a href="/projects" class="text-sm font-semibold leading-6 text-gray-900">Cancelar</a>
+            <button type="submit" :disabled="isSubmitting"
+                class="rounded-md bg-black px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black flex items-center gap-2">
+                <span x-show="isSubmitting">
+                    <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
+                        viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                        </circle>
+                        <path class="opacity-75" fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                        </path>
+                    </svg>
+                </span>
+                <span x-text="isSubmitting ? 'Guardando...' : 'Guardar Reporte'"></span>
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    function logForm() {
+        return {
+            selectedProjectId: '{{ selected_project_id or "" }}',
+            tasksMap: {{ project_tasks_json | safe }
+    },
+    formNotes: '',
+        selectedTasks: [],
+            files: [],
+                isSubmitting: false,
+
+                    get currentTasks() {
+        if (!this.selectedProjectId) return [];
+        return this.tasksMap[parseInt(this.selectedProjectId)] || [];
+    },
+
+    updateTasks() {
+        this.selectedTasks = [];
+    },
+
+    handleFiles(fileList) {
+        for (let i = 0; i < fileList.length; i++) {
+            this.files.push(fileList[i]);
+        }
+        document.getElementById('file-upload').value = '';
+    },
+
+    handleDrop(event) {
+        const droppedFiles = event.dataTransfer.files;
+        this.handleFiles(droppedFiles);
+    },
+
+    removeFile(index) {
+        this.files.splice(index, 1);
+    },
+
+            async submitForm() {
+        if (this.isSubmitting) return;
+
+        if (!this.selectedProjectId) {
+            alert('Seleccione un proyecto');
+            return;
+        }
+
+        // Required Tasks Validation
+        const requiredTasks = this.currentTasks.filter(t => t.is_required);
+        for (let task of requiredTasks) {
+            // Check mixed types (String/Number)
+            const isChecked = this.selectedTasks.some(id => String(id) === String(task.id));
+            if (!isChecked) {
+                alert(`La tarea "${task.description}" es requerida.`);
+                return;
+            }
+        }
+
+        this.isSubmitting = true;
+        const formData = new FormData();
+        formData.append('project_id', this.selectedProjectId);
+        formData.append('date', '{{ today.strftime("%Y-%m-%d") }}');
+        formData.append('notes', this.formNotes);
+
+        this.selectedTasks.forEach(taskId => {
+            formData.append('tasks', taskId);
+        });
+
+        this.files.forEach(file => {
+            formData.append('photos', file);
+        });
+
+        try {
+            const response = await fetch('/logs/new', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.redirected) {
+                window.location.href = response.url;
+            } else if (response.ok) {
+                window.location.href = '/projects/' + this.selectedProjectId;
+            } else {
+                const errorData = await response.json();
+                alert('Error al guardar: ' + (errorData.detail || 'Error desconocido'));
+                this.isSubmitting = false;
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error de conexión');
+            this.isSubmitting = false;
+        }
+    }
+        }
+    }
+</script>
+{% endblock %}
