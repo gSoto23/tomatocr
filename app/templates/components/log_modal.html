@@ -41,12 +41,6 @@
 
                         <p class="text-xs text-gray-400">Reportado por: <span id="log-user"></span></p>
 
-                        <!-- Tasks Checklist Display -->
-                        <div id="log-tasks-container" class="hidden bg-gray-50 p-3 rounded-md border border-gray-100">
-                            <h4 class="text-sm font-semibold text-gray-700 mb-2">Checklist Completado</h4>
-                            <ul id="log-tasks-list" class="space-y-1"></ul>
-                        </div>
-
                         <!-- Notes Display / Edit -->
                         <div id="view-mode">
                             <p id="log-notes" class="text-gray-700 whitespace-pre-wrap text-sm"></p>
@@ -68,44 +62,54 @@
                             <p class="mt-1 text-xs text-gray-400">Última edición: <span id="log-updated"></span></p>
                         </form>
 
+                        <!-- Photos -->
+                        <div id="log-photos" class="grid grid-cols-2 gap-4 mt-4"></div>
+
+                        <!-- Tasks Checklist Display -->
+                        <div id="log-tasks-container" class="hidden bg-gray-50 p-3 rounded-md border border-gray-100">
+                            <h4 class="text-sm font-semibold text-gray-700 mb-2">Checklist Completado</h4>
+                            <ul id="log-tasks-list" class="space-y-1"></ul>
+                        </div>
+
                         <!-- Email Mode -->
                         <div id="email-mode" class="hidden">
-                            <h4 class="text-base font-semibold leading-6 text-gray-900 mb-4">Enviar Reporte por Correo
-                            </h4>
-
-                            <div class="bg-blue-50 p-3 rounded-md border border-blue-100 mb-4">
-                                <p class="text-xs text-blue-700 font-medium mb-1">Resumen del Contenido:</p>
-                                <ul class="list-disc pl-4 space-y-1 text-xs text-blue-600">
-                                    <li>Reporte: <span id="email-preview-project" class="font-bold"></span></li>
-                                    <li>Fecha: <span id="email-preview-date"></span></li>
-                                    <li>Notas: <span id="email-preview-notes" class="italic truncate block"></span></li>
-                                    <li>Tareas Hechas: <span id="email-preview-tasks" class="font-bold"></span></li>
-                                </ul>
-                            </div>
+                            <h4 class="text-base font-semibold leading-6 text-gray-900 mb-4">Enviar Reporte por Correo</h4>
 
                             <div class="space-y-4">
+                                <!-- Pre-filled Message Summary -->
+                                <div class="bg-blue-50 p-3 rounded-md border border-blue-100">
+                                    <p class="text-xs text-blue-700 font-medium mb-1">Mensaje Precargado (Resumen):</p>
+                                    <p class="text-xs text-blue-800 italic mb-2">"Hola adjunto el reporte del mantenimiento realizado el día <span id="email-preview-date"></span> en el proyecto <span id="email-preview-project" class="font-bold"></span>."</p>
+                                    <ul class="list-disc pl-4 space-y-1 text-xs text-blue-600">
+                                        <li>Notas: <span id="email-preview-notes" class="truncate block"></span></li>
+                                        <li>Tareas Hechas: <span id="email-preview-tasks" class="font-bold"></span></li>
+                                        <li>Fotos del reporte</li>
+                                    </ul>
+                                </div>
+                                
+                                <!-- Recipients -->
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Destinatarios</label>
+                                    <div class="mb-2 p-2 bg-gray-100 rounded text-xs text-gray-600 flex items-center">
+                                        <svg class="h-4 w-4 mr-1 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                        Siempre se enviará una copia oculta a tomatocostarica@gmail.com
+                                    </div>
                                     <div id="email-recipients-container"
-                                        class="space-y-2 border rounded-md p-3 bg-gray-50 max-h-40 overflow-y-auto">
+                                        class="space-y-2 border rounded-md p-3 bg-white max-h-40 overflow-y-auto">
                                         <!-- Populated via JS -->
                                     </div>
-                                    <p class="mt-1 text-xs text-gray-500">Seleccione los contactos a los que desea
-                                        enviar el reporte.</p>
+                                    <p class="mt-1 text-xs text-gray-500">Seleccione los contactos a los que desea enviar el reporte.</p>
                                 </div>
 
+                                <!-- Optional Message -->
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Mensaje Adicional
-                                        (Opcional)</label>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Mensaje Adicional / Notas (Opcional)</label>
                                     <textarea id="email-additional-text" rows="3"
-                                        placeholder="Escriba un mensaje para incluir en el cuerpo del correo..."
+                                        placeholder="Escriba un mensaje extra para incluir al final del cuerpo del correo..."
                                         class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6"></textarea>
                                 </div>
                             </div>
                         </div>
-
-                        <!-- Photos -->
-                        <div id="log-photos" class="grid grid-cols-2 gap-4 mt-4"></div>
                     </div>
                 </div>
 
@@ -458,6 +462,11 @@
             document.querySelectorAll('input[name="recipients"]:checked').forEach(cb => {
                 recipients.push(cb.value);
             });
+            
+            // Auto CC tomatocostarica@gmail.com per requirements
+            if (!recipients.includes("tomatocostarica@gmail.com")) {
+                recipients.push("tomatocostarica@gmail.com");
+            }
 
             if (recipients.length === 0) {
                 showGlobalToast("Error", "Por favor seleccione al menos un destinatario.", "error");

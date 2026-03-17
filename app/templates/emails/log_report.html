@@ -92,20 +92,12 @@
             <p><strong>Encargado:</strong> {{ manager_name }}</p>
         </div>
 
-        {% if additional_text %}
         <div class="section">
-            <p style="font-style: italic; white-space: pre-wrap;">{{ additional_text }}</p>
-        </div>
-        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
-        {% endif %}
-
-        <div class="section">
-            <h3>Notas</h3>
             <p style="white-space: pre-wrap;">{{ notes or "Sin notas registradas." }}</p>
         </div>
 
         <div class="section">
-            <h3>Tareas Completadas</h3>
+            <h3>Tareas Realizadas</h3>
             {% if done_tasks %}
             <ul>
                 {% for task in done_tasks %}
@@ -116,6 +108,14 @@
             <p>No se marcaron tareas completadas.</p>
             {% endif %}
         </div>
+
+        {% if additional_text %}
+        <div class="section">
+            <h3>Mensaje Adicional</h3>
+            <p style="font-style: italic; white-space: pre-wrap;">{{ additional_text }}</p>
+        </div>
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+        {% endif %}
 
         <div class="section">
             <h3>Fotografías</h3>
