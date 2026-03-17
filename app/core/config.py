@@ -13,12 +13,18 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
     # Database
-    MYSQL_USER: str = os.getenv("MYSQL_USER", "root")
-    MYSQL_PASSWORD: str = os.getenv("MYSQL_PASSWORD", "")
-    MYSQL_SERVER: str = os.getenv("MYSQL_SERVER", "localhost")
-    MYSQL_PORT: str = os.getenv("MYSQL_PORT", "3306")
-    MYSQL_DB: str = os.getenv("MYSQL_DB", "tomato_db")
-    USE_SQLITE: bool = True # Force SQLite for local dev
+    DB_USER: str = os.getenv("MYSQL_USER", "root")
+    DB_PASSWORD: str = os.getenv("MYSQL_PASSWORD", "")
+    DB_SERVER: str = os.getenv("MYSQL_SERVER", "localhost")
+    DB_PORT: str = os.getenv("MYSQL_PORT", "5432")
+    DB_NAME: str = os.getenv("MYSQL_DB", "tomatodb")
+    USE_SQLITE: bool = os.getenv("USE_SQLITE", "True").lower() in ("true", "1", "t")
+
+    # AWS S3 Storage
+    AWS_ACCESS_KEY_ID: str = os.getenv("AWS_ACCESS_KEY_ID", "")
+    AWS_SECRET_ACCESS_KEY: str = os.getenv("AWS_SECRET_ACCESS_KEY", "")
+    AWS_REGION: str = os.getenv("AWS_REGION", "us-east-1")
+    S3_BUCKET_NAME: str = os.getenv("S3_BUCKET_NAME", "tomato-prod-media-cr")
 
     # Email
     MAIL_USERNAME: str = os.getenv("MAIL_USERNAME", "")
@@ -33,6 +39,7 @@ class Settings(BaseSettings):
     def SQLALCHEMY_DATABASE_URI(self) -> str:
         if self.USE_SQLITE:
             return "sqlite:///./sql_app.db"
-        return f"mysql+mysqlconnector://{self.MYSQL_USER}:{self.MYSQL_PASSWORD}@{self.MYSQL_SERVER}:{self.MYSQL_PORT}/{self.MYSQL_DB}"
+        # Since we are migrating to PostgreSQL, we enforce the postgresql protocol
+        return f"postgresql://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_SERVER}:{self.DB_PORT}/{self.DB_NAME}"
 
 settings = Settings()
