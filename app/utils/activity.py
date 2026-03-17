@@ -1,4 +1,7 @@
 from sqlalchemy.orm import Session
+import logging
+
+logger = logging.getLogger(__name__)
 from app.db.models.activity import ActivityLog
 from app.db.models.user import User
 
@@ -33,6 +36,6 @@ def log_activity(
         db.add(activity)
         db.commit()
     except Exception as e:
-        print(f"Error logging activity: {e}")
+        logger.error(f"Error logging activity: {e}")
         # Validate that we don't break the main flow if logging fails
         db.rollback()

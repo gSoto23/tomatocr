@@ -1,7 +1,5 @@
-// CONFIGURACIÓN SUPABASE
-const SUB_URL = "https://mojjaegqkphbncklzxxq.supabase.co";
-const SUB_KEY = "sb_publishable_9AuuiT9k_9c0cAsOwBEoOw_36ebUzfb";
-const supabaseClient = supabase.createClient(SUB_URL, SUB_KEY);
+// CONFIGURACIÓN API INTERNA
+const API_URL = "/api/quotes/";
 
 const COUNTER_KEY = "tomato_quote_counter_v1";
 const DRAFT_KEY = "tomato_quote_draft_v1";
@@ -38,37 +36,19 @@ function applyTheme(theme) {
   const logo = $("mainLogo");
   if (theme === "dark") {
     document.body.classList.add("dark-mode");
-    logo.src = "./LogoTomatoW.png";
+    logo.src = "/static/cotizador/LogoTomatoW.png";
     localStorage.setItem("tomato_theme", "dark");
   } else {
     document.body.classList.remove("dark-mode");
-    logo.src = "./LogoTomatoB.png";
+    logo.src = "/static/cotizador/LogoTomatoB.png";
     localStorage.setItem("tomato_theme", "light");
   }
 }
 
-// --- 1. Seguridad con PIN desde Supabase Cloud ---
+// --- 1. Seguridad ---
+// Evaluada directamente en el router via Depends(get_current_user)
 async function checkAccess() {
-  const sessionActive = sessionStorage.getItem("tomato_session");
-  if (sessionActive) return true;
-
-  const userPin = prompt("🔑 Ingrese el PIN de acceso (Cloud):");
-  if (!userPin) return false;
-
-  const { data, error } = await supabaseClient
-      .from('config_global')
-      .select('valor')
-      .eq('clave', 'pin_acceso')
-      .single();
-
-  if (data && data.valor === userPin) {
-    sessionStorage.setItem("tomato_session", "true");
-    return true;
-  } else {
-    alert("❌ PIN Incorrecto. Acceso denegado.");
-    document.body.innerHTML = "<div style='color:white; text-align:center; padding-top:100px; font-family:sans-serif;'><h1>Acceso Protegido</h1><button onclick='location.reload()' style='background:white; color:black; padding:10px 20px; border-radius:10px; border:none; cursor:pointer;'>Reintentar</button></div>";
-    return false;
-  }
+  return true;
 }
 
 // --- 2. Lógica de Negocio y Supabase SQL ---
@@ -84,7 +64,7 @@ function calc() {
 }
 
 async function saveToSQL() {
-  if (!state.client.name.trim()) return alert("⚠️ Ingrese el nombre del cliente antes de guardar.");
+  if (!state.client.name.trim()) return showToast("Ingrese el nombre del cliente antes de guardar.", "error");
 
   const { subtotal, tax, total } = calc();
   const record = {
@@ -102,26 +82,32 @@ async function saveToSQL() {
     items: state.items
   };
 
-  const { error } = await supabaseClient.from('cotizaciones').upsert(record, { onConflict: 'numero_cotizacion' });
+  const response = await fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(record)
+  });
 
-  if (error) alert("Error Supabase: " + error.message);
-  else {
-    alert("✅ Sincronizado en la nube (Supabase)");
+  if (!response.ok) {
+    showToast("Error guardando: " + response.statusText, "error");
+  } else {
+    showToast("Sincronizado en el servidor", "success");
     saveCounter(loadCounter() + 1);
     renderRecent();
   }
 }
 
 async function renderRecent() {
-  const { data, error } = await supabaseClient.from('cotizaciones').select('*').order('created_at', { ascending: false }).limit(20);
-  if (error) return;
+  const response = await fetch(API_URL);
+  if (!response.ok) return;
+  const data = await response.json();
 
   $("recentBody").innerHTML = data.map(r => `
     <tr>
       <td class="font-bold">${r.numero_cotizacion}</td>
       <td>${escapeHtml(r.cliente_nombre)}</td>
       <td class="muted">${r.fecha_emision}</td>
-      <td class="text-right font-bold">${formatMoney(r.total, r.moneda)}</td>
+      <td class="text-right font-bold">${formatMoney(r.total || 0, r.moneda)}</td>
       <td class="text-right">
         <button class="btn py-1 px-3 text-xs" onclick="loadFromSQL('${r.id}')">Cargar</button>
       </td>
@@ -130,8 +116,9 @@ async function renderRecent() {
 }
 
 window.loadFromSQL = async (id) => {
-  const { data, error } = await supabaseClient.from('cotizaciones').select('*').eq('id', id).single();
-  if (data) {
+  const response = await fetch(API_URL + id);
+  if (response.ok) {
+    const data = await response.json();
     state = {
       quoteNumber: data.numero_cotizacion,
       issueDate: data.fecha_emision,
@@ -279,8 +266,37 @@ function wireListeners() {
 
 function escapeHtml(s) { return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
 
+window.showToast = function(message, type = "success") {
+  let container = document.getElementById("toastContainer");
+  if (!container) {
+    container = document.createElement("div");
+    container.id = "toastContainer";
+    container.className = "fixed bottom-5 right-5 z-50 flex flex-col gap-2";
+    document.body.appendChild(container);
+  }
+  const toast = document.createElement("div");
+  const isErr = type === "error";
+  toast.className = `px-5 py-3 rounded-lg shadow-xl text-white font-medium text-sm transition-all duration-300 transform translate-y-10 opacity-0 flex items-center gap-3 ${isErr ? 'bg-red-500' : 'bg-green-600'}`;
+  toast.innerHTML = isErr 
+    ? `<svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg> <span>${escapeHtml(message)}</span>`
+    : `<svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg> <span>${escapeHtml(message)}</span>`;
+  
+  container.appendChild(toast);
+  
+  // Trigger entry animation
+  requestAnimationFrame(() => {
+    toast.classList.remove("translate-y-10", "opacity-0");
+  });
+
+  // Autoremove
+  setTimeout(() => {
+    toast.classList.add("opacity-0", "translate-y-10");
+    setTimeout(() => toast.remove(), 300);
+  }, 3500);
+};
+
 function exportPDF() {
-  if (!state.client.name.trim()) return alert("Nombre de cliente requerido.");
+  if (!state.client.name.trim()) return showToast("Nombre de cliente requerido para exportar.", "error");
   const totals = calc();
   const win = window.open("", "_blank");
   win.document.write(buildPrintableHTML({...state, totals}));
@@ -322,7 +338,7 @@ function buildPrintableHTML(data) {
     .info-table td { border: none; padding: 2px 0; font-size: 12.5px; vertical-align: top; }
     .info-table td.label { color: #666; font-weight: bold; width: 85px; }
   </style></head><body>
-    <div class="header"><img src="./LogoTomatoB.png" class="logo"><div style="text-align: right"><h2 style="margin:0">COTIZACIÓN</h2><div style="font-weight: bold;">${data.quoteNumber}</div></div></div>
+    <div class="header"><img src="/static/cotizador/LogoTomatoB.png" class="logo"><div style="text-align: right"><h2 style="margin:0">COTIZACIÓN</h2><div style="font-weight: bold;">${data.quoteNumber}</div></div></div>
     <div class="info-grid">
       <div class="box"><strong>CLIENTE:</strong><table class="info-table">
         <tr><td class="label">Cliente:</td><td>${escapeHtml(data.client.name)}</td></tr>

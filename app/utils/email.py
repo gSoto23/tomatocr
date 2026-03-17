@@ -10,6 +10,9 @@ from io import BytesIO
 from PIL import Image, ImageOps
 import tempfile
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Configure FastMail
 conf = ConnectionConfig(
@@ -68,39 +71,49 @@ async def send_log_email(log: DailyLog, recipients: List[EmailStr], additional_t
 
 
 
+    import requests
+    import io
     temp_files = [] # Track for cleanup
 
     for photo in log.photos:
-        # Remove leading slash from /static/...
-        clean_path = photo.file_path.lstrip("/")
-        abs_path = base_path / clean_path
-        if abs_path.exists():
-            try:
-                # Open and Optimize
-                with Image.open(abs_path) as img:
-                    # Fix orientation if needed (EXIF)
-                    img = ImageOps.exif_transpose(img)
-                    
-                    # Convert to RGB (in case of PNG/RGBA) -> JPEG
-                    if img.mode in ("RGBA", "P"):
-                        img = img.convert("RGB")
-                    
-                    # Resize (Max 1280px)
-                    img.thumbnail((1280, 1280), Image.Resampling.LANCZOS)
-                    
-                    # Save to Temp File
-                    # fastapi-mail needs a path for "attachments" list validation
-                    fd, tmp_path = tempfile.mkstemp(suffix=".jpg")
-                    with os.fdopen(fd, 'wb') as tmp:
-                        img.save(tmp, format="JPEG", quality=80, optimize=True)
-                    
-                    attachments.append(tmp_path)
-                    temp_files.append(tmp_path)
+        try:
+            # Handle Remote S3 URLs vs Local Static paths
+            if photo.file_path.startswith("http"):
+                response = requests.get(photo.file_path, timeout=10)
+                response.raise_for_status()
+                img_data = io.BytesIO(response.content)
+            else:
+                clean_path = photo.file_path.lstrip("/")
+                abs_path = base_path / clean_path
+                if not abs_path.exists():
+                    logger.warning(f"Local photo not found: {abs_path}")
+                    continue
+                img_data = abs_path
+                
+            # Open and Optimize
+            with Image.open(img_data) as img:
+                # Fix orientation if needed (EXIF)
+                img = ImageOps.exif_transpose(img)
+                
+                # Convert to RGB (in case of PNG/RGBA) -> JPEG
+                if img.mode in ("RGBA", "P"):
+                    img = img.convert("RGB")
+                
+                # Resize (Max 1280px)
+                img.thumbnail((1280, 1280), Image.Resampling.LANCZOS)
+                
+                # Save to Temp File
+                fd, tmp_path = tempfile.mkstemp(suffix=".jpg")
+                with os.fdopen(fd, 'wb') as tmp:
+                    img.save(tmp, format="JPEG", quality=80, optimize=True)
+                
+                attachments.append(tmp_path)
+                temp_files.append(tmp_path)
 
-            except Exception as e:
-                print(f"Error optimizing image {abs_path}: {e}")
-                # Fallback to original
-                attachments.append(str(abs_path))
+        except Exception as e:
+            logger.error(f"Error processing image {photo.file_path}: {e}")
+            if not photo.file_path.startswith("http"):
+                attachments.append(str(base_path / photo.file_path.lstrip("/")))
             
     # Subject
     date_str = log.date.strftime('%Y-%m-%d')
@@ -131,4 +144,4 @@ async def send_log_email(log: DailyLog, recipients: List[EmailStr], additional_t
             try:
                 os.remove(tmp_path)
             except Exception as e:
-                print(f"Error removing temp file {tmp_path}: {e}")
+                logger.error(f"Error removing temp file {tmp_path}: {e}")

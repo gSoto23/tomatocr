@@ -86,7 +86,7 @@
 
         <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
             <a href="/dashboard"
-                class="group flex items-center px-3 py-2 text-sm font-medium rounded-md bg-white/10 text-white">
+                class="group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors {{ 'bg-white/10 text-white' if request and request.url.path == '/dashboard' else 'text-white/70 hover:bg-white/10 hover:text-white' }}">
                 <svg class="mr-3 h-5 w-5 text-white/70 group-hover:text-white" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -96,7 +96,7 @@
             </a>
 
             <a href="/projects"
-                class="group flex items-center px-3 py-2 text-sm font-medium rounded-md text-white/70 hover:bg-white/10 hover:text-white transition-colors">
+                class="group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors {{ 'bg-white/10 text-white' if request and request.url.path.startswith('/projects') else 'text-white/70 hover:bg-white/10 hover:text-white' }}">
                 <svg class="mr-3 h-5 w-5 text-white/70 group-hover:text-white" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -105,21 +105,23 @@
                 Proyectos
             </a>
 
-            {% if user.role == 'admin' %}
-            <a href="/logs"
-                class="group flex items-center px-3 py-2 text-sm font-medium rounded-md text-white/70 hover:bg-white/10 hover:text-white transition-colors">
+            {% if user.role == 'admin' or user.role == 'client' %}
+            <a href="/cotizador"
+                class="group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors {{ 'bg-white/10 text-white' if request and request.url.path.startswith('/cotizador') else 'text-white/70 hover:bg-white/10 hover:text-white' }}">
                 <svg class="mr-3 h-5 w-5 text-white/70 group-hover:text-white" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                Bitácora
+                Cotizador
             </a>
             {% endif %}
 
+
+
             {% if user.role == 'admin' or user.role == 'client' %}
             <a href="/finance"
-                class="group flex items-center px-3 py-2 text-sm font-medium rounded-md text-white/70 hover:bg-white/10 hover:text-white transition-colors">
+                class="group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors {{ 'bg-white/10 text-white' if request and request.url.path.startswith('/finance') else 'text-white/70 hover:bg-white/10 hover:text-white' }}">
                 <svg class="mr-3 h-5 w-5 text-white/70 group-hover:text-white" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -131,7 +133,7 @@
 
             {% if user.role == 'admin' or user.role == 'worker' or user.role == 'supervisor' %}
             <a href="/payroll"
-                class="group flex items-center px-3 py-2 text-sm font-medium rounded-md text-white/70 hover:bg-white/10 hover:text-white transition-colors">
+                class="group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors {{ 'bg-white/10 text-white' if request and request.url.path.startswith('/payroll') else 'text-white/70 hover:bg-white/10 hover:text-white' }}">
                 <svg class="mr-3 h-5 w-5 text-white/70 group-hover:text-white" fill="none" viewBox="0 0 24 24"
                     stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round"
@@ -143,7 +145,7 @@
 
             {% if user.role in ['admin', 'supervisor', 'worker'] %}
             <a href="/calendar"
-                class="group flex items-center px-3 py-2 text-sm font-medium rounded-md text-white/70 hover:bg-white/10 hover:text-white transition-colors">
+                class="group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors {{ 'bg-white/10 text-white' if request and request.url.path.startswith('/calendar') else 'text-white/70 hover:bg-white/10 hover:text-white' }}">
                 <svg class="mr-3 h-5 w-5 text-white/70 group-hover:text-white" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -155,7 +157,7 @@
 
             {% if user.role == "admin" %}
             <a href="/users"
-                class="group flex items-center px-3 py-2 text-sm font-medium rounded-md text-white/70 hover:bg-white/10 hover:text-white transition-colors">
+                class="group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors {{ 'bg-white/10 text-white' if request and request.url.path.startswith('/users') else 'text-white/70 hover:bg-white/10 hover:text-white' }}">
                 <svg class="mr-3 h-5 w-5 text-white/70 group-hover:text-white" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -199,6 +201,19 @@
             {% block content %}{% endblock %}
         </div>
     </main>
+
+    <!-- Global Loader -->
+    <div id="global-loader" class="fixed inset-0 bg-white/80 z-[999] pointer-events-none flex flex-col items-center justify-center backdrop-blur-sm transition-opacity duration-300 opacity-0">
+        <div class="relative flex flex-col items-center">
+            <img src="/static/images/LogoTomatoB.png" alt="Cargando..." class="h-16 w-auto animate-pulse">
+            <div class="absolute -bottom-6 flex gap-1">
+                <div class="w-2.5 h-2.5 bg-red-600 rounded-full animate-bounce"></div>
+                <div class="w-2.5 h-2.5 bg-red-600 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                <div class="w-2.5 h-2.5 bg-red-600 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+            </div>
+            <p class="mt-10 text-sm font-medium text-gray-800 animate-pulse tracking-widest uppercase">Cargando...</p>
+        </div>
+    </div>
 
     <!-- Global Toast Notification -->
     <div id="global-toast"
@@ -286,7 +301,43 @@
                 // Delete cookie
                 document.cookie = "toast_message=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
             }
+
+            // Bind global loader to links and forms
+            document.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    const href = this.getAttribute('href');
+                    if (href && !href.startsWith('#') && !href.startsWith('javascript') && this.getAttribute('target') !== '_blank') {
+                        showLoader();
+                    }
+                });
+            });
+            document.querySelectorAll('form').forEach(form => {
+                form.addEventListener('submit', () => {
+                    showLoader();
+                });
+            });
+
+            // Hide loader automatically when arriving or backing to the page
+            window.addEventListener('pageshow', () => {
+                hideLoader();
+            });
         });
+
+        function showLoader() {
+            const loader = document.getElementById('global-loader');
+            if(loader) {
+                loader.classList.remove('pointer-events-none');
+                loader.classList.remove('opacity-0');
+            }
+        }
+
+        function hideLoader() {
+            const loader = document.getElementById('global-loader');
+            if(loader) {
+                loader.classList.add('opacity-0');
+                loader.classList.add('pointer-events-none');
+            }
+        }
     </script>
 </body>
 

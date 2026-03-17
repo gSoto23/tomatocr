@@ -29,6 +29,8 @@
                                     Adjudicado</th>
                                 <th scope="col" class="px-3 py-3.5 text-right text-sm font-semibold text-gray-900">
                                     Facturado</th>
+                                <th scope="col" class="px-3 py-3.5 text-right text-sm font-semibold text-gray-900">
+                                    Costos</th>
                                 <th scope="col" class="px-3 py-3.5 text-right text-sm font-semibold text-gray-900">Saldo
                                 </th>
                                 <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6">
@@ -62,6 +64,9 @@
                                 <td class="whitespace-nowrap px-3 py-4 text-sm text-right text-gray-500">
                                     {{ "{:,.2f}".format(item.total_invoiced) }}
                                 </td>
+                                <td class="whitespace-nowrap px-3 py-4 text-sm text-right text-red-600">
+                                    {{ "{:,.2f}".format(item.total_costs) }}
+                                </td>
                                 <td
                                     class="whitespace-nowrap px-3 py-4 text-sm text-right font-bold {{ 'text-green-600' if item.balance >= 0 else 'text-red-600' }}">
                                     {{ "{:,.2f}".format(item.balance) }}
@@ -76,7 +81,7 @@
                             {% endfor %}
                             {% if not projects %}
                             <tr>
-                                <td colspan="7" class="text-center py-4 text-gray-500 text-sm italic">
+                                <td colspan="8" class="text-center py-4 text-gray-500 text-sm italic">
                                     No hay proyectos con acceso financiero disponibles.
                                 </td>
                             </tr>
