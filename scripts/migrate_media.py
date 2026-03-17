@@ -5,6 +5,7 @@ from pathlib import Path
 # Fix relative imports when executing outside Uvicorn (from root folder)
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from app.db.base import Base # Load all generic Base models to populate SQLAlchemy metadata registry
 from app.db.session import SessionLocal
 from app.db.models.log import Photo
 from app.core.storage import s3_service
