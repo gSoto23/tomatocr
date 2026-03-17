@@ -34,6 +34,7 @@ async def send_log_email(log_id: int, recipients: List[EmailStr], additional_tex
     """
     Send an email with the log details to the specified recipients.
     """
+    temp_files = [] # Track for cleanup initialize early
     db = SessionLocal()
     try:
         log = db.query(DailyLog).filter(DailyLog.id == log_id).first()
@@ -81,8 +82,7 @@ async def send_log_email(log_id: int, recipients: List[EmailStr], additional_tex
 
         import requests
         import io
-        temp_files = [] # Track for cleanup
-
+        
         for photo in log.photos:
             try:
                 # Handle Remote S3 URLs vs Local Static paths
