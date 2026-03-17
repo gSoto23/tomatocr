@@ -368,6 +368,6 @@ async def send_email(
         raise HTTPException(status_code=404, detail="Log not found")
 
     # Send in background to avoid blocking
-    background_tasks.add_task(send_log_email, log, email_data.recipients, email_data.additional_text)
+    background_tasks.add_task(send_log_email, log.id, email_data.recipients, email_data.additional_text)
     
     return JSONResponse({"status": "success", "message": "Correo programado para envío"})
