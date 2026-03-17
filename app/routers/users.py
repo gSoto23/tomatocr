@@ -12,6 +12,9 @@ from app.routers import deps
 from app.core.security import get_password_hash
 from sqlalchemy.exc import IntegrityError
 from app.utils.activity import log_activity
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/users",
@@ -114,7 +117,6 @@ async def create_user(
     )
     db.add(new_user)
     db.commit()
-    db.commit()
     
     # Audit Log
     log_activity(db, user, "CREATE", "USER", new_user.id, f"Created user {username} ({role})")
@@ -199,7 +201,7 @@ async def update_user(
             return response
         except Exception as e:
             db.rollback()
-            print(f"Error updating user: {e}")
+            logger.error(f"Error updating user: {e}")
             response = RedirectResponse(url=f"/users/{id}/edit", status_code=status.HTTP_303_SEE_OTHER)
             response.set_cookie(key="toast_message", value="Error interno al actualizar usuario.")
             response.set_cookie(key="toast_type", value="error")

@@ -5,10 +5,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TOMATO CR | Cotizador</title>
-  <link rel="icon" href="./icon.png" />
+  <link rel="icon" href="/static/cotizador/icon.png" />
   <!-- Tailwind (CDN) -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="/static/cotizador/style.css" />
 </head>
 
 <body class="min-h-screen">
@@ -17,15 +17,21 @@
       <!-- Fila Superior: Logo, Título y Botón Tema -->
       <div class="flex items-center justify-between gap-4">
         <div class="flex items-center gap-3">
-          <img src="./LogoTomatoB.png" id="mainLogo" class="h-10 w-auto" alt="TOMATO CR" />
+          <img src="/static/cotizador/LogoTomatoB.png" id="mainLogo" class="h-10 w-auto" alt="TOMATO CR" />
           <div>
             <div class="text-xl font-semibold tracking-wide">Cotizador Cloud</div>
             <div class="muted text-sm">TOMATO COSTA RICA ANY SRL</div>
           </div>
         </div>
-        <!-- Botón Tema alineado a la derecha del título -->
-        <button class="btn p-2 rounded-full w-10 h-10 flex items-center justify-center text-lg" id="btnTheme"
-          title="Cambiar Tema">🌓</button>
+        <!-- Botones Navegacion y Tema alineados a la derecha -->
+        <div class="flex items-center gap-3">
+          <a href="/dashboard" class="bg-black text-white px-4 py-2 rounded-lg shadow hover:bg-gray-800 transition-colors text-sm font-semibold flex items-center gap-2 dark:bg-white dark:text-black dark:hover:bg-gray-200">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+            <span class="hidden sm:inline">Volver</span>
+          </a>
+          <button class="btn p-2 rounded-full w-10 h-10 flex items-center justify-center text-lg shadow" id="btnTheme"
+            title="Cambiar Tema">🌓</button>
+        </div>
       </div>
 
       <!-- Fila Inferior: Acciones de Cotización -->
@@ -229,8 +235,7 @@
     </section>
   </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="./app.js"></script>
+  <script src="/static/cotizador/app.js"></script>
 </body>
 
 </html>

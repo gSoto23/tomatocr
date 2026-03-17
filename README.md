@@ -22,12 +22,17 @@ Sistema de gestión operativa para servicios de jardinería, paisajismo y manten
 - **Evidencia**: Carga de fotografías y notas.
 - **Trazabilidad**: Historial completo de intervenciones por proyecto.
 
-### 4. Dashboard Administrativo
+### 4. Cotizador Cloud
+- **Integración Nativa**: Generación de cotizaciones dinámicas con exportación PDF.
+- **Seguridad Integrada**: Validado por el sistema de autenticación centralizado (`Depends(get_current_user)`).
+- **Almacenamiento Local**: Cotizaciones y datos de clientes almacenados como registros en base de datos en formatos híbridos integrados a SQLite.
+
+### 5. Dashboard Administrativo
 - Métricas clave de rendimiento.
 - Resumen financiero global.
 - Actividad reciente del sistema.
 
-### 5. Control de Acceso (Roles)
+### 6. Control de Acceso (Roles)
 - **Admin**: Acceso total (Configuración, Finanzas, Usuarios).
 - **Worker**: Acceso operativo (Ver proyectos, Crear bitácoras). Sin acceso a Finanzas.
 - **Client**: Acceso de solo lectura a su proyecto y estado financiero.
@@ -56,6 +61,7 @@ Sistema de gestión operativa para servicios de jardinería, paisajismo y manten
    ```
 
 3. **Instalar dependencias**:
+   > ⚠️ **IMPORTANTE**: Debido a un bug heredado en `passlib`, debes asegurarte de que `bcrypt` sea de una versión inferior a 4.0.0. Esto ya está fijado en `requirements.txt`.
    ```bash
    pip install -r requirements.txt
    ```
@@ -73,14 +79,18 @@ Sistema de gestión operativa para servicios de jardinería, paisajismo y manten
 
 ```
 app/
-├── db/             # Modelos y configuración de base de datos
-├── routers/        # Endpoints de la API (Projects, Users, Finance, Logs)
+├── db/             # Modelos (SQLAlchemy) y configuración de DB
+├── routers/        # Controladores de la API (Projects, Users, Finance, Quotes)
 ├── templates/      # Plantillas HTML (Jinja2)
-│   ├── components/ # Macros reutilizables (Paginación, Modales)
-│   ├── finance/    # Vistas financieras
-│   ├── projects/   # Gestión de proyectos
+│   ├── components/ # Macros y componentes layout compartidos
+│   ├── cotizador/  # Vista principal Cotizador Cloud
 │   └── ...
-└── main.py         # Punto de entrada de la aplicación
+├── static/         # Archivos estáticos (app.js de cotizador, css, imágenes)
+└── main.py         # Punto de entrada de la aplicación FastAPI
+
+scripts/
+├── dev_tools/      # Utilidades para depuración y reseteo de DB (ej. reset_db.py)
+└── migrations/     # Scripts manuales de movimiento de datos (si aplica)
 ```
 
 ## 🔄 Cómo Actualizar (Redeploy)

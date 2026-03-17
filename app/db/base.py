@@ -14,3 +14,4 @@ from app.db.models.activity import ActivityLog
 from app.db.models.payroll import PayrollPeriod, PayrollEntry
 from app.db.models.payment import PayrollPayment
 from app.db.models.liquidation import Liquidation
+from app.db.models.quote import Quote

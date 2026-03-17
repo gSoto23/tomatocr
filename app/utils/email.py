@@ -10,6 +10,9 @@ from io import BytesIO
 from PIL import Image, ImageOps
 import tempfile
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Configure FastMail
 conf = ConnectionConfig(
@@ -98,7 +101,7 @@ async def send_log_email(log: DailyLog, recipients: List[EmailStr], additional_t
                     temp_files.append(tmp_path)
 
             except Exception as e:
-                print(f"Error optimizing image {abs_path}: {e}")
+                logger.error(f"Error optimizing image {abs_path}: {e}")
                 # Fallback to original
                 attachments.append(str(abs_path))
             
@@ -131,4 +134,4 @@ async def send_log_email(log: DailyLog, recipients: List[EmailStr], additional_t
             try:
                 os.remove(tmp_path)
             except Exception as e:
-                print(f"Error removing temp file {tmp_path}: {e}")
+                logger.error(f"Error removing temp file {tmp_path}: {e}")
