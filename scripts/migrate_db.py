@@ -11,7 +11,9 @@ from app.db.base import Base
 
 def migrate():
     # Force the local DB uri (SQLite or MySQL if defined in ENV)
-    sqlite_uri = os.getenv("SOURCE_DB_URI", "sqlite:///app/sql_app.db")
+    # Search for the SQLite file in root first since it's the actual production DB
+    default_sqlite_path = "sqlite:///sql_app.db" if os.path.exists(os.path.join(os.getcwd(), "sql_app.db")) else "sqlite:///app/sql_app.db"
+    sqlite_uri = os.getenv("SOURCE_DB_URI", default_sqlite_path)
     pg_uri = settings.SQLALCHEMY_DATABASE_URI
     
     # Make sure we don't accidentally wipe Postgres reading from itself
