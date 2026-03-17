@@ -92,3 +92,17 @@ class Payment(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     invoice = relationship("Invoice", back_populates="payment")
+
+class ProjectCost(Base):
+    __tablename__ = "project_costs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
+    
+    date = Column(Date, nullable=False)
+    description = Column(String, nullable=False)
+    amount = Column(Float, nullable=False)
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    project = relationship("Project", backref="costs")

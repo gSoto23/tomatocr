@@ -10,7 +10,8 @@ from pydantic import BaseModel
 from app.db.session import SessionLocal
 from app.db.models.project import Project
 from app.db.models.project_details import ProjectSupply, ProjectTask, ProjectContact
-from app.db.models.finance import ProjectBudget, BudgetLine
+from app.db.models.finance import ProjectBudget, BudgetLine, ProjectCost
+from app.db.models.schedule import ProjectSchedule
 from app.db.models.user import User
 from app.db.models.user import User
 from app.db.models.log import DailyLog
@@ -364,6 +365,30 @@ async def get_project_detail(
     if user.role not in ["admin", "supervisor"] and user.id not in [u.id for u in project.users]:
         raise HTTPException(status_code=403, detail="Not authorized")
 
+    # Financial Cost Integration
+    manual_costs_query = db.query(func.sum(ProjectCost.amount)).filter(ProjectCost.project_id == project.id).scalar()
+    manual_costs = manual_costs_query or 0.0
+
+    payroll_costs = 0.0
+    confirmed_schedules = db.query(ProjectSchedule).filter(
+        ProjectSchedule.project_id == project.id,
+        ProjectSchedule.is_confirmed == True
+    ).all()
+
+    for sched in confirmed_schedules:
+        if sched.user and sched.user.hourly_rate:
+            worker_rate = sched.user.hourly_rate
+            regular_pay = sched.hours_worked * worker_rate
+            overtime_pay = (sched.overtime_hours or 0.0) * worker_rate * 1.5
+            company_cost = (regular_pay + overtime_pay) * 1.4467
+            payroll_costs += company_cost
+
+    total_costs = manual_costs + payroll_costs
+    
+    # Fetch manual project costs history
+    project_costs_history = db.query(ProjectCost).filter(ProjectCost.project_id == project.id).order_by(ProjectCost.date.desc()).all()
+
+
     # Pagination for Logs
     offset = (page - 1) * limit
     logs_query = db.query(DailyLog).filter(DailyLog.project_id == id)
@@ -381,6 +406,8 @@ async def get_project_detail(
         "project": project, 
         "user": user,
         "logs": logs,
+        "total_costs": total_costs,
+        "project_costs_history": project_costs_history,
         "page": page,
         "total_pages": total_pages,
         "total_records": total_records

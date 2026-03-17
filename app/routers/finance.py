@@ -8,9 +8,11 @@ import datetime
 
 from app.db.session import SessionLocal
 from app.db.models.project import Project
-from app.db.models.finance import ProjectBudget, BudgetLine, Invoice, Payment, InvoiceStatus
+from app.db.models.finance import ProjectBudget, BudgetLine, Invoice, Payment, InvoiceStatus, ProjectCost
+from app.db.models.schedule import ProjectSchedule
 from app.db.models.user import User
 from app.db.models.associations import project_users
+from app.db.models.payroll import PayrollPeriod
 from app.routers import deps
 
 router = APIRouter(
@@ -47,11 +49,42 @@ def get_project_budget_status(db: Session, project: Project):
         for inv in budget.invoices:
             total_invoiced += inv.amount
 
+    # Calculate manual costs
+    manual_costs_query = db.query(func.sum(ProjectCost.amount)).filter(ProjectCost.project_id == project.id).scalar()
+    manual_costs = manual_costs_query or 0.0
+
+    # Calculate payroll costs
+    # Gross salary = hours * rate. Company cost assumed + 44.67% approx or standard 26.67% + 18%.
+    # For simplicity of metric tracking, we calculate direct worker gross + 26.67% CCSS cost:
+    payroll_costs = 0.0
+    confirmed_schedules = db.query(ProjectSchedule).filter(
+        ProjectSchedule.project_id == project.id,
+        ProjectSchedule.is_confirmed == True
+    ).all()
+    
+    final_periods = db.query(PayrollPeriod).filter(PayrollPeriod.status == "final").all()
+    final_ranges = [(p.start_date, p.end_date) for p in final_periods]
+
+    for sched in confirmed_schedules:
+        if any(start <= sched.date <= end for start, end in final_ranges):
+            if sched.user and getattr(sched.user, 'hourly_rate', None):
+                worker_rate = sched.user.hourly_rate
+                regular_pay = (sched.hours_worked or 0.0) * worker_rate
+                overtime_pay = (sched.overtime_hours or 0.0) * worker_rate * 1.5
+                gross = regular_pay + overtime_pay
+                
+                # Gross + 26.67% CCSS + 18% Previsiones = Total Company Cost
+                company_cost = gross * 1.4467
+                payroll_costs += company_cost
+
+    total_costs = manual_costs + payroll_costs
+
     return {
         "budget": budget,
         "total_adjudicated": total_adjudicated,
         "total_invoiced": total_invoiced,
-        "balance": total_adjudicated - total_invoiced
+        "balance": total_adjudicated - total_invoiced,
+        "total_costs": total_costs
     }
 
 def check_update_overdue_invoices(db: Session, project_id: int):
@@ -88,7 +121,8 @@ async def finance_dashboard(request: Request, db: Session = Depends(deps.get_db)
             "licitation": status["budget"].licitation_number if status["budget"] else "N/A",
             "total_adjudicated": status["total_adjudicated"],
             "total_invoiced": status["total_invoiced"],
-            "balance": status["balance"]
+            "balance": status["balance"],
+            "total_costs": status["total_costs"]
         })
 
     return templates.TemplateResponse("finance/index.html", {
@@ -175,13 +209,51 @@ async def finance_detail(
         from math import ceil
         total_pages = ceil(total_records / limit)
 
-    return templates.TemplateResponse("finance/detail.html", {
+    # Fetch manuals project costs to display in Detail view
+    costs = db.query(ProjectCost).filter(ProjectCost.project_id == project.id).order_by(ProjectCost.date.desc()).all()
+
+    # Calculate detailed payroll to display Grouped by Period
+    payroll_details = []
+    
+    payroll_periods = db.query(PayrollPeriod).filter(PayrollPeriod.status == 'final').order_by(PayrollPeriod.start_date.desc()).all()
+    
+    confirmed_schedules = db.query(ProjectSchedule).filter(
+        ProjectSchedule.project_id == project.id,
+        ProjectSchedule.is_confirmed == True
+    ).all()
+    
+    for period in payroll_periods:
+        period_cost = 0.0
+        # Find schedules in this period
+        schedules_in_period = [s for s in confirmed_schedules if period.start_date <= s.date <= period.end_date]
+        
+        if schedules_in_period:
+            for sched in schedules_in_period:
+                if sched.user and getattr(sched.user, 'hourly_rate', None):
+                    worker_rate = sched.user.hourly_rate
+                    regular_pay = (sched.hours_worked or 0.0) * worker_rate
+                    overtime_pay = (sched.overtime_hours or 0.0) * worker_rate * 1.5
+                    gross = regular_pay + overtime_pay
+                    period_cost += gross * 1.4467
+            
+            payroll_details.append({
+                "period_str": f"{period.start_date.strftime('%d/%m/%Y')} - {period.end_date.strftime('%d/%m/%Y')}",
+                "start_date": period.start_date,
+                "status": period.status,
+                "cost": period_cost
+            })
+        
+    payroll_details.sort(key=lambda x: x['start_date'], reverse=True)
+
+    return  templates.TemplateResponse("finance/detail.html", {
         "request": request,
         "user": user,
         "project": project,
         "budget": budget,
         "lines": lines,
         "invoices": invoices,
+        "costs": costs,
+        "payroll_details": payroll_details,
         "summary": status_data,
         "page": page,
         "total_pages": total_pages,
@@ -231,6 +303,141 @@ async def create_invoice(
     
     response = RedirectResponse(url=f"/finance/{project_id}", status_code=status.HTTP_303_SEE_OTHER)
     response.set_cookie(key="toast_message", value="Factura creada exitosamente")
+    return response
+
+@router.post("/invoice/{invoice_id}/edit")
+async def edit_invoice(
+    invoice_id: int, 
+    invoice_number: str = Form(...),
+    issue_date: str = Form(...),
+    due_date: str = Form(...),
+    amount: float = Form(...),
+    budget_line_id: int = Form(...),
+    db: Session = Depends(deps.get_db),
+    user: User = Depends(deps.get_current_user)
+):
+    if user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    invoice = db.query(Invoice).filter(Invoice.id == invoice_id).first()
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+
+    # Verify new line belongs to budget
+    line = db.query(BudgetLine).filter(BudgetLine.id == budget_line_id, BudgetLine.budget_id == invoice.budget_id).first()
+    if not line:
+        raise HTTPException(status_code=400, detail="Invalid Budget Line")
+
+    invoice.invoice_number = invoice_number
+    invoice.issue_date = datetime.datetime.strptime(issue_date, "%Y-%m-%d").date()
+    invoice.due_date = datetime.datetime.strptime(due_date, "%Y-%m-%d").date()
+    invoice.amount = amount
+    invoice.budget_line_id = budget_line_id
+    db.commit()
+    
+    response = RedirectResponse(url=f"/finance/{invoice.budget.project_id}", status_code=status.HTTP_303_SEE_OTHER)
+    response.set_cookie(key="toast_message", value="Factura actualizada exitosamente")
+    return response
+
+@router.post("/invoice/{invoice_id}/delete")
+async def delete_invoice(
+    invoice_id: int, 
+    db: Session = Depends(deps.get_db),
+    user: User = Depends(deps.get_current_user)
+):
+    if user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    invoice = db.query(Invoice).filter(Invoice.id == invoice_id).first()
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+
+    project_id = invoice.budget.project_id
+    
+    # Optional: ensure we can delete it (e.g., if it has payments?)
+    if invoice.status != InvoiceStatus.PENDING and invoice.status != InvoiceStatus.OVERDUE:
+        raise HTTPException(status_code=400, detail="Cannot delete invoice with payments")
+
+    db.delete(invoice)
+    db.commit()
+    
+    response = RedirectResponse(url=f"/finance/{project_id}", status_code=status.HTTP_303_SEE_OTHER)
+    response.set_cookie(key="toast_message", value="Factura eliminada")
+    return response
+
+@router.post("/{project_id}/cost")
+async def create_cost(
+    project_id: int, 
+    date: str = Form(...),
+    description: str = Form(...),
+    amount: float = Form(...),
+    db: Session = Depends(deps.get_db),
+    user: User = Depends(deps.get_current_user)
+):
+    if user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=400, detail="Project not found")
+
+    cost = ProjectCost(
+        project_id=project.id,
+        date=datetime.datetime.strptime(date, "%Y-%m-%d").date(),
+        description=description,
+        amount=amount
+    )
+    db.add(cost)
+    db.commit()
+    
+    response = RedirectResponse(url=f"/finance/{project_id}", status_code=status.HTTP_303_SEE_OTHER)
+    response.set_cookie(key="toast_message", value="Costo registrado exitosamente")
+    return response
+
+@router.post("/cost/{cost_id}/edit")
+async def edit_cost(
+    cost_id: int, 
+    date: str = Form(...),
+    description: str = Form(...),
+    amount: float = Form(...),
+    db: Session = Depends(deps.get_db),
+    user: User = Depends(deps.get_current_user)
+):
+    if user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    cost = db.query(ProjectCost).filter(ProjectCost.id == cost_id).first()
+    if not cost:
+        raise HTTPException(status_code=404, detail="Cost not found")
+
+    cost.date = datetime.datetime.strptime(date, "%Y-%m-%d").date()
+    cost.description = description
+    cost.amount = amount
+    db.commit()
+    
+    response = RedirectResponse(url=f"/finance/{cost.project_id}", status_code=status.HTTP_303_SEE_OTHER)
+    response.set_cookie(key="toast_message", value="Costo actualizado exitosamente")
+    return response
+
+@router.post("/cost/{cost_id}/delete")
+async def delete_cost(
+    cost_id: int, 
+    db: Session = Depends(deps.get_db),
+    user: User = Depends(deps.get_current_user)
+):
+    if user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    cost = db.query(ProjectCost).filter(ProjectCost.id == cost_id).first()
+    if not cost:
+        raise HTTPException(status_code=404, detail="Cost not found")
+
+    project_id = cost.project_id
+    db.delete(cost)
+    db.commit()
+    
+    response = RedirectResponse(url=f"/finance/{project_id}", status_code=status.HTTP_303_SEE_OTHER)
+    response.set_cookie(key="toast_message", value="Costo eliminado")
     return response
 
 @router.post("/invoice/{invoice_id}/pay")

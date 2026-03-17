@@ -39,7 +39,7 @@
     </div>
 
     <!-- Indicators -->
-    <div class="grid grid-cols-1 gap-5 sm:grid-cols-3 mb-8">
+    <div class="grid grid-cols-1 gap-5 sm:grid-cols-5 mb-8">
         <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6 border border-gray-200">
             <dt class="truncate text-sm font-medium text-gray-500 uppercase">Total Adjudicado</dt>
             <dd class="mt-1 text-3xl font-semibold tracking-tight text-gray-900">{{
@@ -51,10 +51,21 @@
                 "{:,.2f}".format(summary.total_invoiced) }}</dd>
         </div>
         <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6 border border-gray-200">
+            <dt class="truncate text-sm font-medium text-gray-500 uppercase">Total Costos</dt>
+            <dd class="mt-1 text-3xl font-semibold tracking-tight text-red-600">{{
+                "{:,.2f}".format(summary.total_costs) }}</dd>
+        </div>
+        <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6 border border-gray-200">
             <dt class="truncate text-sm font-medium text-gray-500 uppercase">Saldo Actual</dt>
             <dd
                 class="mt-1 text-3xl font-semibold tracking-tight {{ 'text-green-600' if summary.balance >= 0 else 'text-red-600' }}">
                 {{ "{:,.2f}".format(summary.balance) }}</dd>
+        </div>
+        <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6 border border-gray-200">
+            <dt class="truncate text-sm font-medium text-gray-500 uppercase">Balance (Ganancia)</dt>
+            <dd
+                class="mt-1 text-3xl font-semibold tracking-tight {{ 'text-green-600' if (summary.total_invoiced - summary.total_costs) >= 0 else 'text-red-600' }}">
+                {{ "{:,.2f}".format(summary.total_invoiced - summary.total_costs) }}</dd>
         </div>
     </div>
 
@@ -143,6 +154,74 @@
                     {% endfor %}
                 </ul>
             </div>
+            
+            <!-- Payroll Grouped Mini Table (Moved) -->
+            <div class="bg-white shadow sm:rounded-lg overflow-hidden border border-gray-200 mt-6"
+                 x-data="{ page: 1, itemsPerPage: 10, totalItems: {{ payroll_details|length }} }">
+                <div class="px-4 py-5 sm:px-6 bg-gray-50 border-b border-gray-200">
+                    <h3 class="text-base font-semibold leading-6 text-gray-900">Planillas Cargadas</h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-300">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">Periodo</th>
+                                <th scope="col" class="px-3 py-3.5 text-center text-sm font-semibold text-gray-900">Estado</th>
+                                <th scope="col" class="px-3 py-3.5 text-right text-sm font-semibold text-gray-900">Costo Estimado</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 bg-white">
+                            {% for payroll in payroll_details %}
+                            <tr x-show="(page - 1) * itemsPerPage <= {{ loop.index0 }} && {{ loop.index0 }} < page * itemsPerPage" style="display: none;">
+                                <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
+                                    {{ payroll.period_str }}
+                                </td>
+                                <td class="whitespace-nowrap px-3 py-4 text-center text-sm text-gray-500">
+                                    {% if payroll.status == 'final' %}
+                                    <span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Final</span>
+                                    {% else %}
+                                    <span class="inline-flex items-center rounded-md bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-800 ring-1 ring-inset ring-yellow-600/20">Pendiente</span>
+                                    {% endif %}
+                                </td>
+                                <td class="whitespace-nowrap px-3 py-4 text-right text-sm font-medium text-red-600">
+                                    {{ "{:,.2f}".format(payroll.cost) }}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="3" class="text-center py-8 text-sm text-gray-500 italic">No hay registros de planilla.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    
+                    <!-- Pagination Controls -->
+                    <template x-if="totalItems > itemsPerPage">
+                        <div class="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
+                            <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-700">
+                                        Mostrando <span class="font-medium" x-text="Math.min((page - 1) * itemsPerPage + 1, totalItems)"></span> a <span class="font-medium" x-text="Math.min(page * itemsPerPage, totalItems)"></span> de <span class="font-medium" x-text="totalItems"></span> resultados
+                                    </p>
+                                </div>
+                                <div>
+                                    <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                                        <button @click="if(page > 1) page--" :disabled="page === 1" class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50">
+                                            <span class="sr-only">Anterior</span>
+                                            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clip-rule="evenodd" /></svg>
+                                        </button>
+                                        <button @click="if(page < Math.ceil(totalItems / itemsPerPage)) page++" :disabled="page >= Math.ceil(totalItems / itemsPerPage)" class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50">
+                                            <span class="sr-only">Siguiente</span>
+                                            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" /></svg>
+                                        </button>
+                                    </nav>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+            
         </div>
 
         <!-- Invoices Pane (Main) -->
@@ -331,6 +410,8 @@
                                     <button
                                         @click='openPayModal({{ inv.id | tojson }}, {{ inv.invoice_number | tojson }}, {{ inv.amount | tojson }})'
                                         class="text-indigo-600 hover:text-indigo-900">Reporte</button>
+                                    <span class="text-gray-300 mx-2">|</span>
+                                    <button @click='openEditInvoiceModal({{ inv.id | tojson }}, {{ inv.invoice_number | tojson }}, {{ inv.issue_date | string | tojson }}, {{ inv.due_date | string | tojson }}, {{ inv.budget_line_id | tojson }}, {{ inv.amount | tojson }})' class="text-indigo-600 hover:text-indigo-900">Editar</button>
                                     {% else %}
                                     <span class="text-gray-400 text-xs">Pago: {{
                                         inv.payment.payment_date | format_date if inv.payment
@@ -354,6 +435,83 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Project Costs Mini Table (Grouped and Paginated) -->
+            <div class="bg-white shadow sm:rounded-lg overflow-hidden border border-gray-200 mt-6"
+                 x-data="{ page: 1, itemsPerPage: 10, totalItems: {{ costs|length }} }">
+                <div class="px-4 py-5 sm:px-6 bg-white border-b border-gray-200 flex justify-between items-center">
+                    <h3 class="text-base font-semibold leading-6 text-gray-900">Gastos Registrados</h3>
+                    {% if user.role == 'admin' %}
+                    <button @click="showCostModal = true" type="button" class="text-indigo-600 hover:text-indigo-900 text-sm font-medium">
+                        + Agregar Costo
+                    </button>
+                    {% endif %}
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-300">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">Descripción</th>
+                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Fecha</th>
+                                <th scope="col" class="px-3 py-3.5 text-right text-sm font-semibold text-gray-900">Monto</th>
+                                {% if user.role == 'admin' %}
+                                <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6"><span class="sr-only">Acciones</span></th>
+                                {% endif %}
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 bg-white">
+                            {% for cost in costs %}
+                            <tr x-show="(page - 1) * itemsPerPage <= {{ loop.index0 }} && {{ loop.index0 }} < page * itemsPerPage" style="display: none;">
+                                <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6 max-w-[250px] truncate" title="{{ cost.description }}">
+                                    {{ cost.description }}
+                                </td>
+                                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                    {{ cost.date | format_date }}
+                                </td>
+                                <td class="whitespace-nowrap px-3 py-4 text-right text-sm font-medium text-red-600">
+                                    {{ "{:,.2f}".format(cost.amount) }}
+                                </td>
+                                {% if user.role == 'admin' %}
+                                <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                                    <button @click='openEditCostModal({{ cost.id | tojson }}, {{ cost.date | string | tojson }}, {{ cost.description | tojson }}, {{ cost.amount | tojson }})' class="text-indigo-600 hover:text-indigo-900 outline-none">Editar</button>
+                                </td>
+                                {% endif %}
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center py-8 text-gray-500 italic">No hay gastos operativos registrados.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    
+                    <!-- Pagination Controls -->
+                    <template x-if="totalItems > itemsPerPage">
+                        <div class="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
+                            <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-700">
+                                        Mostrando <span class="font-medium" x-text="Math.min((page - 1) * itemsPerPage + 1, totalItems)"></span> a <span class="font-medium" x-text="Math.min(page * itemsPerPage, totalItems)"></span> de <span class="font-medium" x-text="totalItems"></span> resultados
+                                    </p>
+                                </div>
+                                <div>
+                                    <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                                        <button @click="if(page > 1) page--" :disabled="page === 1" class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50">
+                                            <span class="sr-only">Anterior</span>
+                                            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clip-rule="evenodd" /></svg>
+                                        </button>
+                                        <button @click="if(page < Math.ceil(totalItems / itemsPerPage)) page++" :disabled="page >= Math.ceil(totalItems / itemsPerPage)" class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50">
+                                            <span class="sr-only">Siguiente</span>
+                                            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" /></svg>
+                                        </button>
+                                    </nav>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
         </div>
     </div>
 
@@ -368,35 +526,35 @@
             <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
                 <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg"
                     @click.away="showInvoiceModal = false">
-                    <form action="/finance/{{ project.id }}/invoice" method="POST">
+                    <form :action="editInvoiceId ? '/finance/invoice/' + editInvoiceId + '/edit' : '/finance/{{ project.id }}/invoice'" method="POST">
                         <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
-                            <h3 class="text-base font-semibold leading-6 text-gray-900" id="modal-title">Nueva Factura
+                            <h3 class="text-base font-semibold leading-6 text-gray-900" id="modal-title" x-text="editInvoiceId ? 'Editar Factura' : 'Nueva Factura'">
                             </h3>
                             <div class="mt-4 space-y-4">
                                 <div>
                                     <label class="block text-sm font-medium leading-6 text-gray-900">Número de
                                         Factura</label>
-                                    <input type="text" name="invoice_number" required
+                                    <input type="text" name="invoice_number" x-model="invNum" required
                                         class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
                                 </div>
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
                                         <label class="block text-sm font-medium leading-6 text-gray-900">Fecha
                                             Emisión</label>
-                                        <input type="date" name="issue_date" required
+                                        <input type="date" name="issue_date" x-model="invIssue" required
                                             class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
                                     </div>
                                     <div>
                                         <label class="block text-sm font-medium leading-6 text-gray-900">Fecha
                                             Vencimiento</label>
-                                        <input type="date" name="due_date" required
+                                        <input type="date" name="due_date" x-model="invDue" required
                                             class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
                                     </div>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium leading-6 text-gray-900">Línea a
                                         Facturar</label>
-                                    <select name="budget_line_id" required
+                                    <select name="budget_line_id" x-model="invLine" required
                                         class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
                                         <option value="">Seleccione una línea...</option>
                                         {% for line in lines %}
@@ -407,19 +565,27 @@
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium leading-6 text-gray-900">Monto</label>
-                                    <input type="number" step="0.01" name="amount" required
+                                    <input type="number" step="0.01" name="amount" x-model="invAmt" required
                                         class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
                                 </div>
                             </div>
                         </div>
-                        <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                        <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 items-center flex-wrap gap-3">
                             <button type="submit"
-                                class="inline-flex w-full justify-center rounded-md bg-black px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 sm:ml-3 sm:w-auto">Crear
-                                Factura</button>
+                                class="inline-flex w-full justify-center rounded-md bg-black px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 sm:ml-3 sm:w-auto" x-text="editInvoiceId ? 'Actualizar Factura' : 'Crear Factura'"></button>
                             <button type="button" @click="showInvoiceModal = false"
                                 class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">Cancelar</button>
+                            
+                            <!-- Delete Button when Editing -->
+                            <template x-if="editInvoiceId">
+                                <button type="button" @click="$refs.deleteInvoiceForm.submit()" class="inline-flex w-full sm:mr-auto justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:w-auto">
+                                    Eliminar Factura
+                                </button>
+                            </template>
                         </div>
                     </form>
+                    
+                    <form x-ref="deleteInvoiceForm" :action="'/finance/invoice/' + editInvoiceId + '/delete'" method="POST" class="hidden"></form>
                 </div>
             </div>
         </div>
@@ -504,6 +670,50 @@
             </div>
         </div>
     </div>
+
+    <!-- New Cost Modal -->
+    <div x-cloak x-show="showCostModal" class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+        <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+            <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg" @click.away="showCostModal = false">
+                    <form :action="editCostId ? '/finance/cost/' + editCostId + '/edit' : '/finance/{{ project.id }}/cost'" method="POST">
+                        <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+                            <h3 class="text-base font-semibold leading-6 text-gray-900" id="modal-title" x-text="editCostId ? 'Editar Gasto' : 'Registrar Gasto del Proyecto'"></h3>
+                            <p class="text-sm text-gray-500 mb-4 mt-2" x-show="!editCostId">Los gastos operativos (materiales, proveedores, etc) se sumarán como costos directos a este proyecto.</p>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium leading-6 text-gray-900">Fecha del Gasto</label>
+                                    <input type="date" name="date" x-model="costDate" required class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium leading-6 text-gray-900">Monto Invertido</label>
+                                    <input type="number" step="0.01" name="amount" x-model="costAmt" required class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium leading-6 text-gray-900">Descripción / Concepto</label>
+                                    <textarea name="description" rows="3" required x-model="costDesc" placeholder="Ej: Materiales eléctricos, transporte..." class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 items-center flex-wrap gap-3">
+                            <button type="submit" class="inline-flex w-full justify-center rounded-md bg-black px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 sm:ml-3 sm:w-auto" x-text="editCostId ? 'Actualizar Costo' : 'Guardar Costo'"></button>
+                            <button type="button" @click="showCostModal = false" class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">Cancelar</button>
+                            
+                            <!-- Delete Button when Editing -->
+                            <template x-if="editCostId">
+                                <button type="button" @click="$refs.deleteCostForm.submit()" class="inline-flex w-full sm:mr-auto justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:w-auto">
+                                    Eliminar Gasto
+                                </button>
+                            </template>
+                        </div>
+                    </form>
+                    
+                    <form x-ref="deleteCostForm" :action="'/finance/cost/' + editCostId + '/delete'" method="POST" class="hidden"></form>
+                </div>
+            </div>
+        </div>
+    </div>
     {% endif %}
 
 </div>
@@ -513,6 +723,21 @@
         return {
             showInvoiceModal: false,
             showPayModal: false,
+            showCostModal: false,
+
+            // Edit Cost State
+            editCostId: null,
+            costDate: '',
+            costAmt: '',
+            costDesc: '',
+
+            // Edit Invoice State
+            editInvoiceId: null,
+            invNum: '',
+            invIssue: '',
+            invDue: '',
+            invLine: '',
+            invAmt: '',
 
             // Pay Modal Data
             payInvoiceId: null,
@@ -522,8 +747,41 @@
             paymentNote: '',
 
             openInvoiceModal() {
+                this.editInvoiceId = null;
+                this.invNum = '';
+                this.invIssue = '';
+                this.invDue = '';
+                this.invLine = '';
+                this.invAmt = '';
                 this.showInvoiceModal = true;
             },
+            
+            openCostModal() {
+                 this.editCostId = null;
+                 this.costDate = '';
+                 this.costAmt = '';
+                 this.costDesc = '';
+                 this.showCostModal = true;
+            },
+
+            openEditInvoiceModal(id, num, issue, due, line, amt) {
+                 this.editInvoiceId = id;
+                 this.invNum = num;
+                 this.invIssue = issue;
+                 this.invDue = due;
+                 this.invLine = line;
+                 this.invAmt = amt;
+                 this.showInvoiceModal = true;
+            },
+
+            openEditCostModal(id, date, desc, amt) {
+                 this.editCostId = id;
+                 this.costDate = date;
+                 this.costDesc = desc;
+                 this.costAmt = amt;
+                 this.showCostModal = true;
+            },
+
             openPayModal(id, number, amount) {
                 this.payInvoiceId = id;
                 this.payInvoiceNumber = number;
