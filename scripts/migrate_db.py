@@ -5,6 +5,7 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from sqlalchemy import create_engine
+from sqlalchemy.exc import OperationalError
 from app.core.config import settings
 from app.db.base import Base
 
@@ -35,8 +36,14 @@ def migrate():
                 print(f"Migrating table: {table.name}...")
                 
                 # We pull from local SQLite via the app schemas Context
-                result = sq_conn.execute(table.select())
-                rows = result.mappings().all()
+                try:
+                    result = sq_conn.execute(table.select())
+                    rows = result.mappings().all()
+                except OperationalError as e:
+                    if "no such table" in str(e).lower():
+                        print(f"  -> Skipping table '{table.name}' (does not exist in source DB).")
+                        continue
+                    raise e
                 
                 if rows:
                     # Postgres does not tolerate Integer 1/0 for Booleans easily if the mapped dict bypasses type coercion.
