@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.db.base import Base
 from app.db.session import engine
-from app.routers import auth, deps, projects, users, calendar, finance, dashboard, payroll, payments, liquidation, quotes
+from app.routers import auth, deps, projects, users, calendar, finance, dashboard, payroll, payments, liquidation, quotes, logs
 
 app = FastAPI(title=settings.PROJECT_NAME)
 
@@ -38,6 +38,7 @@ app.include_router(payroll.router)
 app.include_router(payments.router)
 app.include_router(liquidation.router)
 app.include_router(quotes.router)
+app.include_router(logs.router)
 
 # Create tables on startup (Simple approach)
 @app.on_event("startup")
