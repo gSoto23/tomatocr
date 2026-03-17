@@ -53,11 +53,21 @@
             <img src="/static/images/LogoTomatoW.png" alt="TOMATO" class="h-6">
             <span class="font-bold tracking-wide text-sm">SISTEMA</span>
         </div>
-        <button @click="sidebarOpen = true" class="text-white hover:text-gray-300">
-            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-        </button>
+        <div class="flex items-center gap-3">
+            {% if user.role == 'admin' or user.role == 'client' %}
+            <a href="/cotizador" class="flex items-center gap-1 text-xs font-semibold bg-white/20 hover:bg-white/30 text-white py-1.5 px-3 rounded-md transition-colors">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Cotizar
+            </a>
+            {% endif %}
+            <button @click="sidebarOpen = true" class="text-white hover:text-gray-300">
+                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+            </button>
+        </div>
     </div>
 
     <!-- Mobile Sidebar Overlay -->
@@ -106,20 +116,6 @@
             </a>
 
             {% if user.role == 'admin' or user.role == 'client' %}
-            <a href="/cotizador"
-                class="group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors {{ 'bg-white/10 text-white' if request and request.url.path.startswith('/cotizador') else 'text-white/70 hover:bg-white/10 hover:text-white' }}">
-                <svg class="mr-3 h-5 w-5 text-white/70 group-hover:text-white" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                Cotizador
-            </a>
-            {% endif %}
-
-
-
-            {% if user.role == 'admin' or user.role == 'client' %}
             <a href="/finance"
                 class="group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors {{ 'bg-white/10 text-white' if request and request.url.path.startswith('/finance') else 'text-white/70 hover:bg-white/10 hover:text-white' }}">
                 <svg class="mr-3 h-5 w-5 text-white/70 group-hover:text-white" fill="none" viewBox="0 0 24 24"
@@ -127,7 +123,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                Presupuesto
+                Presupuestos
             </a>
             {% endif %}
 
@@ -194,6 +190,14 @@
             <h1 class="text-xl font-bold text-gray-900 leading-tight truncate">
                 {% block header_title %}Dashboard{% endblock %}
             </h1>
+            {% if user.role == 'admin' or user.role == 'client' %}
+            <a href="/cotizador" class="flex items-center gap-2 rounded-md bg-black px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 transition-colors">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Cotizador
+            </a>
+            {% endif %}
         </header>
 
         <!-- Main Content -->
