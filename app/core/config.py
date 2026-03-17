@@ -39,10 +39,19 @@ class Settings(BaseSettings):
     def SQLALCHEMY_DATABASE_URI(self) -> str:
         if self.USE_SQLITE:
             return "sqlite:///./sql_app.db"
-        # Since we are migrating to PostgreSQL, we enforce the postgresql protocol
+        
+        from sqlalchemy.engine import URL
         # AWS Lightsail requires SSL (sslmode=require) and strict character URL encoding
-        import urllib.parse
-        encoded_password = urllib.parse.quote(self.DB_PASSWORD, safe="")
-        return f"postgresql://{self.DB_USER}:{encoded_password}@{self.DB_SERVER}:{self.DB_PORT}/{self.DB_NAME}?sslmode=require"
+        # URL.create automatically handles safe escaping for complex passwords
+        url = URL.create(
+            "postgresql",
+            username=self.DB_USER,
+            password=self.DB_PASSWORD,
+            host=self.DB_SERVER,
+            port=int(self.DB_PORT) if self.DB_PORT else 5432,
+            database=self.DB_NAME,
+            query={"sslmode": "require"}
+        )
+        return url.render_as_string(hide_password=False)
 
 settings = Settings()
