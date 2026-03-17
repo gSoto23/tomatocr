@@ -40,8 +40,9 @@ class Settings(BaseSettings):
         if self.USE_SQLITE:
             return "sqlite:///./sql_app.db"
         # Since we are migrating to PostgreSQL, we enforce the postgresql protocol
+        # AWS Lightsail requires SSL (sslmode=require) and strict character URL encoding
         import urllib.parse
-        encoded_password = urllib.parse.quote_plus(self.DB_PASSWORD)
-        return f"postgresql://{self.DB_USER}:{encoded_password}@{self.DB_SERVER}:{self.DB_PORT}/{self.DB_NAME}"
+        encoded_password = urllib.parse.quote(self.DB_PASSWORD, safe="")
+        return f"postgresql://{self.DB_USER}:{encoded_password}@{self.DB_SERVER}:{self.DB_PORT}/{self.DB_NAME}?sslmode=require"
 
 settings = Settings()
