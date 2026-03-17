@@ -13,11 +13,11 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
     # Database
-    DB_USER: str = os.getenv("MYSQL_USER", "root")
-    DB_PASSWORD: str = os.getenv("MYSQL_PASSWORD", "")
-    DB_SERVER: str = os.getenv("MYSQL_SERVER", "localhost")
-    DB_PORT: str = os.getenv("MYSQL_PORT", "5432")
-    DB_NAME: str = os.getenv("MYSQL_DB", "tomatodb")
+    DB_USER: str = os.getenv("DB_USER", "root")
+    DB_PASSWORD: str = os.getenv("DB_PASSWORD", "")
+    DB_SERVER: str = os.getenv("DB_SERVER", "localhost")
+    DB_PORT: str = os.getenv("DB_PORT", "5432")
+    DB_NAME: str = os.getenv("DB_NAME", "tomatodb")
     USE_SQLITE: bool = os.getenv("USE_SQLITE", "True").lower() in ("true", "1", "t")
 
     # AWS S3 Storage
