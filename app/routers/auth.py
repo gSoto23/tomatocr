@@ -8,7 +8,10 @@ from app.core.security import verify_password, create_access_token
 from app.core.config import settings
 from datetime import timedelta
 
+from datetime import timedelta
+
 from app.routers import deps
+from app.utils.audit import log_activity
 
 router = APIRouter()
 
@@ -34,13 +37,39 @@ async def login(
         expires_delta=access_token_expires
     )
 
+    # Log activity
+    log_activity(
+        db=db,
+        user_id=db_user.id,
+        action="LOGIN",
+        details=f"Usuario {db_user.username} inició sesión."
+    )
+
     # Redirect to Dashboard with Cookie
     response = RedirectResponse(url="/dashboard", status_code=status.HTTP_303_SEE_OTHER)
     response.set_cookie(key="access_token", value=f"Bearer {access_token}", httponly=True)
     return response
 
 @router.get("/logout")
-async def logout():
+async def logout(
+    request: Request,
+    db: Session = Depends(deps.get_db)
+):
+    # Try to extract user from cookie if possible to log logout event
+    token = request.cookies.get("access_token")
+    if token:
+        try:
+            user = deps.get_current_user(token, db)
+            if user:
+                log_activity(
+                    db=db,
+                    user_id=user.id,
+                    action="LOGOUT",
+                    details=f"Usuario {user.username} cerró sesión."
+                )
+        except Exception:
+            pass # Ignore expired/invalid tokens on logout
+
     response = RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
     response.delete_cookie("access_token")
     return response

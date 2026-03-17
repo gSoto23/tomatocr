@@ -1,14 +1,31 @@
 {% extends "base_dashboard.html" %}
 
-{% block title %}Bitácora del Sistema{% endblock %}
+{% block header_title %}Registro de Actividad{% endblock %}
 
 {% block content %}
 <div class="px-4 sm:px-6 lg:px-8">
     <div class="sm:flex sm:items-center">
         <div class="sm:flex-auto">
-            <h1 class="text-base font-semibold leading-6 text-gray-900">Bitácora del Sistema</h1>
-            <p class="mt-2 text-sm text-gray-700">Registro de todas las acciones de modificación realizadas en el
-                sistema (Usuarios, Proyectos, Reportes).</p>
+            <h1 class="text-base font-semibold leading-6 text-gray-900">Bitácora de Eventos (Audit Logs)</h1>
+            <p class="mt-2 text-sm text-gray-700">Un registro de todas las acciones clave realizadas por los usuarios en la plataforma. Visible únicamente para administradores.</p>
+        </div>
+    </div>
+
+    <!-- Filtros de Búsqueda -->
+    <div class="mt-4 flex flex-col md:flex-row gap-4 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+        <div class="flex-1">
+            <label for="search-input" class="block text-xs font-medium text-gray-700">Buscar por Usuario, Acción o Entidad</label>
+            <div class="mt-1 relative rounded-md shadow-sm">
+                <input type="text" id="search-input" onkeyup="filterTable()" class="block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6" placeholder="Ej: CREATE, edd...">
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                    <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </div>
+            </div>
+        </div>
+        <div class="md:w-1/4 flex items-end">
+            <button onclick="document.getElementById('search-input').value=''; filterTable();" type="button" class="w-full inline-flex justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Limpiar Filtros</button>
         </div>
     </div>
 
@@ -16,51 +33,62 @@
         <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
             <div class="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
                 <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
-                    <table class="min-w-full divide-y divide-gray-300">
+                    <table class="min-w-full divide-y divide-gray-300" id="activity-table">
                         <thead class="bg-gray-50">
                             <tr>
-                                <th scope="col"
-                                    class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">Fecha
-                                </th>
-                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                                    Usuario</th>
-                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Acción
-                                </th>
-                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                                    Entidad</th>
-                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                                    Detalles</th>
+                                <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">Fecha y Hora</th>
+                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Usuario</th>
+                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Acción</th>
+                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Entidad Afectada</th>
+                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Detalles</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-200 bg-white">
                             {% for log in logs %}
-                            <tr>
+                            <tr class="log-row">
                                 <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm text-gray-500 sm:pl-6">
-                                    {{ log.created_at | format_datetime_cr }}
+                                    {{ log.created_at.strftime('%d-%m-%Y %H:%M:%S') }}
                                 </td>
-                                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                    {{ log.user.username }}
+                                <td class="whitespace-nowrap px-3 py-4 text-sm font-medium text-gray-900 hidden-search">
+                                    {{ log.user.full_name or log.user.username if log.user else 'Sistema / Anónimo' }}
                                 </td>
-                                <td class="whitespace-nowrap px-3 py-4 text-sm font-medium">
-                                    <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset 
-                                        {% if log.action == 'CREATE' %} bg-green-50 text-green-700 ring-green-600/20 
-                                        {% elif log.action == 'UPDATE' %} bg-blue-50 text-blue-700 ring-blue-600/20 
-                                        {% elif log.action == 'DELETE' %} bg-red-50 text-red-700 ring-red-600/20 
-                                        {% else %} bg-gray-50 text-gray-600 ring-gray-500/10 {% endif %}">
-                                        {{ log.action }}
-                                    </span>
+                                <td class="whitespace-nowrap px-3 py-4 text-sm hidden-search">
+                                    {% if log.action == 'LOGIN' %}
+                                        <span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">LOGIN</span>
+                                    {% elif log.action == 'LOGOUT' %}
+                                        <span class="inline-flex items-center rounded-md bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-800 ring-1 ring-inset ring-yellow-600/20">LOGOUT</span>
+                                    {% elif log.action == 'CREATE' %}
+                                        <span class="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">CREAR</span>
+                                    {% elif log.action == 'UPDATE' %}
+                                        <span class="inline-flex items-center rounded-md bg-orange-50 px-2 py-1 text-xs font-medium text-orange-700 ring-1 ring-inset ring-orange-700/10">ACTUALIZAR</span>
+                                    {% elif log.action == 'DELETE' %}
+                                        <span class="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/10">ELIMINAR</span>
+                                    {% elif log.action == 'EMAIL' %}
+                                        <span class="inline-flex items-center rounded-md bg-purple-50 px-2 py-1 text-xs font-medium text-purple-700 ring-1 ring-inset ring-purple-700/10">ENVIAR CORREO</span>
+                                    {% else %}
+                                        <span class="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">{{ log.action }}</span>
+                                    {% endif %}
                                 </td>
-                                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                    {{ log.entity_type }} #{{ log.entity_id }}
+                                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500 hidden-search">
+                                    {{ log.entity_type or '-' }} {% if log.entity_id %} #{{ log.entity_id }}{% endif %}
                                 </td>
-                                <td class="px-3 py-4 text-sm text-gray-500">
-                                    {{ log.details }}
+                                <td class="px-3 py-4 text-sm text-gray-500 text-wrap hidden-search">
+                                    {{ log.details or '-' }}
+                                    {% if log.ip_address %}
+                                      <br><span class="text-xs text-gray-400">IP: {{ log.ip_address }}</span>
+                                    {% endif %}
                                 </td>
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="5" class="px-3 py-4 text-sm text-gray-500 text-center italic">
-                                    No hay registros de actividad aun.
+                                <td colspan="5" class="px-6 py-10 text-center text-sm text-gray-500">
+                                    <div class="flex flex-col items-center justify-center">
+                                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        <h3 class="mt-2 text-sm font-semibold text-gray-900">No hay registros de actividad</h3>
+                                        <p class="mt-1 text-sm text-gray-500">El historial se empezará a llenar automáticamente a partir de ahora.</p>
+                                    </div>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -70,45 +98,69 @@
             </div>
         </div>
     </div>
-
-    <!-- Pagination -->
+    
+    <!-- Paginación -->
     {% if total_pages > 1 %}
-    <div class="mt-4 flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
+    <div class="mt-4 flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 shadow-sm ring-1 ring-black ring-opacity-5 rounded-lg">
         <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
             <div>
                 <p class="text-sm text-gray-700">
-                    Mostrando página <span class="font-medium">{{ page }}</span> de <span class="font-medium">{{
-                        total_pages }}</span>
+                    Mostrando página <span class="font-medium">{{ page }}</span> de <span class="font-medium">{{ total_pages }}</span>
+                    (Total: {{ total_records }})
                 </p>
             </div>
             <div>
                 <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
                     {% if page > 1 %}
-                    <a href="?page={{ page - 1 }}"
-                        class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0">
-                        <span class="sr-only">Previous</span>
+                    <a href="?page={{ page - 1 }}" class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0">
                         <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                            <path fill-rule="evenodd"
-                                d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z"
-                                clip-rule="evenodd" />
+                            <path fill-rule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clip-rule="evenodd" />
                         </svg>
                     </a>
                     {% endif %}
-
-                    {% if page < total_pages %} <a href="?page={{ page + 1 }}"
-                        class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0">
-                        <span class="sr-only">Next</span>
+                    
+                    {% if page < total_pages %}
+                    <a href="?page={{ page + 1 }}" class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0">
                         <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                            <path fill-rule="evenodd"
-                                d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z"
-                                clip-rule="evenodd" />
+                            <path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" />
                         </svg>
-                        </a>
-                        {% endif %}
+                    </a>
+                    {% endif %}
                 </nav>
             </div>
         </div>
     </div>
     {% endif %}
+
 </div>
+
+<script>
+    function filterTable() {
+        let input, filter, table, tr, td, i, txtValue;
+        input = document.getElementById("search-input");
+        filter = input.value.toUpperCase();
+        table = document.getElementById("activity-table");
+        tr = table.getElementsByClassName("log-row");
+
+        for (i = 0; i < tr.length; i++) {
+            let rowData = tr[i].getElementsByClassName("hidden-search");
+            let rowVisible = false;
+            for (let j = 0; j < rowData.length; j++) {
+                td = rowData[j];
+                if (td) {
+                    txtValue = td.textContent || td.innerText;
+                    if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                        rowVisible = true;
+                        break;
+                    }
+                }
+            }
+            if (rowVisible) {
+                tr[i].style.display = "";
+            } else {
+                tr[i].style.display = "none";
+            }
+        }
+    }
+</script>
 {% endblock %}
