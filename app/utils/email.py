@@ -146,6 +146,15 @@ async def send_log_email(log_id: int, recipients: List[EmailStr], additional_tex
         fm = FastMail(conf)
         await fm.send_message(message, template_name="emails/log_report.html")
     except Exception as e:
+        import traceback
+        import sys
+        
+        with open("/tmp/email_error.log", "a") as f:
+            f.write(f"CRITICAL EMAIL ERROR: {e}\n")
+            traceback.print_exc(file=f)
+
+        print(f"CRITICAL EMAIL ERROR: {e}", file=sys.stderr)
+        traceback.print_exc(file=sys.stderr)
         logger.error(f"Error sending email: {e}")
     finally:
         # Cleanup temp files
