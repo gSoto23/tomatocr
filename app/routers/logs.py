@@ -349,6 +349,7 @@ from pydantic import EmailStr, BaseModel
 class EmailSchema(BaseModel):
     recipients: List[EmailStr]
     additional_text: Optional[str] = None
+    custom_notes: Optional[str] = None
 
 from fastapi import BackgroundTasks
 
@@ -368,7 +369,7 @@ async def send_email(
         raise HTTPException(status_code=404, detail="Log not found")
 
     # Send in background to avoid blocking
-    background_tasks.add_task(send_log_email, log.id, email_data.recipients, email_data.additional_text)
+    background_tasks.add_task(send_log_email, log.id, email_data.recipients, email_data.additional_text, email_data.custom_notes)
     
     # Audit Log
     try:

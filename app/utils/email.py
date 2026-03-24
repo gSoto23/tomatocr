@@ -30,7 +30,7 @@ conf = ConnectionConfig(
 
 from app.db.session import SessionLocal
 
-async def send_log_email(log_id: int, recipients: List[EmailStr], additional_text: str = None):
+async def send_log_email(log_id: int, recipients: List[EmailStr], additional_text: str = None, custom_notes: str = None):
     """
     Send an email with the log details to the specified recipients.
     """
@@ -134,7 +134,7 @@ async def send_log_email(log_id: int, recipients: List[EmailStr], additional_tex
                 "project_name": log.project.name,
                 "manager_name": log.user.full_name or log.user.username,
                 "date": date_str,
-                "notes": log.notes,
+                "notes": custom_notes if custom_notes is not None else log.notes,
                 "done_tasks": done_tasks,
                 "additional_text": additional_text,
                 "log": log # Pass full object just in case
