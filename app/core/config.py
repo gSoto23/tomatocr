@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     SECRET_KEY: str = os.getenv("SECRET_KEY", "super-secret-key-change-it")
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 1440)) # 1440 mins = 24 hrs defecto
     
     # Database
     DB_USER: str = os.getenv("DB_USER", "root")
