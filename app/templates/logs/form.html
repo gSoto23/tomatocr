@@ -33,6 +33,20 @@
                     </div>
                 </div>
 
+                <!-- Location Selection (Dynamic) -->
+                <div class="col-span-full" x-show="selectedProjectId && currentLocations.length > 0">
+                    <label for="location_id" class="block text-sm font-medium leading-6 text-gray-900">Sede Específica (Opcional)</label>
+                    <div class="mt-2">
+                        <select id="location_id" x-model="selectedLocationId"
+                            class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
+                            <option value="">General / No Aplica</option>
+                            <template x-for="loc in currentLocations" :key="loc.id">
+                                <option :value="loc.id" x-text="loc.name"></option>
+                            </template>
+                        </select>
+                    </div>
+                </div>
+
                 <!-- Task Checklist (Dynamic) -->
                 <div class="col-span-full" x-show="selectedProjectId && currentTasks.length > 0">
                     <h3 class="text-sm font-medium leading-6 text-gray-900 mb-2">Tareas Realizadas</h3>
@@ -138,95 +152,109 @@
 </div>
 
 <script>
+    // Define the data globally first to bypass parsing issues
+    const projectTasksData = {{ project_tasks_json | safe }};
+    const projectLocationsData = {{ project_locations_json | safe }};
+
     function logForm() {
         return {
             selectedProjectId: '{{ selected_project_id or "" }}',
-            tasksMap: {{ project_tasks_json | safe }
-    },
-    formNotes: '',
-        selectedTasks: [],
+            selectedLocationId: '',
+            tasksMap: projectTasksData,
+            locationsMap: projectLocationsData,
+            formNotes: '',
+            selectedTasks: [],
             files: [],
-                isSubmitting: false,
+            isSubmitting: false,
 
-                    get currentTasks() {
-        if (!this.selectedProjectId) return [];
-        return this.tasksMap[parseInt(this.selectedProjectId)] || [];
-    },
+            get currentTasks() {
+                if (!this.selectedProjectId) return [];
+                return this.tasksMap[parseInt(this.selectedProjectId)] || [];
+            },
 
-    updateTasks() {
-        this.selectedTasks = [];
-    },
+            get currentLocations() {
+                if (!this.selectedProjectId) return [];
+                return this.locationsMap[parseInt(this.selectedProjectId)] || [];
+            },
 
-    handleFiles(fileList) {
-        for (let i = 0; i < fileList.length; i++) {
-            this.files.push(fileList[i]);
-        }
-        document.getElementById('file-upload').value = '';
-    },
+            updateTasks() {
+                this.selectedTasks = [];
+                this.selectedLocationId = '';
+            },
 
-    handleDrop(event) {
-        const droppedFiles = event.dataTransfer.files;
-        this.handleFiles(droppedFiles);
-    },
+            handleFiles(fileList) {
+                for (let i = 0; i < fileList.length; i++) {
+                    this.files.push(fileList[i]);
+                }
+                document.getElementById('file-upload').value = '';
+            },
 
-    removeFile(index) {
-        this.files.splice(index, 1);
-    },
+            handleDrop(event) {
+                const droppedFiles = event.dataTransfer.files;
+                this.handleFiles(droppedFiles);
+            },
+
+            removeFile(index) {
+                this.files.splice(index, 1);
+            },
 
             async submitForm() {
-        if (this.isSubmitting) return;
+                if (this.isSubmitting) return;
 
-        if (!this.selectedProjectId) {
-            alert('Seleccione un proyecto');
-            return;
-        }
+                if (!this.selectedProjectId) {
+                    alert('Seleccione un proyecto');
+                    return;
+                }
 
-        // Required Tasks Validation
-        const requiredTasks = this.currentTasks.filter(t => t.is_required);
-        for (let task of requiredTasks) {
-            // Check mixed types (String/Number)
-            const isChecked = this.selectedTasks.some(id => String(id) === String(task.id));
-            if (!isChecked) {
-                alert(`La tarea "${task.description}" es requerida.`);
-                return;
+                // Required Tasks Validation
+                const requiredTasks = this.currentTasks.filter(t => t.is_required);
+                for (let task of requiredTasks) {
+                    // Check mixed types (String/Number)
+                    const isChecked = this.selectedTasks.some(id => String(id) === String(task.id));
+                    if (!isChecked) {
+                        alert(`La tarea "${task.description}" es requerida.`);
+                        return;
+                    }
+                }
+
+                this.isSubmitting = true;
+                const formData = new FormData();
+                formData.append('project_id', this.selectedProjectId);
+                if (this.selectedLocationId) {
+                    formData.append('location_id', this.selectedLocationId);
+                }
+                formData.append('date', '{{ today.strftime("%Y-%m-%d") }}');
+                formData.append('notes', this.formNotes);
+
+                this.selectedTasks.forEach(taskId => {
+                    formData.append('tasks', taskId);
+                });
+
+                this.files.forEach(file => {
+                    formData.append('photos', file);
+                });
+
+                try {
+                    const response = await fetch('/logs/new', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (response.redirected) {
+                        window.location.href = response.url;
+                    } else if (response.ok) {
+                        window.location.href = '/projects/' + this.selectedProjectId;
+                    } else {
+                        const errorData = await response.json();
+                        alert('Error al guardar: ' + (errorData.detail || 'Error desconocido'));
+                        this.isSubmitting = false;
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Error de conexión');
+                    this.isSubmitting = false;
+                }
             }
-        }
-
-        this.isSubmitting = true;
-        const formData = new FormData();
-        formData.append('project_id', this.selectedProjectId);
-        formData.append('date', '{{ today.strftime("%Y-%m-%d") }}');
-        formData.append('notes', this.formNotes);
-
-        this.selectedTasks.forEach(taskId => {
-            formData.append('tasks', taskId);
-        });
-
-        this.files.forEach(file => {
-            formData.append('photos', file);
-        });
-
-        try {
-            const response = await fetch('/logs/new', {
-                method: 'POST',
-                body: formData
-            });
-
-            if (response.redirected) {
-                window.location.href = response.url;
-            } else if (response.ok) {
-                window.location.href = '/projects/' + this.selectedProjectId;
-            } else {
-                const errorData = await response.json();
-                alert('Error al guardar: ' + (errorData.detail || 'Error desconocido'));
-                this.isSubmitting = false;
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            alert('Error de conexión');
-            this.isSubmitting = false;
-        }
-    }
         }
     }
 </script>
