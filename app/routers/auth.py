@@ -45,6 +45,7 @@ async def login(
         db=db,
         user=db_user,
         action="LOGIN",
+        entity_type="SISTEMA",
         details=f"Usuario {db_user.username} inició sesión."
     )
 
@@ -68,6 +69,7 @@ async def logout(
                     db=db,
                     user=user,
                     action="LOGOUT",
+                    entity_type="SISTEMA",
                     details=f"Usuario {user.username} cerró sesión."
                 )
         except Exception:
