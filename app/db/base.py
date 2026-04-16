@@ -7,7 +7,7 @@ from app.db.models.user import User  # This causes circular import if User impor
 from app.db.models.project import Project
 from app.db.models.log import DailyLog, Photo
 from app.db.models.schedule import ProjectSchedule
-from app.db.models.project_details import ProjectSupply, ProjectTask
+from app.db.models.project_details import ProjectSupply, ProjectTask, ProjectLocation
 from app.db.models.log_task import DailyLogTask
 from app.db.models.finance import ProjectBudget, BudgetLine, Invoice, Payment, ProjectCost
 from app.db.models.activity import ActivityLog
