@@ -78,19 +78,19 @@
                                 <td class="whitespace-nowrap px-3 py-5 text-sm hidden-search">
                                     <div class="flex space-x-2 items-center">
                                         {% if log.action in ['LOGIN', 'LOGOUT'] %}
-                                            <span class="inline-flex items-center justify-center rounded-md bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800 ring-1 ring-inset ring-emerald-600/20 w-20 shadow-sm">{{ log.action }}</span>
+                                            <span class="inline-flex items-center justify-center rounded-md bg-emerald-100 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-emerald-800 ring-1 ring-inset ring-emerald-600/20 whitespace-nowrap shadow-sm">{{ log.action }}</span>
                                         {% elif log.action == 'CREATE' or log.action == 'CREAR' %}
-                                            <span class="inline-flex items-center justify-center rounded-md bg-blue-100 px-2.5 py-1 text-xs font-semibold text-blue-800 ring-1 ring-inset ring-blue-700/20 w-20 shadow-sm">CREACIÓN</span>
+                                            <span class="inline-flex items-center justify-center rounded-md bg-blue-100 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-blue-800 ring-1 ring-inset ring-blue-700/20 whitespace-nowrap shadow-sm">CREACIÓN</span>
                                         {% elif log.action == 'UPDATE' or log.action == 'EDITAR' %}
-                                            <span class="inline-flex items-center justify-center rounded-md bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800 ring-1 ring-inset ring-amber-600/20 w-20 shadow-sm">EDICIÓN</span>
+                                            <span class="inline-flex items-center justify-center rounded-md bg-amber-100 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-amber-800 ring-1 ring-inset ring-amber-600/20 whitespace-nowrap shadow-sm">EDICIÓN</span>
                                         {% elif log.action == 'DELETE' or log.action == 'ELIMINAR' %}
-                                            <span class="inline-flex items-center justify-center rounded-md bg-rose-100 px-2.5 py-1 text-xs font-semibold text-rose-800 ring-1 ring-inset ring-rose-600/20 w-20 shadow-sm">BORRADO</span>
+                                            <span class="inline-flex items-center justify-center rounded-md bg-rose-100 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-rose-800 ring-1 ring-inset ring-rose-600/20 whitespace-nowrap shadow-sm">BORRADO</span>
                                         {% elif log.action == 'EMAIL' %}
-                                            <span class="inline-flex items-center justify-center rounded-md bg-fuchsia-100 px-2.5 py-1 text-xs font-semibold text-fuchsia-800 ring-1 ring-inset ring-fuchsia-600/20 w-20 shadow-sm">CORREO</span>
+                                            <span class="inline-flex items-center justify-center rounded-md bg-fuchsia-100 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-fuchsia-800 ring-1 ring-inset ring-fuchsia-600/20 whitespace-nowrap shadow-sm">CORREO</span>
                                         {% elif log.action == 'PAGO' %}
-                                            <span class="inline-flex items-center justify-center rounded-md bg-teal-100 px-2.5 py-1 text-xs font-semibold text-teal-800 ring-1 ring-inset ring-teal-600/20 w-20 shadow-sm">PAGO</span>
+                                            <span class="inline-flex items-center justify-center rounded-md bg-teal-100 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-teal-800 ring-1 ring-inset ring-teal-600/20 whitespace-nowrap shadow-sm">PAGO</span>
                                         {% else %}
-                                            <span class="inline-flex items-center justify-center rounded-md bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-800 ring-1 ring-inset ring-gray-600/20 w-20 shadow-sm">{{ log.action }}</span>
+                                            <span class="inline-flex items-center justify-center rounded-md bg-gray-100 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-gray-800 ring-1 ring-inset ring-gray-600/20 whitespace-nowrap shadow-sm">{{ log.action }}</span>
                                         {% endif %}
                                         
                                         <span class="text-gray-600 font-medium text-xs tracking-wide">
