@@ -35,7 +35,10 @@
                     <!-- Content -->
                     <div id="log-content" class="hidden space-y-4">
                         <div class="flex justify-between text-sm text-gray-500 border-b pb-2">
-                            <span id="log-project" class="font-medium text-gray-900"></span>
+                            <div>
+                                <span id="log-project" class="font-medium text-gray-900 block"></span>
+                                <span id="log-location" class="text-xs text-gray-400 block mt-0.5"></span>
+                            </div>
                             <span id="log-date"></span>
                         </div>
 
@@ -188,6 +191,16 @@
 
                 // Populate
                 document.getElementById('log-project').textContent = data.project_name;
+                
+                const locEl = document.getElementById('log-location');
+                if (data.location_name) {
+                    locEl.textContent = `Sede: ${data.location_name}`;
+                    locEl.classList.remove('hidden');
+                } else {
+                    locEl.textContent = '';
+                    locEl.classList.add('hidden');
+                }
+                
                 document.getElementById('log-date').textContent = formatDateJS(data.date);
                 document.getElementById('log-user').textContent = data.user_name;
                 document.getElementById('log-notes').textContent = data.notes;
@@ -371,7 +384,7 @@
             document.getElementById('btn-cancel-email').classList.remove('hidden');
 
             // Populate Preview
-            document.getElementById('email-preview-project').textContent = currentLogData.project_name;
+            document.getElementById('email-preview-project').textContent = currentLogData.project_name + (currentLogData.location_name ? ` (Sede: ${currentLogData.location_name})` : '');
             document.getElementById('email-preview-date').textContent = formatDateJS(currentLogData.date);
             document.getElementById('email-full-notes').value = currentLogData.notes || "";
 

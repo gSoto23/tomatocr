@@ -164,6 +164,44 @@
                     </div>
                 </div>
 
+                <!-- Multiple Locations (Sedes adicionales) -->
+                <div class="col-span-full border-t pt-4 mt-4">
+                    <h3 class="text-base font-semibold leading-7 text-gray-900">Sedes Adicionales (Opcional)</h3>
+                    <p class="text-sm text-gray-500 mb-4">Puede agregar ubicaciones específicas donde se ejecutará el proyecto.</p>
+                </div>
+
+                <div class="space-y-2 col-span-full">
+                    <template x-for="(loc, index) in formData.locations" :key="index">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 border p-2 rounded relative">
+                            <input type="text" x-model="loc.name" placeholder="Nombre de Sede (ej: Sede Norte)" required
+                                class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+
+                            <input type="url" x-model="loc.waze_pin" placeholder="Link de Waze (Opcional)"
+                                class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+
+                            <textarea x-model="loc.location" placeholder="Ubicación o dirección (Opcional)" rows="2"
+                                class="col-span-1 sm:col-span-2 block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6"></textarea>
+
+                            <button type="button" @click="removeLocation(index)"
+                                class="absolute top-2 right-2 text-red-500 hover:text-red-700">
+                                <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd"
+                                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                        </div>
+                    </template>
+                    <button type="button" @click="addLocation()"
+                        class="text-sm text-indigo-600 hover:text-indigo-900 flex items-center gap-1 font-semibold">
+                        <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                            <path
+                                d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+                        </svg>
+                        Agregar Sede
+                    </button>
+                </div>
+
                 <!-- Contact -->
                 <div class="col-span-full border-t pt-4 mt-4">
                     <h3 class="text-base font-semibold leading-7 text-gray-900">Contacto en Sitio</h3>
@@ -459,6 +497,7 @@
     is_active: true,
         {% endif %}
     description: {{ (project.description if project and project.description else "") | tojson | safe }},
+    locations: [],
     contacts: [],
         client_ids: [],
             worker_ids: [],
@@ -487,6 +526,14 @@
 
     {% if project %}
     // Populate lists if project exists
+    {% for loc in project.locations %}
+    _initialData.locations.push({
+        name: {{ loc.name | tojson | safe }},
+        location: {{ (loc.location if loc.location else "") | tojson | safe }},
+        waze_pin: {{ (loc.waze_pin if loc.waze_pin else "") | tojson | safe }}
+    });
+    {% endfor %}
+
     {% for c in project.contacts %}
     _initialData.contacts.push({
         name: {{ c.name | tojson | safe }},
@@ -579,6 +626,12 @@
             },
             removeTask(index) {
                 this.formData.tasks.splice(index, 1);
+            },
+            addLocation() {
+                this.formData.locations.push({ name: '', location: '', waze_pin: '' });
+            },
+            removeLocation(index) {
+                this.formData.locations.splice(index, 1);
             },
             addBudgetLine() {
                 this.formData.budget_lines.push({ name: '', subtotal: 0, tax_percentage: 13.0 });

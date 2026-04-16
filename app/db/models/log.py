@@ -9,6 +9,7 @@ class DailyLog(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
+    location_id = Column(Integer, ForeignKey("project_locations.id"), nullable=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     date = Column(Date, nullable=False, default=func.now())
     notes = Column(Text)
@@ -16,6 +17,7 @@ class DailyLog(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     project = relationship("Project", backref="logs")
+    location = relationship("ProjectLocation")
     user = relationship("User", backref="logs")
     photos = relationship("Photo", back_populates="log", cascade="all, delete-orphan")
 

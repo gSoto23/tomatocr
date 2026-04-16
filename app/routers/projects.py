@@ -9,7 +9,7 @@ from pydantic import BaseModel
 
 from app.db.session import SessionLocal
 from app.db.models.project import Project
-from app.db.models.project_details import ProjectSupply, ProjectTask, ProjectContact
+from app.db.models.project_details import ProjectSupply, ProjectTask, ProjectContact, ProjectLocation
 from app.db.models.finance import ProjectBudget, BudgetLine, ProjectCost
 from app.db.models.schedule import ProjectSchedule
 from app.db.models.user import User
@@ -41,6 +41,11 @@ class TaskCreate(BaseModel):
     description: str
     is_required: bool = True
 
+class LocationCreate(BaseModel):
+    name: str
+    location: Optional[str] = None
+    waze_pin: Optional[str] = None
+
 class ContactCreate(BaseModel):
     name: str
     phone: Optional[str] = None
@@ -65,6 +70,7 @@ class ProjectCreate(BaseModel):
     contacts: List[ContactCreate] = []
     supplies: List[SupplyCreate] = []
     tasks: List[TaskCreate] = []
+    locations: List[LocationCreate] = []
     is_active: bool = True
     # Budget Information
     licitation_number: Optional[str] = None
@@ -185,6 +191,10 @@ async def create_project(
     for t in project_in.tasks:
         db.add(ProjectTask(project_id=project.id, description=t.description, is_required=t.is_required))
 
+    # Add Locations
+    for loc in project_in.locations:
+        db.add(ProjectLocation(project_id=project.id, name=loc.name, location=loc.location, waze_pin=loc.waze_pin))
+
     # Add Budget Info
     import datetime
     
@@ -300,6 +310,11 @@ async def update_project(
     db.query(ProjectTask).filter(ProjectTask.project_id == id).delete()
     for t in project_in.tasks:
         db.add(ProjectTask(project_id=id, description=t.description, is_required=t.is_required))
+
+    # Update Locations
+    db.query(ProjectLocation).filter(ProjectLocation.project_id == id).delete()
+    for loc in project_in.locations:
+        db.add(ProjectLocation(project_id=id, name=loc.name, location=loc.location, waze_pin=loc.waze_pin))
 
     # Update Budget
     import datetime

@@ -132,6 +132,8 @@ async def send_log_email(log_id: int, recipients: List[EmailStr], additional_tex
             recipients=recipients,
             template_body={
                 "project_name": log.project.name,
+                "location_name": log.location.name if log.location else None,
+                "location_waze": log.location.waze_pin if log.location else None,
                 "manager_name": log.user.full_name or log.user.username,
                 "date": date_str,
                 "notes": custom_notes if custom_notes is not None else log.notes,

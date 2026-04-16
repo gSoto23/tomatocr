@@ -145,6 +145,7 @@ async def get_log_detail(id: int, db: Session = Depends(deps.get_db), user: User
     return {
         "id": log.id,
         "project_name": log.project.name,
+        "location_name": log.location.name if log.location else None,
         "user_name": log.user.full_name or log.user.username,
         "date": log.date.strftime('%Y-%m-%d'),
         "notes": log.notes,
@@ -193,6 +194,7 @@ async def delete_log(id: int, db: Session = Depends(deps.get_db), user: User = D
 async def update_log(
     id: int,
     notes: str = Form(...),
+    location_id: Optional[int] = Form(None),
     task_ids: List[int] = Form([], alias="tasks"),
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
@@ -205,6 +207,7 @@ async def update_log(
         raise HTTPException(status_code=403, detail="Not authorized")
     
     log.notes = notes
+    log.location_id = location_id if location_id else None
     
     # Update tasks
     # Clear existing tasks? Or merge?
@@ -245,16 +248,22 @@ async def new_log_form(request: Request, project_id: Optional[int] = None, db: S
             .filter(Project.is_active == True)\
             .all()
 
-    # Pre-fetch tasks for all available projects to pass to JS
+    # Pre-fetch tasks and locations for all available projects to pass to JS
     project_tasks_map = {}
+    project_locations_map = {}
     for p in projects:
         project_tasks_map[p.id] = [
             {"id": t.id, "description": t.description, "is_required": t.is_required} 
             for t in p.tasks
         ]
+        project_locations_map[p.id] = [
+            {"id": loc.id, "name": loc.name}
+            for loc in p.locations
+        ]
 
     today = date.today()
     project_tasks_json = json.dumps(project_tasks_map)
+    project_locations_json = json.dumps(project_locations_map)
     
     return templates.TemplateResponse("logs/form_fixed.html", {
         "request": request,
@@ -262,13 +271,14 @@ async def new_log_form(request: Request, project_id: Optional[int] = None, db: S
         "projects": projects,
         "today": today,
         "project_tasks_json": project_tasks_json,
+        "project_locations_json": project_locations_json,
         "selected_project_id": project_id,
-
     })
 
 @router.post("/new")
 async def create_log(
     project_id: int = Form(...),
+    location_id: Optional[int] = Form(None),
     date_val: str = Form(..., alias="date"),
     notes: str = Form(""),
     task_ids: List[int] = Form([], alias="tasks"), # IDs of completed tasks
@@ -292,6 +302,7 @@ async def create_log(
     log_date = datetime.strptime(date_val, "%Y-%m-%d").date()
     new_log = DailyLog(
         project_id=project_id,
+        location_id=location_id if location_id else None,
         user_id=user.id,
         date=log_date,
         notes=notes

@@ -33,6 +33,20 @@
                     </div>
                 </div>
 
+                <!-- Location Selection (Dynamic) -->
+                <div class="col-span-full" x-show="selectedProjectId && currentLocations.length > 0">
+                    <label for="location_id" class="block text-sm font-medium leading-6 text-gray-900">Sede Específica (Opcional)</label>
+                    <div class="mt-2">
+                        <select id="location_id" x-model="selectedLocationId"
+                            class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
+                            <option value="">General / No Aplica</option>
+                            <template x-for="loc in currentLocations" :key="loc.id">
+                                <option :value="loc.id" x-text="loc.name"></option>
+                            </template>
+                        </select>
+                    </div>
+                </div>
+
                 <!-- Task Checklist (Dynamic) -->
                 <div class="col-span-full" x-show="selectedProjectId && currentTasks.length > 0">
                     <h3 class="text-sm font-medium leading-6 text-gray-900 mb-2">Tareas Realizadas</h3>
@@ -140,11 +154,14 @@
 <script>
     // Define the data globally first to bypass parsing issues
     const projectTasksData = {{ project_tasks_json | safe }};
+    const projectLocationsData = {{ project_locations_json | safe }};
 
     function logForm() {
         return {
             selectedProjectId: '{{ selected_project_id or "" }}',
+            selectedLocationId: '',
             tasksMap: projectTasksData,
+            locationsMap: projectLocationsData,
             formNotes: '',
             selectedTasks: [],
             files: [],
@@ -155,8 +172,14 @@
                 return this.tasksMap[parseInt(this.selectedProjectId)] || [];
             },
 
+            get currentLocations() {
+                if (!this.selectedProjectId) return [];
+                return this.locationsMap[parseInt(this.selectedProjectId)] || [];
+            },
+
             updateTasks() {
                 this.selectedTasks = [];
+                this.selectedLocationId = '';
             },
 
             handleFiles(fileList) {
@@ -197,6 +220,9 @@
                 this.isSubmitting = true;
                 const formData = new FormData();
                 formData.append('project_id', this.selectedProjectId);
+                if (this.selectedLocationId) {
+                    formData.append('location_id', this.selectedLocationId);
+                }
                 formData.append('date', '{{ today.strftime("%Y-%m-%d") }}');
                 formData.append('notes', this.formNotes);
 

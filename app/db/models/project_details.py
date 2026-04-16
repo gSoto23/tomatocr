@@ -34,3 +34,14 @@ class ProjectContact(Base):
     position = Column(String(100))
     
     project = relationship("Project", back_populates="contacts")
+
+class ProjectLocation(Base):
+    __tablename__ = "project_locations"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
+    name = Column(String(100), nullable=False)
+    location = Column(String(255))
+    waze_pin = Column(String(500))
+    
+    project = relationship("Project", back_populates="locations")

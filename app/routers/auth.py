@@ -18,10 +18,13 @@ router = APIRouter()
 @router.post("/login")
 async def login(
     request: Request,
-    user: str = Form(...),
-    pass_: str = Form(..., alias="pass"), # mapping 'pass' from HTML form to 'pass_' variable
+    user: str = Form(""),
+    pass_: str = Form("", alias="pass"), # mapping 'pass' from HTML form to 'pass_' variable
     db: Session = Depends(deps.get_db)
 ):
+    if not user or not pass_:
+        return RedirectResponse(url="/?error=invalid_credentials", status_code=status.HTTP_303_SEE_OTHER)
+
     # Authenticate
     db_user = db.query(User).filter(User.username == user).first()
     if not db_user or not verify_password(pass_, db_user.hashed_password):

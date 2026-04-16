@@ -9,6 +9,7 @@ class ProjectSchedule(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
+    location_id = Column(Integer, ForeignKey("project_locations.id"), nullable=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     date = Column(Date, nullable=False, index=True)
     hours_worked = Column(Float, default=8.0)
@@ -17,6 +18,7 @@ class ProjectSchedule(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     project = relationship("Project")
+    location = relationship("ProjectLocation")
     user = relationship("User")
     tasks = relationship("ScheduleTask", back_populates="schedule", cascade="all, delete-orphan")
 
