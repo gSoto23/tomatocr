@@ -1,120 +1,115 @@
 # Sistema TOMATO 🍅
 
-Sistema de gestión operativa para servicios de jardinería, paisajismo y mantenimiento de zonas verdes. Permite la administración integral de proyectos, presupuestos, facturación y bitácoras diarias.
+<div align="center">
+  <img src="app/static/images/logo_tomato.png" alt="Tomato Logo" width="150" />
+</div>
+
+**Sistema Integral de Gestión Operativa para Servicios de Jardinería, Paisajismo y Zonas Verdes.** 
+Un entorno administrativo enfocado en la supervisión de proyectos, reportes de bitácora, finanzas y nóminas, soportado bajo estándares modernos de backend y diseño reactivo.
+
+---
 
 ## 📋 Características Principales
 
 ### 1. Gestión de Proyectos
-- **Administración de Sitios**: Creación y edición de proyectos con detalles de ubicación y cliente.
-- **Definición de Presupuesto**:
-    - Configuración de contratos (Licitación, vigencia).
-    - Líneas presupuestarias adjudicadas (Desglose de montos y saldos).
-- **Calendario Operativo**: Asignación de tareas y visitas.
+- **Administración de Sitios**: Creación y edición de locaciones (Sede principal y sedes secundarias con Waze Pin).
+- **Definición de Presupuestos**:
+    - Configuración de licitaciones y contratos de vigencia.
+    - Líneas presupuestarias con asignación de saldos y control total.
+- **Calendario Operativo**: Asignación logística de personal hacia sedes específicas de trabajo.
 
 ### 2. Módulo Financiero
-- **Control de Facturación**: Registro de facturas asociadas a líneas presupuestarias específicas.
-- **Estados de Cuenta**: Vista en tiempo real de lo adjudicado vs. facturado vs. saldo pendiente.
-- **Gestión de Pagos**: Registro de pagos totales o parciales.
-- **Filtrado y Ordenamiento**: Herramientas avanzadas para buscar facturas por estado, fechas o montos.
+- **Facturación**: Control al momento de ingresos adjudicados vs facturados, y saldo pendiente real.
+- **Pagos**: Contabilidad con pagos parciales o totales.
+- **Dashboard Estadístico**: Análisis de KPI operativos (Facturación, vencimientos).
 
-### 3. Bitácora Digital (Logs)
-- **Reporte Diario**: Registro de actividades en sitio por parte de los operarios.
-- **Evidencia**: Carga de fotografías y notas.
-- **Trazabilidad**: Historial completo de intervenciones por proyecto.
+### 3. Bitácora Digital (Daily Logs)
+- **Reportes Diarios Multilocación**: Reporte desde el campo con asignación exacta de la sede de operaciones.
+- **Evidencias Cloud**: Carga de notas operativas y material fotográfico en Alta Calidad conectado a repositorios persistentes.
+- **Notificaciones Dinámicas (Email)**: Reportería automática hacia partes interesadas vía SMTP.
 
-### 4. Cotizador Cloud
-- **Integración Nativa**: Generación de cotizaciones dinámicas con exportación PDF.
-- **Seguridad Integrada**: Validado por el sistema de autenticación centralizado (`Depends(get_current_user)`).
-- **Almacenamiento Local**: Cotizaciones y datos de clientes almacenados como registros en base de datos en formatos híbridos integrados a SQLite.
+### 4. Cotizador Cloud In-App
+- Generación digital de cotizaciones visuales en formato paramétrico con exportación avanzada PDF y base híbrida autogestionable.
 
-### 5. Dashboard Administrativo
-- Métricas clave de rendimiento.
-- Resumen financiero global.
-- Actividad reciente del sistema.
+### 5. Configuración Jerárquica & Auth
+- Prevención total basada en Roles: `[Admin, Supervisor, Worker, Client]`.
+- Encriptación y seguridad a nivel de tokens en las capas.
 
-### 6. Control de Acceso (Roles)
-- **Admin**: Acceso total (Configuración, Finanzas, Usuarios).
-- **Worker**: Acceso operativo (Ver proyectos, Crear bitácoras). Sin acceso a Finanzas.
-- **Client**: Acceso de solo lectura a su proyecto y estado financiero.
+---
 
-## 🛠 Tecnologías
+## 🛠 Tecnologías Core
 
-- **Backend**: Python 3.10+ (FastAPI)
-- **Base de Datos**: SQLite (SQLAlchemy ORM)
-- **Frontend**: Jinja2 Templates (HTML5)
-- **Estilos**: TailwindCSS
-- **Interactividad**: Alpine.js
+![Python](https://img.shields.io/badge/Python-3.10%2B-blue?style=flat&logo=python) 
+![FastAPI](https://img.shields.io/badge/FastAPI-Latest-009688?style=flat&logo=fastapi) 
+![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-ORM-d71f00?style=flat)
+![Tailwind](https://img.shields.io/badge/Tailwind_CSS-3.0-38B2AC?style=flat&logo=tailwind-css) 
+![Alpine](https://img.shields.io/badge/Alpine.js-Reactivity-8bc0d0?style=flat&logo=alpine.js)
 
-## 🚀 Instalación y Ejecución
+---
 
-1. **Clonar el repositorio**:
+## 🚀 Despliegue en Entorno Local (Development)
+
+1. **Clonar repositorio**
    ```bash
-   git clone <url-del-repo>
+   git clone https://github.com/gSoto23/tomatocr.git
    cd tomatocr
    ```
 
-2. **Crear entorno virtual**:
+2. **Entorno Virtual**
    ```bash
    python3 -m venv .venv
-   source .venv/bin/activate  # Mac/Linux
-   # .venv\Scripts\activate  # Windows
+   source .venv/bin/activate
    ```
 
-3. **Instalar dependencias**:
-   > ⚠️ **IMPORTANTE**: Debido a un bug heredado en `passlib`, debes asegurarte de que `bcrypt` sea de una versión inferior a 4.0.0. Esto ya está fijado en `requirements.txt`.
+3. **Variables de Entorno**
+   - Asegúrate de incluir el archivo `.env` en la raíz.
+   - Para desarrollo local se recomienda fuertemente: `USE_SQLITE="True"`.
+
+4. **Instalación de Componentes**
+   > *Nota*: Utiliza una iteración compatible de `bcrypt < 4.0.0` prescrita en tu requirements.
    ```bash
    pip install -r requirements.txt
    ```
 
-4. **Ejecutar servidor de desarrollo**:
+5. **Servidor**
    ```bash
    uvicorn app.main:app --reload
    ```
 
-5. **Acceso**:
-   - Web: `http://localhost:8000`
-   - Documentación API: `http://localhost:8000/docs`
+---
 
-## 📁 Estructura del Proyecto
+## 🌍 Arquitectura de Producción (AWS)
+
+En tus entornos de producción se sugiere un marco configurado bajo servidores nativos (AWS EC2 / Lightsail). El sistema está configurado para cambiar lógicas automáticamente al apagar la etiqueta de desarrollo:
+
+#### Configuración de la Nube (vía `.env`):
+- `USE_SQLITE="False"` activa la integración hacia **AWS PostgreSQL RDS**.
+- Modifica los parámetros credenciales (`MYSQL_SERVER`, `MYSQL_DB`, etc) hacia tu host Cloud.
+- Las fotografías apuntarán su tráfico nativo vía Boto3 / API hacia un bucket externo en **AWS S3** usando la capa `AWS_REGION` de tu configuración.
+
+#### Git Automations
+Es fuertemente recomendado que el comando rutinario al jalar código actualizado contenga:
+```bash
+git pull origin main
+source .venv/bin/activate
+pip install -r requirements.txt
+PYTHONPATH=. python scripts/migrate_prod_locations.py  # Si hubieron cambios DDL recientes
+sudo systemctl restart tomato
+```
+
+---
+
+## 📁 Estructura Interna 
 
 ```
-app/
-├── db/             # Modelos (SQLAlchemy) y configuración de DB
-├── routers/        # Controladores de la API (Projects, Users, Finance, Quotes)
-├── templates/      # Plantillas HTML (Jinja2)
-│   ├── components/ # Macros y componentes layout compartidos
-│   ├── cotizador/  # Vista principal Cotizador Cloud
-│   └── ...
-├── static/         # Archivos estáticos (app.js de cotizador, css, imágenes)
-└── main.py         # Punto de entrada de la aplicación FastAPI
-
-scripts/
-├── dev_tools/      # Utilidades para depuración y reseteo de DB (ej. reset_db.py)
-└── migrations/     # Scripts manuales de movimiento de datos (si aplica)
+tomatocr/
+├── app/
+│   ├── core/           # Security, Templates, Configurations (JWT, Config loaders)
+│   ├── db/             # Modelos (SQLAlchemy) en cascada y Base Class
+│   ├── routers/        # Application Context y flujos FastAPI
+│   ├── static/         # Asset Delivery (CSS, Vainilla JS, Web Fonts, Favicons)
+│   ├── templates/      # Base Jinja2 (vistas renderizadas con Tailwind/AlpineJS)
+│   ├── utils/          # Handlers genéricos y SMTP Dispatchers
+│   └── main.py         # Entrypoint
+└── scripts/            # Comandos de migración y DDL estáticos.
 ```
-
-## 🔄 Cómo Actualizar (Redeploy)
-
-Cuando hagas cambios en tu código y quieras actualizarlos en el servidor:
-
-1. **Sube los cambios**:
-   - Si usas Git: `cd /home/ubuntu/tomatocr` y luego `git pull origin <nombre_del_branch>` (ej: `main`).
-   - Si usas SFTP: Sube los archivos nuevos y reemplaza los viejos.
-
-2. **Activa el entorno**:
-   ```bash
-   cd /home/ubuntu/tomatocr
-   source .venv/bin/activate
-   ```
-
-3. **Instala nuevas librerías (si agregaste alguna)**:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Reinicia el servicio**:
-   ```bash
-   sudo systemctl restart tomato
-   ```
-
-¡Listo! Los cambios estarán en vivo inmediatamente.

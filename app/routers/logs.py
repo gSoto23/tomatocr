@@ -265,7 +265,7 @@ async def new_log_form(request: Request, project_id: Optional[int] = None, db: S
     project_tasks_json = json.dumps(project_tasks_map)
     project_locations_json = json.dumps(project_locations_map)
     
-    return templates.TemplateResponse("logs/form_fixed.html", {
+    return templates.TemplateResponse("logs/form.html", {
         "request": request,
         "user": user, 
         "projects": projects,
