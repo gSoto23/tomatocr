@@ -28,3 +28,4 @@ class User(Base):
     account_number = Column(String(50), nullable=True)
 
     projects = relationship("Project", secondary=project_users, back_populates="users")
+    documents = relationship("UserDocument", back_populates="user", cascade="all, delete-orphan")

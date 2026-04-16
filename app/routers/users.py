@@ -1,9 +1,13 @@
 
-from typing import Optional
-from fastapi import APIRouter, Depends, Form, Request, status, HTTPException
+from typing import Optional, List
+from fastapi import APIRouter, Depends, Form, Request, status, HTTPException, UploadFile, File
+import os
+import shutil
+import uuid
+from app.db.models.user_document import UserDocument
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 
 from app.db.session import SessionLocal
@@ -43,6 +47,7 @@ async def list_users(
     
     offset = (page - 1) * limit
     users = db.query(User)\
+        .options(joinedload(User.documents))\
         .offset(offset)\
         .limit(limit)\
         .all()
@@ -79,6 +84,7 @@ async def create_user(
     apply_deductions: bool = Form(False),
     payment_method: str = Form("Efectivo"),
     account_number: Optional[str] = Form(None),
+    files: List[UploadFile] = File(None),
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
@@ -121,8 +127,27 @@ async def create_user(
     # Audit Log
     log_activity(db, user, "CREATE", "USER", new_user.id, f"Created user {username} ({role})")
     
+    # Process files
+    if files:
+        upload_dir = "app/static/uploads/users"
+        os.makedirs(upload_dir, exist_ok=True)
+        for f in files:
+            if f.filename:
+                unique_name = f"{uuid.uuid4()}_{f.filename}"
+                file_path = os.path.join(upload_dir, unique_name)
+                with open(file_path, "wb") as buffer:
+                    shutil.copyfileobj(f.file, buffer)
+                
+                doc = UserDocument(
+                    user_id=new_user.id,
+                    filename=f.filename,
+                    file_path=f"/static/uploads/users/{unique_name}"
+                )
+                db.add(doc)
+        db.commit()
+
     response = RedirectResponse(url="/users", status_code=status.HTTP_303_SEE_OTHER)
-    response.set_cookie(key="toast_message", value="Usuario creado correctamente")
+    response.set_cookie(key="toast_message", value="Empleado creado correctamente")
     return response
 
 @router.get("/{id}/edit")
@@ -149,6 +174,7 @@ async def update_user(
     apply_deductions: bool = Form(False),
     payment_method: str = Form("Efectivo"),
     account_number: Optional[str] = Form(None),
+    files: List[UploadFile] = File(None),
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
@@ -207,8 +233,27 @@ async def update_user(
             response.set_cookie(key="toast_type", value="error")
             return response
 
+            # Process files
+            if files:
+                upload_dir = "app/static/uploads/users"
+                os.makedirs(upload_dir, exist_ok=True)
+                for f in files:
+                    if f.filename:
+                        unique_name = f"{uuid.uuid4()}_{f.filename}"
+                        file_path = os.path.join(upload_dir, unique_name)
+                        with open(file_path, "wb") as buffer:
+                            shutil.copyfileobj(f.file, buffer)
+                        
+                        doc = UserDocument(
+                            user_id=edit_user.id,
+                            filename=f.filename,
+                            file_path=f"/static/uploads/users/{unique_name}"
+                        )
+                        db.add(doc)
+                db.commit()
+
     response = RedirectResponse(url="/users", status_code=status.HTTP_303_SEE_OTHER)
-    response.set_cookie(key="toast_message", value="Usuario actualizado correctamente")
+    response.set_cookie(key="toast_message", value="Empleado actualizado correctamente")
     return response
 
 @router.post("/{id}/delete")
@@ -239,4 +284,35 @@ async def delete_user(
     
     response = RedirectResponse(url="/users", status_code=status.HTTP_303_SEE_OTHER)
     response.set_cookie(key="toast_message", value="Usuario eliminado correctamente")
+    return response
+
+@router.post("/document/{doc_id}/delete")
+async def delete_user_document(
+    doc_id: int,
+    db: Session = Depends(deps.get_db),
+    user: User = Depends(deps.get_current_user)
+):
+    check_admin(user)
+    doc = db.query(UserDocument).filter(UserDocument.id == doc_id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+        
+    # Delete physically
+    file_record_path = doc.file_path
+    if file_record_path.startswith("/static/"):
+        physical_path = "app" + file_record_path
+        if os.path.exists(physical_path):
+            try:
+                os.remove(physical_path)
+            except Exception as e:
+                logger.error(f"Failed to delete file {physical_path}: {e}")
+                
+    user_id = doc.user_id
+    db.delete(doc)
+    db.commit()
+    
+    log_activity(db, user, "DELETE", "DOCUMENT", doc_id, f"Deleted document {doc.filename}")
+    
+    response = RedirectResponse(url=f"/users/{user_id}/edit", status_code=status.HTTP_303_SEE_OTHER)
+    response.set_cookie(key="toast_message", value="Documento eliminado correctamente")
     return response
