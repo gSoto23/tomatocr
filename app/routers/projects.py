@@ -19,7 +19,7 @@ from app.db.models.associations import project_users
 from sqlalchemy import desc, func
 from math import ceil
 from app.routers import deps
-from app.utils.audit import log_activity
+from app.utils.activity import log_activity
 import logging
 
 logger = logging.getLogger(__name__)
@@ -232,7 +232,7 @@ async def create_project(
     
     # Audit Log
     try:
-        log_activity(db, user_id=user.id, action="CREATE", entity_type="PROJECT", entity_id=project.id, details=f"Creado proyecto {project.name}")
+        log_activity(db, user=user, action="CREATE", entity_type="PROJECT", entity_id=project.id, details=f"Creado proyecto {project.name}")
     except Exception as e:
         logger.error(f"Audit Log Error: {e}")
         
@@ -356,7 +356,7 @@ async def update_project(
     
     # Audit Log
     try:
-        log_activity(db, user_id=user.id, action="UPDATE", entity_type="PROJECT", entity_id=project.id, details=f"Actualizado proyecto {project.name}")
+        log_activity(db, user=user, action="UPDATE", entity_type="PROJECT", entity_id=project.id, details=f"Actualizado proyecto {project.name}")
     except Exception as e:
         logger.error(f"Audit Log Error: {e}")
         

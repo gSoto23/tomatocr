@@ -14,6 +14,7 @@ from app.db.models.user import User
 from app.db.models.associations import project_users
 from app.db.models.payroll import PayrollPeriod
 from app.routers import deps
+from app.utils.activity import log_activity, compute_diff
 
 router = APIRouter(
     prefix="/finance",
@@ -300,6 +301,12 @@ async def create_invoice(
     )
     db.add(invoice)
     db.commit()
+    db.refresh(invoice)
+    
+    log_activity(
+        db=db, user=user, action="CREAR", entity_type="Factura", entity_id=invoice.id, 
+        details=f"Factura #{invoice_number} por ${amount:,.2f} en presupuesto de {project.name}"
+    )
     
     response = RedirectResponse(url=f"/finance/{project_id}", status_code=status.HTTP_303_SEE_OTHER)
     response.set_cookie(key="toast_message", value="Factura creada exitosamente")
@@ -328,12 +335,30 @@ async def edit_invoice(
     if not line:
         raise HTTPException(status_code=400, detail="Invalid Budget Line")
 
+    old_data = {
+        "monto": invoice.amount,
+        "fecha_emision": str(invoice.issue_date),
+        "fecha_vencimiento": str(invoice.due_date),
+        "numero": invoice.invoice_number
+    }
+
     invoice.invoice_number = invoice_number
     invoice.issue_date = datetime.datetime.strptime(issue_date, "%Y-%m-%d").date()
     invoice.due_date = datetime.datetime.strptime(due_date, "%Y-%m-%d").date()
     invoice.amount = amount
     invoice.budget_line_id = budget_line_id
     db.commit()
+    
+    new_data = {
+        "monto": invoice.amount,
+        "fecha_emision": str(invoice.issue_date),
+        "fecha_vencimiento": str(invoice.due_date),
+        "numero": invoice.invoice_number
+    }
+    
+    diffs = compute_diff(old_data, new_data)
+    if diffs:
+        log_activity(db, user, "EDITAR", "Factura", invoice.id, {"cambios": diffs, "mensaje": f"Factura #{invoice_number} modificada"})
     
     response = RedirectResponse(url=f"/finance/{invoice.budget.project_id}", status_code=status.HTTP_303_SEE_OTHER)
     response.set_cookie(key="toast_message", value="Factura actualizada exitosamente")
@@ -458,6 +483,12 @@ async def pay_invoice(
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
         
+    old_data = {
+        "estado_factura": invoice.status.value,
+        "fecha_pago": "Ninguna" if not invoice.payment else str(invoice.payment.payment_date),
+        "monto_abonado": 0.0 if not invoice.payment else invoice.payment.amount
+    }
+        
     # Create Payment
     # Note: If partial payments are allowed multiple times, unique=True on Invoice relationship will fail.
     # Assuming for now 1 payment transaction per invoice based on current model.
@@ -493,7 +524,17 @@ async def pay_invoice(
     if note:
         invoice.note = note
     
+    new_data = {
+        "estado_factura": invoice.status.value,
+        "monto_abonado": payment.amount,
+        "fecha_pago": str(payment.payment_date)
+    }
+    
     db.commit()
+    
+    diffs = compute_diff(old_data, new_data)
+    msg = f"Pago {'Parcial' if payment_type == 'partial' else 'Total'} a Factura #{invoice.invoice_number}"
+    log_activity(db, user, "PAGO", "Factura", invoice.id, {"cambios": diffs, "mensaje": msg})
     
     response = RedirectResponse(url=f"/finance/{invoice.budget.project_id}", status_code=status.HTTP_303_SEE_OTHER)
     msg = "Pago registrado exitosamente" if payment_type == "full" else "Pago parcial registrado"

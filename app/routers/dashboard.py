@@ -172,11 +172,12 @@ async def activity_log(
 
     from math import ceil
     from app.db.models.activity import ActivityLog
+    from sqlalchemy.orm import joinedload
 
     offset = (page - 1) * limit
     total_records = db.query(ActivityLog).count()
     
-    logs = db.query(ActivityLog).order_by(desc(ActivityLog.created_at)).offset(offset).limit(limit).all()
+    logs = db.query(ActivityLog).options(joinedload(ActivityLog.user)).order_by(desc(ActivityLog.created_at)).offset(offset).limit(limit).all()
     
     total_pages = ceil(total_records / limit)
 

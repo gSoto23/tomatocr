@@ -11,7 +11,7 @@ from datetime import timedelta
 from datetime import timedelta
 
 from app.routers import deps
-from app.utils.audit import log_activity
+from app.utils.activity import log_activity
 
 router = APIRouter()
 
@@ -43,7 +43,7 @@ async def login(
     # Log activity
     log_activity(
         db=db,
-        user_id=db_user.id,
+        user=db_user,
         action="LOGIN",
         details=f"Usuario {db_user.username} inició sesión."
     )
@@ -66,7 +66,7 @@ async def logout(
             if user:
                 log_activity(
                     db=db,
-                    user_id=user.id,
+                    user=user,
                     action="LOGOUT",
                     details=f"Usuario {user.username} cerró sesión."
                 )

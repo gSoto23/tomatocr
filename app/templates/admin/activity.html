@@ -1,93 +1,125 @@
 {% extends "base_dashboard.html" %}
 
-{% block header_title %}Registro de Actividad{% endblock %}
+{% block header_title %}Registro de Actividad (Audit Trail){% endblock %}
 
 {% block content %}
-<div class="px-4 sm:px-6 lg:px-8">
-    <div class="sm:flex sm:items-center">
+<div class="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+    
+    <!-- Title & Stats Header -->
+    <div class="sm:flex sm:items-center py-6 border-b border-gray-200">
         <div class="sm:flex-auto">
-            <h1 class="text-base font-semibold leading-6 text-gray-900">Bitácora de Eventos (Audit Logs)</h1>
-            <p class="mt-2 text-sm text-gray-700">Un registro de todas las acciones clave realizadas por los usuarios en la plataforma. Visible únicamente para administradores.</p>
+            <h1 class="text-2xl font-bold leading-6 text-gray-900 tracking-tight">Registro de Actividad</h1>
+            <p class="mt-2 text-sm text-gray-600">Herramienta de auditoría y seguimiento. Observa los cambios clave, rastreo de ediciones financieras y reportes ejecutados por el equipo.</p>
         </div>
-    </div>
-
-    <!-- Filtros de Búsqueda -->
-    <div class="mt-4 flex flex-col md:flex-row gap-4 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-        <div class="flex-1">
-            <label for="search-input" class="block text-xs font-medium text-gray-700">Buscar por Usuario, Acción o Entidad</label>
-            <div class="mt-1 relative rounded-md shadow-sm">
-                <input type="text" id="search-input" onkeyup="filterTable()" class="block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6" placeholder="Ej: CREATE, edd...">
-                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                    <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                </div>
+        <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
+            <div class="flex items-center space-x-3 bg-indigo-50 px-4 py-2 rounded-lg border border-indigo-100 shadow-sm">
+                <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <span class="text-sm font-medium text-indigo-800">Total Auditoría: {{ total_records }} registros</span>
             </div>
         </div>
-        <div class="md:w-1/4 flex items-end">
-            <button onclick="document.getElementById('search-input').value=''; filterTable();" type="button" class="w-full inline-flex justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Limpiar Filtros</button>
+    </div>
+
+    <!-- Search Toolbar -->
+    <div class="mt-6 flex flex-col md:flex-row gap-4 bg-white p-5 rounded-xl shadow-sm border border-gray-200 sticky top-0 z-10 hidden sm:flex">
+        <div class="flex-1 relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+            </div>
+            <input type="text" id="search-input" onkeyup="filterTable()" class="block w-full rounded-lg border border-gray-300 py-3 pl-10 pr-4 text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 sm:text-sm transition duration-150 ease-in-out" placeholder="Buscar por usuario (ej. Juan), entidad (ej. Factura) o acción...">
+        </div>
+        <div class="md:w-1/5 flex items-end">
+            <button onclick="document.getElementById('search-input').value=''; filterTable();" type="button" class="w-full inline-flex justify-center items-center rounded-lg bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-100 transition duration-150">
+                Limpiar Filtro
+            </button>
         </div>
     </div>
 
+    <!-- Activity Feed -->
     <div class="mt-8 flow-root">
         <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
             <div class="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
-                <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
-                    <table class="min-w-full divide-y divide-gray-300" id="activity-table">
-                        <thead class="bg-gray-50">
+                <div class="overflow-hidden shadow-md ring-1 ring-gray-200 sm:rounded-xl bg-white">
+                    <table class="min-w-full divide-y divide-gray-200" id="activity-table">
+                        <thead class="bg-gradient-to-r from-gray-50 to-white">
                             <tr>
-                                <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">Fecha y Hora</th>
-                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Usuario</th>
-                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Acción</th>
-                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Entidad Afectada</th>
-                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Detalles</th>
+                                <th scope="col" class="py-4 pl-4 pr-3 text-left text-xs font-bold uppercase tracking-wider text-gray-500 sm:pl-6 w-1/6">Timestamp</th>
+                                <th scope="col" class="px-3 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-500 w-1/6">Autor</th>
+                                <th scope="col" class="px-3 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-500">Acción / Entidad</th>
+                                <th scope="col" class="px-3 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-500 w-2/5">Detalle Auditado</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-200 bg-white">
+                        <tbody class="divide-y divide-gray-100 bg-white">
                             {% for log in logs %}
-                            <tr class="log-row">
-                                <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm text-gray-500 sm:pl-6">
-                                    {{ log.created_at.strftime('%d-%m-%Y %H:%M:%S') }}
+                            <tr class="log-row hover:bg-slate-50 transition-colors duration-150">
+                                <td class="whitespace-nowrap py-5 pl-4 pr-3 text-sm sm:pl-6">
+                                    <div class="flex items-center text-gray-500">
+                                        <svg class="mr-1.5 h-4 w-4 flex-shrink-0 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-13a.75.75 0 00-1.5 0v5c0 .414.336.75.75.75h4a.75.75 0 000-1.5h-3.25V5z" clip-rule="evenodd" />
+                                        </svg>
+                                        {{ log.created_at.strftime('%d %b %Y') }}
+                                        <span class="ml-2 text-gray-400 text-xs">{{ log.created_at.strftime('%H:%M:%S') }}</span>
+                                    </div>
                                 </td>
-                                <td class="whitespace-nowrap px-3 py-4 text-sm font-medium text-gray-900 hidden-search">
-                                    {{ log.user.full_name or log.user.username if log.user else 'Sistema / Anónimo' }}
+                                
+                                <td class="whitespace-nowrap px-3 py-5 hidden-search">
+                                    <div class="flex items-center">
+                                        <div class="h-8 w-8 flex-shrink-0 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-xs shadow-sm">
+                                            {{ (log.user.full_name or log.user.username)[:2]|upper if log.user else 'SI' }}
+                                        </div>
+                                        <div class="ml-3">
+                                            <div class="text-sm font-semibold text-gray-900">{{ log.user.full_name or log.user.username if log.user else 'Sistema' }}</div>
+                                            <div class="text-xs text-gray-500">{{ log.user.role|capitalize if log.user else 'Auto' }}</div>
+                                        </div>
+                                    </div>
                                 </td>
-                                <td class="whitespace-nowrap px-3 py-4 text-sm hidden-search">
-                                    {% if log.action == 'LOGIN' %}
-                                        <span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">LOGIN</span>
-                                    {% elif log.action == 'LOGOUT' %}
-                                        <span class="inline-flex items-center rounded-md bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-800 ring-1 ring-inset ring-yellow-600/20">LOGOUT</span>
-                                    {% elif log.action == 'CREATE' %}
-                                        <span class="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">CREAR</span>
-                                    {% elif log.action == 'UPDATE' %}
-                                        <span class="inline-flex items-center rounded-md bg-orange-50 px-2 py-1 text-xs font-medium text-orange-700 ring-1 ring-inset ring-orange-700/10">ACTUALIZAR</span>
-                                    {% elif log.action == 'DELETE' %}
-                                        <span class="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/10">ELIMINAR</span>
-                                    {% elif log.action == 'EMAIL' %}
-                                        <span class="inline-flex items-center rounded-md bg-purple-50 px-2 py-1 text-xs font-medium text-purple-700 ring-1 ring-inset ring-purple-700/10">ENVIAR CORREO</span>
-                                    {% else %}
-                                        <span class="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">{{ log.action }}</span>
-                                    {% endif %}
+                                
+                                <td class="whitespace-nowrap px-3 py-5 text-sm hidden-search">
+                                    <div class="flex space-x-2 items-center">
+                                        {% if log.action in ['LOGIN', 'LOGOUT'] %}
+                                            <span class="inline-flex items-center justify-center rounded-md bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800 ring-1 ring-inset ring-emerald-600/20 w-20 shadow-sm">{{ log.action }}</span>
+                                        {% elif log.action == 'CREATE' or log.action == 'CREAR' %}
+                                            <span class="inline-flex items-center justify-center rounded-md bg-blue-100 px-2.5 py-1 text-xs font-semibold text-blue-800 ring-1 ring-inset ring-blue-700/20 w-20 shadow-sm">CREACIÓN</span>
+                                        {% elif log.action == 'UPDATE' or log.action == 'EDITAR' %}
+                                            <span class="inline-flex items-center justify-center rounded-md bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800 ring-1 ring-inset ring-amber-600/20 w-20 shadow-sm">EDICIÓN</span>
+                                        {% elif log.action == 'DELETE' or log.action == 'ELIMINAR' %}
+                                            <span class="inline-flex items-center justify-center rounded-md bg-rose-100 px-2.5 py-1 text-xs font-semibold text-rose-800 ring-1 ring-inset ring-rose-600/20 w-20 shadow-sm">BORRADO</span>
+                                        {% elif log.action == 'EMAIL' %}
+                                            <span class="inline-flex items-center justify-center rounded-md bg-fuchsia-100 px-2.5 py-1 text-xs font-semibold text-fuchsia-800 ring-1 ring-inset ring-fuchsia-600/20 w-20 shadow-sm">CORREO</span>
+                                        {% elif log.action == 'PAGO' %}
+                                            <span class="inline-flex items-center justify-center rounded-md bg-teal-100 px-2.5 py-1 text-xs font-semibold text-teal-800 ring-1 ring-inset ring-teal-600/20 w-20 shadow-sm">PAGO</span>
+                                        {% else %}
+                                            <span class="inline-flex items-center justify-center rounded-md bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-800 ring-1 ring-inset ring-gray-600/20 w-20 shadow-sm">{{ log.action }}</span>
+                                        {% endif %}
+                                        
+                                        <span class="text-gray-600 font-medium text-xs tracking-wide">
+                                            {{ log.entity_type|upper or 'SISTEMA' }} {% if log.entity_id %}(ID: {{ log.entity_id }}){% endif %}
+                                        </span>
+                                    </div>
                                 </td>
-                                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500 hidden-search">
-                                    {{ log.entity_type or '-' }} {% if log.entity_id %} #{{ log.entity_id }}{% endif %}
-                                </td>
-                                <td class="px-3 py-4 text-sm text-gray-500 text-wrap hidden-search">
-                                    {{ log.details or '-' }}
+                                
+                                <!-- JSON parsing script will hook into raw-json if it starts with { -->
+                                <td class="px-3 py-4 text-sm text-gray-700 hidden-search">
+                                    <div class="raw-details" data-json="{{ log.details | string }}">
+                                        {{ log.details or '-' }}
+                                    </div>
                                     {% if log.ip_address %}
-                                      <br><span class="text-xs text-gray-400">IP: {{ log.ip_address }}</span>
+                                      <div class="mt-1 text-xs text-indigo-400 font-mono">IP Tracker: {{ log.ip_address }}</div>
                                     {% endif %}
                                 </td>
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="5" class="px-6 py-10 text-center text-sm text-gray-500">
+                                <td colspan="4" class="px-6 py-16 text-center text-sm text-gray-500 bg-gray-50">
                                     <div class="flex flex-col items-center justify-center">
-                                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                        <h3 class="mt-2 text-sm font-semibold text-gray-900">No hay registros de actividad</h3>
-                                        <p class="mt-1 text-sm text-gray-500">El historial se empezará a llenar automáticamente a partir de ahora.</p>
+                                        <div class="p-3 bg-white shadow-sm rounded-full mb-3">
+                                            <svg class="h-10 w-10 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                            </svg>
+                                        </div>
+                                        <h3 class="text-base font-bold text-gray-900">Historial en Blanco</h3>
+                                        <p class="mt-1 text-sm text-gray-500 max-w-sm">No existen registros recientes acordes a este filtro o el sistema aún no ha procesado datos operativos.</p>
                                     </div>
                                 </td>
                             </tr>
@@ -101,18 +133,19 @@
     
     <!-- Paginación -->
     {% if total_pages > 1 %}
-    <div class="mt-4 flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 shadow-sm ring-1 ring-black ring-opacity-5 rounded-lg">
+    <div class="mt-6 flex items-center justify-between border border-gray-200 bg-white px-4 py-3 sm:px-6 shadow-sm rounded-xl mb-10">
         <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
             <div>
                 <p class="text-sm text-gray-700">
-                    Mostrando página <span class="font-medium">{{ page }}</span> de <span class="font-medium">{{ total_pages }}</span>
-                    (Total: {{ total_records }})
+                    Mostrando página <span class="font-bold text-indigo-600">{{ page }}</span> de <span class="font-bold text-indigo-600">{{ total_pages }}</span>
+                    (Total Registros: {{ total_records }})
                 </p>
             </div>
             <div>
                 <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
                     {% if page > 1 %}
-                    <a href="?page={{ page - 1 }}" class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0">
+                    <a href="?page={{ page - 1 }}" class="relative inline-flex items-center rounded-l-md px-3 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-indigo-50 hover:text-indigo-600 transition-colors focus:z-20">
+                        <span class="sr-only">Anterior</span>
                         <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                             <path fill-rule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clip-rule="evenodd" />
                         </svg>
@@ -120,7 +153,8 @@
                     {% endif %}
                     
                     {% if page < total_pages %}
-                    <a href="?page={{ page + 1 }}" class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0">
+                    <a href="?page={{ page + 1 }}" class="relative inline-flex items-center rounded-r-md px-3 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-indigo-50 hover:text-indigo-600 transition-colors focus:z-20">
+                        <span class="sr-only">Siguiente</span>
                         <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                             <path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" />
                         </svg>
@@ -135,6 +169,55 @@
 </div>
 
 <script>
+    // JS Parser to make JSON Audit Arrays look beautiful
+    document.addEventListener("DOMContentLoaded", function() {
+        const detailsCells = document.querySelectorAll('.raw-details');
+        
+        detailsCells.forEach(cell => {
+            let content = cell.getAttribute('data-json');
+            if (content.startsWith('{') || content.startsWith('[')) {
+                try {
+                    let jsonData = JSON.parse(content);
+                    let htmlBuilder = '<div class="space-y-2">';
+                    
+                    if (jsonData.mensaje) {
+                        htmlBuilder += `<div class="font-medium text-gray-800">${jsonData.mensaje}</div>`;
+                    }
+                    
+                    if (jsonData.cambios && Array.isArray(jsonData.cambios)) {
+                        htmlBuilder += `<div class="bg-amber-50 rounded p-2 text-xs border border-amber-100">
+                            <span class="font-bold text-amber-800 block mb-1">Campos Modificados:</span>
+                            <ul class="list-disc pl-4 space-y-1 text-amber-900">`;
+                        jsonData.cambios.forEach(cambio => {
+                           htmlBuilder += `<li>${cambio}</li>`; 
+                        });
+                        htmlBuilder += `</ul></div>`;
+                    }
+                    
+                    if (jsonData.destinatarios && Array.isArray(jsonData.destinatarios)) {
+                        htmlBuilder += `<div class="bg-fuchsia-50 rounded p-2 text-xs border border-fuchsia-100">
+                            <span class="font-bold text-fuchsia-800 block mb-1">Enviado a:</span>
+                            <div class="flex flex-wrap gap-1">`;
+                        jsonData.destinatarios.forEach(email => {
+                           htmlBuilder += `<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-fuchsia-100 text-fuchsia-800 border border-fuchsia-200">${email}</span>`; 
+                        });
+                        htmlBuilder += `</div></div>`;
+                    }
+
+                    if (jsonData.notas_adicionales) {
+                        htmlBuilder += `<div class="text-xs text-gray-500 italic border-l-2 border-gray-300 pl-2 mt-1">Notas: ${jsonData.notas_adicionales}</div>`;
+                    }
+
+                    htmlBuilder += '</div>';
+                    // Reemplaza el texto plano ciego con HTML rico UI/UX
+                    cell.innerHTML = htmlBuilder;
+                } catch(e) {
+                    // String fallback normal
+                }
+            }
+        });
+    });
+
     function filterTable() {
         let input, filter, table, tr, td, i, txtValue;
         input = document.getElementById("search-input");

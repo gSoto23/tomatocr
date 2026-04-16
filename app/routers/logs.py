@@ -20,7 +20,7 @@ from app.db.models.project_details import ProjectTask
 from app.db.models.user import User
 from app.db.models.associations import project_users
 from app.routers import deps
-from app.utils.audit import log_activity
+from app.utils.activity import log_activity
 
 router = APIRouter(
     prefix="/logs",
@@ -182,7 +182,7 @@ async def delete_log(id: int, db: Session = Depends(deps.get_db), user: User = D
     
     # Audit Log
     try:
-        log_activity(db, user_id=user.id, action="DELETE", entity_type="REPORT", entity_id=id, details=f"Eliminó reporte de proyecto ID {project_id}")
+        log_activity(db, user=user, action="DELETE", entity_type="REPORT", entity_id=id, details=f"Eliminó reporte de proyecto ID {project_id}")
     except Exception as e:
         print(f"Audit Log Error: {e}")
         
@@ -222,7 +222,7 @@ async def update_log(
     
     # Audit Log
     try:
-        log_activity(db, user_id=user.id, action="UPDATE", entity_type="REPORT", entity_id=log.id, details=f"Editó reporte del proyecto ID {log.project_id}")
+        log_activity(db, user=user, action="UPDATE", entity_type="REPORT", entity_id=log.id, details=f"Editó reporte del proyecto ID {log.project_id}")
     except Exception as e:
         print(f"Audit Log Error: {e}")
         
@@ -303,7 +303,7 @@ async def create_log(
     new_log = DailyLog(
         project_id=project_id,
         location_id=location_id if location_id else None,
-        user_id=user.id,
+        user=user,
         date=log_date,
         notes=notes
     )
@@ -346,7 +346,7 @@ async def create_log(
     
     # Audit Log
     try:
-        log_activity(db, user_id=user.id, action="CREATE", entity_type="REPORT", entity_id=new_log.id, details=f"Reporte de avance para {log_date}")
+        log_activity(db, user=user, action="CREATE", entity_type="REPORT", entity_id=new_log.id, details=f"Reporte de avance para {log_date}")
     except Exception as e:
         print(f"Audit Log Error: {e}")
         
@@ -384,7 +384,12 @@ async def send_email(
     
     # Audit Log
     try:
-        log_activity(db, user_id=user.id, action="EMAIL", entity_type="REPORT", entity_id=log.id, details=f"Envió reporte por correo a {len(email_data.recipients)} destinatarios")
+        details = {
+            "mensaje": f"Reporte #{log.id} enviado por correo.",
+            "destinatarios": email_data.recipients,
+            "notas_adicionales": email_data.additional_text or "Ninguna"
+        }
+        log_activity(db, user=user, action="EMAIL", entity_type="REPORT", entity_id=log.id, details=details)
     except Exception as e:
         print(f"Audit Log Error: {e}")
     
