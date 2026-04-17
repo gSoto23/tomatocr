@@ -233,24 +233,24 @@ async def update_user(
             response.set_cookie(key="toast_type", value="error")
             return response
 
-            # Process files
-            if files:
-                upload_dir = "app/static/uploads/users"
-                os.makedirs(upload_dir, exist_ok=True)
-                for f in files:
-                    if f.filename:
-                        unique_name = f"{uuid.uuid4()}_{f.filename}"
-                        file_path = os.path.join(upload_dir, unique_name)
-                        with open(file_path, "wb") as buffer:
-                            shutil.copyfileobj(f.file, buffer)
-                        
-                        doc = UserDocument(
-                            user_id=edit_user.id,
-                            filename=f.filename,
-                            file_path=f"/static/uploads/users/{unique_name}"
-                        )
-                        db.add(doc)
-                db.commit()
+        # Process files
+        if files:
+            upload_dir = "app/static/uploads/users"
+            os.makedirs(upload_dir, exist_ok=True)
+            for f in files:
+                if f.filename:
+                    unique_name = f"{uuid.uuid4()}_{f.filename}"
+                    file_path = os.path.join(upload_dir, unique_name)
+                    with open(file_path, "wb") as buffer:
+                        shutil.copyfileobj(f.file, buffer)
+                    
+                    doc = UserDocument(
+                        user_id=edit_user.id,
+                        filename=f.filename,
+                        file_path=f"/static/uploads/users/{unique_name}"
+                    )
+                    db.add(doc)
+            db.commit()
 
     response = RedirectResponse(url="/users", status_code=status.HTTP_303_SEE_OTHER)
     response.set_cookie(key="toast_message", value="Empleado actualizado correctamente")
