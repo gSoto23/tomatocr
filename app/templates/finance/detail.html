@@ -40,36 +40,36 @@
 
     <!-- Indicators -->
     <div class="grid grid-cols-1 gap-5 sm:grid-cols-6 mb-8">
-        <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6 border border-gray-200">
-            <dt class="truncate text-sm font-medium text-gray-500 uppercase">Total Adjudicado</dt>
-            <dd class="mt-1 text-2xl lg:text-xl xl:text-2xl font-semibold tracking-tight text-gray-900 truncate" title="{{ '{:,.2f}'.format(summary.total_adjudicated) }}">{{
+        <div class="overflow-hidden rounded-lg bg-white px-3 py-4 shadow sm:p-4 border border-gray-200">
+            <dt class="truncate text-xs font-medium text-gray-500 uppercase">Total Adjudicado</dt>
+            <dd class="mt-1 text-lg lg:text-base xl:text-lg font-semibold tracking-tight text-gray-900" title="{{ '{:,.2f}'.format(summary.total_adjudicated) }}">{{
                 "{:,.2f}".format(summary.total_adjudicated) }}</dd>
         </div>
-        <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6 border border-gray-200">
-            <dt class="truncate text-sm font-medium text-gray-500 uppercase">Total Facturado</dt>
-            <dd class="mt-1 text-2xl lg:text-xl xl:text-2xl font-semibold tracking-tight text-gray-900 truncate" title="{{ '{:,.2f}'.format(summary.total_invoiced) }}">{{
+        <div class="overflow-hidden rounded-lg bg-white px-3 py-4 shadow sm:p-4 border border-gray-200">
+            <dt class="truncate text-xs font-medium text-gray-500 uppercase">Total Facturado</dt>
+            <dd class="mt-1 text-lg lg:text-base xl:text-lg font-semibold tracking-tight text-gray-900" title="{{ '{:,.2f}'.format(summary.total_invoiced) }}">{{
                 "{:,.2f}".format(summary.total_invoiced) }}</dd>
         </div>
-        <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6 border border-gray-200">
-            <dt class="truncate text-sm font-medium text-gray-500 uppercase">Total Pagado</dt>
-            <dd class="mt-1 text-2xl lg:text-xl xl:text-2xl font-semibold tracking-tight text-indigo-600 truncate" title="{{ '{:,.2f}'.format(summary.total_paid) }}">{{
+        <div class="overflow-hidden rounded-lg bg-white px-3 py-4 shadow sm:p-4 border border-gray-200">
+            <dt class="truncate text-xs font-medium text-gray-500 uppercase">Total Pagado</dt>
+            <dd class="mt-1 text-lg lg:text-base xl:text-lg font-semibold tracking-tight text-indigo-600" title="{{ '{:,.2f}'.format(summary.total_paid) }}">{{
                 "{:,.2f}".format(summary.total_paid) }}</dd>
         </div>
-        <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6 border border-gray-200">
-            <dt class="truncate text-sm font-medium text-gray-500 uppercase">Total Costos</dt>
-            <dd class="mt-1 text-2xl lg:text-xl xl:text-2xl font-semibold tracking-tight text-red-600 truncate" title="{{ '{:,.2f}'.format(summary.total_costs) }}">{{
+        <div class="overflow-hidden rounded-lg bg-white px-3 py-4 shadow sm:p-4 border border-gray-200">
+            <dt class="truncate text-xs font-medium text-gray-500 uppercase">Total Costos</dt>
+            <dd class="mt-1 text-lg lg:text-base xl:text-lg font-semibold tracking-tight text-red-600" title="{{ '{:,.2f}'.format(summary.total_costs) }}">{{
                 "{:,.2f}".format(summary.total_costs) }}</dd>
         </div>
-        <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6 border border-gray-200">
-            <dt class="truncate text-sm font-medium text-gray-500 uppercase">Saldo Actual</dt>
+        <div class="overflow-hidden rounded-lg bg-white px-3 py-4 shadow sm:p-4 border border-gray-200">
+            <dt class="truncate text-xs font-medium text-gray-500 uppercase">Saldo Actual</dt>
             <dd
-                class="mt-1 text-2xl lg:text-xl xl:text-2xl font-semibold tracking-tight truncate {{ 'text-green-600' if summary.balance >= 0 else 'text-red-600' }}" title="{{ '{:,.2f}'.format(summary.balance) }}">
+                class="mt-1 text-lg lg:text-base xl:text-lg font-semibold tracking-tight {{ 'text-green-600' if summary.balance >= 0 else 'text-red-600' }}" title="{{ '{:,.2f}'.format(summary.balance) }}">
                 {{ "{:,.2f}".format(summary.balance) }}</dd>
         </div>
-        <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6 border border-gray-200">
-            <dt class="truncate text-sm font-medium text-gray-500 uppercase">Balance (Ganancia)</dt>
+        <div class="overflow-hidden rounded-lg bg-white px-3 py-4 shadow sm:p-4 border border-gray-200">
+            <dt class="truncate text-xs font-medium text-gray-500 uppercase">Balance (Ganancia)</dt>
             <dd
-                class="mt-1 text-2xl lg:text-xl xl:text-2xl font-semibold tracking-tight truncate {{ 'text-green-600' if (summary.total_invoiced - summary.total_costs) >= 0 else 'text-red-600' }}" title="{{ '{:,.2f}'.format(summary.total_invoiced - summary.total_costs) }}">
+                class="mt-1 text-lg lg:text-base xl:text-lg font-semibold tracking-tight {{ 'text-green-600' if (summary.total_invoiced - summary.total_costs) >= 0 else 'text-red-600' }}" title="{{ '{:,.2f}'.format(summary.total_invoiced - summary.total_costs) }}">
                 {{ "{:,.2f}".format(summary.total_invoiced - summary.total_costs) }}</dd>
         </div>
     </div>
