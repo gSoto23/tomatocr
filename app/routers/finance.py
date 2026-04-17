@@ -246,6 +246,14 @@ async def finance_detail(
         
     payroll_details.sort(key=lambda x: x['start_date'], reverse=True)
 
+    # Fetch Retentions associated with this project's invoices
+    retentions = db.query(Payment)\
+        .join(Invoice)\
+        .join(ProjectBudget)\
+        .filter(ProjectBudget.project_id == project.id, Payment.retention_amount > 0)\
+        .order_by(Payment.payment_date.desc())\
+        .all()
+
     return  templates.TemplateResponse("finance/detail.html", {
         "request": request,
         "user": user,
@@ -254,6 +262,7 @@ async def finance_detail(
         "lines": lines,
         "invoices": invoices,
         "costs": costs,
+        "retentions": retentions,
         "payroll_details": payroll_details,
         "summary": status_data,
         "page": page,
@@ -471,6 +480,7 @@ async def pay_invoice(
     payment_date: str = Form(...),
     deposit_number: str = Form(...),
     amount: float = Form(...),
+    retention_amount: Optional[float] = Form(0.0),
     payment_type: str = Form(...), # "full" or "partial"
     note: Optional[str] = Form(None),
     db: Session = Depends(deps.get_db),
@@ -503,12 +513,14 @@ async def pay_invoice(
         payment.payment_date = datetime.datetime.strptime(payment_date, "%Y-%m-%d").date()
         payment.deposit_number = deposit_number
         payment.amount = amount
+        payment.retention_amount = retention_amount
     else:
         payment = Payment(
             invoice_id=invoice.id,
             payment_date=datetime.datetime.strptime(payment_date, "%Y-%m-%d").date(),
             deposit_number=deposit_number,
-            amount=amount
+            amount=amount,
+            retention_amount=retention_amount
         )
         db.add(payment)
     

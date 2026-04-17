@@ -88,6 +88,7 @@ class Payment(Base):
     payment_date = Column(Date, nullable=False)
     deposit_number = Column(String, nullable=True) # Transfer/Deposit Ref
     amount = Column(Float, nullable=False)
+    retention_amount = Column(Float, default=0.0)
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
