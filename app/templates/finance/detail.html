@@ -688,16 +688,28 @@
                                     <input type="text" name="deposit_number" required
                                         class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
                                 </div>
+                                <div>
+                                    <label class="block text-sm font-medium leading-6 text-gray-900">Monto Facturado</label>
+                                    <input type="number" step="0.01" readonly x-model="payInvoiceTotal"
+                                        class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-600 bg-gray-50 shadow-sm ring-1 ring-inset ring-gray-300 sm:text-sm sm:leading-6">
+                                </div>
+                                <div class="flex items-center">
+                                    <input id="apply_retention" type="checkbox" x-model="applyRetention" @change="payRetention = applyRetention && (payInvoiceTotal - payAmount > 0) ? (payInvoiceTotal - payAmount).toFixed(2) : 0"
+                                        class="h-4 w-4 rounded border-gray-300 text-black focus:ring-black">
+                                    <label for="apply_retention" class="ml-2 block text-sm font-medium text-gray-900">
+                                        Aplicar Retención Institucional Automática
+                                    </label>
+                                </div>
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
                                         <label class="block text-sm font-medium leading-6 text-gray-900">Monto Depositado</label>
-                                        <input type="number" step="0.01" name="amount" x-model="payAmount" required
+                                        <input type="number" step="0.01" name="amount" x-model.number="payAmount" @input="payRetention = applyRetention && (payInvoiceTotal - payAmount > 0) ? (payInvoiceTotal - payAmount).toFixed(2) : 0" required
                                             class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
                                     </div>
                                     <div>
                                         <label class="block text-sm font-medium leading-6 text-gray-900">Monto por Retención (2%)</label>
-                                        <input type="number" step="0.01" name="retention_amount" x-model="payRetention"
-                                            class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+                                        <input type="number" step="0.01" name="retention_amount" x-model.number="payRetention" readonly
+                                            class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-600 bg-gray-50 shadow-sm ring-1 ring-inset ring-gray-300 sm:text-sm sm:leading-6">
                                     </div>
                                 </div>
 
@@ -820,8 +832,10 @@
             // Pay Modal Data
             payInvoiceId: null,
             payInvoiceNumber: '',
+            payInvoiceTotal: 0,
             payAmount: 0,
             payRetention: 0,
+            applyRetention: false,
             paymentType: 'full',
             paymentNote: '',
 
@@ -864,8 +878,10 @@
             openPayModal(id, number, amount) {
                 this.payInvoiceId = id;
                 this.payInvoiceNumber = number;
+                this.payInvoiceTotal = amount;
                 this.payAmount = amount;
                 this.payRetention = 0;
+                this.applyRetention = false;
                 this.paymentType = 'full';
                 this.paymentNote = '';
                 this.showPayModal = true;
