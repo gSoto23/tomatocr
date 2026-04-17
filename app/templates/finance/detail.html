@@ -39,7 +39,7 @@
     </div>
 
     <!-- Indicators -->
-    <div class="grid grid-cols-1 gap-5 sm:grid-cols-5 mb-8">
+    <div class="grid grid-cols-1 gap-5 sm:grid-cols-6 mb-8">
         <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6 border border-gray-200">
             <dt class="truncate text-sm font-medium text-gray-500 uppercase">Total Adjudicado</dt>
             <dd class="mt-1 text-2xl lg:text-xl xl:text-2xl font-semibold tracking-tight text-gray-900 truncate" title="{{ '{:,.2f}'.format(summary.total_adjudicated) }}">{{
@@ -49,6 +49,11 @@
             <dt class="truncate text-sm font-medium text-gray-500 uppercase">Total Facturado</dt>
             <dd class="mt-1 text-2xl lg:text-xl xl:text-2xl font-semibold tracking-tight text-gray-900 truncate" title="{{ '{:,.2f}'.format(summary.total_invoiced) }}">{{
                 "{:,.2f}".format(summary.total_invoiced) }}</dd>
+        </div>
+        <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6 border border-gray-200">
+            <dt class="truncate text-sm font-medium text-gray-500 uppercase">Total Pagado</dt>
+            <dd class="mt-1 text-2xl lg:text-xl xl:text-2xl font-semibold tracking-tight text-indigo-600 truncate" title="{{ '{:,.2f}'.format(summary.total_paid) }}">{{
+                "{:,.2f}".format(summary.total_paid) }}</dd>
         </div>
         <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6 border border-gray-200">
             <dt class="truncate text-sm font-medium text-gray-500 uppercase">Total Costos</dt>

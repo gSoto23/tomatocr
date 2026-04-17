@@ -34,6 +34,7 @@ def get_project_budget_status(db: Session, project: Project):
     
     total_adjudicated = 0.0
     total_invoiced = 0.0
+    total_paid = 0.0
     
     if budget:
         # Sum lines (calculated properties not available in query easily, so loop or hybrid)
@@ -49,6 +50,8 @@ def get_project_budget_status(db: Session, project: Project):
         # Sum Invoices
         for inv in budget.invoices:
             total_invoiced += inv.amount
+            if inv.payment:
+                total_paid += inv.payment.amount + (inv.payment.retention_amount or 0.0)
 
     # Calculate manual costs
     manual_costs_query = db.query(func.sum(ProjectCost.amount)).filter(ProjectCost.project_id == project.id).scalar()
@@ -84,6 +87,7 @@ def get_project_budget_status(db: Session, project: Project):
         "budget": budget,
         "total_adjudicated": total_adjudicated,
         "total_invoiced": total_invoiced,
+        "total_paid": total_paid,
         "balance": total_adjudicated - total_invoiced,
         "total_costs": total_costs
     }
