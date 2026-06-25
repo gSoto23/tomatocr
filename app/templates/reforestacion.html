@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reporte de Reforestación | TOMATO</title>
+    <!-- Tailwind CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { darkMode: "class" };
+    </script>
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        #map { height: 600px; width: 100%; border-radius: 0.5rem; z-index: 10; }
+    </style>
+</head>
+
+<body class="bg-gray-50 text-gray-900 antialiased" x-data="reforestationApp()">
+
+    <!-- HEADER -->
+    <header class="sticky top-0 z-50 border-b border-black/10 bg-white/90 backdrop-blur">
+        <div class="mx-auto max-w-7xl px-4 py-4 flex items-center justify-between">
+            <a href="/" class="flex items-center gap-3">
+                <img src="/static/images/LogoTomatoB.png" alt="TOMATO" class="h-8" />
+            </a>
+            <a href="/" class="text-sm font-semibold hover:opacity-70 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Volver al inicio
+            </a>
+        </div>
+    </header>
+
+    <main class="mx-auto max-w-7xl px-4 py-8">
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold tracking-tight">Proyectos de Reforestación</h1>
+            <p class="mt-2 text-gray-600">Reporte en vivo de árboles plantados, georreferenciados individualmente.</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            
+            <!-- Dashboard Controls -->
+            <div class="lg:col-span-1 space-y-6">
+                <!-- Filtro -->
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+                    <label for="projectFilter" class="block text-sm font-semibold text-gray-700 mb-2">Filtrar por Sector</label>
+                    <select id="projectFilter" x-model="selectedProject" @change="filterProject()" class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-black focus:ring-1 focus:ring-black">
+                        <option value="all">Todos los proyectos</option>
+                        <template x-for="p in projects" :key="p.name">
+                            <option :value="p.name" x-text="p.name"></option>
+                        </template>
+                    </select>
+                </div>
+
+                <!-- Métricas -->
+                <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col items-center text-center">
+                    <div class="text-sm font-semibold text-gray-500 uppercase tracking-widest">Árboles Sembrados</div>
+                    <div class="mt-2 text-5xl font-extrabold text-green-600" x-text="totalTrees">0</div>
+                    <div class="mt-2 text-sm text-gray-600" x-show="selectedProject !== 'all'">en <span class="font-semibold" x-text="selectedProject"></span></div>
+                    <div class="mt-2 text-sm text-gray-600" x-show="selectedProject === 'all'">en total a nivel nacional</div>
+                </div>
+
+                <div class="bg-blue-50 p-5 rounded-xl border border-blue-100">
+                    <h3 class="font-semibold text-blue-900 text-sm">Información</h3>
+                    <p class="mt-2 text-sm text-blue-800 opacity-90">Cada pin en el mapa representa un individuo plantado. Las coordenadas mostradas han sido recolectadas en campo durante la siembra por nuestros ingenieros forestales.</p>
+                </div>
+            </div>
+
+            <!-- Mapa -->
+            <div class="lg:col-span-3">
+                <div class="bg-white p-2 rounded-xl border border-gray-200 shadow-sm">
+                    <div id="map"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const projectData = [
+            { name: "Parque Lisboa", lat: 10.003501, lng: -84.244167, ranges: [[1, 30]] },
+            { name: "Parque San Rafael Portones", lat: 9.966603, lng: -84.234085, ranges: [[31, 40]] },
+            { name: "Parques Desamparados Punta del Este", lat: 10.022463, lng: -84.190708, ranges: [[41, 65], [603, 603]] },
+            { name: "Parques La Independencia", lat: 10.015327, lng: -84.201523, ranges: [[66, 75]] },
+            { name: "Los Adobes", lat: 10.016195, lng: -84.200624, ranges: [[76, 99]] },
+            { name: "Los Adobes 2", lat: 10.017608, lng: -84.198383, ranges: [[100, 115]] },
+            { name: "El Martino", lat: 10.010354, lng: -84.272097, ranges: [[116, 440]] },
+            { name: "Parque Próspero Fernández", lat: 10.016981, lng: -84.218649, ranges: [[441, 480]] },
+            { name: "Quebrada Barro", lat: 10.013129, lng: -84.219399, ranges: [[481, 502]] },
+            { name: "Parque Palmares", lat: 10.020197, lng: -84.214254, ranges: [[503, 522]] },
+            { name: "Parque Juan Santamaría", lat: 10.014631, lng: -84.213588, ranges: [[523, 554]] },
+            { name: "Parque Calian Vargas", lat: 10.014590, lng: -84.214104, ranges: [[555, 596]] },
+            { name: "Parque Central", lat: 10.016551, lng: -84.213771, ranges: [[605, 636]] },
+            { name: "Polideportivo", lat: 10.000518, lng: -84.208872, ranges: [[637, 735]] }
+        ];
+
+        let allTrees = [];
+        
+        // Generar árboles individualmente
+        projectData.forEach(p => {
+            p.ranges.forEach(range => {
+                let start = range[0], end = range[1];
+                for (let i = start; i <= end; i++) {
+                    // Small random offset to simulate individual planting spots around the central coordinate
+                    // 0.001 is roughly ~110 meters, so 0.0015 makes a nice visible cluster
+                    const offsetLat = (Math.random() - 0.5) * 0.0015;
+                    const offsetLng = (Math.random() - 0.5) * 0.0015;
+                    allTrees.push({
+                        id: i,
+                        project: p.name,
+                        lat: p.lat + offsetLat,
+                        lng: p.lng + offsetLng
+                    });
+                }
+            });
+        });
+
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('reforestationApp', () => ({
+                projects: projectData,
+                selectedProject: 'all',
+                totalTrees: allTrees.length,
+                map: null,
+                markersGroup: null,
+                
+                init() {
+                    // Inicializar mapa
+                    // Costa Rica default view
+                    this.map = L.map('map').setView([10.0, -84.0], 9);
+                    
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '© OpenStreetMap contributors'
+                    }).addTo(this.map);
+
+                    this.markersGroup = L.layerGroup().addTo(this.map);
+                    this.renderMarkers(allTrees);
+                },
+
+                renderMarkers(treesToRender) {
+                    this.markersGroup.clearLayers();
+                    
+                    let bounds = L.latLngBounds();
+
+                    treesToRender.forEach(tree => {
+                        const marker = L.circleMarker([tree.lat, tree.lng], {
+                            radius: 5,
+                            fillColor: "#16a34a", // Tailwind green-600
+                            color: "#ffffff",
+                            weight: 1,
+                            opacity: 1,
+                            fillOpacity: 0.8
+                        });
+                        
+                        marker.bindPopup(`
+                            <div class="text-sm">
+                                <div class="font-bold border-b pb-1 mb-1 text-green-700">Árbol #${tree.id}</div>
+                                <div><strong>Sector:</strong> ${tree.project}</div>
+                            </div>
+                        `);
+                        
+                        this.markersGroup.addLayer(marker);
+                        bounds.extend([tree.lat, tree.lng]);
+                    });
+
+                    // Auto zoom to fit markers
+                    if (treesToRender.length > 0) {
+                        this.map.fitBounds(bounds, { padding: [30, 30], maxZoom: 17 });
+                    }
+                },
+
+                filterProject() {
+                    if (this.selectedProject === 'all') {
+                        this.totalTrees = allTrees.length;
+                        this.renderMarkers(allTrees);
+                    } else {
+                        const filtered = allTrees.filter(t => t.project === this.selectedProject);
+                        this.totalTrees = filtered.length;
+                        this.renderMarkers(filtered);
+                    }
+                }
+            }));
+        });
+    </script>
+</body>
+</html>

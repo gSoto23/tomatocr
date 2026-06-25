@@ -28,6 +28,10 @@ from app.core.templates import templates
 async def read_root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
+@app.get("/proyectos-reforestacion")
+async def view_reforestation_report(request: Request):
+    return templates.TemplateResponse("reforestacion.html", {"request": request})
+
 app.include_router(auth.router)
 app.include_router(dashboard.router)
 app.include_router(projects.router)
