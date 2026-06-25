@@ -19,6 +19,11 @@ async def view_cotizador(request: Request, user: User = Depends(deps.get_current
     # Render the template
     return templates.TemplateResponse("cotizador/index.html", {"request": request, "user": user})
 
+@router.get("/api/quotes/next-number")
+async def get_next_quote_number(db: Session = Depends(deps.get_db)):
+    count = db.query(Quote).count()
+    return {"next_number": count + 1}
+
 @router.get("/api/quotes/")
 async def list_quotes(
     db: Session = Depends(deps.get_db), 

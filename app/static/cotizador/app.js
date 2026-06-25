@@ -92,7 +92,6 @@ async function saveToSQL() {
     showToast("Error guardando: " + response.statusText, "error");
   } else {
     showToast("Sincronizado en el servidor", "success");
-    saveCounter(loadCounter() + 1);
     renderRecent();
   }
 }
@@ -215,11 +214,18 @@ function bindForm() {
   renderItems(); renderTotals(); renderRecent();
 }
 
-function loadCounter() { return parseInt(localStorage.getItem(COUNTER_KEY) || "0"); }
-function saveCounter(n) { localStorage.setItem(COUNTER_KEY, String(n)); }
+async function init() {
+  let n = 1;
+  try {
+    const res = await fetch(API_URL + "next-number");
+    if (res.ok) {
+      const data = await res.json();
+      n = data.next_number || 1;
+    }
+  } catch (e) {
+    console.error("Error fetching next number", e);
+  }
 
-function init() {
-  const n = loadCounter() + 1;
   state = {
     quoteNumber: `TCR-${new Date().getFullYear()}-${String(n).padStart(4, '0')}`,
     issueDate: new Date().toISOString().split('T')[0],
@@ -238,8 +244,16 @@ function wireListeners() {
   $("btnAddService").onclick = () => addItem("Servicio");
   $("btnAddMaterial").onclick = () => addItem("Material");
   $("btnNew").onclick = () => confirm("¿Nueva cotización?") && init();
-  $("btnDuplicate").onclick = () => {
-    state.quoteNumber = `TCR-${new Date().getFullYear()}-${String(loadCounter() + 1).padStart(4, '0')}`;
+  $("btnDuplicate").onclick = async () => {
+    let n = 1;
+    try {
+      const res = await fetch(API_URL + "next-number");
+      if (res.ok) {
+        const data = await res.json();
+        n = data.next_number || 1;
+      }
+    } catch (e) {}
+    state.quoteNumber = `TCR-${new Date().getFullYear()}-${String(n).padStart(4, '0')}`;
     state.issueDate = new Date().toISOString().split('T')[0];
     bindForm();
   };
