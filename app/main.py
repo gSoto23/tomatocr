@@ -44,6 +44,10 @@ app.include_router(liquidation.router)
 app.include_router(quotes.router)
 app.include_router(logs.router)
 
+from app.routers import reforestation
+app.include_router(reforestation.router)
+app.include_router(reforestation.public_router)
+
 # Create tables on startup (Simple approach)
 @app.on_event("startup")
 def on_startup():

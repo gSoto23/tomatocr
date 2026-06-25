@@ -11,12 +11,39 @@
     </script>
     <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
-    <!-- Leaflet CSS -->
+    <!-- Leaflet CSS & JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Leaflet MarkerCluster -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+    
     <style>
         #map { height: 600px; width: 100%; border-radius: 0.5rem; z-index: 10; }
+        
+        /* Custom MarkerCluster Styles to match brand (green) */
+        .marker-cluster-small {
+            background-color: rgba(34, 197, 94, 0.6); /* Tailwind green-500 */
+        }
+        .marker-cluster-small div {
+            background-color: rgba(21, 128, 61, 0.9); /* Tailwind green-700 */
+            color: white;
+        }
+        .marker-cluster-medium {
+            background-color: rgba(34, 197, 94, 0.6);
+        }
+        .marker-cluster-medium div {
+            background-color: rgba(21, 128, 61, 0.9);
+            color: white;
+        }
+        .marker-cluster-large {
+            background-color: rgba(34, 197, 94, 0.6);
+        }
+        .marker-cluster-large div {
+            background-color: rgba(21, 128, 61, 0.9);
+            color: white;
+        }
     </style>
 </head>
 
@@ -39,8 +66,8 @@
 
     <main class="mx-auto max-w-7xl px-4 py-8">
         <div class="mb-8">
-            <h1 class="text-3xl font-bold tracking-tight">Proyectos de Reforestación</h1>
-            <p class="mt-2 text-gray-600">Reporte en vivo de árboles plantados, georreferenciados individualmente.</p>
+            <h1 class="text-3xl font-bold tracking-tight" x-text="selectedClient === 'all' ? 'Reporte Nacional de Reforestación' : selectedClient"></h1>
+            <p class="mt-2 text-gray-600">Reporte en vivo de árboles plantados, inventario y georreferenciación.</p>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
@@ -49,11 +76,11 @@
             <div class="lg:col-span-1 space-y-6">
                 <!-- Filtro -->
                 <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
-                    <label for="projectFilter" class="block text-sm font-semibold text-gray-700 mb-2">Filtrar por Sector</label>
-                    <select id="projectFilter" x-model="selectedProject" @change="filterProject()" class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-black focus:ring-1 focus:ring-black">
-                        <option value="all">Todos los proyectos</option>
-                        <template x-for="p in projects" :key="p.name">
-                            <option :value="p.name" x-text="p.name"></option>
+                    <label for="clientFilter" class="block text-sm font-semibold text-gray-700 mb-2">Filtrar por Cliente</label>
+                    <select id="clientFilter" x-model="selectedClient" @change="filterClient()" class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-black focus:ring-1 focus:ring-black">
+                        <option value="all">Ver Todos</option>
+                        <template x-for="c in clients" :key="c">
+                            <option :value="c" x-text="c"></option>
                         </template>
                     </select>
                 </div>
@@ -61,19 +88,26 @@
                 <!-- Métricas -->
                 <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col items-center text-center">
                     <div class="text-sm font-semibold text-gray-500 uppercase tracking-widest">Árboles Sembrados</div>
-                    <div class="mt-2 text-5xl font-extrabold text-green-600" x-text="totalTrees">0</div>
-                    <div class="mt-2 text-sm text-gray-600" x-show="selectedProject !== 'all'">en <span class="font-semibold" x-text="selectedProject"></span></div>
-                    <div class="mt-2 text-sm text-gray-600" x-show="selectedProject === 'all'">en total a nivel nacional</div>
+                    
+                    <div x-show="isLoading" class="mt-4 animate-pulse flex space-x-4">
+                        <div class="h-10 w-24 bg-gray-200 rounded"></div>
+                    </div>
+                    
+                    <div x-show="!isLoading" class="mt-2 text-5xl font-extrabold text-green-600" x-text="totalTrees">0</div>
+                    <div x-show="!isLoading" class="mt-2 text-sm text-gray-600">registrados en sistema</div>
                 </div>
 
                 <div class="bg-blue-50 p-5 rounded-xl border border-blue-100">
-                    <h3 class="font-semibold text-blue-900 text-sm">Información</h3>
-                    <p class="mt-2 text-sm text-blue-800 opacity-90">Cada pin en el mapa representa un individuo plantado. Las coordenadas mostradas han sido recolectadas en campo durante la siembra por nuestros ingenieros forestales.</p>
+                    <h3 class="font-semibold text-blue-900 text-sm">Agrupación (Clusters)</h3>
+                    <p class="mt-2 text-sm text-blue-800 opacity-90">Los árboles que comparten la misma coordenada dentro del parque se agrupan en un globo verde indicando la cantidad. Haz clic en el globo para que se expandan en forma de espiral.</p>
                 </div>
             </div>
 
             <!-- Mapa -->
-            <div class="lg:col-span-3">
+            <div class="lg:col-span-3 relative">
+                <div x-show="isLoading" class="absolute inset-0 z-20 bg-white/70 backdrop-blur-sm flex items-center justify-center rounded-xl">
+                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+                </div>
                 <div class="bg-white p-2 rounded-xl border border-gray-200 shadow-sm">
                     <div id="map"></div>
                 </div>
@@ -82,106 +116,120 @@
     </main>
 
     <script>
-        const projectData = [
-            { name: "Parque Lisboa", lat: 10.003501, lng: -84.244167, ranges: [[1, 30]] },
-            { name: "Parque San Rafael Portones", lat: 9.966603, lng: -84.234085, ranges: [[31, 40]] },
-            { name: "Parques Desamparados Punta del Este", lat: 10.022463, lng: -84.190708, ranges: [[41, 65], [603, 603]] },
-            { name: "Parques La Independencia", lat: 10.015327, lng: -84.201523, ranges: [[66, 75]] },
-            { name: "Los Adobes", lat: 10.016195, lng: -84.200624, ranges: [[76, 99]] },
-            { name: "Los Adobes 2", lat: 10.017608, lng: -84.198383, ranges: [[100, 115]] },
-            { name: "El Martino", lat: 10.010354, lng: -84.272097, ranges: [[116, 440]] },
-            { name: "Parque Próspero Fernández", lat: 10.016981, lng: -84.218649, ranges: [[441, 480]] },
-            { name: "Quebrada Barro", lat: 10.013129, lng: -84.219399, ranges: [[481, 502]] },
-            { name: "Parque Palmares", lat: 10.020197, lng: -84.214254, ranges: [[503, 522]] },
-            { name: "Parque Juan Santamaría", lat: 10.014631, lng: -84.213588, ranges: [[523, 554]] },
-            { name: "Parque Calian Vargas", lat: 10.014590, lng: -84.214104, ranges: [[555, 596]] },
-            { name: "Parque Central", lat: 10.016551, lng: -84.213771, ranges: [[605, 636]] },
-            { name: "Polideportivo", lat: 10.000518, lng: -84.208872, ranges: [[637, 735]] }
-        ];
-
-        let allTrees = [];
-        
-        // Generar árboles individualmente
-        projectData.forEach(p => {
-            p.ranges.forEach(range => {
-                let start = range[0], end = range[1];
-                for (let i = start; i <= end; i++) {
-                    // Small random offset to simulate individual planting spots around the central coordinate
-                    // 0.001 is roughly ~110 meters, so 0.0015 makes a nice visible cluster
-                    const offsetLat = (Math.random() - 0.5) * 0.0015;
-                    const offsetLng = (Math.random() - 0.5) * 0.0015;
-                    allTrees.push({
-                        id: i,
-                        project: p.name,
-                        lat: p.lat + offsetLat,
-                        lng: p.lng + offsetLng
-                    });
-                }
-            });
-        });
-
         document.addEventListener('alpine:init', () => {
             Alpine.data('reforestationApp', () => ({
-                projects: projectData,
-                selectedProject: 'all',
-                totalTrees: allTrees.length,
+                allTrees: [],
+                clients: [],
+                selectedClient: 'all',
+                totalTrees: 0,
                 map: null,
-                markersGroup: null,
+                markerClusterGroup: null,
+                isLoading: true,
                 
-                init() {
-                    // Inicializar mapa
-                    // Costa Rica default view
+                async init() {
+                    // Initialize Map
                     this.map = L.map('map').setView([10.0, -84.0], 9);
                     
                     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                         attribution: '© OpenStreetMap contributors'
                     }).addTo(this.map);
 
-                    this.markersGroup = L.layerGroup().addTo(this.map);
-                    this.renderMarkers(allTrees);
+                    // Initialize MarkerCluster
+                    this.markerClusterGroup = L.markerClusterGroup({
+                        spiderfyOnMaxZoom: true,
+                        showCoverageOnHover: false,
+                        zoomToBoundsOnClick: true,
+                        maxClusterRadius: 40 // Tighter clusters
+                    });
+                    this.map.addLayer(this.markerClusterGroup);
+
+                    await this.fetchData();
+                },
+
+                async fetchData() {
+                    this.isLoading = true;
+                    try {
+                        const response = await fetch('/api/reforestation/map-data');
+                        const data = await response.json();
+                        this.allTrees = data.trees || [];
+                        
+                        // Extract unique clients
+                        const clientSet = new Set();
+                        this.allTrees.forEach(t => {
+                            if(t.project) clientSet.add(t.project);
+                        });
+                        this.clients = Array.from(clientSet).sort();
+                        
+                        // Default selection if available
+                        if(this.clients.includes("Municipalidad de Alajuela")) {
+                            this.selectedClient = "Municipalidad de Alajuela";
+                        } else if (this.clients.length > 0) {
+                            this.selectedClient = this.clients[0];
+                        }
+                        
+                        this.filterClient();
+                    } catch(e) {
+                        console.error('Error fetching tree data:', e);
+                    } finally {
+                        this.isLoading = false;
+                    }
                 },
 
                 renderMarkers(treesToRender) {
-                    this.markersGroup.clearLayers();
+                    this.markerClusterGroup.clearLayers();
                     
+                    if (treesToRender.length === 0) return;
+
                     let bounds = L.latLngBounds();
+                    const markers = [];
 
                     treesToRender.forEach(tree => {
                         const marker = L.circleMarker([tree.lat, tree.lng], {
-                            radius: 5,
-                            fillColor: "#16a34a", // Tailwind green-600
+                            radius: 6,
+                            fillColor: "#16a34a",
                             color: "#ffffff",
                             weight: 1,
                             opacity: 1,
-                            fillOpacity: 0.8
+                            fillOpacity: 0.9
                         });
                         
                         marker.bindPopup(`
-                            <div class="text-sm">
-                                <div class="font-bold border-b pb-1 mb-1 text-green-700">Árbol #${tree.id}</div>
-                                <div><strong>Sector:</strong> ${tree.project}</div>
+                            <div class="text-sm p-1">
+                                <div class="font-bold border-b pb-1 mb-2 text-green-700 uppercase tracking-wide text-xs">Árbol #${tree.id}</div>
+                                <div class="grid grid-cols-2 gap-y-2 gap-x-4">
+                                    <div class="text-gray-500 text-xs">Especie</div>
+                                    <div class="font-medium">${tree.species}</div>
+                                    
+                                    <div class="text-gray-500 text-xs">Sector</div>
+                                    <div class="font-medium">${tree.sector}</div>
+                                    
+                                    <div class="text-gray-500 text-xs">Fecha Plantado</div>
+                                    <div class="font-medium">${tree.date || 'N/A'}</div>
+                                </div>
                             </div>
                         `);
                         
-                        this.markersGroup.addLayer(marker);
+                        markers.push(marker);
                         bounds.extend([tree.lat, tree.lng]);
                     });
 
+                    this.markerClusterGroup.addLayers(markers);
+
                     // Auto zoom to fit markers
                     if (treesToRender.length > 0) {
-                        this.map.fitBounds(bounds, { padding: [30, 30], maxZoom: 17 });
+                        this.map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
                     }
                 },
 
-                filterProject() {
-                    if (this.selectedProject === 'all') {
-                        this.totalTrees = allTrees.length;
-                        this.renderMarkers(allTrees);
+                filterClient() {
+                    let filtered = [];
+                    if (this.selectedClient === 'all') {
+                        filtered = this.allTrees;
                     } else {
-                        const filtered = allTrees.filter(t => t.project === this.selectedProject);
-                        this.totalTrees = filtered.length;
-                        this.renderMarkers(filtered);
+                        filtered = this.allTrees.filter(t => t.project === this.selectedClient);
                     }
+                    this.totalTrees = filtered.length;
+                    this.renderMarkers(filtered);
                 }
             }));
         });
