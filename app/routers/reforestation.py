@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Request
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from app.routers import deps
 from app.db.models.reforestation import ReforestationProject, ReforestationTree
@@ -84,6 +85,42 @@ async def upload_csv(
         db.commit()
 
     return {"message": f"Successfully imported {len(trees_to_add)} trees for client {client_name}."}
+
+
+@router.get("/dashboard/reforestacion/download-csv/{project_id}")
+async def download_csv(
+    project_id: int, 
+    db: Session = Depends(deps.get_db), 
+    current_user = Depends(deps.get_current_user)
+):
+    if current_user.role != 'admin':
+        raise HTTPException(status_code=403, detail="Not authorized")
+        
+    project = db.query(ReforestationProject).filter(ReforestationProject.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+        
+    output = StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["TreeNumber", "Species", "Sector", "Lat", "Lng", "Date"])
+    
+    for tree in project.trees:
+        writer.writerow([
+            tree.tree_number, 
+            tree.species, 
+            tree.sector_name, 
+            tree.lat, 
+            tree.lng, 
+            tree.date_planted.strftime("%Y-%m-%d") if tree.date_planted else ""
+        ])
+        
+    output.seek(0)
+    filename = f"{project.client_name.replace(' ', '_')}_inventario.csv"
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
 
 
 public_router = APIRouter(prefix="/api/reforestation", tags=["reforestation_api"])

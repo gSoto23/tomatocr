@@ -242,17 +242,21 @@
                         });
                         
                         marker.bindPopup(`
-                            <div class="text-sm p-1">
+                            <div class="text-sm p-2 min-w-[220px]">
                                 <div class="font-bold border-b pb-1 mb-2 text-green-700 uppercase tracking-wide text-xs">Árbol #${tree.id}</div>
-                                <div class="grid grid-cols-2 gap-y-2 gap-x-4">
-                                    <div class="text-gray-500 text-xs">Especie</div>
-                                    <div class="font-medium">${tree.species}</div>
-                                    
-                                    <div class="text-gray-500 text-xs">Locación</div>
-                                    <div class="font-medium">${tree.sector}</div>
-                                    
-                                    <div class="text-gray-500 text-xs">Fecha Plantado</div>
-                                    <div class="font-medium">${tree.date || 'N/A'}</div>
+                                <div class="space-y-2">
+                                    <div>
+                                        <div class="text-gray-500 text-[10px] uppercase font-semibold">Especie</div>
+                                        <div class="font-medium text-gray-900 leading-tight">${tree.species}</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-gray-500 text-[10px] uppercase font-semibold">Locación</div>
+                                        <div class="font-medium text-gray-900 leading-tight">${tree.sector}</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-gray-500 text-[10px] uppercase font-semibold">Fecha Plantado</div>
+                                        <div class="font-medium text-gray-900 leading-tight">${tree.date || 'N/A'}</div>
+                                    </div>
                                 </div>
                             </div>
                         `);
