@@ -32,7 +32,11 @@ async def upload_csv(
         raise HTTPException(status_code=400, detail="Only CSV files are allowed.")
     
     content = await file.read()
-    decoded = content.decode('utf-8')
+    try:
+        decoded = content.decode('utf-8-sig') # Handle BOM if present
+    except UnicodeDecodeError:
+        decoded = content.decode('latin-1') # Fallback for Excel on Mac/Windows
+        
     csv_reader = csv.DictReader(StringIO(decoded))
     
     required_cols = {"TreeNumber", "Species", "Sector", "Lat", "Lng"}
