@@ -643,31 +643,45 @@
                 {% if project %}
                 const isEdit = true;
                 {% else %}
-        const isEdit = false;
-        {% endif %}
-        const url = isEdit ? '/projects/{{ (project.id if project else "") | safe }}/edit' : '/projects/new';
+                const isEdit = false;
+                {% endif %}
+                const url = isEdit ? '/projects/{{ (project.id if project else "") | safe }}/edit' : '/projects/new';
 
-        try {
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(this.formData)
-            });
+                // Prepare payload and sanitize empty strings for numeric/optional fields
+                let payload = JSON.parse(JSON.stringify(this.formData));
+                if (payload.prorrogable_amount === "") {
+                    payload.prorrogable_amount = null;
+                }
+                
+                // Sanitize budget lines
+                if (payload.budget_lines) {
+                    payload.budget_lines.forEach(line => {
+                        if (line.subtotal === "") line.subtotal = 0;
+                        if (line.tax_percentage === "") line.tax_percentage = 0;
+                    });
+                }
 
-            const result = await response.json();
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(payload)
+                    });
 
-            if (response.ok) {
-                window.location.href = result.redirect_url;
-            } else {
-                alert('Error al guardar: ' + (result.detail || 'Error desconocido'));
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        window.location.href = result.redirect_url;
+                    } else {
+                        alert('Error al guardar: ' + (result.detail ? JSON.stringify(result.detail) : 'Error desconocido'));
+                    }
+                } catch (error) {
+                    console.error(error);
+                    alert('Error de red');
+                }
             }
-        } catch (error) {
-            console.error(error);
-            alert('Error de red');
-        }
-    }
         };
     }
 </script>

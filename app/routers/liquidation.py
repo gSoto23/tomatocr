@@ -21,7 +21,7 @@ router = APIRouter(
 )
 
 @router.get("/", response_class=JSONResponse)
-async def list_liquidations(
+def list_liquidations(
     request: Request,
     db: Session = Depends(deps.get_db), 
     user: User = Depends(deps.get_current_user)
@@ -42,7 +42,7 @@ async def list_liquidations(
     })
 
 @router.get("/history/{user_id}")
-async def liquidation_history(
+def liquidation_history(
     user_id: int,
     request: Request,
     db: Session = Depends(deps.get_db), 
@@ -150,7 +150,7 @@ def calculate_liquidation_data(target_user: User, ref_date: date, db: Session, c
     }
 
 @router.get("/preview/{target_user_id}")
-async def preview_liquidation(
+def preview_liquidation(
     target_user_id: int,
     calculation_date: str = None,
     start_date: str = None, # New param
@@ -183,7 +183,7 @@ async def preview_liquidation(
     return data
 
 @router.get("/letter/{target_user_id}", response_class=HTMLResponse)
-async def liquidation_letter(
+def liquidation_letter(
     target_user_id: int,
     request: Request,
     calculation_date: str = None,
@@ -223,7 +223,7 @@ async def liquidation_letter(
     })
 
 @router.post("/create")
-async def create_liquidation(
+def create_liquidation(
     user_id: int = Form(...),
     date_val: str = Form(..., alias="date"),
     # Form data comes as individual fields, not a dict unless we parse it manually or use Body for JSON.
@@ -267,7 +267,7 @@ async def create_liquidation(
     return response
 
 @router.post("/reactivate/{target_user_id}")
-async def reactivate_user(
+def reactivate_user(
     target_user_id: int,
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)

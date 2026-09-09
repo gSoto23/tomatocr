@@ -15,7 +15,7 @@ def get_db():
     finally:
         db.close()
 
-async def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
+def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
     token = request.cookies.get("access_token")
     
     if not token:

@@ -31,7 +31,7 @@ router = APIRouter(
 from app.core.templates import templates
 
 @router.get("/")
-async def list_logs(
+def list_logs(
     request: Request, 
     project_id: Optional[int] = None,
     page: int = 1,
@@ -110,7 +110,7 @@ async def list_logs(
     })
 
 @router.get("/{id}/detail")
-async def get_log_detail(id: int, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
+def get_log_detail(id: int, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
     log = db.query(DailyLog).filter(DailyLog.id == id).first()
     if not log:
         raise HTTPException(status_code=404, detail="Log not found")
@@ -159,7 +159,7 @@ async def get_log_detail(id: int, db: Session = Depends(deps.get_db), user: User
     }
 
 @router.post("/{id}/delete")
-async def delete_log(id: int, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
+def delete_log(id: int, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
     log = db.query(DailyLog).filter(DailyLog.id == id).first()
     if not log:
         raise HTTPException(status_code=404, detail="Log not found")
@@ -191,7 +191,7 @@ async def delete_log(id: int, db: Session = Depends(deps.get_db), user: User = D
     return response
 
 @router.post("/{id}/edit")
-async def update_log(
+def update_log(
     id: int,
     notes: str = Form(...),
     location_id: Optional[int] = Form(None),
@@ -231,7 +231,7 @@ async def update_log(
     return response
 
 @router.get("/new")
-async def new_log_form(request: Request, project_id: Optional[int] = None, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
+def new_log_form(request: Request, project_id: Optional[int] = None, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
     # RBAC: Clients cannot report
     if user.role == "client":
         return RedirectResponse(url="/projects", status_code=status.HTTP_303_SEE_OTHER)
@@ -276,7 +276,7 @@ async def new_log_form(request: Request, project_id: Optional[int] = None, db: S
     })
 
 @router.post("/new")
-async def create_log(
+def create_log(
     project_id: int = Form(...),
     location_id: Optional[int] = Form(None),
     date_val: str = Form(..., alias="date"),
@@ -365,7 +365,7 @@ class EmailSchema(BaseModel):
 from fastapi import BackgroundTasks
 
 @router.post("/{id}/send-email")
-async def send_email(
+def send_email(
     id: int, 
     email_data: EmailSchema,
     background_tasks: BackgroundTasks,

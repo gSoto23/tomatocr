@@ -13,7 +13,7 @@ router = APIRouter(
 )
 
 @router.get("/dashboard/reforestacion")
-async def get_admin_dashboard(request: Request, db: Session = Depends(deps.get_db), current_user = Depends(deps.get_current_user)):
+def get_admin_dashboard(request: Request, db: Session = Depends(deps.get_db), current_user = Depends(deps.get_current_user)):
     if current_user.role != 'admin':
         raise HTTPException(status_code=403, detail="Not authorized")
     projects = db.query(ReforestationProject).all()
@@ -88,7 +88,7 @@ async def upload_csv(
 
 
 @router.get("/dashboard/reforestacion/download-csv/{project_id}")
-async def download_csv(
+def download_csv(
     project_id: int, 
     db: Session = Depends(deps.get_db), 
     current_user = Depends(deps.get_current_user)
@@ -126,7 +126,7 @@ async def download_csv(
 public_router = APIRouter(prefix="/api/reforestation", tags=["reforestation_api"])
 
 @public_router.get("/map-data")
-async def get_map_data(db: Session = Depends(deps.get_db)):
+def get_map_data(db: Session = Depends(deps.get_db)):
     trees = db.query(ReforestationTree).all()
     result = []
     for t in trees:

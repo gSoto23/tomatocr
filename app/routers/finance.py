@@ -107,7 +107,7 @@ def check_update_overdue_invoices(db: Session, project_id: int):
         db.commit()
 
 @router.get("/")
-async def finance_dashboard(request: Request, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
+def finance_dashboard(request: Request, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
     check_finance_access(user)
     
     # Get Projects
@@ -137,7 +137,7 @@ async def finance_dashboard(request: Request, db: Session = Depends(deps.get_db)
     })
 
 @router.get("/{project_id}")
-async def finance_detail(
+def finance_detail(
     project_id: int, 
     request: Request, 
     page: int = 1,
@@ -281,7 +281,7 @@ async def finance_detail(
     })
 
 @router.post("/{project_id}/invoice")
-async def create_invoice(
+def create_invoice(
     project_id: int, 
     invoice_number: str = Form(...),
     issue_date: str = Form(...),
@@ -326,7 +326,7 @@ async def create_invoice(
     return response
 
 @router.post("/invoice/{invoice_id}/edit")
-async def edit_invoice(
+def edit_invoice(
     invoice_id: int, 
     invoice_number: str = Form(...),
     issue_date: str = Form(...),
@@ -378,7 +378,7 @@ async def edit_invoice(
     return response
 
 @router.post("/invoice/{invoice_id}/delete")
-async def delete_invoice(
+def delete_invoice(
     invoice_id: int, 
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
@@ -404,7 +404,7 @@ async def delete_invoice(
     return response
 
 @router.post("/{project_id}/cost")
-async def create_cost(
+def create_cost(
     project_id: int, 
     date: str = Form(...),
     description: str = Form(...),
@@ -433,7 +433,7 @@ async def create_cost(
     return response
 
 @router.post("/cost/{cost_id}/edit")
-async def edit_cost(
+def edit_cost(
     cost_id: int, 
     date: str = Form(...),
     description: str = Form(...),
@@ -458,7 +458,7 @@ async def edit_cost(
     return response
 
 @router.post("/cost/{cost_id}/delete")
-async def delete_cost(
+def delete_cost(
     cost_id: int, 
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
@@ -479,7 +479,7 @@ async def delete_cost(
     return response
 
 @router.post("/invoice/{invoice_id}/pay")
-async def pay_invoice(
+def pay_invoice(
     invoice_id: int,
     payment_date: str = Form(...),
     deposit_number: str = Form(...),

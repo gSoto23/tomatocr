@@ -33,7 +33,7 @@ def check_admin(user: User):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
 
 @router.get("/")
-async def list_users(
+def list_users(
     request: Request, 
     page: int = 1,
     limit: int = 10,
@@ -65,12 +65,12 @@ async def list_users(
     })
 
 @router.get("/new")
-async def new_user_form(request: Request, user: User = Depends(deps.get_current_user)):
+def new_user_form(request: Request, user: User = Depends(deps.get_current_user)):
     check_admin(user)
     return templates.TemplateResponse("users/form.html", {"request": request, "user": user, "edit_user": None})
 
 @router.post("/new")
-async def create_user(
+def create_user(
     username: str = Form(...),
     password: str = Form(...),
     full_name: str = Form(...),
@@ -151,7 +151,7 @@ async def create_user(
     return response
 
 @router.get("/{id}/edit")
-async def edit_user_form(id: int, request: Request, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
+def edit_user_form(id: int, request: Request, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
     check_admin(user)
     edit_user = db.query(User).filter(User.id == id).first()
     if not edit_user:
@@ -159,7 +159,7 @@ async def edit_user_form(id: int, request: Request, db: Session = Depends(deps.g
     return templates.TemplateResponse("users/form.html", {"request": request, "user": user, "edit_user": edit_user})
 
 @router.post("/{id}/edit")
-async def update_user(
+def update_user(
     id: int,
     username: str = Form(...),
     password: Optional[str] = Form(None),
@@ -257,7 +257,7 @@ async def update_user(
     return response
 
 @router.post("/{id}/delete")
-async def delete_user(
+def delete_user(
     id: int,
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
@@ -287,7 +287,7 @@ async def delete_user(
     return response
 
 @router.post("/document/{doc_id}/delete")
-async def delete_user_document(
+def delete_user_document(
     doc_id: int,
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)

@@ -22,7 +22,7 @@ router = APIRouter(
 from app.core.templates import templates
 
 @router.get("/")
-async def dashboard(
+def dashboard(
     request: Request, 
     start_date: str = None, 
     end_date: str = None, 
@@ -160,7 +160,7 @@ async def dashboard(
     })
 
 @router.get("/activity")
-async def activity_log(
+def activity_log(
     request: Request,
     page: int = 1,
     limit: int = 50,

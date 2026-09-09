@@ -15,17 +15,17 @@ router = APIRouter(
 )
 
 @router.get("/cotizador", response_class=JSONResponse)
-async def view_cotizador(request: Request, user: User = Depends(deps.get_current_user)):
+def view_cotizador(request: Request, user: User = Depends(deps.get_current_user)):
     # Render the template
     return templates.TemplateResponse("cotizador/index.html", {"request": request, "user": user})
 
 @router.get("/api/quotes/next-number")
-async def get_next_quote_number(db: Session = Depends(deps.get_db)):
+def get_next_quote_number(db: Session = Depends(deps.get_db)):
     count = db.query(Quote).count()
     return {"next_number": count + 1}
 
 @router.get("/api/quotes/")
-async def list_quotes(
+def list_quotes(
     db: Session = Depends(deps.get_db), 
     limit: int = 20
 ):
@@ -53,7 +53,7 @@ async def list_quotes(
     ]
 
 @router.get("/api/quotes/{id}")
-async def get_quote(id: int, db: Session = Depends(deps.get_db)):
+def get_quote(id: int, db: Session = Depends(deps.get_db)):
     q = db.query(Quote).filter(Quote.id == id).first()
     if not q:
         raise HTTPException(status_code=404, detail="Cotización no encontrada")

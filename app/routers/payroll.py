@@ -22,7 +22,7 @@ router = APIRouter(
 )
 
 @router.get("/", response_class=HTMLResponse)
-async def payroll_dashboard(
+def payroll_dashboard(
     request: Request,
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
@@ -63,7 +63,7 @@ async def payroll_dashboard(
     })
 
 @router.get("/approval", response_class=HTMLResponse)
-async def approval_view(
+def approval_view(
     request: Request,
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
@@ -81,7 +81,7 @@ async def approval_view(
 
 
 @router.get("/detail/{period_id}", response_class=HTMLResponse)
-async def payroll_detail(
+def payroll_detail(
     period_id: int,
     request: Request,
     db: Session = Depends(deps.get_db),
@@ -185,7 +185,7 @@ async def payroll_detail(
     })
 
 @router.get("/report/{period_id}", response_class=HTMLResponse)
-async def payroll_report(
+def payroll_report(
     period_id: int,
     request: Request,
     db: Session = Depends(deps.get_db),
@@ -235,7 +235,7 @@ async def payroll_report(
     })
 
 @router.post("/confirm")
-async def confirm_payroll(
+def confirm_payroll(
     period_id: int = Body(..., embed=True),
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
@@ -255,7 +255,7 @@ async def confirm_payroll(
     return {"status": "success", "message": "Planilla finalizada"}
 
 @router.delete("/{period_id}")
-async def delete_payroll(
+def delete_payroll(
     period_id: int,
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
@@ -275,7 +275,7 @@ async def delete_payroll(
     return {"status": "success", "message": "Planilla eliminada"}
 
 @router.get("/supervisor/projects")
-async def get_supervisor_projects(
+def get_supervisor_projects(
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
@@ -296,7 +296,7 @@ async def get_supervisor_projects(
     return JSONResponse(data)
 
 @router.get("/schedules")
-async def get_schedules_for_approval(
+def get_schedules_for_approval(
     date: Optional[str] = None,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
@@ -363,7 +363,7 @@ async def get_schedules_for_approval(
 # -----------------------------------------------------------------------------
 
 @router.post("/hours/confirm")
-async def confirm_hours(
+def confirm_hours(
     schedule_id: int = Body(..., embed=True),
     hours: float = Body(..., embed=True),
     overtime: float = Body(0.0, embed=True),
@@ -392,7 +392,7 @@ class ScheduleUpdateItem(pydantic.BaseModel):
     overtime: float = 0.0
 
 @router.post("/hours/confirm-batch-update")
-async def confirm_hours_batch_update(
+def confirm_hours_batch_update(
     updates: List[ScheduleUpdateItem] = Body(...),
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
@@ -420,7 +420,7 @@ async def confirm_hours_batch_update(
     return {"status": "success", "message": f"{count} registros confirmados"}
 
 @router.post("/hours/confirm-batch")
-async def confirm_hours_batch(
+def confirm_hours_batch(
     schedule_ids: List[int] = Body(...),
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
@@ -439,7 +439,7 @@ async def confirm_hours_batch(
 # -----------------------------------------------------------------------------
 
 @router.post("/generate")
-async def generate_payroll(
+def generate_payroll(
     start_date: str = Body(...),
     end_date: str = Body(...),
     db: Session = Depends(deps.get_db),
@@ -526,7 +526,7 @@ async def generate_payroll(
     return {"status": "success", "message": "Planilla generada (Borrador)", "period_id": period.id}
 
 @router.patch("/entry/{entry_id}")
-async def update_payroll_entry_deductions(
+def update_payroll_entry_deductions(
     entry_id: int,
     apply_deductions: bool = Body(..., embed=True),
     db: Session = Depends(deps.get_db),

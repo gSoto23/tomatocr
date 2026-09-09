@@ -21,7 +21,7 @@ router = APIRouter(
 from app.core.templates import templates
 
 @router.get("/")
-async def calendar_view(request: Request, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
+def calendar_view(request: Request, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
     # Supervisor sees admin view (can manage), Worker sees their own calendar
     # Client is redirected
     if user.role == "client":
@@ -42,7 +42,7 @@ async def calendar_view(request: Request, db: Session = Depends(deps.get_db), us
     })
 
 @router.get("/events")
-async def get_events(start: str, end: str, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
+def get_events(start: str, end: str, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
     query = db.query(ProjectSchedule)
     
     # Admin and Supervisor see all
@@ -77,7 +77,7 @@ async def get_events(start: str, end: str, db: Session = Depends(deps.get_db), u
     return JSONResponse(events)
 
 @router.post("/schedule")
-async def create_schedule(
+def create_schedule(
     project_id: int = Form(...),
     user_id: int = Form(...),
     date_val: str = Form(..., alias="date"),
@@ -134,7 +134,7 @@ async def create_schedule(
     return JSONResponse({"status": "success", "message": "Asignación creada correctamente"})
 
 @router.post("/schedule/{id}/delete")
-async def delete_schedule(id: int, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
+def delete_schedule(id: int, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
     if user.role not in ["admin", "supervisor"]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
@@ -147,7 +147,7 @@ async def delete_schedule(id: int, db: Session = Depends(deps.get_db), user: Use
     return JSONResponse({"status": "success", "message": "Asignación eliminada correctamente"})
 
 @router.post("/schedule/{id}/edit")
-async def update_schedule(
+def update_schedule(
     id: int,
     project_id: int = Form(...),
     user_id: int = Form(...),
@@ -189,7 +189,7 @@ async def update_schedule(
     return JSONResponse({"status": "success", "message": "Asignación actualizada correctamente"})
 
 @router.post("/task/{id}/toggle")
-async def toggle_task_status(id: int, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
+def toggle_task_status(id: int, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
     task = db.query(ScheduleTask).filter(ScheduleTask.id == id).first()
     if not task:
         return JSONResponse({"status": "error", "message": "Tarea no encontrada"}, status_code=404)

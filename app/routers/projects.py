@@ -84,7 +84,7 @@ class ProjectCreate(BaseModel):
     budget_lines: List[BudgetLineCreate] = []
 
 @router.get("/")
-async def list_projects(
+def list_projects(
     request: Request, 
     page: int = 1, 
     limit: int = 10,
@@ -130,7 +130,7 @@ async def list_projects(
     })
 
 @router.get("/new")
-async def new_project_form(request: Request, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
+def new_project_form(request: Request, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
     if user.role != "admin": 
         return RedirectResponse(url="/projects", status_code=status.HTTP_303_SEE_OTHER)
 
@@ -146,7 +146,7 @@ async def new_project_form(request: Request, db: Session = Depends(deps.get_db),
     })
 
 @router.post("/new")
-async def create_project(
+def create_project(
     project_in: ProjectCreate,
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
@@ -242,7 +242,7 @@ async def create_project(
     return response
 
 @router.get("/{id}/edit")
-async def edit_project_form(id: int, request: Request, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
+def edit_project_form(id: int, request: Request, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
     if user.role != "admin":
         return RedirectResponse(url="/projects", status_code=status.HTTP_303_SEE_OTHER)
 
@@ -262,7 +262,7 @@ async def edit_project_form(id: int, request: Request, db: Session = Depends(dep
     })
 
 @router.post("/{id}/edit")
-async def update_project(
+def update_project(
     id: int,
     project_in: ProjectCreate,
     db: Session = Depends(deps.get_db),
@@ -365,7 +365,7 @@ async def update_project(
     return response
 
 @router.get("/{id}")
-async def get_project_detail(
+def get_project_detail(
     id: int, 
     request: Request, 
     page: int = 1,
@@ -429,5 +429,5 @@ async def get_project_detail(
     })
 
 @router.get("/{id}/logs")
-async def project_logs_redirect(id: int):
+def project_logs_redirect(id: int):
     return RedirectResponse(url=f"/logs?project_id={id}")

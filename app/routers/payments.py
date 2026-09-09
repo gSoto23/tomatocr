@@ -23,7 +23,7 @@ from app.core.templates import templates
 from fastapi import Request
 
 @router.get("/", response_class=JSONResponse)
-async def list_payments_view(
+def list_payments_view(
     request: Request,
     db: Session = Depends(deps.get_db), 
     user: User = Depends(deps.get_current_user)
@@ -44,7 +44,7 @@ async def list_payments_view(
     })
 
 @router.get("/history/{user_id}")
-async def payment_history(
+def payment_history(
     user_id: int,
     request: Request,
     db: Session = Depends(deps.get_db),
@@ -71,7 +71,7 @@ async def payment_history(
     })
 
 @router.post("/create")
-async def create_payment(
+def create_payment(
     user_id: int = Form(...),
     amount: float = Form(...),
     hours_paid: float = Form(...),
