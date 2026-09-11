@@ -64,6 +64,17 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
 3. **Variables de Entorno**
    - Asegúrate de incluir el archivo `.env` en la raíz.
    - Para desarrollo local se recomienda fuertemente: `USE_SQLITE="True"`.
+   - `SECRET_KEY` es **obligatoria** (la app ya no arranca sin ella — antes tenía
+     un valor por defecto inseguro). Generá una con:
+     ```bash
+     python -c "import secrets; print(secrets.token_hex(32))"
+     ```
+   - Las cookies de sesión se marcan `Secure` automáticamente cuando
+     `USE_SQLITE="False"` (producción); en local (`USE_SQLITE="True"`) no, para
+     que funcionen sobre `http://`.
+   - Los orígenes permitidos por CORS están fijados en `app/main.py`
+     (`tomatocr.com`, `www.tomatocr.com` y `localhost:8000` para desarrollo) —
+     ya no es un comodín `*`. Si necesitás agregar un origen nuevo, editalo ahí.
 
 4. **Instalación de Componentes**
    > *Nota*: Utiliza una iteración compatible de `bcrypt < 4.0.0` prescrita en tu requirements.
@@ -96,6 +107,25 @@ pip install -r requirements.txt
 PYTHONPATH=. python scripts/migrate_prod_locations.py  # Si hubieron cambios DDL recientes
 sudo systemctl restart tomato
 ```
+
+---
+
+## 🔒 Notas de Seguridad
+
+- **Subida de archivos** (fotos de bitácora, documentos de empleado): se valida
+  el `Content-Type` contra una whitelist (JPEG/PNG/WebP para fotos, +PDF para
+  documentos) y un límite de tamaño (5 MB fotos, 10 MB documentos) en
+  `app/utils/uploads.py`. El nombre físico en disco siempre se genera con un
+  UUID — nunca se usa el nombre de archivo que manda el cliente.
+- **`/api/quotes/*`** (Cotizador): solo accesible para roles `admin` y
+  `client` (igual que ya lo restringía la UI en `base_dashboard.html`) — antes
+  cualquier usuario autenticado, incluyendo `worker`/`supervisor`, podía
+  llamar la API directamente sin pasar por la UI.
+- **CORS**: lista explícita de orígenes en `app/main.py`, ya no `["*"]`.
+- **Cookie de sesión**: `HttpOnly` + `SameSite=Lax` siempre, `Secure` cuando
+  `USE_SQLITE="False"` (producción).
+- Pendiente (no incluido en esta ronda): rate-limiting en `/login`, migrar
+  `scripts/migrate_*.py` a Alembic.
 
 ---
 

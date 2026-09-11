@@ -1,12 +1,10 @@
 
-from typing import List, Optional
-from datetime import datetime, date
+from typing import Optional
+from datetime import datetime
 from fastapi import APIRouter, Depends, Form, Request, status, HTTPException
 from fastapi.responses import RedirectResponse, JSONResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
-from app.db.session import SessionLocal
 from app.db.models.schedule import ProjectSchedule, ScheduleTask
 from app.db.models.project import Project
 from app.db.models.user import User

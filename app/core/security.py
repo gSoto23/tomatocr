@@ -1,11 +1,9 @@
 
 from datetime import datetime, timedelta
-from typing import Optional, Union
-from jose import JWTError, jwt
+from typing import Optional
+from jose import jwt
 from passlib.context import CryptContext
 from app.core.config import settings
-
-import bcrypt
 
 # Password hashing
 # Workaround for passlib + modern bcrypt (Issue with 72 byte limit check)

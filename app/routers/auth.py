@@ -1,13 +1,10 @@
 
-from fastapi import APIRouter, Depends, HTTPException, status, Form, Request
-from fastapi.responses import RedirectResponse, HTMLResponse
+from fastapi import APIRouter, Depends, status, Form, Request
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
-from app.db.session import SessionLocal
 from app.db.models.user import User
 from app.core.security import verify_password, create_access_token
 from app.core.config import settings
-from datetime import timedelta
-
 from datetime import timedelta
 
 from app.routers import deps
@@ -51,7 +48,15 @@ def login(
 
     # Redirect to Dashboard with Cookie
     response = RedirectResponse(url="/dashboard", status_code=status.HTTP_303_SEE_OTHER)
-    response.set_cookie(key="access_token", value=f"Bearer {access_token}", httponly=True)
+    response.set_cookie(
+        key="access_token",
+        value=f"Bearer {access_token}",
+        httponly=True,
+        # secure solo en producción (Postgres/RDS): en local dev con SQLite
+        # seguimos sirviendo por http y un cookie Secure no se guardaría.
+        secure=not settings.USE_SQLITE,
+        samesite="lax",
+    )
     return response
 
 @router.get("/logout")
@@ -63,7 +68,7 @@ def logout(
     token = request.cookies.get("access_token")
     if token:
         try:
-            user = deps.get_current_user(token, db)
+            user = deps.get_current_user(request, db)
             if user:
                 log_activity(
                     db=db,

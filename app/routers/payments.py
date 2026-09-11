@@ -1,12 +1,11 @@
 
-from typing import List, Optional
+from typing import Optional
 from datetime import date
-from fastapi import APIRouter, Depends, HTTPException, status, Form, Body, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Form, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 
-from app.db.session import SessionLocal
 from app.routers import deps
 from app.db.models.user import User
 from app.db.models.payment import PayrollPayment
@@ -18,9 +17,7 @@ router = APIRouter(
     dependencies=[Depends(deps.get_current_user)]
 )
 
-from fastapi.templating import Jinja2Templates
 from app.core.templates import templates
-from fastapi import Request
 
 @router.get("/", response_class=JSONResponse)
 def list_payments_view(

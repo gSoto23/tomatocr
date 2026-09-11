@@ -1,5 +1,4 @@
 
-import shutil
 import uuid
 import json
 from pathlib import Path
@@ -8,19 +7,17 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Form, File, UploadFile, status, Request, HTTPException
 from fastapi.responses import RedirectResponse, JSONResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-from sqlalchemy import desc, func
+from sqlalchemy import func
 
-from app.db.session import SessionLocal
 from app.db.models.log import DailyLog, Photo
 from app.db.models.project import Project
 from app.db.models.log_task import DailyLogTask
-from app.db.models.project_details import ProjectTask
 from app.db.models.user import User
 from app.db.models.associations import project_users
 from app.routers import deps
 from app.utils.activity import log_activity
+from app.utils.uploads import IMAGE_TYPES, MAX_IMAGE_SIZE_BYTES
 
 router = APIRouter(
     prefix="/logs",
@@ -330,13 +327,20 @@ def create_log(
 
         for photo in photos:
             if photo.filename:
-                ext = photo.filename.split(".")[-1]
-                unique_name = f"{uuid.uuid4()}.{ext}"
+                if photo.content_type not in IMAGE_TYPES:
+                    raise HTTPException(status_code=400, detail="Solo se permiten fotos en JPEG, PNG o WebP")
+
+                contents = photo.file.read()
+                if len(contents) > MAX_IMAGE_SIZE_BYTES:
+                    raise HTTPException(status_code=400, detail="Cada foto debe pesar menos de 5 MB")
+
+                ext = IMAGE_TYPES[photo.content_type]
+                unique_name = f"{uuid.uuid4()}{ext}"
                 file_path = target_dir / unique_name
-                
+
                 with open(file_path, "wb") as buffer:
-                    shutil.copyfileobj(photo.file, buffer)
-                
+                    buffer.write(contents)
+
                 relative_path = f"/static/uploads/{year_month}/{unique_name}"
                 db_photo = Photo(log_id=new_log.id, file_path=relative_path)
                 db.add(db_photo)

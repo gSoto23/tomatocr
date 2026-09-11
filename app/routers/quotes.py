@@ -1,10 +1,8 @@
-from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.core.templates import templates
-from app.db.session import SessionLocal
 from app.db.models.user import User
 from app.db.models.quote import Quote
 from app.routers import deps
@@ -14,21 +12,33 @@ router = APIRouter(
     dependencies=[Depends(deps.get_current_user)]
 )
 
+def check_quotes_access(user: User):
+    # El "Cotizador" solo se muestra en la UI a admin y client
+    # (ver base_dashboard.html) — replicamos esa misma regla acá, porque el
+    # modelo Quote no tiene relación con un usuario/cliente específico para
+    # poder limitar a "solo las cotizaciones propias".
+    if user.role not in ("admin", "client"):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
+
 @router.get("/cotizador", response_class=JSONResponse)
 def view_cotizador(request: Request, user: User = Depends(deps.get_current_user)):
+    check_quotes_access(user)
     # Render the template
     return templates.TemplateResponse("cotizador/index.html", {"request": request, "user": user})
 
 @router.get("/api/quotes/next-number")
-def get_next_quote_number(db: Session = Depends(deps.get_db)):
+def get_next_quote_number(db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
+    check_quotes_access(user)
     count = db.query(Quote).count()
     return {"next_number": count + 1}
 
 @router.get("/api/quotes/")
 def list_quotes(
-    db: Session = Depends(deps.get_db), 
+    db: Session = Depends(deps.get_db),
+    user: User = Depends(deps.get_current_user),
     limit: int = 20
 ):
+    check_quotes_access(user)
     quotes = db.query(Quote).order_by(Quote.created_at.desc()).limit(limit).all()
     
     # We serialize it to match what the frontend expects
@@ -53,7 +63,8 @@ def list_quotes(
     ]
 
 @router.get("/api/quotes/{id}")
-def get_quote(id: int, db: Session = Depends(deps.get_db)):
+def get_quote(id: int, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
+    check_quotes_access(user)
     q = db.query(Quote).filter(Quote.id == id).first()
     if not q:
         raise HTTPException(status_code=404, detail="Cotización no encontrada")
@@ -78,6 +89,7 @@ def get_quote(id: int, db: Session = Depends(deps.get_db)):
 
 @router.post("/api/quotes/")
 async def upsert_quote(request: Request, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
+    check_quotes_access(user)
     data = await request.json()
     numero_cotizacion = data.get("numero_cotizacion")
     

@@ -1,7 +1,5 @@
 
-from typing import Optional
 from fastapi import Depends, HTTPException, status, Request
-from fastapi.responses import RedirectResponse
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 from app.db.session import SessionLocal
