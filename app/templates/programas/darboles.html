@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="es" class="">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dárboles | Reforestación Corporativa con Trazabilidad Real, un Programa de TOMATO</title>
+    <meta name="description"
+        content="Dárboles es el programa de reforestación corporativa e institucional de TOMATO: trazabilidad real por GPS, ingeniería forestal y modalidades para empresas y municipalidades." />
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/images/fav/apple-icon-180x180.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/images/fav/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/images/fav/favicon-16x16.png">
+    <meta name="theme-color" content="#0a0f0a">
+    <!-- Tailwind CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { darkMode: "class" };
+    </script>
+</head>
+
+<body class="bg-white text-black antialiased dark:bg-black dark:text-white">
+
+    <!-- HEADER -->
+    <header
+        class="sticky top-0 z-50 border-b border-black/10 bg-white/90 backdrop-blur dark:border-white/10 dark:bg-black/80">
+        <div class="mx-auto max-w-6xl px-4">
+            <div class="flex items-center justify-between py-4 gap-4">
+                <a href="/" class="flex items-center gap-3 min-w-[160px]">
+                    <img src="/static/images/LogoTomatoB.png" alt="TOMATO" class="h-9 block dark:hidden" />
+                    <img src="/static/images/LogoTomatoW.png" alt="TOMATO" class="h-9 hidden dark:block" />
+                </a>
+                <nav class="hidden md:flex items-center gap-6 text-sm">
+                    <a href="#problema" class="hover:opacity-70">El problema</a>
+                    <a href="#solucion" class="hover:opacity-70">La solución</a>
+                    <a href="#respaldo" class="hover:opacity-70">Respaldo</a>
+                    <a href="#modalidades" class="hover:opacity-70">Modalidades</a>
+                    <a href="#contacto" class="hover:opacity-70">Contacto</a>
+                </nav>
+                <a href="https://darboles.com" target="_blank" rel="noopener noreferrer"
+                    class="hidden sm:inline-flex items-center gap-2 rounded-md border border-black/20 px-4 py-2 text-sm font-semibold hover:bg-black hover:text-white dark:border-white/20 dark:hover:bg-white dark:hover:text-black">
+                    Tienda darboles.com
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- HERO -->
+    <section class="relative border-b border-black/10 dark:border-white/10 text-white"
+        style="background-color:#0a0f0a; background-image: url('/static/images/hero-darboles.svg'); background-size: cover; background-position: center bottom;">
+        <div class="relative mx-auto max-w-6xl px-4 py-16 md:py-24">
+            <div class="grid md:grid-cols-12 gap-10 items-center">
+                <div class="md:col-span-8">
+                    <div
+                        class="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.25em] text-green-400">
+                        <span class="h-1.5 w-1.5 rounded-full bg-green-400"></span>
+                        Tomato presenta
+                    </div>
+                    <h1 class="mt-4 text-4xl md:text-6xl font-semibold tracking-tight">
+                        Dárboles
+                    </h1>
+                    <p class="mt-2 text-lg md:text-xl text-white/70">
+                        Reforestación corporativa e institucional con trazabilidad real.
+                    </p>
+                    <p class="mt-6 max-w-2xl text-base md:text-lg text-white/80 leading-relaxed">
+                        Dárboles nació dentro de Tomato como la tienda y plataforma que le da forma a la reforestación:
+                        cada árbol georreferenciado, cada colaborador convertido en Guardián del Ecosistema, cada
+                        proyecto
+                        con reportes listos para juntas directivas y metas ESG.
+                    </p>
+
+                    <div class="mt-8 flex flex-col sm:flex-row gap-3">
+                        <a href="https://wa.me/50670808613?text=Hola%2C%20quiero%20agendar%20una%20demo%20del%20programa%20D%C3%A1rboles%20para%20mi%20empresa%2Finstituci%C3%B3n"
+                            target="_blank" rel="noopener noreferrer"
+                            class="inline-flex items-center justify-center rounded-md bg-green-500 px-5 py-3 text-sm font-semibold text-black hover:bg-green-400">
+                            Coordinar una demo
+                        </a>
+                        <a href="/proyectos-reforestacion"
+                            class="inline-flex items-center justify-center rounded-md border border-white/30 px-5 py-3 text-sm font-semibold hover:bg-white hover:text-black">
+                            Ver reporte en vivo →
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <blockquote class="mt-14 border-l-2 border-green-400 pl-5 max-w-2xl">
+                <p class="text-lg md:text-xl italic text-white/90 leading-relaxed">
+                    “Dárboles no vende árboles: vende una inversión ambiental medible, auditable y con garantía de
+                    seguimiento.”
+                </p>
+            </blockquote>
+        </div>
+    </section>
+
+    <!-- EL PROBLEMA -->
+    <section id="problema" class="border-b border-black/10 dark:border-white/10">
+        <div class="mx-auto max-w-6xl px-4 py-14">
+            <div class="grid md:grid-cols-12 gap-10 items-center">
+                <div class="md:col-span-4">
+                    <div class="text-6xl md:text-7xl font-semibold tracking-tight text-green-600">70%</div>
+                    <div class="mt-2 text-sm font-semibold text-black/70 dark:text-white/70">
+                        de los árboles sembrados sin acompañamiento técnico mueren en época seca.
+                    </div>
+                </div>
+                <div class="md:col-span-8">
+                    <h2 class="text-2xl md:text-3xl font-semibold tracking-tight">El problema</h2>
+                    <p class="mt-4 text-black/70 dark:text-white/70 leading-relaxed max-w-2xl">
+                        La mayoría de las iniciativas de reforestación se quedan en "regalar un árbol y ya": sin
+                        ingeniería forestal, sin riego de por vida y sin manera de comprobar cuántos individuos
+                        realmente sobrevivieron. Para una empresa o municipalidad, eso es riesgo de <span
+                            class="font-semibold">greenwashing</span>:
+                        una acción ambiental que no se puede sostener frente a una auditoría, un reporte ESG o la
+                        prensa.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- LA SOLUCIÓN -->
+    <section id="solucion" class="border-b border-black/10 dark:border-white/10">
+        <div class="mx-auto max-w-6xl px-4 py-14">
+            <h2 class="text-2xl md:text-3xl font-semibold tracking-tight">La solución</h2>
+            <p class="mt-3 text-black/70 dark:text-white/70 max-w-2xl leading-relaxed">
+                La tecnología de trazabilidad de Dárboles nació en Tomato, la misma que respalda nuestros proyectos
+                de reforestación institucional, y hoy es el corazón de cómo sembramos, registramos y acompañamos cada
+                árbol.
+            </p>
+
+            <div class="mt-8 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="rounded-xl border border-black/10 p-5 dark:border-white/10">
+                    <div class="text-sm font-semibold">Vivero e ingeniería forestal</div>
+                    <div class="mt-2 text-sm text-black/70 dark:text-white/70">Individuos propios, genética adaptada y
+                        dirección técnica de siembra.</div>
+                </div>
+                <div class="rounded-xl border border-black/10 p-5 dark:border-white/10">
+                    <div class="text-sm font-semibold">Georreferenciación GPS</div>
+                    <div class="mt-2 text-sm text-black/70 dark:text-white/70">Cada árbol queda registrado con
+                        coordenadas individuales en el mapa.</div>
+                </div>
+                <div class="rounded-xl border border-black/10 p-5 dark:border-white/10">
+                    <div class="text-sm font-semibold">Hidrokeeper</div>
+                    <div class="mt-2 text-sm text-black/70 dark:text-white/70">Polímero retenedor de agua que maximiza
+                        la supervivencia en época seca.</div>
+                </div>
+                <div class="rounded-xl border border-black/10 p-5 dark:border-white/10">
+                    <div class="text-sm font-semibold">Reportes y trazabilidad</div>
+                    <div class="mt-2 text-sm text-black/70 dark:text-white/70">Métricas listas para reportes ESG,
+                        Bandera Azul Ecológica o rendición de cuentas.</div>
+                </div>
+            </div>
+
+            <!-- 4 pasos hook -->
+            <div class="mt-10 rounded-2xl border border-black/10 p-6 md:p-8 dark:border-white/10">
+                <div class="text-xs uppercase tracking-widest text-black/50 dark:text-white/50">El proceso, en 4 pasos
+                </div>
+                <div class="mt-5 grid sm:grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                        <div class="text-3xl font-semibold text-green-600">1</div>
+                        <div class="mt-1 font-semibold">Hidrata</div>
+                        <div class="mt-1 text-sm text-black/60 dark:text-white/60">El árbol llega preparado para
+                            resistir el trasplante.</div>
+                    </div>
+                    <div>
+                        <div class="text-3xl font-semibold text-green-600">2</div>
+                        <div class="mt-1 font-semibold">Prepara</div>
+                        <div class="mt-1 text-sm text-black/60 dark:text-white/60">Sitio y suelo listos con hidrokeeper
+                            para el trasplante.</div>
+                    </div>
+                    <div>
+                        <div class="text-3xl font-semibold text-green-600">3</div>
+                        <div class="mt-1 font-semibold">Siembra</div>
+                        <div class="mt-1 text-sm text-black/60 dark:text-white/60">Se registra con coordenadas GPS en el
+                            momento de sembrar.</div>
+                    </div>
+                    <div>
+                        <div class="text-3xl font-semibold text-green-600">4</div>
+                        <div class="mt-1 font-semibold">Cuida</div>
+                        <div class="mt-1 text-sm text-black/60 dark:text-white/60">Seguimiento y reporte de
+                            supervivencia en el tiempo.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div
+                class="mt-8 rounded-2xl bg-green-50 border border-green-600/20 p-6 md:p-8 dark:bg-green-500/10 dark:border-green-400/20">
+                <div class="text-sm font-bold uppercase tracking-widest text-green-700 dark:text-green-400">Guardián del
+                    Ecosistema</div>
+                <p class="mt-2 text-black/80 dark:text-white/80 leading-relaxed max-w-2xl">
+                    No buscamos solo compradores o donantes: cada colaborador que siembra un árbol se inscribe en la
+                    plataforma y se convierte en <span class="font-semibold">Guardián del Ecosistema</span>, con acceso a
+                    su propio árbol,
+                    su ubicación y su historia de crecimiento. Es lo que convierte una campaña puntual en una comunidad.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- RESPALDO -->
+    <section id="respaldo" class="border-b border-black/10 dark:border-white/10">
+        <div class="mx-auto max-w-6xl px-4 py-14">
+            <h2 class="text-2xl md:text-3xl font-semibold tracking-tight">Respaldo</h2>
+            <p class="mt-3 text-black/70 dark:text-white/70 max-w-2xl leading-relaxed">
+                Esto no es un mockup ni una promesa a futuro: es el mismo reporte en vivo que mostramos en una
+                visita comercial, con proyectos ya ejecutados.
+            </p>
+
+            <div class="mt-8 flex flex-wrap items-center gap-10 md:gap-16 opacity-90">
+                <img src="/static/images/clients/muni-alajuela.jpg" alt="Municipalidad de Alajuela"
+                    class="h-16 md:h-20 w-auto object-contain grayscale mix-blend-multiply dark:mix-blend-screen">
+                <img src="/static/images/clients/museo-arte-costarricense.jpg" alt="Museo de Arte Costarricense"
+                    class="h-12 md:h-14 w-auto object-contain grayscale mix-blend-multiply dark:mix-blend-screen">
+            </div>
+
+            <div class="mt-8">
+                <a href="/proyectos-reforestacion"
+                    class="inline-flex items-center gap-2 px-5 py-3 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 transition-colors">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                    </svg>
+                    Explorar el mapa de árboles en vivo
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- SEGMENTOS -->
+    <section class="border-b border-black/10 dark:border-white/10">
+        <div class="mx-auto max-w-6xl px-4 py-14">
+            <h2 class="text-2xl md:text-3xl font-semibold tracking-tight">¿Para quién es Dárboles?</h2>
+            <div class="mt-8 grid md:grid-cols-2 gap-6">
+                <div class="rounded-2xl border border-black/10 p-6 dark:border-white/10">
+                    <div class="text-sm font-bold uppercase tracking-widest text-black/50 dark:text-white/50">
+                        Instituciones públicas</div>
+                    <div class="mt-2 font-semibold">Municipalidades y entidades de gobierno</div>
+                    <p class="mt-2 text-sm text-black/70 dark:text-white/70 leading-relaxed">
+                        Proyectos de reforestación a escala de cantón, alineados a metas ambientales institucionales,
+                        convenios y cumplimiento normativo, con el mismo estándar técnico que ya ejecutamos con la
+                        Municipalidad de Alajuela.
+                    </p>
+                </div>
+                <div class="rounded-2xl border border-black/10 p-6 dark:border-white/10">
+                    <div class="text-sm font-bold uppercase tracking-widest text-black/50 dark:text-white/50">Empresas
+                        privadas</div>
+                    <div class="mt-2 font-semibold">Sostenibilidad, RRHH y Zonas Francas</div>
+                    <p class="mt-2 text-sm text-black/70 dark:text-white/70 leading-relaxed">
+                        Reforestación corporativa con trazabilidad auditable para reportes ESG y Bandera Azul Ecológica,
+                        y una actividad real de voluntariado para tu equipo, no solo una foto de un día.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- MODALIDADES -->
+    <section id="modalidades" class="border-b border-black/10 dark:border-white/10">
+        <div class="mx-auto max-w-6xl px-4 py-14">
+            <h2 class="text-2xl md:text-3xl font-semibold tracking-tight">Modalidades de servicio</h2>
+            <p class="mt-3 text-black/70 dark:text-white/70 max-w-2xl leading-relaxed">
+                Tres formas de participar según el tamaño del proyecto y el nivel de involucramiento que busques.
+            </p>
+
+            <div class="mt-8 grid md:grid-cols-3 gap-5">
+                <div class="rounded-2xl border border-black/10 p-6 flex flex-col dark:border-white/10">
+                    <div class="text-sm font-bold uppercase tracking-widest text-green-700 dark:text-green-400">
+                        Voluntariado Corporativo</div>
+                    <p class="mt-3 text-sm text-black/70 dark:text-white/70 leading-relaxed flex-1">
+                        Una jornada de siembra para tu equipo, con capacitación incluida. Ideal como actividad puntual
+                        de RSE o team building con impacto ambiental real y medible.
+                    </p>
+                    <div class="mt-5 text-xs text-black/50 dark:text-white/50">Cotización según cantidad de
+                        colaboradores</div>
+                </div>
+                <div class="rounded-2xl border border-black/10 p-6 flex flex-col dark:border-white/10">
+                    <div class="text-sm font-bold uppercase tracking-widest text-green-700 dark:text-green-400">RSE
+                        Comunitaria</div>
+                    <p class="mt-3 text-sm text-black/70 dark:text-white/70 leading-relaxed flex-1">
+                        Un proyecto de reforestación en una comunidad o área verde pública, con la marca de tu empresa
+                        asociada al resultado y reportes de impacto para tu memoria de sostenibilidad.
+                    </p>
+                    <div class="mt-5 text-xs text-black/50 dark:text-white/50">Cotización según alcance del área</div>
+                </div>
+                <div class="rounded-2xl border border-black/10 p-6 flex flex-col dark:border-white/10">
+                    <div class="text-sm font-bold uppercase tracking-widest text-green-700 dark:text-green-400">Llave en
+                        Mano</div>
+                    <p class="mt-3 text-sm text-black/70 dark:text-white/70 leading-relaxed flex-1">
+                        Proyectos grandes y multi-jornada con nombre propio, al estilo de "[Tu institución] Verde y
+                        Conectada":
+                        insumos, planilla operativa, logística y plataforma incluidos de principio a fin.
+                    </p>
+                    <div class="mt-5 text-xs text-black/50 dark:text-white/50">Cotización a la medida del proyecto</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CONTACTO -->
+    <section id="contacto">
+        <div class="mx-auto max-w-6xl px-4 py-14">
+            <div class="grid md:grid-cols-12 gap-10 items-start">
+                <div class="md:col-span-7">
+                    <h2 class="text-2xl md:text-3xl font-semibold tracking-tight">Conversemos sobre tu proyecto</h2>
+                    <p class="mt-3 text-black/70 dark:text-white/70 leading-relaxed">
+                        Contanos si es para una empresa o una institución pública, y el tamaño aproximado del grupo o
+                        del área. Con eso armamos una propuesta y coordinamos una demo en vivo del dashboard.
+                    </p>
+                    <div class="mt-6">
+                        <a href="https://wa.me/50670808613?text=Hola%2C%20quiero%20informaci%C3%B3n%20sobre%20el%20programa%20D%C3%A1rboles"
+                            target="_blank" rel="noopener noreferrer"
+                            class="inline-flex items-center justify-center rounded-md bg-black px-5 py-3 text-sm font-semibold text-white hover:opacity-90 dark:bg-white dark:text-black">
+                            WhatsApp 7080-8613
+                        </a>
+                    </div>
+                </div>
+                <div class="md:col-span-5">
+                    <div class="rounded-2xl border border-black/10 p-6 dark:border-white/10">
+                        <div class="text-sm font-semibold">¿Buscás regalar árboles individuales?</div>
+                        <p class="mt-2 text-sm text-black/70 dark:text-white/70 leading-relaxed">
+                            En darboles.com podés regalar un árbol nativo a una persona especial, con empaque
+                            biodegradable y certificado digital.
+                        </p>
+                        <a href="https://darboles.com" target="_blank" rel="noopener noreferrer"
+                            class="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-green-700 hover:underline dark:text-green-400">
+                            Ir a la tienda darboles.com →
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <footer
+                class="mt-14 border-t border-black/10 pt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-sm text-black/60 dark:border-white/10 dark:text-white/60">
+                <div>© <span id="year"></span> TOMATO. Dárboles es un programa de TOMATO.</div>
+                <a href="/" class="hover:opacity-70">← Volver a tomatocr.com</a>
+            </footer>
+        </div>
+    </section>
+
+    <script>
+        document.getElementById('year').textContent = new Date().getFullYear();
+    </script>
+</body>
+
+</html>
