@@ -32,6 +32,10 @@ async def read_root(request: Request):
 async def view_reforestation_report(request: Request):
     return templates.TemplateResponse("reforestacion.html", {"request": request})
 
+@app.get("/programas/darboles")
+async def view_darboles_program(request: Request):
+    return templates.TemplateResponse("programas/darboles.html", {"request": request})
+
 app.include_router(auth.router)
 app.include_router(dashboard.router)
 app.include_router(projects.router)

@@ -34,9 +34,12 @@ async def upload_csv(
     
     content = await file.read()
     try:
-        decoded = content.decode('utf-8-sig') # Handle BOM if present
+        decoded = content.decode('utf-8-sig')  # Handle BOM if present
     except UnicodeDecodeError:
-        decoded = content.decode('latin-1') # Fallback for Excel on Mac/Windows
+        try:
+            decoded = content.decode('cp1252')  # Excel on Windows (most common source of broken tildes/ñ)
+        except UnicodeDecodeError:
+            decoded = content.decode('latin-1', errors='replace')  # Last resort, never raises
         
     csv_reader = csv.DictReader(StringIO(decoded))
     
