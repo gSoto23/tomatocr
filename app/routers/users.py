@@ -2,7 +2,6 @@
 from typing import Optional, List
 from fastapi import APIRouter, Depends, Form, Request, status, HTTPException, UploadFile, File
 import os
-import shutil
 import uuid
 from app.db.models.user_document import UserDocument
 from fastapi.responses import RedirectResponse
@@ -16,6 +15,7 @@ from app.routers import deps
 from app.core.security import get_password_hash
 from sqlalchemy.exc import IntegrityError
 from app.utils.activity import log_activity
+from app.utils.uploads import DOCUMENT_TYPES, MAX_DOCUMENT_SIZE_BYTES
 import logging
 
 logger = logging.getLogger(__name__)
@@ -133,11 +133,21 @@ def create_user(
         os.makedirs(upload_dir, exist_ok=True)
         for f in files:
             if f.filename:
-                unique_name = f"{uuid.uuid4()}_{f.filename}"
+                if f.content_type not in DOCUMENT_TYPES:
+                    raise HTTPException(status_code=400, detail=f"Tipo de archivo no permitido para '{f.filename}'. Se aceptan JPEG, PNG, WebP o PDF")
+                contents = f.file.read()
+                if len(contents) > MAX_DOCUMENT_SIZE_BYTES:
+                    raise HTTPException(status_code=400, detail=f"El archivo '{f.filename}' supera los 10 MB permitidos")
+
+                # Nombre físico generado en el servidor (nunca a partir del nombre
+                # que manda el cliente, para evitar path traversal); el nombre
+                # original se conserva solo como texto para mostrarlo en la UI.
+                ext = DOCUMENT_TYPES[f.content_type]
+                unique_name = f"{uuid.uuid4().hex}{ext}"
                 file_path = os.path.join(upload_dir, unique_name)
                 with open(file_path, "wb") as buffer:
-                    shutil.copyfileobj(f.file, buffer)
-                
+                    buffer.write(contents)
+
                 doc = UserDocument(
                     user_id=new_user.id,
                     filename=f.filename,
@@ -239,11 +249,18 @@ def update_user(
             os.makedirs(upload_dir, exist_ok=True)
             for f in files:
                 if f.filename:
-                    unique_name = f"{uuid.uuid4()}_{f.filename}"
+                    if f.content_type not in DOCUMENT_TYPES:
+                        raise HTTPException(status_code=400, detail=f"Tipo de archivo no permitido para '{f.filename}'. Se aceptan JPEG, PNG, WebP o PDF")
+                    contents = f.file.read()
+                    if len(contents) > MAX_DOCUMENT_SIZE_BYTES:
+                        raise HTTPException(status_code=400, detail=f"El archivo '{f.filename}' supera los 10 MB permitidos")
+
+                    ext = DOCUMENT_TYPES[f.content_type]
+                    unique_name = f"{uuid.uuid4().hex}{ext}"
                     file_path = os.path.join(upload_dir, unique_name)
                     with open(file_path, "wb") as buffer:
-                        shutil.copyfileobj(f.file, buffer)
-                    
+                        buffer.write(contents)
+
                     doc = UserDocument(
                         user_id=edit_user.id,
                         filename=f.filename,

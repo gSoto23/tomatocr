@@ -8,7 +8,10 @@ load_dotenv()
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Sistema TOMATO"
     API_V1_STR: str = "/api/v1"
-    SECRET_KEY: str = os.getenv("SECRET_KEY", "super-secret-key-change-it")
+    # Sin valor por defecto a propósito: si falta en el entorno, la app debe
+    # fallar al arrancar en vez de firmar tokens con una clave predecible.
+    # Generá una con: python -c "import secrets; print(secrets.token_hex(32))"
+    SECRET_KEY: str = os.environ["SECRET_KEY"]
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 1440)) # 1440 mins = 24 hrs defecto
     

@@ -10,9 +10,18 @@ from app.routers import auth, deps, projects, users, calendar, finance, dashboar
 app = FastAPI(title=settings.PROJECT_NAME)
 
 # CORS middleware configuration
+# Antes era allow_origins=["*"] con allow_credentials=True — combinación
+# insegura (permite que cualquier sitio haga solicitudes autenticadas usando
+# la cookie de sesión del usuario). Todas las páginas de este sitio consumen
+# su propia API en el mismo origen, así que no dependen de esta lista.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # In a strict production environment, replace with specific origins
+    allow_origins=[
+        "https://tomatocr.com",
+        "https://www.tomatocr.com",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
