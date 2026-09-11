@@ -1,8 +1,7 @@
 
-from fastapi import APIRouter, Depends, HTTPException, status, Form, Request
-from fastapi.responses import RedirectResponse, HTMLResponse
+from fastapi import APIRouter, Depends, status, Form, Request
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
-from app.db.session import SessionLocal
 from app.db.models.user import User
 from app.core.security import verify_password, create_access_token
 from app.core.config import settings

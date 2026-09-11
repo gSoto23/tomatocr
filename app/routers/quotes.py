@@ -1,10 +1,8 @@
-from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.core.templates import templates
-from app.db.session import SessionLocal
 from app.db.models.user import User
 from app.db.models.quote import Quote
 from app.routers import deps

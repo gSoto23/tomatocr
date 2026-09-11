@@ -7,15 +7,12 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Form, File, UploadFile, status, Request, HTTPException
 from fastapi.responses import RedirectResponse, JSONResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-from sqlalchemy import desc, func
+from sqlalchemy import func
 
-from app.db.session import SessionLocal
 from app.db.models.log import DailyLog, Photo
 from app.db.models.project import Project
 from app.db.models.log_task import DailyLogTask
-from app.db.models.project_details import ProjectTask
 from app.db.models.user import User
 from app.db.models.associations import project_users
 from app.routers import deps

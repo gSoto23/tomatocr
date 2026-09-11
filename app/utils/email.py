@@ -1,12 +1,10 @@
 
 from typing import List
-import base64
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
 from pydantic import EmailStr
 from app.core.config import settings
 from app.db.models.log import DailyLog
 from pathlib import Path
-from io import BytesIO
 from PIL import Image, ImageOps
 import tempfile
 import os

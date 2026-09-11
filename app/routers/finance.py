@@ -1,12 +1,10 @@
-from typing import List, Optional
+from typing import Optional
 from fastapi import APIRouter, Depends, Request, HTTPException, status, Form
-from fastapi.responses import RedirectResponse, JSONResponse
-from fastapi.templating import Jinja2Templates
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 import datetime
 
-from app.db.session import SessionLocal
 from app.db.models.project import Project
 from app.db.models.finance import ProjectBudget, BudgetLine, Invoice, Payment, InvoiceStatus, ProjectCost
 from app.db.models.schedule import ProjectSchedule

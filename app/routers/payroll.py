@@ -1,11 +1,9 @@
 from typing import List, Optional
 from datetime import date, datetime
-from fastapi import APIRouter, Depends, HTTPException, status, Form, Body, Request
+from fastapi import APIRouter, Depends, HTTPException, Body, Request
 from fastapi.responses import JSONResponse, HTMLResponse
 from sqlalchemy.orm import Session
-from sqlalchemy import func
 
-from app.db.session import SessionLocal
 from app.routers import deps
 from app.db.models.user import User
 from app.db.models.schedule import ProjectSchedule

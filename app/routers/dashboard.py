@@ -1,9 +1,8 @@
-from fastapi import APIRouter, Depends, Request
-from fastapi.templating import Jinja2Templates
+from fastapi import APIRouter, Depends, Request, status
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 
-from app.db.session import SessionLocal
 from app.routers import deps
 from app.db.models.user import User
 from app.db.models.project import Project
@@ -44,15 +43,7 @@ def dashboard(
             stats = get_project_budget_status(db, p)
             total_adjudicated += stats["total_adjudicated"]
         
-        # Calculate Total Invoiced (Filtered)
-        # Query all invoices for active projects
-        active_project_ids = [p.id for p in active_projects]
-        invoices_query = db.query(Invoice).join(ProjectSchedule, Invoice.budget_id == ProjectSchedule.id, isouter=True) 
-        # Wait, Invoice links to ProjectBudget via budget_id? 
-        # Let's check models. Project -> ProjectBudget -> Invoice?
-        # Invoice.budget_id -> ProjectBudget.id. ProjectBudget.project_id -> Project.id
-        
-        # Simpler: query Invoice joined with ProjectBudget joined with Project
+        # Calculate Total Invoiced (Filtered): query Invoice joined with ProjectBudget joined with Project
         from app.db.models.finance import ProjectBudget
         
         base_query = db.query(Invoice).join(ProjectBudget).join(Project).filter(Project.is_active == True)

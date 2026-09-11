@@ -1,18 +1,14 @@
 
-import json
 from typing import List, Optional
-from fastapi import APIRouter, Depends, Form, Request, status, HTTPException, Body
+from fastapi import APIRouter, Depends, Request, status, HTTPException
 from fastapi.responses import RedirectResponse, JSONResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
-from app.db.session import SessionLocal
 from app.db.models.project import Project
 from app.db.models.project_details import ProjectSupply, ProjectTask, ProjectContact, ProjectLocation
 from app.db.models.finance import ProjectBudget, BudgetLine, ProjectCost
 from app.db.models.schedule import ProjectSchedule
-from app.db.models.user import User
 from app.db.models.user import User
 from app.db.models.log import DailyLog
 from app.db.models.associations import project_users

@@ -5,11 +5,9 @@ import os
 import uuid
 from app.db.models.user_document import UserDocument
 from fastapi.responses import RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 
-from app.db.session import SessionLocal
 from app.db.models.user import User
 from app.routers import deps
 from app.core.security import get_password_hash
