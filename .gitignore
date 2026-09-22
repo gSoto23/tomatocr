@@ -27,6 +27,9 @@ venv/
 env/
 ENV/
 
+# Node (Tailwind CLI build tooling)
+node_modules/
+
 # OS Specific
 .DS_Store
 .AppleDouble

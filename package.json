@@ -1,0 +1,12 @@
+{
+  "name": "tomatocr",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Build tooling for TOMATO's public marketing pages (Tailwind CSS compilation). The app itself is the Python/FastAPI project.",
+  "scripts": {
+    "build:css": "tailwindcss -i ./app/static/css/tailwind-input.css -o ./app/static/css/tailwind.css --minify"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.19"
+  }
+}
