@@ -87,6 +87,20 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
    uvicorn app.main:app --reload
    ```
 
+6. **CSS de las páginas públicas (Tailwind)**
+   Las 3 páginas públicas (`/`, `/proyectos-reforestacion`, `/programas/darboles`)
+   usan un CSS de Tailwind compilado y purgado (`app/static/css/tailwind.css`),
+   no el script de CDN — más liviano y sin recompilar clases en cada visita.
+   Si modificás clases de Tailwind en esos templates, recompilá y commiteá el
+   resultado antes de hacer push:
+   ```bash
+   npm install       # una sola vez
+   npm run build:css
+   ```
+   El archivo compilado queda versionado en git, así que el servidor de
+   producción no necesita Node.js instalado — solo recibe el CSS ya generado
+   con el `git pull`.
+
 ---
 
 ## 🌍 Arquitectura de Producción (AWS)
