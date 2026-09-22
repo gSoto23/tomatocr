@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.responses import RedirectResponse
 from app.core.config import settings
 from app.db.base import Base
 from app.db.session import engine
@@ -25,6 +26,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Redirect www.tomatocr.com to the canonical apex domain (avoids duplicate-content indexing)
+@app.middleware("http")
+async def redirect_www_to_apex(request: Request, call_next):
+    host = request.headers.get("host", "")
+    if host.startswith("www."):
+        target = request.url.replace(netloc=host[len("www."):])
+        return RedirectResponse(url=str(target), status_code=308)
+    return await call_next(request)
 
 # Mount static files
 # Directory structure is app/static, so we mount it to /static path
