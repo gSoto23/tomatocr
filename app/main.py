@@ -42,15 +42,15 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 from app.core.templates import templates
 
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 async def read_root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
-@app.get("/proyectos-reforestacion")
+@app.api_route("/proyectos-reforestacion", methods=["GET", "HEAD"])
 async def view_reforestation_report(request: Request):
     return templates.TemplateResponse("reforestacion.html", {"request": request})
 
-@app.get("/programas/darboles")
+@app.api_route("/programas/darboles", methods=["GET", "HEAD"])
 async def view_darboles_program(request: Request):
     return templates.TemplateResponse("programas/darboles.html", {"request": request})
 
