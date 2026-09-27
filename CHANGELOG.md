@@ -6,7 +6,15 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-27
 
-### Documentación al día (esta rama)
+### Sin opción "Dárboles" en la configuración de reforestación (esta rama)
+- Se quitó el campo "Tipo" del formulario del admin: darboles.com es una
+  plataforma independiente, así que todos los proyectos de este sistema son
+  institucionales y salen en el mapa de tomatocr.com.
+- La columna `kind` queda en la base (siempre `institucional`), sin
+  migración.
+- Despliegue: sin migraciones.
+
+### Documentación al día (#50)
 - README: estado real de producción (PostgreSQL `tomato_prod_2026`), pasos
   de despliegue con Alembic, versiones de migración y nota sobre `create_all`
   en desarrollo.
