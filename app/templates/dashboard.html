@@ -186,6 +186,22 @@
     </div>
 </div>
 
+<!-- Embudo del equipo (Clientes) -->
+<div class="mt-6 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+    <div class="flex justify-between items-center">
+        <h3 class="font-bold text-gray-900">Embudo comercial del equipo</h3>
+        <a href="/clientes" class="text-sm font-semibold text-black hover:text-gray-600">Ver Clientes &rarr;</a>
+    </div>
+    <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
+        {% for row in data.crm_funnel %}
+        <div class="rounded-lg border border-gray-200 p-3">
+            <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ crm_labels.stage[row.stage] }}</div>
+            <div class="mt-1 text-2xl font-bold text-gray-900">{{ row.reached }}<span class="text-sm font-normal text-gray-500"> / {{ row.target }}</span></div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
 <!-- CLIENT VIEW -->
 {% elif user.role == 'client' %}
 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
@@ -378,13 +394,29 @@
 {% elif user.role == 'ventas' %}
 <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
     <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-        <h3 class="font-bold text-gray-900">Ventas</h3>
+        <h3 class="font-bold text-gray-900">Mis próximos pasos</h3>
         <a href="/cotizador"
             class="inline-flex items-center justify-center rounded-md bg-black px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800">
             Abrir Cotizador
         </a>
     </div>
-    <p class="px-6 py-8 text-center text-sm text-gray-500 italic">Aquí aparecerán tus prospectos y próximos pasos.</p>
+    {% set steps = data.next_steps %}
+    <div class="grid gap-4 p-6 md:grid-cols-3">
+        {% for key, title, color in [('vencidos', 'Vencidos', 'text-red-700'), ('hoy', 'Para hoy', 'text-gray-900'), ('semana', 'Próximos 7 días', 'text-gray-900')] %}
+        <div>
+            <h4 class="text-sm font-semibold {{ color }}">{{ title }} ({{ steps[key]|length }})</h4>
+            <ul class="mt-2 space-y-2 text-sm">
+                {% for o in steps[key] %}
+                <li><a href="/clientes/oportunidades/{{ o.id }}" class="font-medium text-gray-900 hover:underline">{{ o.account.name }}</a>
+                    <div class="text-gray-600">{{ o.next_step or o.title }} · {{ o.next_step_date|format_date }}</div></li>
+                {% else %}
+                <li class="text-gray-500 italic">Nada pendiente.</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endfor %}
+    </div>
+    <div class="border-t border-gray-100 px-6 py-3 text-sm"><a href="/clientes" class="font-semibold text-black hover:text-gray-600">Ir a Clientes &rarr;</a></div>
 </div>
 {% endif %}
 

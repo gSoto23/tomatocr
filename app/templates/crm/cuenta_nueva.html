@@ -1,0 +1,55 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Nueva cuenta | Clientes | TOMATO{% endblock %}
+{% block header_title %}Clientes · Nueva cuenta{% endblock %}
+
+{% block content %}
+{% set L = crm_labels %}
+<div class="max-w-2xl mx-auto space-y-4">
+    <a href="/clientes/cuentas" class="text-sm font-semibold text-gray-600 hover:text-black">&larr; Cuentas</a>
+
+    {% if similar %}
+    <div class="rounded-xl border border-amber-300 bg-amber-50 p-5 text-sm">
+        <h2 class="font-semibold text-amber-900">Ya hay {{ 'una cuenta parecida' if similar|length == 1 else 'cuentas parecidas' }}</h2>
+        <p class="mt-1 text-amber-900">Revise si es el mismo cliente antes de crear otra cuenta:</p>
+        <ul class="mt-3 space-y-1">
+            {% for a in similar %}
+            <li><a href="/clientes/cuentas/{{ a.id }}" class="font-semibold text-amber-900 underline">{{ a.name }}</a>
+                {% if a.tax_id %}<span class="text-amber-800">· cédula {{ a.tax_id }}</span>{% endif %}</li>
+            {% endfor %}
+        </ul>
+        {% if tax_id_taken %}
+        <p class="mt-3 font-semibold text-red-800">Esa cédula ya está registrada: no se puede crear otra cuenta con ella.</p>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <form method="post" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4 text-sm">
+        <label class="block"><span class="font-medium text-gray-700">Nombre de la cuenta *</span>
+            <input type="text" name="name" required value="{{ form.name or '' }}" placeholder="Ej. Hotel Playa Azul" class="mt-1 block w-full rounded-md border border-gray-300 p-2"></label>
+        <label class="block"><span class="font-medium text-gray-700">Tipo</span>
+            <select name="kind" class="mt-1 block w-full rounded-md border border-gray-300 p-2">
+                {% for k in kinds %}<option value="{{ k }}" {% if (form.kind or 'empresa') == k %}selected{% endif %}>{{ L.kind[k] }}</option>{% endfor %}
+            </select></label>
+        <fieldset class="rounded-lg border border-gray-200 p-4 space-y-3">
+            <legend class="px-1 font-medium text-gray-700">Contacto principal (opcional)</legend>
+            <input type="text" name="contact_name" value="{{ form.contact_name or '' }}" placeholder="Nombre" class="block w-full rounded-md border border-gray-300 p-2">
+            <div class="grid gap-3 sm:grid-cols-2">
+                <input type="email" name="contact_email" value="{{ form.contact_email or '' }}" placeholder="Correo" class="block w-full rounded-md border border-gray-300 p-2">
+                <input type="text" name="contact_phone" value="{{ form.contact_phone or '' }}" placeholder="Teléfono" class="block w-full rounded-md border border-gray-300 p-2">
+            </div>
+        </fieldset>
+        <label class="block"><span class="font-medium text-gray-700">Cédula (opcional)</span>
+            <input type="text" name="tax_id" value="{{ form.tax_id or '' }}" placeholder="Ej. 3-101-123456" class="mt-1 block w-full rounded-md border border-gray-300 p-2"></label>
+        <p class="text-xs text-gray-500">Los demás datos (razón social, dirección, exención de IVA…) se completan después en la ficha, en "Más datos".</p>
+        <div class="flex flex-wrap gap-3">
+            {% if similar and not tax_id_taken %}
+            <button name="confirm" value="true" class="rounded-md bg-black px-4 py-2 font-semibold text-white hover:bg-gray-800">Es otro cliente: crear de todos modos</button>
+            {% else %}
+            <button class="rounded-md bg-black px-4 py-2 font-semibold text-white hover:bg-gray-800">Crear cuenta</button>
+            {% endif %}
+            <a href="/clientes/cuentas" class="px-3 py-2 font-semibold text-gray-600 hover:text-black">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -6,7 +6,21 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-27
 
-### Fase 2A: cuentas del CRM y migración de clientes (esta rama, sin desplegar)
+### Fase 2B: menú Clientes (esta rama)
+- Menú "Clientes" para admin y ventas con **Embudo** (metas editables,
+  próximos pasos vencidos y de hoy, monto en propuesta por motor, filtros) y
+  **Cuentas** (búsqueda, estado calculado, aviso de cuentas parecidas al
+  crear).
+- Ficha de la cuenta con seguimientos, contactos, oportunidades, cotizaciones
+  y proyectos; página de oportunidad con cambio de etapa, próximo paso y
+  seguimientos.
+- Dashboard: próximos pasos para ventas y embudo del equipo para admin.
+- Permisos: ventas ve todo sin finanzas y edita lo suyo y lo que no tiene
+  dueño; admin reasigna, edita metas y fusiona.
+- Migración `0004`: metas del embudo con los valores del piloto.
+- Despliegue: snapshot, `alembic upgrade head` (0003 → 0004), reiniciar.
+
+### Fase 2A: cuentas del CRM y migración de clientes (#52)
 - Migración `0003`: tablas `accounts`, `contacts`, `project_contact_roles`,
   `opportunities`, `crm_activities` (seguimientos) y `account_not_duplicates`;
   columnas opcionales `account_id` y `opportunity_id` en proyectos y

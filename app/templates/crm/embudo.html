@@ -1,0 +1,118 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Embudo | Clientes | TOMATO{% endblock %}
+{% block header_title %}Clientes{% endblock %}
+
+{% macro money(value) %}{{ '₡{:,.0f}'.format(value) if value else '—' }}{% endmacro %}
+
+{% block content %}
+{% set L = crm_labels %}
+<div class="max-w-6xl mx-auto space-y-6" x-data="{ editGoals: false }">
+    {% set active = 'embudo' %}{% include "crm/_nav.html" %}
+
+    <!-- Embudo -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+            <h2 class="font-semibold text-gray-900">Embudo {% if filters.motor or filters.owner %}<span class="text-sm font-normal text-gray-500">(filtrado)</span>{% endif %}</h2>
+            <p class="text-xs text-gray-500">Cuentas que alcanzaron cada etapa, contra la meta.</p>
+        </div>
+        <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
+            {% for row in funnel %}
+            <div class="rounded-lg border border-gray-200 p-3">
+                <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ L.stage[row.stage] }}</div>
+                <div class="mt-1 text-2xl font-bold text-gray-900">{{ row.reached }}<span class="text-sm font-normal text-gray-500"> / {{ row.target }}</span></div>
+                <div class="mt-2 h-1.5 rounded bg-gray-100"><div class="h-1.5 rounded bg-green-600" style="width: {{ [row.pct or 0, 100]|min }}%"></div></div>
+            </div>
+            {% endfor %}
+        </div>
+        {% if user.role == 'admin' %}
+        <button type="button" @click="editGoals = !editGoals" class="mt-3 text-xs font-semibold text-gray-600 hover:text-black">Editar metas</button>
+        <form x-show="editGoals" x-cloak method="post" action="/clientes/metas" class="mt-3 flex flex-wrap items-end gap-3 text-sm">
+            {% for row in funnel %}
+            <label class="block">
+                <span class="text-xs text-gray-600">{{ L.stage[row.stage] }}</span>
+                <input type="number" min="0" name="{{ row.stage }}" value="{{ row.target }}" class="mt-1 block w-24 rounded-md border border-gray-300 p-2">
+            </label>
+            {% endfor %}
+            <button class="rounded-md bg-black px-3 py-2 font-semibold text-white hover:bg-gray-800">Guardar metas</button>
+        </form>
+        {% endif %}
+        {% if amounts %}
+        <div class="mt-4 border-t border-gray-100 pt-3 text-sm text-gray-700">
+            <span class="font-semibold">En propuesta:</span>
+            {% for motor, total in amounts|dictsort %}
+            <span class="ml-3">{{ L.motor.get(motor, 'Sin motor') }} {{ money(total) }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Próximos pasos -->
+    <div class="grid gap-4 md:grid-cols-2">
+        {% for key, title, color in [('vencidos', 'Próximos pasos vencidos', 'text-red-700'), ('hoy', 'Para hoy', 'text-gray-900')] %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+            <h3 class="font-semibold {{ color }}">{{ title }} ({{ steps[key]|length }})</h3>
+            <ul class="mt-3 divide-y divide-gray-100 text-sm">
+                {% for o in steps[key] %}
+                <li class="py-2">
+                    <a href="/clientes/oportunidades/{{ o.id }}" class="font-medium text-gray-900 hover:underline">{{ o.account.name }} · {{ o.title }}</a>
+                    <div class="text-gray-600">{{ o.next_step or 'Sin detalle' }} · {{ o.next_step_date|format_date }}{% if o.owner %} · {{ o.owner.full_name or o.owner.username }}{% endif %}</div>
+                </li>
+                {% else %}
+                <li class="py-2 text-gray-500 italic">Nada pendiente.</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Oportunidades -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <form method="get" class="flex flex-wrap items-end gap-3 border-b border-gray-200 bg-gray-50 p-4 text-sm">
+            <label class="block"><span class="text-xs text-gray-600">Buscar</span>
+                <input type="search" name="q" value="{{ filters.q }}" placeholder="Empresa u oportunidad" class="mt-1 block w-56 rounded-md border border-gray-300 p-2"></label>
+            <label class="block"><span class="text-xs text-gray-600">Motor</span>
+                <select name="motor" class="mt-1 block rounded-md border border-gray-300 p-2">
+                    <option value="">Todos</option>
+                    {% for m in motors %}<option value="{{ m }}" {% if filters.motor == m %}selected{% endif %}>{{ L.motor[m] }}</option>{% endfor %}
+                </select></label>
+            <label class="block"><span class="text-xs text-gray-600">Vendedor</span>
+                <select name="owner" class="mt-1 block rounded-md border border-gray-300 p-2">
+                    <option value="">Todos</option>
+                    {% for s in sellers %}<option value="{{ s.id }}" {% if filters.owner == s.id %}selected{% endif %}>{{ s.full_name or s.username }}</option>{% endfor %}
+                </select></label>
+            <label class="block"><span class="text-xs text-gray-600">Etapa</span>
+                <select name="stage" class="mt-1 block rounded-md border border-gray-300 p-2">
+                    <option value="">Todas</option>
+                    {% for s in stages %}<option value="{{ s }}" {% if filters.stage == s %}selected{% endif %}>{{ L.stage[s] }}</option>{% endfor %}
+                </select></label>
+            <button class="rounded-md bg-black px-3 py-2 font-semibold text-white hover:bg-gray-800">Filtrar</button>
+            <a href="/clientes" class="px-2 py-2 text-gray-600 hover:text-black">Limpiar</a>
+        </form>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 text-sm">
+                <thead class="bg-gray-50 text-left text-xs uppercase text-gray-500">
+                    <tr><th class="px-4 py-3">Cuenta · Oportunidad</th><th class="px-3 py-3">Motor</th><th class="px-3 py-3">Etapa</th>
+                        <th class="px-3 py-3 text-right">Monto</th><th class="px-3 py-3">Próximo paso</th><th class="px-3 py-3">Vendedor</th></tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for o, amount in opportunities %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3"><a href="/clientes/oportunidades/{{ o.id }}" class="font-medium text-gray-900 hover:underline">{{ o.account.name }}</a>
+                            <div class="text-gray-600">{{ o.title }}</div></td>
+                        <td class="px-3 py-3">{{ L.motor.get(o.motor, '—') }}</td>
+                        <td class="px-3 py-3">{{ L.stage[o.stage] }}</td>
+                        <td class="px-3 py-3 text-right">{{ money(amount) }}</td>
+                        <td class="px-3 py-3 {{ 'text-red-700' if o.next_step_date and o.next_step_date < today and o.stage not in ['ganado', 'perdido'] }}">
+                            {{ o.next_step or '—' }}{% if o.next_step_date %}<div class="text-xs">{{ o.next_step_date|format_date }}</div>{% endif %}</td>
+                        <td class="px-3 py-3">{{ (o.owner.full_name or o.owner.username) if o.owner else 'Sin dueño' }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">No hay oportunidades con estos filtros. Se crean desde la ficha de cada cuenta.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

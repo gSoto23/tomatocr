@@ -1,0 +1,55 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Cuentas | Clientes | TOMATO{% endblock %}
+{% block header_title %}Clientes{% endblock %}
+
+{% block content %}
+{% set L = crm_labels %}
+{% set badge = {'cliente': 'bg-green-50 text-green-700 ring-green-600/20', 'prospecto': 'bg-blue-50 text-blue-700 ring-blue-600/20',
+                'ex_cliente': 'bg-gray-100 text-gray-700 ring-gray-500/20', 'descartada': 'bg-red-50 text-red-700 ring-red-600/20'} %}
+<div class="max-w-6xl mx-auto space-y-6">
+    {% set active = 'cuentas' %}{% include "crm/_nav.html" %}
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <form method="get" class="flex flex-wrap items-end gap-3 border-b border-gray-200 bg-gray-50 p-4 text-sm">
+            <label class="block"><span class="text-xs text-gray-600">Buscar</span>
+                <input type="search" name="q" value="{{ filters.q }}" placeholder="Nombre, cédula o correo" class="mt-1 block w-64 rounded-md border border-gray-300 p-2"></label>
+            <label class="block"><span class="text-xs text-gray-600">Estado</span>
+                <select name="estado" class="mt-1 block rounded-md border border-gray-300 p-2">
+                    <option value="">Todos</option>
+                    {% for key, label in L.status.items() %}<option value="{{ key }}" {% if filters.estado == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                </select></label>
+            <label class="block"><span class="text-xs text-gray-600">Dueño</span>
+                <select name="owner" class="mt-1 block rounded-md border border-gray-300 p-2">
+                    <option value="">Todos</option>
+                    {% for s in sellers %}<option value="{{ s.id }}" {% if filters.owner == s.id %}selected{% endif %}>{{ s.full_name or s.username }}</option>{% endfor %}
+                </select></label>
+            <button class="rounded-md bg-black px-3 py-2 font-semibold text-white hover:bg-gray-800">Filtrar</button>
+            <a href="/clientes/cuentas" class="px-2 py-2 text-gray-600 hover:text-black">Limpiar</a>
+        </form>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 text-sm">
+                <thead class="bg-gray-50 text-left text-xs uppercase text-gray-500">
+                    <tr><th class="px-4 py-3">Cuenta</th><th class="px-3 py-3">Estado</th><th class="px-3 py-3">Motores</th>
+                        <th class="px-3 py-3">Dueño</th><th class="px-3 py-3">Último seguimiento</th></tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for row in rows %}
+                    {% set a = row.account %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3"><a href="/clientes/cuentas/{{ a.id }}" class="font-medium text-gray-900 hover:underline">{{ a.name }}</a>
+                            <div class="text-xs text-gray-500">{{ L.kind.get(a.kind, 'Otro') }}{% if a.tax_id %} · {{ a.tax_id }}{% endif %}</div></td>
+                        <td class="px-3 py-3"><span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset {{ badge[row.status] }}">{{ L.status[row.status] }}</span></td>
+                        <td class="px-3 py-3">{% for m in row.motors %}{{ L.motor[m] }}{{ ', ' if not loop.last }}{% else %}—{% endfor %}</td>
+                        <td class="px-3 py-3">{{ (a.owner.full_name or a.owner.username) if a.owner else 'Sin dueño' }}</td>
+                        <td class="px-3 py-3">{{ row.last|format_datetime_cr if row.last else '—' }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5" class="px-4 py-8 text-center text-gray-500">No hay cuentas con estos filtros.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

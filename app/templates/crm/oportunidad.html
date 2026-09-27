@@ -1,0 +1,120 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}{{ opportunity.title }} | Clientes | TOMATO{% endblock %}
+{% block header_title %}Clientes · Oportunidad{% endblock %}
+
+{% block content %}
+{% set L = crm_labels %}
+{% set input = "mt-1 block w-full rounded-md border border-gray-300 p-2" %}
+<div class="max-w-4xl mx-auto space-y-5" x-data="{ stage: '{{ opportunity.stage }}', followup: false }">
+    <a href="/clientes/cuentas/{{ account.id }}?tab=oportunidades" class="text-sm font-semibold text-gray-600 hover:text-black">&larr; {{ account.name }}</a>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 space-y-4">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+            <div>
+                <h2 class="text-xl font-bold text-gray-900">{{ opportunity.title }}</h2>
+                <p class="text-sm text-gray-600">{{ L.opportunity_kind[opportunity.kind] }} · {{ L.motor.get(opportunity.motor, 'sin motor') }}
+                    · dueño {{ (opportunity.owner.full_name or opportunity.owner.username) if opportunity.owner else 'sin dueño' }}</p>
+            </div>
+            <div class="text-right">
+                <div class="text-2xl font-bold text-gray-900">{{ '₡{:,.0f}'.format(amount) if amount else '—' }}</div>
+                <div class="text-xs text-gray-500">{{ 'según la cotización' if quotes else 'monto estimado' }}</div>
+            </div>
+        </div>
+
+        <!-- Etapas -->
+        <ol class="grid grid-cols-3 gap-2 text-xs font-semibold sm:grid-cols-6">
+            {% for s in stages %}
+            {% set reached = loop.index0 <= opportunity.max_stage and s != 'perdido' %}
+            <li class="rounded-md px-2 py-2 text-center {{ 'bg-black text-white' if s == opportunity.stage else ('bg-green-50 text-green-800' if reached else 'bg-gray-100 text-gray-500') }}">{{ L.stage[s] }}</li>
+            {% endfor %}
+        </ol>
+        {% if opportunity.stage == 'perdido' and opportunity.lost_reason %}
+        <p class="text-sm text-red-700">Motivo: {{ opportunity.lost_reason }}</p>
+        {% endif %}
+
+        {% if can_edit %}
+        <form method="post" action="/clientes/oportunidades/{{ opportunity.id }}/etapa" class="flex flex-wrap items-end gap-3 text-sm">
+            <label class="block"><span class="font-medium text-gray-700">Cambiar etapa</span>
+                <select name="stage" x-model="stage" class="mt-1 block rounded-md border border-gray-300 p-2">
+                    {% for s in stages %}<option value="{{ s }}">{{ L.stage[s] }}</option>{% endfor %}
+                </select></label>
+            <label class="block flex-1" x-show="stage === 'perdido'" x-cloak><span class="font-medium text-gray-700">¿Por qué se perdió?</span>
+                <input type="text" name="lost_reason" class="{{ input }}"></label>
+            <button class="rounded-md bg-black px-3 py-2 font-semibold text-white hover:bg-gray-800">Guardar etapa</button>
+        </form>
+        <p class="text-xs text-gray-500">"Crear cotización" y "Marcar ganada" (crea el proyecto) llegan en la siguiente entrega.</p>
+        {% else %}
+        <p class="text-xs text-gray-500">Solo lectura: esta oportunidad tiene otro dueño.</p>
+        {% endif %}
+    </div>
+
+    <!-- Datos y próximo paso -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 text-sm">
+        {% if can_edit %}
+        <form method="post" action="/clientes/oportunidades/{{ opportunity.id }}/editar" class="grid gap-3 sm:grid-cols-2">
+            <label class="block sm:col-span-2"><span class="font-medium text-gray-700">Título</span><input type="text" name="title" required value="{{ opportunity.title }}" class="{{ input }}"></label>
+            <label class="block"><span class="font-medium text-gray-700">Próximo paso</span><input type="text" name="next_step" value="{{ opportunity.next_step or '' }}" class="{{ input }}"></label>
+            <label class="block"><span class="font-medium text-gray-700">Fecha del próximo paso</span><input type="date" name="next_step_date" value="{{ opportunity.next_step_date.isoformat() if opportunity.next_step_date else '' }}" class="{{ input }}"></label>
+            <label class="block"><span class="font-medium text-gray-700">Motor</span>
+                <select name="motor" class="{{ input }}"><option value="">—</option>{% for m in motors %}<option value="{{ m }}" {% if opportunity.motor == m %}selected{% endif %}>{{ L.motor[m] }}</option>{% endfor %}</select></label>
+            <label class="block"><span class="font-medium text-gray-700">Cierre esperado</span><input type="date" name="expected_close_date" value="{{ opportunity.expected_close_date.isoformat() if opportunity.expected_close_date else '' }}" class="{{ input }}"></label>
+            {% if not quotes %}
+            <label class="block"><span class="font-medium text-gray-700">Monto estimado (₡)</span><input type="text" name="amount_crc" inputmode="numeric" value="{{ '{:.0f}'.format(opportunity.amount_crc) if opportunity.amount_crc else '' }}" class="{{ input }}"></label>
+            {% else %}
+            <input type="hidden" name="amount_crc" value="{{ opportunity.amount_crc or '' }}">
+            {% endif %}
+            {% if user.role == 'admin' %}
+            <label class="block"><span class="font-medium text-gray-700">Dueño</span>
+                <select name="owner_id" class="{{ input }}"><option value="">Sin dueño</option>{% for s in sellers %}<option value="{{ s.id }}" {% if opportunity.owner_id == s.id %}selected{% endif %}>{{ s.full_name or s.username }}</option>{% endfor %}</select></label>
+            {% endif %}
+            <div class="sm:col-span-2"><button class="rounded-md bg-black px-4 py-2 font-semibold text-white hover:bg-gray-800">Guardar</button></div>
+        </form>
+        {% else %}
+        <p><span class="font-medium">Próximo paso:</span> {{ opportunity.next_step or '—' }}{% if opportunity.next_step_date %} · {{ opportunity.next_step_date|format_date }}{% endif %}</p>
+        {% endif %}
+    </div>
+
+    <!-- Cotizaciones ligadas -->
+    {% if quotes %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 text-sm">
+        <h3 class="font-semibold text-gray-900">Cotizaciones</h3>
+        <ul class="mt-2 divide-y divide-gray-100">
+            {% for q in quotes %}<li class="flex justify-between py-2"><span>{{ q.numero_cotizacion }} · {{ q.fecha_emision|format_date }}</span><span>{{ q.moneda or 'CRC' }} {{ '{:,.2f}'.format(q.total or 0) }}</span></li>{% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <!-- Seguimientos -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 text-sm space-y-4">
+        <div class="flex items-center justify-between">
+            <h3 class="font-semibold text-gray-900">Seguimientos</h3>
+            {% if can_edit %}<button @click="followup = !followup" class="font-semibold text-black hover:text-gray-600">+ Registrar seguimiento</button>{% endif %}
+        </div>
+        {% if can_edit %}
+        <form x-show="followup" x-cloak method="post" action="/clientes/cuentas/{{ account.id }}/seguimientos" class="grid gap-3 sm:grid-cols-2">
+            <input type="hidden" name="opportunity_id" value="{{ opportunity.id }}">
+            <input type="hidden" name="back" value="/clientes/oportunidades/{{ opportunity.id }}">
+            <label class="block"><span class="font-medium text-gray-700">Tipo</span>
+                <select name="type" class="{{ input }}">{% for t in activity_types %}<option value="{{ t }}">{{ L.activity[t] }}</option>{% endfor %}</select></label>
+            <label class="block"><span class="font-medium text-gray-700">Fecha</span><input type="date" name="happened_at" value="{{ today.isoformat() }}" max="{{ today.isoformat() }}" class="{{ input }}"></label>
+            <label class="block sm:col-span-2"><span class="font-medium text-gray-700">Qué pasó</span><textarea name="notes" rows="3" class="{{ input }}"></textarea></label>
+            <label class="block"><span class="font-medium text-gray-700">Nuevo próximo paso</span><input type="text" name="next_step" class="{{ input }}"></label>
+            <label class="block"><span class="font-medium text-gray-700">Fecha</span><input type="date" name="next_step_date" class="{{ input }}"></label>
+            <div class="sm:col-span-2"><button class="rounded-md bg-black px-4 py-2 font-semibold text-white hover:bg-gray-800">Guardar seguimiento</button></div>
+        </form>
+        {% endif %}
+        <ol class="space-y-3">
+            {% for a in activities %}
+            <li class="border-l-2 {{ 'border-gray-300' if a.type == 'cambio_etapa' else 'border-green-600' }} pl-3">
+                <div class="font-medium text-gray-900">{{ L.activity[a.type] }} · {{ a.happened_at|format_datetime_cr }}</div>
+                <div class="text-gray-700 whitespace-pre-line">{{ a.notes or '' }}</div>
+                <div class="text-xs text-gray-500">{{ (a.user.full_name or a.user.username) if a.user else '' }}</div>
+            </li>
+            {% else %}
+            <li class="text-gray-500 italic">Sin seguimientos.</li>
+            {% endfor %}
+        </ol>
+    </div>
+</div>
+{% endblock %}

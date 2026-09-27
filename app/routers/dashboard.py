@@ -4,7 +4,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc
 
 from app.routers import deps
-from app.core.roles import ADMIN, CLIENT, SUPERVISOR, WORKER
+from app.core.roles import ADMIN, CLIENT, SUPERVISOR, VENTAS, WORKER
+from app.utils import crm
 from app.db.models.user import User
 from app.db.models.project import Project
 from app.db.models.finance import Invoice, InvoiceStatus
@@ -80,7 +81,8 @@ def dashboard(
         recent_invoices = activity_query.order_by(Invoice.due_date.asc()).all()
         
         data["recent_activity"] = recent_invoices
-        
+        data["crm_funnel"] = crm.funnel(db)
+
     elif user.role == CLIENT:
         # 1. Get Client Projects for Dropdown & Filter
         client_projects = db.query(Project).join(project_users).filter(project_users.c.user_id == user.id).all()
@@ -144,6 +146,9 @@ def dashboard(
         ).order_by(ProjectSchedule.date.desc()).limit(20).all()
         
         data["recent_activity"] = assignments
+
+    elif user.role == VENTAS:
+        data["next_steps"] = crm.next_steps(db, owner_id=user.id)
 
     return templates.TemplateResponse("dashboard.html", {
         "request": request, 
