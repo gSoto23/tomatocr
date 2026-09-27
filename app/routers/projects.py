@@ -20,6 +20,7 @@ from math import ceil
 from app.routers import deps
 from app.core.roles import ADMIN, CLIENT, OPERATIONS_ROLES, SUPERVISOR, WORKER
 from app.utils.activity import log_activity
+from app.utils.project_sync import LineInUse, sync_budget_lines, sync_locations, sync_tasks
 import logging
 
 logger = logging.getLogger(__name__)
@@ -38,10 +39,12 @@ class SupplyCreate(BaseModel):
     quantity: str
 
 class TaskCreate(BaseModel):
+    id: Optional[int] = None  # existing task being edited (see app/utils/project_sync.py)
     description: str
     is_required: bool = True
 
 class LocationCreate(BaseModel):
+    id: Optional[int] = None
     name: str
     location: Optional[str] = None
     waze_pin: Optional[str] = None
@@ -59,6 +62,7 @@ class ContactRoleIn(BaseModel):
     position: Optional[str] = None
 
 class BudgetLineCreate(BaseModel):
+    id: Optional[int] = None
     name: str
     subtotal: float
     tax_percentage: float = 13.0
@@ -334,15 +338,9 @@ def update_project(
     for s in project_in.supplies:
         db.add(ProjectSupply(project_id=id, name=s.name, quantity=s.quantity))
 
-    # Update Tasks
-    db.query(ProjectTask).filter(ProjectTask.project_id == id).delete()
-    for t in project_in.tasks:
-        db.add(ProjectTask(project_id=id, description=t.description, is_required=t.is_required))
-
-    # Update Locations
-    db.query(ProjectLocation).filter(ProjectLocation.project_id == id).delete()
-    for loc in project_in.locations:
-        db.add(ProjectLocation(project_id=id, name=loc.name, location=loc.location, waze_pin=loc.waze_pin))
+    # Tasks and sedes are updated in place: reports and calendar entries point to them.
+    sync_tasks(db, id, project_in.tasks)
+    sync_locations(db, id, project_in.locations)
 
     # Update Budget
     import datetime
@@ -370,15 +368,12 @@ def update_project(
     
     db.flush() # Ensure budget.id if new
 
-    # Update Lines (Delete and Recreate)
-    db.query(BudgetLine).filter(BudgetLine.budget_id == budget.id).delete()
-    for line in project_in.budget_lines:
-        db.add(BudgetLine(
-            budget_id=budget.id,
-            name=line.name,
-            subtotal=line.subtotal,
-            tax_percentage=line.tax_percentage
-        ))
+    # Budget lines are updated in place too: invoices point to them.
+    try:
+        sync_budget_lines(db, budget.id, project_in.budget_lines)
+    except LineInUse as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
 
     db.commit()
     
