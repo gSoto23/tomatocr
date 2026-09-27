@@ -62,3 +62,7 @@ app/static/uploads/*
 
 # CRM backfill report (client names and emails)
 crm_backfill_report.csv
+
+# Board export from claude.ai (will contain prospects: names, emails, phones)
+tablero.json
+tablero_import_report.csv

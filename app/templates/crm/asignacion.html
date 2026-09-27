@@ -1,0 +1,29 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Asignación de prospectos | Clientes | TOMATO{% endblock %}
+{% block header_title %}Clientes · Asignación de prospectos{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-4">
+    <p class="text-sm text-gray-600">
+        Quién recibe los prospectos nuevos que llegan por el formulario de tomatocr.com y por darboles.com, según lo que le
+        interesa a la persona. Si la cuenta ya existe y tiene dueño, la oportunidad va a ese dueño. Si un motor queda sin
+        vendedor se usa la última fila; si esa también queda vacía, el primer admin.
+    </p>
+    <form method="post" action="/clientes/asignacion" class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 space-y-3 text-sm">
+        {% for motor, label in motors %}
+        <label class="flex flex-wrap items-center justify-between gap-2 {{ 'border-t border-gray-100 pt-3' if motor == '_default' }}">
+            <span class="font-semibold text-gray-900">{{ label }}</span>
+            <select name="{{ motor }}" class="w-64 rounded-md border border-gray-300 p-2">
+                <option value="">— Sin asignar —</option>
+                {% for s in sellers %}
+                <option value="{{ s.id }}" {% if rows.get(motor) == s.id %}selected{% endif %}>{{ s.full_name }}{% if s.role == 'admin' %} (admin){% endif %}</option>
+                {% endfor %}
+            </select>
+        </label>
+        {% endfor %}
+        <div class="pt-2"><button class="rounded-md bg-black px-4 py-2 font-semibold text-white hover:bg-gray-800">Guardar</button></div>
+    </form>
+    <p class="text-xs text-gray-500">Solo aparecen usuarios activos con rol admin o ventas. Cada cambio queda en Actividad.</p>
+</div>
+{% endblock %}

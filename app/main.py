@@ -54,7 +54,7 @@ async def view_reforestation_report(request: Request):
 async def view_darboles_program(request: Request):
     return templates.TemplateResponse("programas/darboles.html", {"request": request})
 
-PUBLIC_PAGES = ["", "proyectos-reforestacion", "programas/darboles"]
+PUBLIC_PAGES = ["", "proyectos-reforestacion", "programas/darboles", "privacidad"]
 
 @app.get("/robots.txt", response_class=PlainTextResponse)
 async def robots_txt():
@@ -85,10 +85,11 @@ app.include_router(liquidation.router)
 app.include_router(quotes.router)
 app.include_router(logs.router)
 
-from app.routers import reforestation, crm
+from app.routers import reforestation, crm, leads
 app.include_router(reforestation.router)
 app.include_router(reforestation.public_router)
 app.include_router(crm.router)
+app.include_router(leads.router)
 
 # SQLite (local dev, and prod until it moves to PostgreSQL) still creates its
 # tables on startup. On PostgreSQL the schema is managed only by Alembic.

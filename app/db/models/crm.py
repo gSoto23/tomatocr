@@ -120,6 +120,8 @@ class Opportunity(Base):
     next_step = Column(String(255), nullable=True)
     next_step_date = Column(Date, nullable=True)
     source = Column(String(30), nullable=True)
+    # Where it came from, for idempotent imports (e.g. "tablero:<id>").
+    origin_ref = Column(String(80), nullable=True, index=True)
     # projects.opportunity_id points back here; use_alter breaks the cycle for create/drop order.
     project_id = Column(Integer, ForeignKey("projects.id", use_alter=True, name="fk_opportunities_project_id"),
                         nullable=True)
@@ -180,3 +182,26 @@ class CrmGoal(Base):
 
     stage = Column(String(20), primary_key=True)
     target = Column(Integer, nullable=False)
+
+
+# Who gets new web and darboles.com leads, per motor. "_default" is the fallback.
+ASSIGNMENT_DEFAULT = "_default"
+
+
+class CrmAssignment(Base):
+    __tablename__ = "crm_assignments"
+
+    motor = Column(String(30), primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+    user = relationship("User")
+
+
+class LeadSubmission(Base):
+    """One accepted or rejected lead submission, for rate limiting (web form and API)."""
+    __tablename__ = "lead_submissions"
+
+    id = Column(Integer, primary_key=True)
+    source = Column(String(20), nullable=False)
+    ip_address = Column(String(50), nullable=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow, index=True)

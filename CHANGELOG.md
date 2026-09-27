@@ -6,6 +6,33 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-27
 
+### Fase 2D: entradas de prospectos (esta rama)
+- Formulario de contacto en tomatocr.com (`#contact`) y en
+  /programas/darboles (`#contacto`): nombre, empresa, correo o teléfono, qué
+  le interesa, mensaje y casilla de consentimiento con enlace a /privacidad.
+  Funciona sin JavaScript; con JavaScript responde en la misma página y
+  dispara el evento `generate_lead` de GA4. Honeypot contra bots, límite de
+  5 envíos por IP y 30 en total por hora.
+- Cada solicitud busca la cuenta por correo del contacto y por nombre (sin
+  duplicar), guarda el consentimiento con su fecha y versión, y abre una
+  oportunidad para el vendedor asignado al motor; si ya hay una abierta del
+  mismo motor, le agrega una nota. Aviso por correo al dueño y a
+  info@tomatocr.com.
+- `POST /api/crm/leads` para darboles.com, de servidor a servidor con la
+  clave `DARBOLES_API_KEY` en el encabezado `X-API-Key` (sin clave
+  configurada responde 503; sin CORS).
+- Página /privacidad (Ley 8968) y /contacto/gracias; /privacidad en el
+  sitemap.
+- Clientes → **Asignación de prospectos** (admin): quién recibe cada motor.
+- Contactos: "Eliminar datos personales" (admin) para el derecho de
+  supresión; se conserva el historial de la cuenta.
+- Renombrar una cuenta actualiza el nombre que muestran sus proyectos
+  (salvo los que tienen un nombre propio).
+- `scripts/import_tablero.py`: importa el tablero comercial del piloto
+  (simulación por defecto, `--apply` para guardar, no duplica).
+- Despliegue: `alembic upgrade head` (0005 → 0006) y reiniciar. Opcional:
+  `DARBOLES_API_KEY` en `.env` cuando darboles.com vaya a enviar prospectos.
+
 ### PDF: textos largos y versión del cotizador (esta rama)
 - El alcance y los términos largos continúan en la página siguiente en vez de
   saltar enteros y dejar un hueco; cada renglón (término numerado, viñeta)
