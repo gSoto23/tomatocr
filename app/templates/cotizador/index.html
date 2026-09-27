@@ -8,7 +8,7 @@
   <link rel="icon" href="/static/cotizador/icon.png" />
   <!-- Tailwind (CDN) -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="/static/cotizador/style.css" />
+  <link rel="stylesheet" href="/static/cotizador/style.css?v={{ asset_version }}" />
 </head>
 
 <body class="min-h-screen">
@@ -266,7 +266,7 @@
   </main>
 
   <script>window.COTIZADOR = { picksAccount: {{ picks_account | tojson }} };</script>
-  <script src="/static/cotizador/app.js"></script>
+  <script src="/static/cotizador/app.js?v={{ asset_version }}"></script>
 </body>
 
 </html>

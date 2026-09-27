@@ -6,7 +6,16 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-27
 
-### Cotizador profesional (esta rama)
+### PDF: textos largos y versión del cotizador (esta rama)
+- El alcance y los términos largos continúan en la página siguiente en vez de
+  saltar enteros y dejar un hueco; cada renglón (término numerado, viñeta)
+  nunca se parte entre páginas y el título no queda solo al pie.
+- Espacios sobrantes en los datos del cliente ya no salen en el PDF.
+- El cotizador carga `app.js` y `style.css` con versión, así los navegadores
+  no se quedan con una copia vieja después de desplegar.
+- Despliegue: sin migraciones.
+
+### Cotizador profesional (#55)
 - Revisión de "cotización completa" con lo que falta (obligatorio y
   recomendado); el PDF no se exporta incompleto.
 - Arreglado: el descuento no aparecía en el PDF (Subtotal + IVA no daba el
