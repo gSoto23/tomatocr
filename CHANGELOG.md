@@ -6,6 +6,17 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-27
 
+### Piloto en el sistema (esta rama)
+- El Embudo cuenta solo oportunidades **nuevas** creadas en el periodo del
+  piloto (15/10–15/12/2026, editable por admin junto a las metas).
+  Renovaciones y ampliaciones no cuentan; "Todo el historial" muestra el
+  conteo de antes. El dashboard usa el mismo periodo.
+- Al asignar una oportunidad a un vendedor, el admin solo puede elegir
+  usuarios admin o ventas activos; el vendedor recibe un correo y el cambio
+  queda en Actividad.
+- Guía "Cómo trabajar un prospecto" en `/clientes/ayuda`.
+- Despliegue: `alembic upgrade head` (0006 → 0007) y reiniciar.
+
 ### Tono "vos" en el formulario y /privacidad (#58)
 - El formulario de contacto, sus mensajes, /contacto/gracias y /privacidad
   pasan de "usted" a "vos", como el resto del sitio. El tono queda definido en

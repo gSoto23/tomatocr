@@ -1,0 +1,79 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Cómo trabajar un prospecto | Clientes | TOMATO{% endblock %}
+{% block header_title %}Clientes · Cómo trabajar un prospecto{% endblock %}
+
+{% macro box(title) %}
+<section class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+    <h2 class="font-semibold text-gray-900">{{ title }}</h2>
+    <div class="mt-2 space-y-2 text-sm text-gray-700 leading-relaxed">{{ caller() }}</div>
+</section>
+{% endmacro %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-4">
+    <a href="/clientes" class="text-sm font-semibold text-gray-600 hover:text-black">← Clientes</a>
+    <p class="text-sm text-gray-600">
+        Guía corta para el equipo comercial. El piloto se lleva aquí, en Clientes:
+        <strong>{{ period.label }}</strong>.
+    </p>
+
+    {% call box("1. Tu día empieza en el Dashboard") %}
+    <p>Ahí ves tus <strong>próximos pasos vencidos</strong> y los <strong>de hoy</strong>. La regla es simple: ninguna oportunidad abierta sin próximo paso y sin fecha.</p>
+    {% endcall %}
+
+    {% call box("2. De dónde salen los prospectos") %}
+    <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Los buscás vos</strong> (LinkedIn, correo, SICOP, referidos, visitas): los registrás como en el punto 3.</li>
+        <li><strong>Llegan solos</strong> por el formulario de tomatocr.com (y más adelante de darboles.com). Entran como oportunidad en Prospecto con el próximo paso "Responder la solicitud" para ese día.</li>
+        <li><strong>El admin los reparte.</strong> Cuando te asigna una oportunidad te llega un correo con el enlace. Respondé ese mismo día.</li>
+    </ul>
+    {% endcall %}
+
+    {% call box("3. Registrar un prospecto nuevo") %}
+    <ol class="list-decimal pl-5 space-y-1">
+        <li><strong>Buscá primero</strong> en <a href="/clientes/cuentas" class="text-indigo-600 hover:underline">Cuentas</a>: la empresa puede existir ya (como cliente, ex-cliente o prospecto de otro).</li>
+        <li>Si no está: <a href="/clientes/cuentas/nueva" class="text-indigo-600 hover:underline">Nueva cuenta</a>. Si el sistema avisa que hay cuentas parecidas, revisalas antes de crear otra.</li>
+        <li>En la cuenta, pestaña Contactos: agregá a la persona con su cargo, correo y teléfono.</li>
+        <li>Pestaña Oportunidades: creá la oportunidad con su <strong>motor</strong>, tipo <strong>Nuevo</strong> y el próximo paso con fecha.</li>
+    </ol>
+    {% endcall %}
+
+    {% call box("4. Las etapas") %}
+    <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Prospecto:</strong> la empresa está identificada y le hiciste (o vas a hacer) el primer contacto.</li>
+        <li><strong>Respuesta:</strong> te contestó, aunque sea para decir "ahora no".</li>
+        <li><strong>Reunión:</strong> hubo una reunión, llamada formal o visita.</li>
+        <li><strong>Propuesta:</strong> se envió una cotización. Pasa sola al guardar una cotización hecha con "Crear cotización".</li>
+        <li><strong>Ganado:</strong> el cliente aceptó. El admin la liga al proyecto con "Marcar ganada".</li>
+        <li><strong>Perdido:</strong> no va a avanzar. El sistema pide el motivo; escribilo claro, sirve para aprender.</li>
+    </ul>
+    <p>Cada cambio de etapa queda en el historial de la cuenta.</p>
+    {% endcall %}
+
+    {% call box("5. Seguimientos") %}
+    <p>Cada llamada, correo, WhatsApp, visita o reunión se registra en la cuenta con <strong>Registrar seguimiento</strong>. Al final de cada contacto, actualizá el próximo paso y su fecha.</p>
+    {% endcall %}
+
+    {% call box("6. Cotizar") %}
+    <p>Desde la oportunidad, <strong>Crear cotización</strong> abre el cotizador con la cuenta y el contacto ya puestos, y deja la cotización ligada a la oportunidad. No hagas la cotización por fuera: no quedaría ligada ni contaría en el embudo.</p>
+    {% endcall %}
+
+    {% call box("7. Qué cuenta para las metas del piloto") %}
+    <ul class="list-disc pl-5 space-y-1">
+        <li>Cuentan las <strong>cuentas</strong> con una oportunidad de tipo <strong>Nuevo</strong> creada dentro del periodo ({{ period.label }}).</li>
+        <li>Cuenta la <strong>etapa más alta alcanzada</strong>: si una oportunidad llegó a Reunión y después se perdió, sigue contando hasta Reunión.</li>
+        <li>Las <strong>renovaciones y ampliaciones</strong> de clientes actuales no cuentan para las metas; igual se trabajan y aparecen en la lista.</li>
+        <li>Metas del piloto: {% for row in funnel %}{{ crm_labels.stage[row.stage] }} {{ row.target }}{{ ', ' if not loop.last }}{% endfor %}.</li>
+    </ul>
+    {% endcall %}
+
+    {% call box("8. Qué podés ver y editar") %}
+    <p>Ventas ve todas las cuentas, sin datos de finanzas. Editás las tuyas y las que no tienen dueño (al editarlas quedan a tu nombre). Reasignar, fusionar duplicados, cambiar metas y marcar ganada lo hace el admin.</p>
+    {% endcall %}
+
+    {% call box("9. Datos personales") %}
+    <p>Si una persona pide que borremos sus datos, avisale al admin: en el sistema hay una opción para hacerlo sin perder el historial de la cuenta. Solo se contacta por correo o WhatsApp a quien lo pidió o nos dio sus datos para eso.</p>
+    {% endcall %}
+</div>
+{% endblock %}

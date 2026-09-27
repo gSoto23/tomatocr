@@ -13,9 +13,17 @@
     <!-- Embudo -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
         <div class="flex flex-wrap items-center justify-between gap-2">
-            <h2 class="font-semibold text-gray-900">Embudo {% if filters.motor or filters.owner %}<span class="text-sm font-normal text-gray-500">(filtrado)</span>{% endif %}</h2>
-            <p class="text-xs text-gray-500">Cuentas que alcanzaron cada etapa, contra la meta.</p>
+            <h2 class="font-semibold text-gray-900">Embudo · {{ 'Todo el historial' if whole_history else period.label }} {% if filters.motor or filters.owner %}<span class="text-sm font-normal text-gray-500">(filtrado)</span>{% endif %}</h2>
+            <div class="flex gap-1 rounded-lg bg-gray-100 p-1 text-xs font-semibold">
+                {% set keep = ('&motor=' ~ (filters.motor or '') ~ '&owner=' ~ (filters.owner or '') ~ '&stage=' ~ (filters.stage or '') ~ '&q=' ~ (filters.q|urlencode)) %}
+                <a href="/clientes?{{ keep[1:] }}" class="rounded-md px-3 py-1 {{ 'text-gray-600 hover:text-gray-900' if whole_history else 'bg-white shadow-sm text-gray-900' }}">{{ period.name }}</a>
+                <a href="/clientes?periodo=todo{{ keep }}" class="rounded-md px-3 py-1 {{ 'bg-white shadow-sm text-gray-900' if whole_history else 'text-gray-600 hover:text-gray-900' }}">Todo el historial</a>
+            </div>
         </div>
+        <p class="mt-1 text-xs text-gray-500">
+            {% if whole_history %}Cuentas que alcanzaron cada etapa, con cualquier oportunidad desde el inicio.
+            {% else %}Cuentas que alcanzaron cada etapa con una oportunidad <strong>nueva</strong> creada en el periodo; las renovaciones y ampliaciones no cuentan. La lista de abajo muestra todas.{% endif %}
+        </p>
         <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
             {% for row in funnel %}
             <div class="rounded-lg border border-gray-200 p-3">
@@ -26,7 +34,7 @@
             {% endfor %}
         </div>
         {% if user.role == 'admin' %}
-        <button type="button" @click="editGoals = !editGoals" class="mt-3 text-xs font-semibold text-gray-600 hover:text-black">Editar metas</button>
+        <button type="button" @click="editGoals = !editGoals" class="mt-3 text-xs font-semibold text-gray-600 hover:text-black">Editar metas y periodo</button>
         <form x-show="editGoals" x-cloak method="post" action="/clientes/metas" class="mt-3 flex flex-wrap items-end gap-3 text-sm">
             {% for row in funnel %}
             <label class="block">
@@ -34,7 +42,19 @@
                 <input type="number" min="0" name="{{ row.stage }}" value="{{ row.target }}" class="mt-1 block w-24 rounded-md border border-gray-300 p-2">
             </label>
             {% endfor %}
-            <button class="rounded-md bg-black px-3 py-2 font-semibold text-white hover:bg-gray-800">Guardar metas</button>
+            <label class="block">
+                <span class="text-xs text-gray-600">Nombre del periodo</span>
+                <input type="text" name="period_name" maxlength="60" value="{{ period.name }}" class="mt-1 block w-32 rounded-md border border-gray-300 p-2">
+            </label>
+            <label class="block">
+                <span class="text-xs text-gray-600">Desde</span>
+                <input type="date" name="period_start" required value="{{ period.start.isoformat() }}" class="mt-1 block rounded-md border border-gray-300 p-2">
+            </label>
+            <label class="block">
+                <span class="text-xs text-gray-600">Hasta</span>
+                <input type="date" name="period_end" required value="{{ period.end.isoformat() }}" class="mt-1 block rounded-md border border-gray-300 p-2">
+            </label>
+            <button class="rounded-md bg-black px-3 py-2 font-semibold text-white hover:bg-gray-800">Guardar</button>
         </form>
         {% endif %}
         {% if amounts %}

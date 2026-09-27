@@ -139,6 +139,11 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
     vendedor por motor.
   - "Eliminar datos personales" de un contacto (admin), para el derecho de
     supresión.
+  - **Piloto en el sistema**: el Embudo cuenta solo oportunidades nuevas
+    creadas en el periodo (por defecto 15/10–15/12/2026, lo cambia el admin
+    junto a las metas); "Todo el historial" muestra el conteo completo. El
+    admin reparte las oportunidades cambiando su vendedor (le llega un
+    correo). Guía para el equipo en `/clientes/ayuda`.
   - Importar el tablero del piloto:
     `PYTHONPATH=. python scripts/import_tablero.py tablero.json` (simulación)
     y luego con `--apply`. No duplica si se corre dos veces.

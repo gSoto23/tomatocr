@@ -189,7 +189,10 @@
 <!-- Embudo del equipo (Clientes) -->
 <div class="mt-6 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
     <div class="flex justify-between items-center">
-        <h3 class="font-bold text-gray-900">Embudo comercial del equipo</h3>
+        <div>
+            <h3 class="font-bold text-gray-900">Embudo comercial del equipo</h3>
+            <p class="text-xs text-gray-500">{{ data.crm_period.label }} · solo oportunidades nuevas</p>
+        </div>
         <a href="/clientes" class="text-sm font-semibold text-black hover:text-gray-600">Ver Clientes &rarr;</a>
     </div>
     <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">

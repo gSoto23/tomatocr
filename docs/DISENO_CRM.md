@@ -94,6 +94,13 @@ El portal de clientes (`role = client`) no cambia.
 - **Dashboard**: para `ventas`, sus próximos pasos de la semana; para admin, el embudo del equipo.
 - Todo cambio de etapa crea una actividad `cambio_etapa` y queda en `ActivityLog`.
 
+### Piloto en el sistema (27/09/2026)
+
+- **Periodo del embudo** (tabla `crm_settings`, migración 0007): nombre, desde y hasta, editables por admin en "Editar metas y periodo". Por defecto "Piloto", 15/10/2026–15/12/2026. Las fechas son días de Costa Rica (UTC-6).
+- En el periodo, el embudo cuenta las cuentas con una oportunidad de tipo `nuevo` **creada dentro del periodo**, por su etapa más alta alcanzada. Renovaciones y ampliaciones no cuentan para las metas. El selector "Todo el historial" muestra el conteo anterior (todas las oportunidades). La lista de oportunidades, los próximos pasos y los montos en propuesta no se filtran por periodo. La tarjeta del dashboard usa el periodo.
+- **Asignación por el admin:** la asignación automática por motor sigue igual (hoy Alina y Gerardo); el admin reparte cada oportunidad cambiando su vendedor en la página de la oportunidad. Solo se puede elegir un usuario activo admin o ventas. El nuevo vendedor recibe un correo con el enlace y el próximo paso, y el cambio queda en Actividad.
+- **Guía del equipo:** `/clientes/ayuda` ("Cómo trabajar" en Clientes, admin y ventas): de dónde salen los prospectos, cómo registrarlos sin duplicar, qué significa cada etapa, seguimientos, cotizar, qué cuenta para las metas, permisos y datos personales.
+
 ## 6. Integraciones
 
 - **Cotizador:** "Crear cotización" desde una oportunidad abre el cotizador con los datos de la cuenta y del contacto principal y guarda `account_id` y `opportunity_id`. La lista de cotizaciones muestra la cuenta. Al enviar la cotización, la oportunidad pasa a `propuesta` si estaba antes.

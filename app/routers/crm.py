@@ -3,7 +3,7 @@ docs/DISENO_CRM.md and docs/ANALISIS_ENCAJE_CRM.md."""
 from datetime import date, datetime
 from typing import Optional
 
-from fastapi import APIRouter, Body, Depends, Form, HTTPException, Request, status
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, Form, HTTPException, Request, status
 from fastapi.responses import JSONResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
@@ -18,10 +18,12 @@ from app.db.models.reforestation import ReforestationProject
 from app.db.models.user import User
 from app.routers import deps
 from app.utils.activity import log_activity
+from app.utils.email import send_plain_email
 from app.utils.crm import (account_payload, account_status, active_accounts, anonymize_contact, can_edit_account,
                            can_edit_opportunity,
                            change_stage, claim_if_unowned, create_renewal, dismiss_duplicate, expiring_contracts,
-                           filter_opportunities, find_duplicates, funnel, last_followups, merge_accounts, next_steps,
+                           filter_opportunities, find_duplicates, funnel, funnel_period, last_followups, merge_accounts,
+                           next_steps, set_funnel_period,
                            proposal_amounts, quote_amount, rename_account_projects, search_accounts, set_goals,
                            similar_accounts, win_opportunity)
 from app.utils.reforestation import parse_date
@@ -44,6 +46,17 @@ def toast_redirect(url: str, message: str, error: bool = False) -> RedirectRespo
 
 def sellers(db: Session):
     return db.query(User).filter(User.role.in_([ADMIN, VENTAS]), User.is_active != False).order_by(User.full_name).all()  # noqa: E712
+
+
+def assignment_email(opportunity: Opportunity):
+    """Subject and body for the seller an admin just assigned an opportunity to."""
+    account = opportunity.account
+    lines = [f"Te asignaron la oportunidad «{opportunity.title}» de {account.name}.", ""]
+    if opportunity.next_step:
+        when = f" ({opportunity.next_step_date:%d/%m/%Y})" if opportunity.next_step_date else ""
+        lines.append(f"Próximo paso: {opportunity.next_step}{when}")
+    lines.append(f"Ver en el sistema: https://tomatocr.com/clientes/oportunidades/{opportunity.id}")
+    return f"Oportunidad asignada: {account.name}", "\n".join(lines)
 
 
 def optional_date(value: Optional[str]) -> Optional[date]:
@@ -91,15 +104,19 @@ def clean(value: Optional[str]) -> Optional[str]:
 @router.get("")
 @router.get("/")
 def pipeline(request: Request, motor: Optional[str] = None, owner: Optional[str] = None, stage: Optional[str] = None,
-             q: Optional[str] = None, db: Session = Depends(deps.get_db), user: User = Depends(view_roles)):
+             q: Optional[str] = None, periodo: Optional[str] = None, db: Session = Depends(deps.get_db),
+             user: User = Depends(view_roles)):
     owner_id = optional_int(owner)
     motor = motor if motor in MOTORS else None
     stage = stage if stage in STAGES else None
     opportunities = filter_opportunities(db.query(Opportunity), motor, owner_id, stage, q).order_by(
         Opportunity.next_step_date.is_(None), Opportunity.next_step_date, Opportunity.id.desc()).all()
+    period = funnel_period(db)
+    whole_history = periodo == "todo"
     return templates.TemplateResponse("crm/embudo.html", {
         "request": request, "user": user,
-        "funnel": funnel(db, motor, owner_id),
+        "funnel": funnel(db, motor, owner_id, None if whole_history else period),
+        "period": period, "whole_history": whole_history,
         "steps": next_steps(db, owner_id),
         "amounts": proposal_amounts(db, owner_id),
         "opportunities": [(o, quote_amount(db, o)) for o in opportunities],
@@ -108,6 +125,14 @@ def pipeline(request: Request, motor: Optional[str] = None, owner: Optional[str]
         "duplicates": len(find_duplicates(db)) if user.role == ADMIN else 0,
         "today": date.today(),
         "expiring": expiring_contracts(db),
+    })
+
+
+@router.get("/ayuda")
+def guide(request: Request, db: Session = Depends(deps.get_db), user: User = Depends(view_roles)):
+    period = funnel_period(db)
+    return templates.TemplateResponse("crm/ayuda.html", {
+        "request": request, "user": user, "period": period, "funnel": funnel(db, period=period),
     })
 
 
@@ -120,9 +145,16 @@ async def update_goals(request: Request, db: Session = Depends(deps.get_db), use
         if not value.isdigit():
             return toast_redirect("/clientes", "Las metas deben ser números enteros", error=True)
         targets[stage] = int(value)
+    if form.get("period_start") or form.get("period_end"):
+        try:
+            start, end = parse_date(form.get("period_start") or ""), parse_date(form.get("period_end") or "")
+            set_funnel_period(db, form.get("period_name") or "", start, end)
+        except ValueError as e:
+            return toast_redirect("/clientes", f"Periodo no válido: {e}", error=True)
     set_goals(db, targets)
-    log_activity(db, user, "UPDATE", "CRM_GOALS", None, str(targets))
-    return toast_redirect("/clientes", "Metas actualizadas")
+    period = funnel_period(db)
+    log_activity(db, user, "UPDATE", "CRM_GOALS", None, f"{targets}; periodo {period.label}")
+    return toast_redirect("/clientes", "Metas y periodo actualizados")
 
 
 # --- Cuentas ------------------------------------------------------------------------
@@ -404,7 +436,7 @@ def opportunity_page(opportunity_id: int, request: Request, db: Session = Depend
 
 
 @router.post("/oportunidades/{opportunity_id}/editar")
-def update_opportunity(opportunity_id: int, title: str = Form(...), motor: Optional[str] = Form(None),
+def update_opportunity(opportunity_id: int, background: BackgroundTasks, title: str = Form(...), motor: Optional[str] = Form(None),
                        next_step: Optional[str] = Form(None), next_step_date: Optional[str] = Form(None),
                        expected_close_date: Optional[str] = Form(None), amount_crc: Optional[str] = Form(None),
                        owner_id: Optional[str] = Form(None),
@@ -421,11 +453,21 @@ def update_opportunity(opportunity_id: int, title: str = Form(...), motor: Optio
     opportunity.title, opportunity.motor = title.strip(), motor if motor in MOTORS else None
     opportunity.next_step, opportunity.next_step_date = clean(next_step), step_date
     opportunity.expected_close_date, opportunity.amount_crc = close_date, amount
+    new_owner = None
     if user.role == ADMIN and owner_id is not None:
-        new_owner = optional_int(owner_id)
-        opportunity.owner_id = new_owner if new_owner and db.get(User, new_owner) else None
+        new_id = optional_int(owner_id)
+        if new_id and new_id not in {s.id for s in sellers(db)}:
+            return toast_redirect(url, "Ese usuario no puede ser vendedor", error=True)
+        if new_id != opportunity.owner_id:
+            new_owner = db.get(User, new_id) if new_id else None
+            opportunity.owner_id = new_id
     claim_if_unowned(opportunity, user)
     db.commit()
+    if new_owner is not None:
+        log_activity(db, user, "UPDATE", "OPPORTUNITY", opportunity.id,
+                     f"Oportunidad {opportunity.title} asignada a {new_owner.full_name}")
+        if new_owner.id != user.id:
+            background.add_task(send_plain_email, [new_owner.email], *assignment_email(opportunity))
     return toast_redirect(url, "Oportunidad guardada")
 
 
