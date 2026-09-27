@@ -6,6 +6,14 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-27
 
+### Integración con darboles.com activada (#62, solo documentación)
+- darboles.com ya envía al CRM las solicitudes de su formulario de empresas
+  (darboles.com PR #8). Se configuró `DARBOLES_API_KEY` en producción y el QA
+  dejó una prueba con origen "darboles.com", ya descartada.
+- `docs/INTEGRACION_DARBOLES.md`: estado actualizado y cómo diagnosticar un
+  `401` comparando la huella de la clave en los dos servidores.
+- Sin migración ni pasos de despliegue.
+
 ### Arreglo: editar proyectos con trabajo registrado (esta rama)
 - Desde el cambio a PostgreSQL, guardar un proyecto fallaba ("Error al
   guardar") si ya tenía bitácoras con tareas marcadas, facturas, o bitácoras o
