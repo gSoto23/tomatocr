@@ -81,7 +81,8 @@ def dashboard(
         recent_invoices = activity_query.order_by(Invoice.due_date.asc()).all()
         
         data["recent_activity"] = recent_invoices
-        data["crm_funnel"] = crm.funnel(db)
+        data["crm_period"] = crm.funnel_period(db)
+        data["crm_funnel"] = crm.funnel(db, period=data["crm_period"])
 
     elif user.role == CLIENT:
         # 1. Get Client Projects for Dropdown & Filter

@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.db.models.activity import ActivityLog
 from app.db.models.crm import (DEFAULT_GOALS, FUNNEL_STAGES, LABELS, STAGES, Account, AccountNotDuplicate, Contact,
-                                CrmActivity, CrmGoal, Opportunity, ProjectContactRole, stage_index)
+                                CrmActivity, CrmGoal, CrmSetting, Opportunity, ProjectContactRole, stage_index)
 from app.db.models.finance import ProjectBudget
 from app.db.models.project_details import ProjectContact
 from app.db.models.project import Project
@@ -380,9 +380,59 @@ def filter_opportunities(query, motor: Optional[str] = None, owner_id: Optional[
     return query
 
 
-def funnel(db: Session, motor: Optional[str] = None, owner_id: Optional[int] = None) -> List[Dict]:
-    """Accounts that reached each stage (by the highest stage of any of their opportunities)."""
+# Pilot in the system (docs/DISENO_CRM.md, section 5). Dates are Costa Rica days (UTC-6);
+# created_at is stored in UTC.
+DEFAULT_PERIOD = {"name": "Piloto", "start": date(2026, 10, 15), "end": date(2026, 12, 15)}
+CR_UTC_OFFSET = timedelta(hours=6)
+
+
+@dataclass
+class FunnelPeriod:
+    name: str
+    start: date
+    end: date
+
+    def utc_bounds(self) -> Tuple[datetime, datetime]:
+        """[start 00:00, day after end 00:00) in Costa Rica, as UTC."""
+        start = datetime.combine(self.start, datetime.min.time()) + CR_UTC_OFFSET
+        return start, datetime.combine(self.end + timedelta(days=1), datetime.min.time()) + CR_UTC_OFFSET
+
+    @property
+    def label(self) -> str:
+        return f"{self.name} ({self.start:%d/%m/%Y} – {self.end:%d/%m/%Y})"
+
+
+def funnel_period(db: Session) -> FunnelPeriod:
+    stored = {row.key: row.value for row in db.query(CrmSetting).filter(CrmSetting.key.like("funnel_%"))}
+
+    def day(key):
+        try:
+            return date.fromisoformat(stored.get(f"funnel_{key}") or "")
+        except ValueError:
+            return DEFAULT_PERIOD[key]
+    return FunnelPeriod((stored.get("funnel_name") or DEFAULT_PERIOD["name"])[:60], day("start"), day("end"))
+
+
+def set_funnel_period(db: Session, name: str, start: date, end: date):
+    if end < start:
+        raise ValueError("La fecha final del periodo es anterior a la inicial")
+    for key, value in (("funnel_name", (name or "").strip()[:60] or DEFAULT_PERIOD["name"]),
+                       ("funnel_start", start.isoformat()), ("funnel_end", end.isoformat())):
+        row = db.get(CrmSetting, key) or CrmSetting(key=key)
+        row.value = value
+        db.add(row)
+    db.commit()
+
+
+def funnel(db: Session, motor: Optional[str] = None, owner_id: Optional[int] = None,
+           period: Optional[FunnelPeriod] = None) -> List[Dict]:
+    """Accounts that reached each stage (by the highest stage of any of their opportunities).
+    With a period, only new-business opportunities (kind "nuevo") created inside it count:
+    renewals and extensions are existing clients, not the pilot's new ones."""
     query = filter_opportunities(db.query(Opportunity.account_id, Opportunity.max_stage), motor, owner_id)
+    if period:
+        start, end = period.utc_bounds()
+        query = query.filter(Opportunity.kind == "nuevo", Opportunity.created_at >= start, Opportunity.created_at < end)
     best: Dict[int, int] = {}
     for account_id, max_stage in query:
         best[account_id] = max(best.get(account_id, 0), max_stage or 0)

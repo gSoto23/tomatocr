@@ -184,6 +184,14 @@ class CrmGoal(Base):
     target = Column(Integer, nullable=False)
 
 
+class CrmSetting(Base):
+    """Small CRM settings editable by admin, e.g. the funnel period (funnel_start, funnel_end)."""
+    __tablename__ = "crm_settings"
+
+    key = Column(String(50), primary_key=True)
+    value = Column(String(200), nullable=True)
+
+
 # Who gets new web and darboles.com leads, per motor. "_default" is the fallback.
 ASSIGNMENT_DEFAULT = "_default"
 

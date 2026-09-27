@@ -5,6 +5,7 @@
         <a href="/clientes/cuentas" class="rounded-md px-4 py-2 {{ 'bg-white shadow-sm text-gray-900' if active == 'cuentas' else 'text-gray-600 hover:text-gray-900' }}">Cuentas</a>
     </nav>
     <div class="flex items-center gap-3 text-sm">
+        <a href="/clientes/ayuda" class="rounded-md px-3 py-2 font-semibold text-gray-600 hover:text-gray-900">Cómo trabajar</a>
         {% if duplicates %}
         <a href="/clientes/duplicados" class="rounded-md bg-amber-50 px-3 py-2 font-semibold text-amber-800 ring-1 ring-inset ring-amber-600/20 hover:bg-amber-100">
             {{ duplicates }} posible{{ 's' if duplicates != 1 }} duplicado{{ 's' if duplicates != 1 }} por revisar
