@@ -124,46 +124,67 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
 
 ---
 
-## 🌍 Arquitectura de Producción (AWS)
+## 🌍 Producción (AWS Lightsail)
 
-En tus entornos de producción se sugiere un marco configurado bajo servidores nativos (AWS EC2 / Lightsail). El sistema está configurado para cambiar lógicas automáticamente al apagar la etiqueta de desarrollo:
+Estado al 27/09/2026:
 
-#### Configuración de la Nube (vía `.env`):
-- Las variables que lee la app están en `.env.example`. La base de datos usa
-  `DB_USER`, `DB_PASSWORD`, `DB_SERVER`, `DB_PORT` y `DB_NAME` (las claves
-  `MYSQL_*` ya no se leen).
-- `USE_SQLITE="False"` conecta a PostgreSQL (con `sslmode=require`).
-- **Ojo:** si el servicio systemd define `Environment="USE_SQLITE=..."`, ese
-  valor gana sobre el `.env` (`load_dotenv` no reemplaza variables existentes).
-  Al 26/09/2026 producción corre sobre SQLite (`sql_app.db` en el servidor)
-  por esa razón; la base PostgreSQL de Lightsail quedó desactualizada desde
-  marzo. No cambies esa línea sin migrar antes los datos.
-- Las fotografías van a **AWS S3** cuando hay claves `AWS_*`; sin claves se
-  guardan en `app/static/uploads`.
-- El driver de PostgreSQL (`psycopg2-binary`) está en `requirements.txt`.
+| Pieza | Detalle |
+|---|---|
+| Servidor | Instancia Lightsail `tomato-server`, Ubuntu 22.04, Python 3.10, carpeta `/home/ubuntu/tomatocr` con `.venv` |
+| App | Servicio systemd `tomato`: gunicorn con 4 procesos uvicorn en `0.0.0.0:8000`, detrás de nginx (firewall abierto solo en 80, 443 y 22). Tarda unos 40 s en responder después de reiniciar |
+| Base de datos | PostgreSQL 17.9 administrado (`Database-Tomato-Prod`), base **`tomato_prod_2026`**, con SSL. Alembic en la última versión |
+| Fotos | AWS S3 (`tomato-prod-media-cr`) cuando hay claves `AWS_*`; sin claves, `app/static/uploads` |
 
-#### Git Automations
-Es fuertemente recomendado que el comando rutinario al jalar código actualizado contenga:
-```bash
-git pull origin main
-source .venv/bin/activate
-pip install -r requirements.txt
-PYTHONPATH=. python scripts/migrate_prod_locations.py  # Si hubieron cambios DDL recientes
-sudo systemctl restart tomato
-```
+- Las variables que lee la app están en `.env.example`. La base usa `DB_USER`,
+  `DB_PASSWORD`, `DB_SERVER`, `DB_PORT` y `DB_NAME`; las claves `MYSQL_*` que
+  todavía estén en el `.env` del servidor ya no se leen.
+- **Ojo:** el servicio define `Environment="USE_SQLITE=False"`, y ese valor gana
+  sobre el `.env` (`load_dotenv` no reemplaza variables que ya existen). Del
+  11/01 al 27/09/2026 esa línea decía `True` y producción corrió sobre SQLite
+  sin que se notara; ver `docs/MIGRACION_POSTGRES.md`.
+- Respaldos que se conservan en el servidor: `sql_app.db` (el SQLite hasta el
+  27/09/2026) y `/home/ubuntu/respaldo_antes_postgres.db`. La base `dbmaster`
+  tiene una copia vieja de marzo y no se usa.
+- `apt install` en el servidor reinicia `tomato` y nginx por su cuenta
+  (needrestart).
 
----
+### Cómo desplegar
 
-#### Migraciones (Alembic)
+Siempre por SSH (en la consola de Lightsail, **Connect using SSH**):
+
+1. Si el cambio trae migraciones (`alembic/versions/` nuevo), primero un
+   snapshot de la base: Lightsail → Bases de datos → `Database-Tomato-Prod` →
+   Instantáneas → Crear instantánea.
+2. Actualizar, migrar y reiniciar:
+   ```bash
+   cd ~/tomatocr && source .venv/bin/activate && git pull origin main && pip install -r requirements.txt && alembic upgrade head && sudo systemctl restart tomato
+   ```
+   `alembic upgrade head` no hace nada si no hay migraciones nuevas.
+3. Esperar unos 40 segundos y revisar:
+   ```bash
+   systemctl status tomato --no-pager | head -5 && alembic current
+   ```
+4. Probar el login y las páginas públicas.
+
+Para volver atrás: `alembic downgrade <versión anterior>` (si hubo migración),
+`git checkout <commit anterior>` y `sudo systemctl restart tomato`.
+
+### Migraciones (Alembic)
+
 - La configuración está en `alembic.ini` y `alembic/env.py`; la URL sale de
-  `settings.SQLALCHEMY_DATABASE_URI`, nunca del archivo.
-- Con SQLite (`USE_SQLITE="True"`) las tablas se siguen creando con
-  `create_all` al arrancar. Con PostgreSQL el esquema lo maneja solo Alembic.
-- La migración base es `0001` (todo el esquema actual). Alembic se niega a
+  `settings.SQLALCHEMY_DATABASE_URI`, nunca del archivo. Alembic se niega a
   correr si `USE_SQLITE` es verdadero.
-- El paso de producción de SQLite a PostgreSQL está en
-  `docs/MIGRACION_POSTGRES.md`, con el script `scripts/sqlite_to_postgres.py`.
-  Hasta hacerlo, no cambies `USE_SQLITE` en el servicio.
+- Versiones: `0001` esquema base; `0002` supervivencia de árboles (Fase 1).
+- Todo cambio de esquema es una migración nueva:
+  `alembic revision --autogenerate -m "..."`, revisarla, probarla en un
+  PostgreSQL local (ver Pruebas) con `upgrade`, `check` y `downgrade`.
+- En desarrollo con SQLite las tablas se crean con `create_all` al arrancar,
+  pero `create_all` **no agrega columnas** a tablas que ya existen. Si tu
+  `sql_app.db` local es de antes de un cambio de esquema, borrala (se crea de
+  nuevo vacía) o usá el PostgreSQL local.
+- `scripts/sqlite_to_postgres.py` copió producción de SQLite a PostgreSQL el
+  27/09/2026. Queda como referencia; ya no es parte del despliegue. Los
+  `scripts/migrate_*.py` son de antes de Alembic y no se deben volver a correr.
 
 ---
 
@@ -208,7 +229,9 @@ públicas.
 - **CORS**: lista explícita de orígenes en `app/main.py`, ya no `["*"]`.
 - **Cookie de sesión**: `HttpOnly` + `SameSite=Lax` siempre, `Secure` cuando
   `USE_SQLITE="False"` (producción).
-- Pendiente: migrar producción a PostgreSQL con la migración base de Alembic.
+- **Monitoreo de árboles** (`/projects/{id}/monitoreo`): admin y supervisores en
+  cualquier proyecto vinculado; trabajadores solo en los asignados. `client` y
+  `ventas` reciben 403. Cargar CSV, configurar y descargar: solo admin.
 
 ---
 
@@ -217,12 +240,16 @@ públicas.
 ```
 tomatocr/
 ├── app/
-│   ├── core/           # Security, Templates, Configurations (JWT, Config loaders)
-│   ├── db/             # Modelos (SQLAlchemy) en cascada y Base Class
-│   ├── routers/        # Application Context y flujos FastAPI
-│   ├── static/         # Asset Delivery (CSS, Vainilla JS, Web Fonts, Favicons)
-│   ├── templates/      # Base Jinja2 (vistas renderizadas con Tailwind/AlpineJS)
-│   ├── utils/          # Handlers genéricos y SMTP Dispatchers
-│   └── main.py         # Entrypoint
-└── scripts/            # Comandos de migración y DDL estáticos.
+│   ├── core/           # Configuración, seguridad (JWT), roles, plantillas, S3
+│   ├── db/             # Modelos SQLAlchemy y sesión
+│   ├── routers/        # Rutas FastAPI por módulo
+│   ├── static/         # CSS (Tailwind compilado para páginas públicas), JS, imágenes
+│   ├── templates/      # Jinja2 + Tailwind/Alpine
+│   ├── utils/          # Actividad, correo, subidas, límite de login, reforestación
+│   └── main.py         # Entrada de la app y páginas públicas
+├── alembic/            # Migraciones de esquema (PostgreSQL)
+├── docs/               # Plan comercial, migración a PostgreSQL
+├── scripts/            # Copia SQLite→PostgreSQL y scripts viejos de migración
+├── tests/              # Pruebas (pytest)
+└── CHANGELOG.md        # Historial de cambios
 ```
