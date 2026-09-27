@@ -1,0 +1,63 @@
+{% extends "manual/_layout.html" %}
+
+{# One step of a flow: who does it, what, and where it's explained. #}
+{% macro step(who, text, link=None, label=None) -%}
+<li class="relative pl-8">
+    <span class="absolute left-0 top-1 h-4 w-4 rounded-full border-2 border-red-600 bg-white"></span>
+    <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ who }}</div>
+    <div class="text-gray-800">{{ text|safe }}{% if link %} <a href="{{ link }}" class="whitespace-nowrap text-indigo-600 hover:underline">{{ label or 'Ver cómo' }} →</a>{% endif %}</div>
+</li>
+{%- endmacro %}
+
+{% macro flow() -%}
+<ol class="relative my-3 space-y-4 border-l-2 border-gray-200 pl-0 [&>li]:-ml-[9px]">{{ caller() }}</ol>
+{%- endmacro %}
+
+{% block manual %}
+<p class="text-sm text-gray-600">Cómo se conectan las partes del sistema en el trabajo de todos los días. Cada paso dice quién
+    lo hace y enlaza al capítulo donde está explicado.</p>
+
+{% if user.role in ['admin', 'ventas'] %}
+{% call m.section("prospecto-a-proyecto", "De un prospecto a un proyecto ganado") %}
+{% call flow() %}
+{{ step("Cliente potencial", "Pide información en el formulario de tomatocr.com, o el vendedor lo encuentra (LinkedIn, SICOP, referido).") }}
+{{ step("Sistema", "Si vino por el formulario, crea la cuenta (sin duplicar), el contacto con su consentimiento y la oportunidad en <strong>Prospecto</strong>, y avisa por correo.", "/manual/clientes#origen") }}
+{{ step("Admin", "Reparte la oportunidad a un vendedor. Al vendedor le llega un correo.", "/manual/clientes#admin") }}
+{{ step("Vendedor", "Responde el mismo día, registra el seguimiento y pasa la etapa a <strong>Respuesta</strong>. Deja siempre un próximo paso con fecha.", "/manual/clientes#seguimientos") }}
+{{ step("Vendedor", "Hace la reunión o visita y pasa a <strong>Reunión</strong>.", "/manual/clientes#etapas") }}
+{{ step("Vendedor", "Desde la oportunidad toca <strong>Crear cotización</strong>, la completa, la guarda y exporta el PDF. La oportunidad pasa sola a <strong>Propuesta</strong>.", "/manual/cotizador#nueva") }}
+{{ step("Admin", "Cuando el cliente acepta, toca <strong>Marcar ganada</strong>: crea el proyecto ya ligado a la cuenta.", "/manual/clientes#admin") }}
+{{ step("Admin", "Completa el proyecto: equipo, sedes, tareas, contactos que <em>reciben reportes</em> y presupuesto.", "/manual/proyectos#crear") }}
+{% endcall %}
+{% call m.tip() %}<p>Si el cliente no acepta, pasá la oportunidad a <strong>Perdido</strong> con el motivo: sigue contando para
+    las etapas que alcanzó y sirve para aprender.</p>{% endcall %}
+{% endcall %}
+{% endif %}
+
+{% if user.role != 'ventas' %}
+{% call m.section("dia-de-trabajo", "Del día de trabajo al reporte del cliente") %}
+{% call flow() %}
+{{ step("Supervisor o admin", "Asigna en el <strong>Calendario</strong> quién va, a qué proyecto, qué día y con qué tareas.", "/manual/calendario" if user.role != 'client' else None, "Calendario") }}
+{{ step("Trabajador", "Ve su asignación en el <strong>Dashboard</strong> (Mis Asignaciones) y marca las tareas con <em>Gestionar</em> al terminarlas.", "/manual/dashboard#por-rol") }}
+{{ step("Trabajador", "Registra la <strong>bitácora</strong> del día desde el celular: tareas, notas y fotos.", "/manual/proyectos#bitacora") }}
+{{ step("Admin", "Revisa el reporte y lo manda por correo a los contactos del cliente que reciben reportes.", "/manual/proyectos#reporte") }}
+{{ step("Cliente", "Recibe el correo con las fotos, y también ve la bitácora en su Dashboard y en la ficha del proyecto.", "/manual/dashboard#por-rol") }}
+{% if user.role != 'client' %}
+{{ step("Supervisor o admin", "Confirma las horas de cada asignación en <strong>Planilla → Aprobar Horas</strong>: solo las horas confirmadas se pagan y cuentan como costo del proyecto.", "/manual/planilla", "Planilla") }}
+{% endif %}
+{% endcall %}
+{% endcall %}
+{% endif %}
+
+{% if user.role in ['admin', 'ventas'] %}
+{% call m.section("renovacion", "Renovar un contrato") %}
+{% call flow() %}
+{{ step("Sistema", "90 días antes de que termine un contrato de Presupuestos, aparece en <strong>Contratos por vencer</strong> en el Embudo (en rojo si faltan menos de 60).", "/manual/clientes#admin") }}
+{{ step("Admin", "Toca <strong>Crear renovación</strong>: se abre una oportunidad de tipo Renovación para el dueño de la cuenta.") }}
+{{ step("Vendedor o admin", "La trabaja como cualquier oportunidad y cotiza desde ella.", "/manual/cotizador#nueva") }}
+{{ step("Admin", "Al aceptarse, <strong>Marcar ganada</strong> y <em>ligar el proyecto existente</em>, y actualiza las fechas del contrato en el proyecto.", "/manual/proyectos#crear") }}
+{% endcall %}
+<p>Las renovaciones no cuentan para las metas del piloto, que miden clientes nuevos.</p>
+{% endcall %}
+{% endif %}
+{% endblock %}

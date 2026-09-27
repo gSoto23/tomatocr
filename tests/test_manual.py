@@ -12,11 +12,12 @@ TEMPLATES = ROOT / "app" / "templates" / "manual"
 STATIC = ROOT / "app" / "static" / "manual"
 
 VISIBLE = {
-    "admin": {"primeros-pasos", "dashboard", "proyectos", "clientes", "cotizador"},
-    "ventas": {"primeros-pasos", "dashboard", "clientes", "cotizador"},
-    "supervisor": {"primeros-pasos", "dashboard", "proyectos"},
-    "worker": {"primeros-pasos", "dashboard", "proyectos"},
-    "client": {"primeros-pasos", "dashboard", "proyectos", "cotizador"},
+    "admin": {"primeros-pasos", "dashboard", "proyectos", "calendario", "planilla", "clientes", "cotizador",
+              "presupuestos", "reforestacion", "empleados", "actividad", "recorridos"},
+    "ventas": {"primeros-pasos", "dashboard", "clientes", "cotizador", "recorridos"},
+    "supervisor": {"primeros-pasos", "dashboard", "proyectos", "calendario", "planilla", "reforestacion", "recorridos"},
+    "worker": {"primeros-pasos", "dashboard", "proyectos", "calendario", "planilla", "reforestacion", "recorridos"},
+    "client": {"primeros-pasos", "dashboard", "proyectos", "cotizador", "presupuestos", "recorridos"},
 }
 
 
@@ -42,9 +43,16 @@ def test_manual_needs_a_session():
     ("/logs/new", "supervisor", "/manual/proyectos"),
     ("/clientes/cuentas/1", "ventas", "/manual/clientes"),
     ("/dashboard", "client", "/manual/dashboard"),
-    ("/dashboard/activity", "admin", "/manual/dashboard"),
+    ("/dashboard/activity", "admin", "/manual/actividad"),
     ("/clientes", "worker", "/manual"),  # not their chapter: the index
-    ("/payroll", "admin", "/manual"),    # chapter still to be written
+    ("/payroll/approval", "supervisor", "/manual/planilla"),
+    ("/liquidation/history/3", "admin", "/manual/planilla"),
+    ("/finance/2", "client", "/manual/presupuestos"),
+    ("/finance/2", "supervisor", "/manual"),
+    ("/projects/4/monitoreo", "worker", "/manual/reforestacion"),
+    ("/projects/4", "worker", "/manual/proyectos"),
+    ("/users/9/edit", "admin", "/manual/empleados"),
+    ("/calendar", "worker", "/manual/calendario"),
 ])
 def test_help_button_url(path, role, url):
     assert help_url(path, role) == url
