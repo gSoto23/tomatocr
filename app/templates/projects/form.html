@@ -28,12 +28,39 @@
                     </div>
                 </div>
 
-                <div class="sm:col-span-4">
-                    <label for="client_display_name" class="block text-sm font-medium leading-6 text-gray-900">Nombre
-                        del Cliente (Visible)</label>
-                    <div class="mt-2">
-                        <input type="text" x-model="formData.client_display_name" id="client_display_name"
-                            class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
+                <!-- Client account (Clientes) -->
+                <div class="col-span-full">
+                    <label for="accountSearch" class="block text-sm font-medium leading-6 text-gray-900">Cliente (cuenta) *</label>
+                    {% if opportunity %}
+                    <p class="mt-1 text-xs text-green-700">Proyecto de la oportunidad ganada «{{ opportunity.title }}».</p>
+                    {% endif %}
+                    <div x-show="formData.account" class="mt-2 flex flex-wrap items-center gap-3 rounded-md border border-gray-300 px-3 py-2 text-sm">
+                        <span class="font-semibold text-gray-900" x-text="formData.account && formData.account.name"></span>
+                        <a :href="formData.account ? '/clientes/cuentas/' + formData.account.id : '#'" target="_blank" class="text-xs text-gray-500 hover:underline">Ver ficha</a>
+                        <button type="button" x-show="!formData.opportunity_id" @click="formData.account = null; formData.roles = {}" class="ml-auto text-xs font-semibold text-gray-600 hover:text-black">Cambiar</button>
+                    </div>
+                    <div x-show="!formData.account" class="relative mt-2">
+                        <input type="text" id="accountSearch" x-model="accountQuery" @input.debounce.250ms="searchAccounts()" @focus="searchAccounts()" autocomplete="off"
+                            placeholder="Buscar la cuenta por nombre o cédula" class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
+                        <div x-show="accountResults.length || accountQuery.trim()" @click.outside="accountResults = []" class="absolute z-20 mt-1 w-full max-h-64 overflow-auto rounded-md bg-white text-sm shadow-lg ring-1 ring-black/10">
+                            <template x-for="a in accountResults" :key="a.id">
+                                <button type="button" @click="selectAccount(a)" class="block w-full px-3 py-2 text-left hover:bg-gray-50">
+                                    <span x-text="a.name"></span> <span class="text-xs text-gray-500" x-text="a.tax_id ? '· ' + a.tax_id : ''"></span>
+                                </button>
+                            </template>
+                            <button type="button" x-show="accountQuery.trim()" @click="createAccount(false)" class="block w-full px-3 py-2 text-left font-semibold hover:bg-gray-50">
+                                + Crear cuenta «<span x-text="accountQuery.trim()"></span>»
+                            </button>
+                        </div>
+                        <div x-show="similarAccounts.length" class="mt-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+                            <p class="font-semibold">Ya hay cuentas parecidas. ¿Es alguna de estas?</p>
+                            <div class="mt-2 flex flex-wrap gap-2">
+                                <template x-for="a in similarAccounts" :key="a.id">
+                                    <button type="button" @click="selectAccount(a)" class="rounded-md bg-white px-3 py-1 font-semibold ring-1 ring-amber-300">Usar «<span x-text="a.name"></span>»</button>
+                                </template>
+                            </div>
+                            <button type="button" @click="createAccount(true)" class="mt-3 text-xs font-semibold underline">Es otro cliente: crear «<span x-text="accountQuery.trim()"></span>»</button>
+                        </div>
                     </div>
                 </div>
 
@@ -202,44 +229,39 @@
                     </button>
                 </div>
 
-                <!-- Contact -->
+                <!-- Contacts: chosen from the client account -->
                 <div class="col-span-full border-t pt-4 mt-4">
-                    <h3 class="text-base font-semibold leading-7 text-gray-900">Contacto en Sitio</h3>
+                    <h3 class="text-base font-semibold leading-7 text-gray-900">Contactos del proyecto</h3>
+                    <p class="text-sm text-gray-500">Se eligen de los contactos de la cuenta. Los que reciben reportes aparecen como destinatarios al enviar la bitácora.</p>
                 </div>
 
-                <div class="space-y-2 col-span-full">
-                    <template x-for="(contact, index) in formData.contacts" :key="index">
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 border p-2 rounded relative">
-                            <input type="text" x-model="contact.name" placeholder="Nombre" required
-                                class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
-
-                            <input type="text" x-model="contact.position" placeholder="Cargo / Puesto"
-                                class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
-
-                            <input type="text" x-model="contact.phone" placeholder="Teléfono"
-                                class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
-
-                            <input type="email" x-model="contact.email" placeholder="Correo"
-                                class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
-
-                            <button type="button" @click="removeContact(index)"
-                                class="absolute top-2 right-2 text-red-500 hover:text-red-700">
-                                <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd"
-                                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                                        clip-rule="evenodd" />
-                                </svg>
-                            </button>
+                <div class="col-span-full space-y-2" x-show="!formData.account">
+                    <p class="text-sm text-gray-500 italic">Elija primero la cuenta del cliente.</p>
+                </div>
+                <div class="col-span-full space-y-2" x-show="formData.account">
+                    <template x-for="c in (formData.account ? formData.account.contacts : [])" :key="c.id">
+                        <div class="grid grid-cols-1 gap-2 rounded border p-3 text-sm sm:grid-cols-6 sm:items-center">
+                            <div class="sm:col-span-2">
+                                <div class="font-medium text-gray-900" x-text="c.name"></div>
+                                <div class="text-xs text-gray-500" x-text="[c.email, c.phone].filter(Boolean).join(' · ') || 'Sin correo ni teléfono'"></div>
+                            </div>
+                            <label class="flex items-center gap-2"><input type="checkbox" :checked="role(c.id).is_site" @change="setRole(c.id, 'is_site', $event.target.checked)"> De sitio</label>
+                            <label class="flex items-center gap-2" :class="!c.email && 'opacity-50'"><input type="checkbox" :disabled="!c.email" :checked="role(c.id).receives_reports" @change="setRole(c.id, 'receives_reports', $event.target.checked)"> Recibe reportes</label>
+                            <input type="text" class="sm:col-span-2 block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6" placeholder="Cargo en este sitio (opcional)" :value="role(c.id).position" @input="setRole(c.id, 'position', $event.target.value)">
                         </div>
                     </template>
-                    <button type="button" @click="addContact()"
-                        class="text-sm text-indigo-600 hover:text-indigo-900 flex items-center gap-1 font-semibold">
-                        <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                            <path
-                                d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
-                        </svg>
-                        Agregar Contacto
-                    </button>
+                    <p x-show="formData.account && !formData.account.contacts.length" class="text-sm text-gray-500 italic">La cuenta todavía no tiene contactos.</p>
+
+                    <div x-data="{ open: false }" class="pt-1">
+                        <button type="button" @click="open = !open" class="text-sm text-indigo-600 hover:text-indigo-900 font-semibold">+ Agregar contacto a la cuenta</button>
+                        <div x-show="open" class="mt-2 grid grid-cols-1 gap-2 rounded border p-3 sm:grid-cols-2">
+                            <input type="text" x-model="newContact.name" placeholder="Nombre" class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
+                            <input type="text" x-model="newContact.role_title" placeholder="Cargo" class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
+                            <input type="email" x-model="newContact.email" placeholder="Correo" class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
+                            <input type="text" x-model="newContact.phone" placeholder="Teléfono" class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
+                            <div class="sm:col-span-2"><button type="button" @click="addAccountContact().then(ok => ok && (open = false))" class="rounded-md bg-black px-3 py-2 text-sm font-semibold text-white hover:bg-gray-800">Agregar</button></div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="col-span-full">
@@ -534,25 +556,6 @@
     });
     {% endfor %}
 
-    {% for c in project.contacts %}
-    _initialData.contacts.push({
-        name: {{ c.name | tojson | safe }},
-        phone: {{ c.phone | tojson | safe }},
-        email: {{ c.email | tojson | safe }},
-        position: {{ c.position | tojson | safe }}
-    });
-    {% endfor %}
-
-    // Legacy fallback
-    {% if not project.contacts and(project.contact_name or project.contact_phone) %}
-    _initialData.contacts.push({
-        name: {{ (project.contact_name or "") | tojson | safe }},
-        phone: {{ (project.contact_phone or "") | tojson | safe }},
-        email: {{ (project.contact_email or "") | tojson | safe }},
-        position: "Principal"
-    });
-    {% endif %}
-
     {% for u in project.users %}
     {% if u.role == 'client' %}
     _initialData.client_ids.push({{ u.id }});
@@ -586,6 +589,12 @@
     {% endif %}
     {% endif %}
 
+    // Client account and the roles of its contacts in this project (Clientes)
+    _initialData.account = {{ account | tojson }};
+    _initialData.opportunity_id = {{ (opportunity.id if opportunity else None) | tojson }};
+    _initialData.roles = {};
+    {{ contact_roles | tojson }}.forEach(r => { _initialData.roles[r.contact_id] = r; });
+
     // Inject available resources for JS usage (labels)
     _initialData.available_clients = [
         {% for c in clients %}
@@ -609,11 +618,54 @@
                 return selected.join(', ');
             },
 
-            addContact() {
-                this.formData.contacts.push({ name: '', phone: '', email: '', position: '' });
+            accountQuery: '',
+            accountResults: [],
+            similarAccounts: [],
+            newContact: { name: '', role_title: '', email: '', phone: '' },
+
+            async searchAccounts() {
+                const response = await fetch('/clientes/api/cuentas?q=' + encodeURIComponent(this.accountQuery));
+                this.accountResults = response.ok ? await response.json() : [];
             },
-            removeContact(index) {
-                this.formData.contacts.splice(index, 1);
+            selectAccount(account) {
+                this.formData.account = account;
+                this.formData.roles = {};
+                this.accountQuery = '';
+                this.accountResults = [];
+                this.similarAccounts = [];
+            },
+            async createAccount(confirmed) {
+                const name = this.accountQuery.trim();
+                if (!name) return;
+                const response = await fetch('/clientes/api/cuentas', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, confirm: confirmed })
+                });
+                const data = await response.json();
+                if (response.status === 409) { this.similarAccounts = data.similar; this.accountResults = []; return; }
+                if (!response.ok) { alert(data.detail || 'No se pudo crear la cuenta'); return; }
+                this.selectAccount(data);
+            },
+            role(contactId) {
+                return this.formData.roles[contactId] || { contact_id: contactId, is_site: false, receives_reports: false, position: '' };
+            },
+            setRole(contactId, field, value) {
+                const current = { ...this.role(contactId), [field]: value };
+                this.formData.roles = { ...this.formData.roles, [contactId]: current };
+            },
+            async addAccountContact() {
+                if (!this.newContact.name.trim()) { alert('Escriba el nombre del contacto'); return false; }
+                const response = await fetch('/clientes/api/cuentas/' + this.formData.account.id + '/contactos', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ...this.newContact, is_commercial: false })
+                });
+                const data = await response.json();
+                if (!response.ok) { alert(data.detail || 'No se pudo agregar el contacto'); return false; }
+                this.formData.account = data.account;
+                this.setRole(data.contact.id, 'is_site', true);
+                if (data.contact.email) this.setRole(data.contact.id, 'receives_reports', true);
+                this.newContact = { name: '', role_title: '', email: '', phone: '' };
+                return true;
             },
             addSupply() {
                 this.formData.supplies.push({ name: '', quantity: '' });
@@ -647,8 +699,13 @@
                 {% endif %}
                 const url = isEdit ? '/projects/{{ (project.id if project else "") | safe }}/edit' : '/projects/new';
 
+                if (!this.formData.account) { alert('Elija la cuenta del cliente (o créela) antes de guardar.'); return; }
+
                 // Prepare payload and sanitize empty strings for numeric/optional fields
                 let payload = JSON.parse(JSON.stringify(this.formData));
+                payload.account_id = payload.account.id;
+                payload.contact_roles = Object.values(payload.roles).filter(r => r.is_site || r.receives_reports);
+                delete payload.account; delete payload.roles; delete payload.contacts;
                 if (payload.prorrogable_amount === "") {
                     payload.prorrogable_amount = null;
                 }

@@ -12,6 +12,8 @@ from app.db.models.schedule import ProjectSchedule
 from app.db.models.user import User
 from app.db.models.log import DailyLog
 from app.db.models.reforestation import ReforestationProject
+from app.db.models.crm import Account, Opportunity
+from app.utils.crm import account_payload, project_contact_roles, set_project_contacts, site_contacts, win_opportunity
 from app.db.models.associations import project_users
 from sqlalchemy import desc, func
 from math import ceil
@@ -50,6 +52,12 @@ class ContactCreate(BaseModel):
     email: Optional[str] = None
     position: Optional[str] = None
 
+class ContactRoleIn(BaseModel):
+    contact_id: int
+    is_site: bool = True
+    receives_reports: bool = False
+    position: Optional[str] = None
+
 class BudgetLineCreate(BaseModel):
     name: str
     subtotal: float
@@ -64,8 +72,12 @@ class ProjectCreate(BaseModel):
     address: Optional[str] = None
     waze_link: Optional[str] = None
     description: Optional[str] = None
+    # Client account (Clientes) and which of its contacts the project uses.
+    account_id: Optional[int] = None
+    contact_roles: List[ContactRoleIn] = []
+    opportunity_id: Optional[int] = None  # set when the project is created from a won opportunity
     # Lists
-    contacts: List[ContactCreate] = []
+    contacts: List[ContactCreate] = []  # old per-project contacts; no longer sent by the form
     supplies: List[SupplyCreate] = []
     tasks: List[TaskCreate] = []
     locations: List[LocationCreate] = []
@@ -127,20 +139,44 @@ def list_projects(
         "total_records": total_records
     })
 
+def apply_account(db: Session, project: Project, project_in: "ProjectCreate"):
+    """Every project belongs to a client account; its contacts come from that account."""
+    account = db.get(Account, project_in.account_id) if project_in.account_id else None
+    if account is None or account.merged_into_id:
+        raise HTTPException(status_code=400, detail="Elija la cuenta del cliente (o créela) antes de guardar.")
+    project.account_id = account.id
+    project.client_display_name = account.name  # kept in sync for screens and reports that show it
+    set_project_contacts(db, project, account, [r.dict() for r in project_in.contact_roles])
+    return account
+
+
+def account_form_data(db: Session, project: Optional[Project]):
+    account = db.get(Account, project.account_id) if project and project.account_id else None
+    roles = [{"contact_id": r.contact_id, "is_site": r.is_site, "receives_reports": r.receives_reports,
+              "position": r.position or ""} for r in project_contact_roles(db, project.id)] if project else []
+    return (account_payload(account) if account else None), roles
+
+
 @router.get("/new")
-def new_project_form(request: Request, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
+def new_project_form(request: Request, opportunity_id: Optional[int] = None, db: Session = Depends(deps.get_db),
+                     user: User = Depends(deps.get_current_user)):
     if user.role != ADMIN: 
         return RedirectResponse(url="/projects", status_code=status.HTTP_303_SEE_OTHER)
 
     clients = db.query(User).filter(User.role == CLIENT).all()
     workers = db.query(User).filter(User.role.in_([WORKER, SUPERVISOR])).all()
+    opportunity = db.get(Opportunity, opportunity_id) if opportunity_id else None
+    account = db.get(Account, opportunity.account_id) if opportunity else None
     
     return templates.TemplateResponse("projects/form.html", {
         "request": request, 
         "user": user, 
         "project": None, 
         "clients": clients,
-        "workers": workers
+        "workers": workers,
+        "account": account_payload(account) if account else None,
+        "contact_roles": [],
+        "opportunity": opportunity,
     })
 
 @router.post("/new")
@@ -170,16 +206,15 @@ def create_project(
 
     db.add(project)
     db.flush() # get ID
-
-    # Add Contacts
-    for c in project_in.contacts:
-        db.add(ProjectContact(
-            project_id=project.id, 
-            name=c.name, 
-            phone=c.phone, 
-            email=c.email, 
-            position=c.position
-        ))
+    apply_account(db, project, project_in)
+    if project_in.opportunity_id:
+        opportunity = db.get(Opportunity, project_in.opportunity_id)
+        if opportunity is None:
+            raise HTTPException(status_code=400, detail="La oportunidad no existe")
+        try:
+            win_opportunity(db, opportunity, project, user)
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
 
     # Add Supplies
     for s in project_in.supplies:
@@ -250,13 +285,17 @@ def edit_project_form(id: int, request: Request, db: Session = Depends(deps.get_
         
     clients = db.query(User).filter(User.role == CLIENT).all()
     workers = db.query(User).filter(User.role.in_([WORKER, SUPERVISOR])).all()
+    account, roles = account_form_data(db, project)
     
     return templates.TemplateResponse("projects/form.html", {
         "request": request, 
         "user": user, 
         "project": project, 
         "clients": clients,
-        "workers": workers
+        "workers": workers,
+        "account": account,
+        "contact_roles": roles,
+        "opportunity": None,
     })
 
 @router.post("/{id}/edit")
@@ -275,7 +314,6 @@ def update_project(
 
     # Update Fields
     project.name = project_in.name
-    project.client_display_name = project_in.client_display_name
     project.province = project_in.province
     project.address = project_in.address
     project.waze_link = project_in.waze_link
@@ -287,16 +325,8 @@ def update_project(
     selected_users = db.query(User).filter(User.id.in_(all_ids)).all()
     project.users = selected_users
 
-    # Update Contacts
-    db.query(ProjectContact).filter(ProjectContact.project_id == id).delete()
-    for c in project_in.contacts:
-        db.add(ProjectContact(
-            project_id=id, 
-            name=c.name, 
-            phone=c.phone, 
-            email=c.email, 
-            position=c.position
-        ))
+    # Client account and its contacts for this project (the old project_contacts are kept as history).
+    apply_account(db, project, project_in)
     
     # Update Supplies (Replace All strategy for simplicity or nuanced?)
     # Simple strategy: Delete all old, add all new.
@@ -422,6 +452,8 @@ def get_project_detail(
 
     return templates.TemplateResponse("projects/detail.html", {
         "monitoring_available": monitoring_available,
+        "site_contacts": site_contacts(db, project),
+        "account_id": project.account_id,
         "request": request, 
         "project": project, 
         "user": user,

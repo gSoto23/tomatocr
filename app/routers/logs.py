@@ -17,6 +17,7 @@ from app.db.models.user import User
 from app.db.models.associations import project_users
 from app.routers import deps
 from app.db.models.reforestation import ReforestationProject
+from app.utils.crm import report_recipients
 from app.core.roles import ADMIN, CLIENT, OPERATIONS_ROLES
 from app.utils.activity import log_activity
 from app.utils.uploads import IMAGE_TYPES, MAX_IMAGE_SIZE_BYTES
@@ -137,9 +138,8 @@ def get_log_detail(id: int, db: Session = Depends(deps.get_db), user: User = Dep
         })
     
     # Get Project Contacts for Email Dropdown
-    contacts_data = []
-    if log.project and log.project.contacts:
-        contacts_data = [{"id": c.id, "name": c.name, "email": c.email} for c in log.project.contacts]
+    # Recipients: the account contacts marked "recibe reportes" for this project (Clientes).
+    contacts_data = report_recipients(db, log.project) if log.project else []
 
     return {
         "id": log.id,

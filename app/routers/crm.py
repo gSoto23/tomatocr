@@ -3,8 +3,8 @@ docs/DISENO_CRM.md and docs/ANALISIS_ENCAJE_CRM.md."""
 from datetime import date, datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
-from fastapi.responses import RedirectResponse
+from fastapi import APIRouter, Body, Depends, Form, HTTPException, Request, status
+from fastapi.responses import JSONResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.core.roles import ADMIN, VENTAS
@@ -17,10 +17,11 @@ from app.db.models.reforestation import ReforestationProject
 from app.db.models.user import User
 from app.routers import deps
 from app.utils.activity import log_activity
-from app.utils.crm import (account_status, active_accounts, can_edit_account, can_edit_opportunity, change_stage,
-                           claim_if_unowned, dismiss_duplicate, find_duplicates, funnel, last_followups,
-                           merge_accounts, next_steps, proposal_amounts, quote_amount, set_goals, similar_accounts,
-                           filter_opportunities, goals)
+from app.utils.crm import (account_payload, account_status, active_accounts, can_edit_account, can_edit_opportunity,
+                           change_stage, claim_if_unowned, create_renewal, dismiss_duplicate, expiring_contracts,
+                           filter_opportunities, find_duplicates, funnel, last_followups, merge_accounts, next_steps,
+                           proposal_amounts, quote_amount, search_accounts, set_goals, similar_accounts,
+                           win_opportunity)
 from app.utils.reforestation import parse_date
 
 # "Clientes" in the menu (docs/ANALISIS_ENCAJE_CRM.md, R7).
@@ -104,6 +105,7 @@ def pipeline(request: Request, motor: Optional[str] = None, owner: Optional[str]
         "filters": {"motor": motor, "owner": owner_id, "stage": stage, "q": q or ""},
         "duplicates": len(find_duplicates(db)) if user.role == ADMIN else 0,
         "today": date.today(),
+        "expiring": expiring_contracts(db),
     })
 
 
@@ -363,6 +365,7 @@ def opportunity_page(opportunity_id: int, request: Request, db: Session = Depend
                      user: User = Depends(view_roles)):
     opportunity = get_opportunity(db, opportunity_id)
     account = db.get(Account, opportunity.account_id)
+    linked_project = db.get(Project, opportunity.project_id) if opportunity.project_id else None
     return templates.TemplateResponse("crm/oportunidad.html", {
         "request": request, "user": user, "opportunity": opportunity, "account": account,
         "can_edit": can_edit_opportunity(user, opportunity),
@@ -372,6 +375,9 @@ def opportunity_page(opportunity_id: int, request: Request, db: Session = Depend
             CrmActivity.happened_at.desc()).all(),
         "stages": STAGES, "motors": MOTORS, "sellers": sellers(db),
         "activity_types": [t for t in ACTIVITY_TYPES if t != "cambio_etapa"], "today": date.today(),
+        "linked_project": linked_project,
+        "account_projects": db.query(Project).filter(
+            (Project.account_id == account.id) | (Project.account_id.is_(None))).order_by(Project.name).all(),
     })
 
 
@@ -413,6 +419,94 @@ def update_stage(opportunity_id: int, stage: str = Form(...), lost_reason: Optio
     claim_if_unowned(opportunity, user)
     db.commit()
     return toast_redirect(url, f"Etapa: {LABELS['stage'][stage]}")
+
+
+@router.post("/oportunidades/{opportunity_id}/ganada")
+def mark_won(opportunity_id: int, project_id: str = Form(...), db: Session = Depends(deps.get_db),
+             user: User = Depends(admin_only)):
+    """Links an existing project and marks the opportunity as won. To create a new project,
+    the page links to /projects/new?opportunity_id=... instead."""
+    opportunity = get_opportunity(db, opportunity_id)
+    url = f"/clientes/oportunidades/{opportunity.id}"
+    project = db.get(Project, int(project_id)) if project_id.isdigit() else None
+    if project is None:
+        return toast_redirect(url, "Elija el proyecto", error=True)
+    try:
+        win_opportunity(db, opportunity, project, user)
+    except ValueError as e:
+        return toast_redirect(url, str(e), error=True)
+    db.commit()
+    return toast_redirect(url, f"Oportunidad ganada: ligada a {project.name}")
+
+
+@router.post("/proyectos/{project_id}/renovacion")
+def renewal(project_id: int, db: Session = Depends(deps.get_db), user: User = Depends(view_roles)):
+    project = db.get(Project, project_id)
+    if project is None:
+        raise HTTPException(status_code=404, detail="Proyecto no encontrado")
+    account = db.get(Account, project.account_id) if project.account_id else None
+    if account is None:
+        return toast_redirect("/clientes", "El proyecto no tiene cuenta", error=True)
+    if not can_edit_account(user, account):
+        raise HTTPException(status_code=403, detail="Esta cuenta tiene otro dueño")
+    opportunity = create_renewal(db, project, user)
+    db.commit()
+    return toast_redirect(f"/clientes/oportunidades/{opportunity.id}", "Renovación creada")
+
+
+# --- API for the account pickers (project form and quote tool) -----------------------
+
+@router.get("/api/cuentas")
+def api_search_accounts(q: str = "", db: Session = Depends(deps.get_db), user: User = Depends(view_roles)):
+    return [account_payload(a) for a in search_accounts(db, q)]
+
+
+@router.get("/api/cuentas/{account_id}")
+def api_account(account_id: int, db: Session = Depends(deps.get_db), user: User = Depends(view_roles)):
+    return account_payload(get_active_account(db, account_id))
+
+
+@router.post("/api/cuentas")
+def api_create_account(payload: dict = Body(...), db: Session = Depends(deps.get_db), user: User = Depends(view_roles)):
+    """Creates an account from a picker. Answers 409 with the similar accounts unless confirm is true."""
+    name = (payload.get("name") or "").strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="Escriba el nombre de la cuenta")
+    kind = payload.get("kind") if payload.get("kind") in ACCOUNT_KINDS else "otro"
+    similar = similar_accounts(db, name)
+    if similar and not payload.get("confirm"):
+        return JSONResponse(status_code=409, content={"similar": [account_payload(a) for a in similar]})
+    account = Account(name=name, kind=kind, owner_id=user.id, created_by_id=user.id, source="manual")
+    db.add(account)
+    db.commit()
+    log_activity(db, user, "CREATE", "ACCOUNT", account.id, f"Cuenta {account.name}")
+    return account_payload(account)
+
+
+@router.post("/api/cuentas/{account_id}/contactos")
+def api_add_contact(account_id: int, payload: dict = Body(...), db: Session = Depends(deps.get_db),
+                    user: User = Depends(view_roles)):
+    account = editable_account(db, account_id, user)
+    name = (payload.get("name") or "").strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="Escriba el nombre del contacto")
+    contact = Contact(account_id=account.id, is_primary=not account.contacts)
+    save_contact(contact, name, payload.get("role_title"), payload.get("email"), payload.get("phone"),
+                 bool(payload.get("is_commercial")), bool(payload.get("is_billing")))
+    db.add(contact)
+    claim_if_unowned(account, user)
+    db.commit()
+    db.refresh(account)
+    return {"contact": {"id": contact.id, "name": contact.name, "email": contact.email, "phone": contact.phone,
+                        "role_title": contact.role_title, "is_primary": contact.is_primary},
+            "account": account_payload(account)}
+
+
+@router.get("/api/oportunidades/{opportunity_id}")
+def api_opportunity(opportunity_id: int, db: Session = Depends(deps.get_db), user: User = Depends(view_roles)):
+    opportunity = get_opportunity(db, opportunity_id)
+    return {"id": opportunity.id, "title": opportunity.title, "stage": opportunity.stage,
+            "account": account_payload(db.get(Account, opportunity.account_id))}
 
 
 # --- Seguimientos -------------------------------------------------------------------

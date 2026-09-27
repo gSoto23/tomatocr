@@ -6,7 +6,23 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-27
 
-### Fase 2B: menú Clientes (esta rama)
+### Fase 2C: cotizador, proyectos y bitácora ligados a Clientes (esta rama)
+- Formulario de proyecto: cuenta obligatoria (búsqueda o crear con aviso de
+  parecidas) y contactos tomados de la cuenta, marcando de sitio y quién
+  recibe reportes. La lista vieja de contactos por proyecto queda como
+  historial.
+- Correo de la bitácora: destinatarios = contactos del proyecto que reciben
+  reportes.
+- Cotizador: admin y ventas eligen cuenta y contacto (obligatorio); el rol
+  cliente solo ve sus propias cotizaciones (antes veía las de todos) y no
+  puede sobrescribir las de otra cuenta. "Crear cotización" desde una
+  oportunidad; al guardar, la oportunidad pasa a "propuesta".
+- "Marcar ganada" (admin): crear el proyecto o ligar uno existente.
+- "Contratos por vencer" en el Embudo (90 días, en rojo menos de 60) con
+  "Crear renovación".
+- Despliegue: sin migraciones; volver a correr `crm_backfill.py --apply`.
+
+### Fase 2B: menú Clientes (#53)
 - Menú "Clientes" para admin y ventas con **Embudo** (metas editables,
   próximos pasos vencidos y de hoy, monto en propuesta por motor, filtros) y
   **Cuentas** (búsqueda, estado calculado, aviso de cuentas parecidas al

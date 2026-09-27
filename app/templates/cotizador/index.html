@@ -63,9 +63,29 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5">
+          {% if picks_account %}
+          <!-- Cuenta del cliente (Clientes): obligatoria para admin y ventas -->
+          <div class="md:col-span-2 no-print" id="accountPicker">
+            <label for="accountSearch" class="muted text-xs block">Cuenta del cliente *</label>
+            <div id="accountChosen" class="hidden mt-1 flex flex-wrap items-center gap-3 rounded-md border px-3 py-2">
+              <span class="font-semibold" id="accountChosenName"></span>
+              <span class="muted text-xs" id="opportunityBadge"></span>
+              <button type="button" class="btn py-1 px-3 text-xs" id="btnChangeAccount">Cambiar</button>
+            </div>
+            <div id="accountSearchBox" class="relative">
+              <input class="inp mt-1" id="accountSearch" autocomplete="off" placeholder="Buscar cuenta por nombre o cédula" />
+              <div id="accountResults" class="hidden absolute z-20 mt-1 w-full rounded-md border bg-white text-sm shadow-lg max-h-72 overflow-auto" style="color:#111"></div>
+            </div>
+            <div id="accountSimilar" class="hidden mt-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm" style="color:#78350f"></div>
+          </div>
+          <div class="md:col-span-2 no-print" id="contactPickerBox" style="display:none">
+            <label for="contactSelect" class="muted text-xs block">Contacto de la cuenta</label>
+            <select class="inp mt-1" id="contactSelect"></select>
+          </div>
+          {% endif %}
           <div>
             <label for="clientName" class="muted text-xs block">Cliente / Empresa *</label>
-            <input class="inp mt-1" id="clientName" placeholder="Nombre de la institucion" />
+            <input class="inp mt-1" id="clientName" placeholder="Nombre de la institucion" {% if picks_account %}readonly title="Se toma de la cuenta elegida"{% endif %} />
           </div>
           <div>
             <label for="clientId" class="muted text-xs block">Contacto (opcional)</label>
@@ -224,6 +244,7 @@
             <tr>
               <th style="width: 140px;">Número</th>
               <th>Cliente</th>
+              {% if picks_account %}<th>Cuenta</th>{% endif %}
               <th style="width: 140px;">Fecha</th>
               <th style="width: 160px;" class="text-right">Total</th>
               <th style="width: 180px;">Acciones</th>
@@ -235,6 +256,7 @@
     </section>
   </main>
 
+  <script>window.COTIZADOR = { picksAccount: {{ picks_account | tojson }} };</script>
   <script src="/static/cotizador/app.js"></script>
 </body>
 
