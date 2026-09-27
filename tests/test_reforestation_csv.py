@@ -28,3 +28,13 @@ def test_csv_download_with_any_client_name(db, login_as, client_name, ascii_name
     assert disposition.startswith(f'attachment; filename="{ascii_name}"; filename*=UTF-8\'\'')
     encoded = disposition.split("filename*=UTF-8''", 1)[1]
     assert unquote(encoded) == f"{client_name.replace(' ', '_')}_inventario.csv"
+
+
+def test_download_link_does_not_trigger_the_page_loader(db, login_as):
+    project = ReforestationProject(client_name="Municipalidad Alajuela")
+    db.add(project)
+    db.commit()
+    html = login_as("admin").get("/dashboard/reforestacion").text
+    # The dashboard loader skips links with the download attribute.
+    assert f'href="/dashboard/reforestacion/download-csv/{project.id}" download' in html
+    assert "!this.hasAttribute('download')" in html
