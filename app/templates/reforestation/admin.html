@@ -88,7 +88,7 @@
             <div class="flex flex-wrap items-center gap-3 text-sm">
                 <button @click='openPlanting({{ p.client_name|tojson }})' class="font-semibold text-black hover:text-gray-600">Actualizar siembra</button>
                 <button @click='openMonitoring({{ p.id }}, {{ p.client_name|tojson }})' class="font-semibold text-black hover:text-gray-600">Subir monitoreo</button>
-                <a href="/dashboard/reforestacion/download-csv/{{ p.id }}" class="font-semibold text-black hover:text-gray-600">Descargar CSV</a>
+                <a href="/dashboard/reforestacion/download-csv/{{ p.id }}" download class="font-semibold text-black hover:text-gray-600">Descargar CSV</a>
                 {% if p.project_id %}
                 <a href="/projects/{{ p.project_id }}/monitoreo" class="font-semibold text-green-700 hover:text-green-900">Monitoreo en campo</a>
                 {% endif %}
