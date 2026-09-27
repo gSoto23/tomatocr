@@ -39,7 +39,7 @@
         <span class="pill" id="quoteNumberPill">—</span>
         <button class="btn" id="btnNew">Nueva</button>
         <button class="btn" id="btnDuplicate">Duplicar</button>
-        <button class="btn" id="btnSave">Guardar en Nube</button>
+        <button class="btn" id="btnSave">Guardar</button>
         <button class="btn btn-danger" id="btnClearDraft" title="Borrar datos actuales">
           <span class="danger">Borrar Borrador</span>
         </button>
@@ -53,8 +53,8 @@
       <section class="card p-5 lg:col-span-2">
         <div class="flex items-start justify-between gap-3">
           <div>
-            <h2 class="text-xl font-semibold">Datos generales</h2>
-            <p class="muted text-sm mt-1">Complete lo mínimo y agregue ítems. Todo se calcula automáticamente.</p>
+            <h2 class="text-xl font-semibold">1. Cliente y servicio</h2>
+            <p class="muted text-sm mt-1">Elija el cliente, el servicio y las condiciones. El panel de la derecha le dice qué falta.</p>
           </div>
           <div class="text-right">
             <label for="issueDate" class="muted text-xs block">Fecha emisión</label>
@@ -141,16 +141,6 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5">
-          <div>
-            <label for="notes" class="muted text-xs block">Notas / Alcance (PDF)</label>
-            <textarea class="inp mt-1 h-28" id="notes" placeholder="Ej. Incluye: corte, recolección..."></textarea>
-          </div>
-          <div>
-            <label for="terms" class="muted text-xs block">Términos (PDF)</label>
-            <textarea class="inp mt-1 h-28" id="terms"></textarea>
-          </div>
-        </div>
       </section>
 
       <!-- Right: Totals -->
@@ -190,8 +180,11 @@
             <span class="text-2xl font-bold text-black" id="totalView">—</span>
           </div>
 
-          <div class="pt-6">
+          <div class="pt-4" id="qualityPanel" aria-live="polite"></div>
+
+          <div class="pt-2">
             <button class="btn btn-primary w-full py-4 text-lg" id="btnPDF">Exportar PDF</button>
+            <p class="muted text-xs mt-2 text-center">En el diálogo de impresión elija "Guardar como PDF" y tamaño Carta.</p>
           </div>
         </div>
       </aside>
@@ -201,8 +194,8 @@
     <section class="card p-5 mt-5">
       <div class="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h2 class="text-xl font-semibold">Ítems</h2>
-          <p class="muted text-sm mt-1">Líneas de servicio o materiales.</p>
+          <h2 class="text-xl font-semibold">2. Ítems</h2>
+          <p class="muted text-sm mt-1">Líneas de servicio o materiales. La descripción admite varias líneas.</p>
         </div>
         <div class="flex items-center gap-2">
           <button class="btn" id="btnAddService">+ Servicio</button>
@@ -220,7 +213,7 @@
               <th style="width: 100px;" class="text-right">Cant.</th>
               <th style="width: 140px;" class="text-right">Precio unit.</th>
               <th style="width: 140px;" class="text-right">Total</th>
-              <th style="width: 50px;"></th>
+              <th style="width: 80px;"></th>
             </tr>
           </thead>
           <tbody id="itemsBody"></tbody>
@@ -228,12 +221,28 @@
       </div>
     </section>
 
+    <!-- Conditions -->
+    <section class="card p-5 mt-5">
+      <h2 class="text-xl font-semibold">3. Condiciones</h2>
+      <p class="muted text-sm mt-1">Alcance y términos que aparecen en el PDF.</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          <div>
+            <label for="notes" class="muted text-xs block">Notas / Alcance (PDF)</label>
+            <textarea class="inp mt-1 h-28" id="notes" placeholder="Ej. Incluye: corte, recolección..."></textarea>
+          </div>
+          <div>
+            <label for="terms" class="muted text-xs block">Términos (PDF)</label>
+            <textarea class="inp mt-1 h-28" id="terms"></textarea>
+          </div>
+        </div>
+    </section>
+
     <!-- Recent -->
     <section class="card p-5 mt-5 no-print">
       <div class="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <h2 class="text-xl font-semibold">Historial</h2>
-          <p class="muted text-sm mt-1">Últimas cotizaciones guardadas en Supabase.</p>
+          <p class="muted text-sm mt-1">Últimas cotizaciones guardadas.</p>
         </div>
         <button class="btn" id="btnRefreshRecent">Actualizar</button>
       </div>

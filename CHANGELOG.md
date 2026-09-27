@@ -6,7 +6,22 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-27
 
-### Fase 2C: cotizador, proyectos y bitácora ligados a Clientes (esta rama)
+### Cotizador profesional (esta rama)
+- Revisión de "cotización completa" con lo que falta (obligatorio y
+  recomendado); el PDF no se exporta incompleto.
+- Arreglado: el descuento no aparecía en el PDF (Subtotal + IVA no daba el
+  Total) y el descuento y el % de IVA se perdían al reabrir una cotización.
+  Migración `0005`.
+- Arreglado: el número de cotización podía repetirse (se calculaba con la
+  cantidad de cotizaciones); ahora sigue al más alto del año.
+- PDF nuevo: datos del emisor, cliente y condiciones, tabla sin filas
+  partidas y con encabezado en cada página, márgenes por página sin la URL
+  del navegador, totales, alcance, términos y aceptación del cliente.
+- Formulario por secciones, descripción de ítems en varias líneas, duplicar
+  ítem; comillas escapadas en los campos.
+- Despliegue: `alembic upgrade head` (0004 → 0005) y reiniciar.
+
+### Fase 2C: cotizador, proyectos y bitácora ligados a Clientes (#54)
 - Formulario de proyecto: cuenta obligatoria (búsqueda o crear con aviso de
   parecidas) y contactos tomados de la cuenta, marcando de sitio y quién
   recibe reportes. La lista vieja de contactos por proyecto queda como

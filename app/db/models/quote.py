@@ -21,6 +21,9 @@ class Quote(Base):
     subtotal = Column(Float, default=0.0)
     iva = Column(Float, default=0.0)
     total = Column(Float, default=0.0)
+    # Saved so a reopened or reprinted quote keeps the same total.
+    discount = Column(Float, nullable=False, default=0.0, server_default="0")
+    tax_rate = Column(Float, nullable=False, default=13.0, server_default="13")
     
     items = Column(JSON, nullable=True) # Array of objects
     
