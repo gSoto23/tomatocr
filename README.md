@@ -72,6 +72,22 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
     seguimientos.
 - **Dashboard**: ventas ve sus próximos pasos (vencidos, hoy, 7 días); admin
   ve el embudo del equipo.
+- **Proyectos**: se elige la cuenta del cliente (con búsqueda, o se crea ahí
+  mismo con aviso de cuentas parecidas) y, de sus contactos, cuáles son de
+  sitio y cuáles reciben los reportes. El nombre visible del cliente se toma
+  de la cuenta. La lista vieja de contactos por proyecto queda solo como
+  historial.
+- **Bitácora por correo**: los destinatarios son los contactos del proyecto
+  marcados "recibe reportes".
+- **Cotizador**: admin y ventas eligen la cuenta y el contacto (obligatorio);
+  el rol cliente escribe el nombre como antes, su cotización queda en su
+  cuenta y **solo ve sus propias cotizaciones**. "Crear cotización" desde una
+  oportunidad abre el cotizador ya ligado, y al guardar la oportunidad pasa a
+  "propuesta".
+- **Marcar ganada** (admin): crea el proyecto desde la oportunidad o liga uno
+  existente de la misma cuenta.
+- **Contratos por vencer** (en el Embudo): contratos de Presupuestos que
+  vencen en 90 días (en rojo, menos de 60) con botón "Crear renovación".
 - **Permisos**: ventas ve todas las cuentas sin finanzas y edita las suyas y
   las que no tienen dueño (al editarlas queda como dueño). Solo admin
   reasigna dueños, edita metas y fusiona. Los demás roles reciben 403.
@@ -271,7 +287,8 @@ públicas.
   usuario (o esa IP pública) por 15 minutos. Los intentos quedan en la tabla
   `login_attempts` y cada bloqueo en Actividad (`LOGIN_BLOCKED`).
 - **`/api/quotes/*`** (Cotizador): solo accesible para roles `admin`,
-  `client` y `ventas` (igual que la UI en `base_dashboard.html`).
+  `client` y `ventas` (igual que la UI en `base_dashboard.html`). El rol
+  `client` solo ve y edita las cotizaciones de su propia cuenta.
 - **CORS**: lista explícita de orígenes en `app/main.py`, ya no `["*"]`.
 - **Cookie de sesión**: `HttpOnly` + `SameSite=Lax` siempre, `Secure` cuando
   `USE_SQLITE="False"` (producción).

@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from app.db.models.activity import ActivityLog
 from app.db.models.crm import (DEFAULT_GOALS, FUNNEL_STAGES, LABELS, STAGES, Account, AccountNotDuplicate, Contact,
                                 CrmActivity, CrmGoal, Opportunity, ProjectContactRole, stage_index)
+from app.db.models.finance import ProjectBudget
 from app.db.models.project_details import ProjectContact
 from app.db.models.project import Project
 from app.db.models.quote import Quote
@@ -471,3 +472,141 @@ def similar_accounts(db: Session, name: str, tax_id: Optional[str] = None, email
 def last_followups(db: Session) -> Dict[int, datetime]:
     return dict(db.query(CrmActivity.account_id, func.max(CrmActivity.happened_at)).group_by(CrmActivity.account_id))
 
+
+
+# --- Quotes, projects and renewals (sub-fase 2C) ------------------------------------
+
+RENEWAL_WINDOW_DAYS = 90
+RENEWAL_URGENT_DAYS = 60
+
+
+def account_of_client_user(db: Session, user: User) -> Optional[Account]:
+    """The account whose contact is this portal user (role client)."""
+    contact = db.query(Contact).filter(Contact.user_id == user.id).first()
+    if contact is None:
+        return None
+    account = db.get(Account, contact.account_id)
+    while account is not None and account.merged_into_id:
+        account = db.get(Account, account.merged_into_id)
+    return account
+
+
+def advance_to_proposal(db: Session, opportunity: Opportunity, user: User):
+    """A quote for an open opportunity moves it to "propuesta" if it was in an earlier stage."""
+    if opportunity.stage not in CLOSED_STAGES and stage_index(opportunity.stage) < stage_index("propuesta"):
+        change_stage(db, opportunity, "propuesta", user)
+
+
+def win_opportunity(db: Session, opportunity: Opportunity, project: Project, user: User):
+    """Marks the opportunity as won and links it with its project (same account)."""
+    if project.account_id not in (None, opportunity.account_id):
+        raise ValueError("Ese proyecto es de otra cuenta")
+    project.account_id = opportunity.account_id
+    project.opportunity_id = opportunity.id
+    if opportunity.kind != "renovacion":
+        opportunity.project_id = project.id
+    change_stage(db, opportunity, "ganado", user)
+
+
+def project_contact_roles(db: Session, project_id: int) -> List[ProjectContactRole]:
+    return db.query(ProjectContactRole).filter(ProjectContactRole.project_id == project_id).all()
+
+
+def report_recipients(db: Session, project: Project) -> List[Dict]:
+    """Who receives the daily-log reports: account contacts marked for this project.
+    Falls back to the old per-project contact list for projects not migrated yet."""
+    roles = project_contact_roles(db, project.id)
+    if roles:
+        return [{"id": r.contact.id, "name": r.contact.name, "email": r.contact.email}
+                for r in roles if r.receives_reports and r.contact.email]
+    return [{"id": c.id, "name": c.name, "email": c.email} for c in project.contacts if c.email]
+
+
+def site_contacts(db: Session, project: Project) -> List[Dict]:
+    roles = project_contact_roles(db, project.id)
+    if roles:
+        return [{"name": r.contact.name, "position": r.position or r.contact.role_title, "phone": r.contact.phone,
+                 "email": r.contact.email, "reports": r.receives_reports} for r in roles if r.is_site]
+    return [{"name": c.name, "position": c.position, "phone": c.phone, "email": c.email, "reports": bool(c.email)}
+            for c in project.contacts]
+
+
+def set_project_contacts(db: Session, project: Project, account: Account, entries: List[Dict]):
+    """Replaces which of the account's contacts the project uses. Each entry:
+    {"contact_id", "is_site", "receives_reports", "position"}. Contacts of other accounts are ignored."""
+    valid = {c.id for c in db.query(Contact.id).filter(Contact.account_id == account.id)}
+    db.query(ProjectContactRole).filter(ProjectContactRole.project_id == project.id).delete()
+    for entry in entries:
+        contact_id = entry.get("contact_id")
+        if contact_id not in valid or not (entry.get("is_site") or entry.get("receives_reports")):
+            continue
+        db.add(ProjectContactRole(project_id=project.id, contact_id=contact_id, is_site=bool(entry.get("is_site")),
+                                  receives_reports=bool(entry.get("receives_reports")),
+                                  position=(entry.get("position") or "").strip() or None))
+        valid.discard(contact_id)  # one role row per contact
+
+
+def expiring_contracts(db: Session, today: Optional[date] = None, days: int = RENEWAL_WINDOW_DAYS) -> List[Dict]:
+    """Active projects whose contract (Presupuestos) ends within `days`, with any open renewal."""
+    today = today or date.today()
+    rows = []
+    budgets = db.query(ProjectBudget).join(Project, Project.id == ProjectBudget.project_id).filter(
+        ProjectBudget.end_date.isnot(None), ProjectBudget.end_date >= today,
+        ProjectBudget.end_date <= today + timedelta(days=days), Project.is_active != False,  # noqa: E712
+    ).order_by(ProjectBudget.end_date)
+    for budget in budgets:
+        project = db.get(Project, budget.project_id)
+        renewal = db.query(Opportunity).filter(
+            Opportunity.kind == "renovacion", Opportunity.project_id == project.id,
+            Opportunity.stage.notin_(CLOSED_STAGES)).first()
+        days_left = (budget.end_date - today).days
+        rows.append({"project": project, "account": db.get(Account, project.account_id) if project.account_id else None,
+                     "end_date": budget.end_date, "days_left": days_left,
+                     "urgent": days_left < RENEWAL_URGENT_DAYS, "renewal": renewal})
+    return rows
+
+
+def create_renewal(db: Session, project: Project, user: User, today: Optional[date] = None) -> Opportunity:
+    today = today or date.today()
+    if project.account_id is None:
+        raise ValueError("El proyecto no tiene cuenta")
+    existing = db.query(Opportunity).filter(Opportunity.kind == "renovacion", Opportunity.project_id == project.id,
+                                            Opportunity.stage.notin_(CLOSED_STAGES)).first()
+    if existing:
+        return existing
+    account = db.get(Account, project.account_id)
+    budget = db.query(ProjectBudget).filter(ProjectBudget.project_id == project.id).first()
+    opportunity = Opportunity(
+        account_id=account.id, title=f"Renovación: {project.name}", kind="renovacion", stage="prospecto",
+        max_stage=0, owner_id=account.owner_id or user.id, project_id=project.id, source="renovacion",
+        next_step="Contactar para la renovación", next_step_date=today,
+        expected_close_date=budget.end_date if budget else None, created_by_id=user.id,
+    )
+    db.add(opportunity)
+    db.flush()
+    db.add(ActivityLog(user_id=user.id, action="CREATE", entity_type="OPPORTUNITY", entity_id=opportunity.id,
+                       details=f"Renovación de {project.name} ({account.name})"))
+    return opportunity
+
+
+def account_payload(account: Account) -> Dict:
+    """What the account pickers (project form, quote tool) need."""
+    return {"id": account.id, "name": account.name, "tax_id": account.tax_id,
+            "address": account.address,
+            "contacts": [{"id": c.id, "name": c.name, "email": c.email, "phone": c.phone,
+                          "role_title": c.role_title, "is_primary": c.is_primary} for c in account.contacts]}
+
+
+def search_accounts(db: Session, query: str, limit: int = 15) -> List[Account]:
+    needle = normalize_name(query)
+    accounts = active_accounts(db)
+    if not needle:
+        return accounts[:limit]
+    scored = []
+    for account in accounts:
+        name = normalize_name(account.name)
+        if needle in name or (account.tax_id and query.strip() in account.tax_id):
+            scored.append((0 if name.startswith(needle) else 1, account.name.lower(), account))
+        elif similarity(account.name, query) >= SIMILARITY_THRESHOLD:
+            scored.append((2, account.name.lower(), account))
+    return [a for _, _, a in sorted(scored, key=lambda t: t[:2])][:limit]

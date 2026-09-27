@@ -1,6 +1,10 @@
 // CONFIGURACIÓN API INTERNA
 const API_URL = "/api/quotes/";
 
+const CRM_API = "/clientes/api/";
+// Admin and ventas pick the client's account (Clientes); the client role types the name as before.
+const PICKS_ACCOUNT = !!(window.COTIZADOR && window.COTIZADOR.picksAccount);
+
 const COUNTER_KEY = "tomato_quote_counter_v1";
 const DRAFT_KEY = "tomato_quote_draft_v1";
 const $ = (id) => document.getElementById(id);
@@ -13,6 +17,10 @@ let state = {
   serviceType: "Jardinería",
   frequency: "Por demanda",
   client: { name: "", id: "", email: "", phone: "", address: "" },
+  accountId: null,
+  accountName: "",
+  opportunityId: null,
+  opportunityTitle: "",
   notes: "",
   terms: "",
   taxEnabled: true,
@@ -64,6 +72,7 @@ function calc() {
 }
 
 async function saveToSQL() {
+  if (PICKS_ACCOUNT && !state.accountId) return showToast("Elija la cuenta del cliente (o créela) antes de guardar.", "error");
   if (!state.client.name.trim()) return showToast("Ingrese el nombre del cliente antes de guardar.", "error");
 
   const { subtotal, tax, total } = calc();
@@ -79,7 +88,9 @@ async function saveToSQL() {
     notes: state.notes,
     terminos: state.terms,
     subtotal, iva: tax, total,
-    items: state.items
+    items: state.items,
+    account_id: state.accountId,
+    opportunity_id: state.opportunityId
   };
 
   const response = await fetch(API_URL, {
@@ -89,7 +100,9 @@ async function saveToSQL() {
   });
 
   if (!response.ok) {
-    showToast("Error guardando: " + response.statusText, "error");
+    let detail = response.statusText;
+    try { detail = (await response.json()).detail || detail; } catch (e) {}
+    showToast("Error guardando: " + detail, "error");
   } else {
     showToast("Sincronizado en el servidor", "success");
     renderRecent();
@@ -105,18 +118,20 @@ async function renderRecent() {
     <tr>
       <td class="font-bold">${r.numero_cotizacion}</td>
       <td>${escapeHtml(r.cliente_nombre)}</td>
+      ${PICKS_ACCOUNT ? `<td>${escapeHtml(r.account_name || "—")}</td>` : ""}
       <td class="muted">${r.fecha_emision}</td>
       <td class="text-right font-bold">${formatMoney(r.total || 0, r.moneda)}</td>
       <td class="text-right">
         <button class="btn py-1 px-3 text-xs" onclick="loadFromSQL('${r.id}')">Cargar</button>
       </td>
     </tr>
-  `).join("") || "<tr><td colspan='5' class='text-center muted'>No hay historial en la nube</td></tr>";
+  `).join("") || `<tr><td colspan='${PICKS_ACCOUNT ? 6 : 5}' class='text-center muted'>No hay historial en la nube</td></tr>`;
 }
 
 window.loadFromSQL = async (id) => {
   const response = await fetch(API_URL + id);
   if (response.ok) {
+    accountContacts = [];
     const data = await response.json();
     state = {
       quoteNumber: data.numero_cotizacion,
@@ -131,7 +146,11 @@ window.loadFromSQL = async (id) => {
       items: data.items,
       taxEnabled: data.iva > 0,
       taxRate: 13,
-      discount: 0
+      discount: 0,
+      accountId: data.account_id || null,
+      accountName: data.account_name || "",
+      opportunityId: data.opportunity_id || null,
+      opportunityTitle: ""
     };
     bindForm();
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -211,10 +230,12 @@ function bindForm() {
   $("taxEnabled").checked = state.taxEnabled;
   $("taxRate").value = state.taxRate;
   $("discount").value = state.discount;
+  renderAccount();
   renderItems(); renderTotals(); renderRecent();
 }
 
 async function init() {
+  accountContacts = [];
   let n = 1;
   try {
     const res = await fetch(API_URL + "next-number");
@@ -231,11 +252,117 @@ async function init() {
     issueDate: new Date().toISOString().split('T')[0],
     validDays: 15, currency: "CRC", serviceType: "Jardinería", frequency: "Por demanda",
     client: { name: "", id: "", email: "", phone: "", address: "" },
+    accountId: null, accountName: "", opportunityId: null, opportunityTitle: "",
     notes: "", terms: "1. Validez: 15 días.\n2. Incluye mano de obra.",
     taxEnabled: true, taxRate: 13, discount: 0,
     items: [{ id: crypto.randomUUID(), type: "Servicio", description: "", unit: "Visita", qty: 1, unitPrice: 0 }]
   };
   bindForm();
+  await loadOpportunityFromUrl();
+}
+
+// --- Cuenta del cliente (Clientes) ---
+let accountContacts = [];
+
+function renderAccount() {
+  if (!PICKS_ACCOUNT) return;
+  const chosen = !!state.accountId;
+  $("accountChosen").classList.toggle("hidden", !chosen);
+  $("accountSearchBox").classList.toggle("hidden", chosen);
+  $("accountChosenName").textContent = state.accountName || "";
+  $("opportunityBadge").textContent = state.opportunityId ? `Oportunidad: ${state.opportunityTitle || "#" + state.opportunityId}` : "";
+  $("contactPickerBox").style.display = chosen ? "" : "none";
+  if (chosen && !accountContacts.length) {
+    fetch(CRM_API + "cuentas/" + state.accountId).then(r => r.ok ? r.json() : null).then(acc => {
+      if (acc) { accountContacts = acc.contacts; renderContactOptions(); }
+    });
+  }
+}
+
+function renderContactOptions() {
+  const select = $("contactSelect");
+  select.innerHTML = `<option value="">— Sin contacto —</option>` + accountContacts.map(c =>
+    `<option value="${c.id}">${escapeHtml(c.name)}${c.email ? " · " + escapeHtml(c.email) : ""}</option>`).join("");
+  const current = accountContacts.find(c => c.name === state.client.id);
+  select.value = current ? String(current.id) : "";
+}
+
+function applyContact(contact) {
+  state.client.id = contact ? contact.name : "";
+  state.client.email = contact && contact.email ? contact.email : "";
+  state.client.phone = contact && contact.phone ? contact.phone : "";
+  $("clientId").value = state.client.id;
+  $("clientEmail").value = state.client.email;
+  $("clientPhone").value = state.client.phone;
+}
+
+function selectAccount(account, keepOpportunity = false) {
+  state.accountId = account.id;
+  state.accountName = account.name;
+  if (!keepOpportunity) { state.opportunityId = null; state.opportunityTitle = ""; }
+  state.client.name = account.name;
+  if (account.address && !state.client.address) state.client.address = account.address;
+  $("clientName").value = state.client.name;
+  $("clientAddress").value = state.client.address || "";
+  accountContacts = account.contacts || [];
+  applyContact(accountContacts.find(c => c.is_primary) || accountContacts[0] || null);
+  $("accountResults").classList.add("hidden");
+  $("accountSimilar").classList.add("hidden");
+  $("accountSearch").value = "";
+  renderAccount();
+  renderContactOptions();
+  autoSaveDraft();
+}
+
+let searchTimer = null;
+function searchAccounts(query) {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(async () => {
+    const response = await fetch(CRM_API + "cuentas?q=" + encodeURIComponent(query));
+    if (!response.ok) return;
+    const accounts = await response.json();
+    window._accountResults = accounts;
+    const create = query.trim()
+      ? `<button type="button" class="block w-full text-left px-3 py-2 font-semibold hover:bg-gray-100" onclick="createAccount(false)">+ Crear cuenta «${escapeHtml(query.trim())}»</button>` : "";
+    $("accountResults").innerHTML = accounts.map((a, i) =>
+      `<button type="button" class="block w-full text-left px-3 py-2 hover:bg-gray-100" onclick="selectAccount(window._accountResults[${i}])">
+        ${escapeHtml(a.name)}${a.tax_id ? ` <span class="text-xs text-gray-500">· ${escapeHtml(a.tax_id)}</span>` : ""}</button>`).join("") + create;
+    $("accountResults").classList.toggle("hidden", !accounts.length && !create);
+  }, 250);
+}
+
+window.selectAccount = selectAccount;
+window.createAccount = async (confirmed) => {
+  const name = $("accountSearch").value.trim();
+  if (!name) return;
+  const response = await fetch(CRM_API + "cuentas", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, confirm: confirmed })
+  });
+  const data = await response.json();
+  if (response.status === 409) {
+    window._similarAccounts = data.similar;
+    $("accountSimilar").innerHTML = `<p class="font-semibold">Ya hay cuentas parecidas. ¿Es alguna de estas?</p>` +
+      data.similar.map((a, i) => `<button type="button" class="btn py-1 px-3 text-xs mt-2 mr-2" onclick="selectAccount(window._similarAccounts[${i}])">Usar «${escapeHtml(a.name)}»</button>`).join("") +
+      `<div class="mt-3"><button type="button" class="btn py-1 px-3 text-xs" onclick="createAccount(true)">Es otro cliente: crear «${escapeHtml(name)}»</button></div>`;
+    $("accountSimilar").classList.remove("hidden");
+    $("accountResults").classList.add("hidden");
+    return;
+  }
+  if (!response.ok) return showToast(data.detail || "No se pudo crear la cuenta", "error");
+  showToast(`Cuenta creada: ${data.name}`, "success");
+  selectAccount(data);
+};
+
+async function loadOpportunityFromUrl() {
+  const id = new URLSearchParams(window.location.search).get("opportunity_id");
+  if (!PICKS_ACCOUNT || !id) return;
+  const response = await fetch(CRM_API + "oportunidades/" + encodeURIComponent(id));
+  if (!response.ok) return showToast("No se encontró la oportunidad", "error");
+  const data = await response.json();
+  state.opportunityId = data.id;
+  state.opportunityTitle = data.title;
+  selectAccount(data.account, true);
 }
 
 function wireListeners() {
@@ -269,6 +396,21 @@ function wireListeners() {
       if (id === "currency") renderItems();
     });
   });
+
+  if (PICKS_ACCOUNT) {
+    $("accountSearch").addEventListener("input", (e) => searchAccounts(e.target.value));
+    $("accountSearch").addEventListener("focus", (e) => searchAccounts(e.target.value));
+    $("btnChangeAccount").onclick = () => {
+      state.accountId = null; state.accountName = ""; state.opportunityId = null; state.opportunityTitle = "";
+      accountContacts = [];
+      renderAccount();
+      $("accountSearch").focus();
+    };
+    $("contactSelect").addEventListener("change", (e) => {
+      applyContact(accountContacts.find(c => String(c.id) === e.target.value) || null);
+      autoSaveDraft();
+    });
+  }
 
   const clientInputs = ["clientName", "clientId", "clientEmail", "clientPhone", "clientAddress"];
   clientInputs.forEach(id => {

@@ -3,10 +3,12 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.core.templates import templates
+from app.db.models.crm import Account, Opportunity
 from app.db.models.user import User
 from app.db.models.quote import Quote
 from app.routers import deps
-from app.core.roles import QUOTES_ROLES
+from app.core.roles import CLIENT, QUOTES_ROLES
+from app.utils.crm import account_of_client_user, advance_to_proposal
 
 router = APIRouter(
     tags=["quotes"],
@@ -15,61 +17,21 @@ router = APIRouter(
 
 def check_quotes_access(user: User):
     # El "Cotizador" solo se muestra en la UI a admin, client y ventas
-    # (ver base_dashboard.html) — replicamos esa misma regla acá, porque el
-    # modelo Quote no tiene relación con un usuario/cliente específico para
-    # poder limitar a "solo las cotizaciones propias".
+    # (ver base_dashboard.html) — replicamos esa misma regla acá.
     if user.role not in QUOTES_ROLES:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
 
-@router.get("/cotizador", response_class=JSONResponse)
-def view_cotizador(request: Request, user: User = Depends(deps.get_current_user)):
-    check_quotes_access(user)
-    # Render the template
-    return templates.TemplateResponse("cotizador/index.html", {"request": request, "user": user})
 
-@router.get("/api/quotes/next-number")
-def get_next_quote_number(db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
-    check_quotes_access(user)
-    count = db.query(Quote).count()
-    return {"next_number": count + 1}
+def visible_quotes(db: Session, user: User):
+    """Admin and ventas see every quote; a client only the quotes of its own account."""
+    query = db.query(Quote)
+    if user.role == CLIENT:
+        account = account_of_client_user(db, user)
+        query = query.filter(Quote.account_id == (account.id if account else -1))
+    return query
 
-@router.get("/api/quotes/")
-def list_quotes(
-    db: Session = Depends(deps.get_db),
-    user: User = Depends(deps.get_current_user),
-    limit: int = 20
-):
-    check_quotes_access(user)
-    quotes = db.query(Quote).order_by(Quote.created_at.desc()).limit(limit).all()
-    
-    # We serialize it to match what the frontend expects
-    return [
-        {
-            "id": q.id,
-            "numero_cotizacion": q.numero_cotizacion,
-            "cliente_nombre": q.cliente_nombre,
-            "fecha_emision": str(q.fecha_emision),
-            "total": q.total,
-            "moneda": q.moneda,
-            "cliente_datos": q.cliente_datos,
-            "tipo_servicio": q.tipo_servicio,
-            "frecuencia": q.frecuencia,
-            "validez_dias": q.validez_dias,
-            "notes": q.notes,
-            "terminos": q.terminos,
-            "iva": q.iva,
-            "subtotal": q.subtotal,
-            "items": q.items
-        } for q in quotes
-    ]
 
-@router.get("/api/quotes/{id}")
-def get_quote(id: int, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
-    check_quotes_access(user)
-    q = db.query(Quote).filter(Quote.id == id).first()
-    if not q:
-        raise HTTPException(status_code=404, detail="Cotización no encontrada")
-    
+def serialize(q: Quote, account_names: dict) -> dict:
     return {
         "id": q.id,
         "numero_cotizacion": q.numero_cotizacion,
@@ -85,8 +47,48 @@ def get_quote(id: int, db: Session = Depends(deps.get_db), user: User = Depends(
         "terminos": q.terminos,
         "iva": q.iva,
         "subtotal": q.subtotal,
-        "items": q.items
+        "items": q.items,
+        "account_id": q.account_id,
+        "account_name": account_names.get(q.account_id),
+        "opportunity_id": q.opportunity_id,
     }
+
+
+def account_names(db: Session, quotes) -> dict:
+    ids = {q.account_id for q in quotes if q.account_id}
+    return {a.id: a.name for a in db.query(Account).filter(Account.id.in_(ids))} if ids else {}
+
+@router.get("/cotizador", response_class=JSONResponse)
+def view_cotizador(request: Request, user: User = Depends(deps.get_current_user)):
+    check_quotes_access(user)
+    # Render the template
+    return templates.TemplateResponse("cotizador/index.html", {"request": request, "user": user,
+                                                             "picks_account": user.role != CLIENT})
+
+@router.get("/api/quotes/next-number")
+def get_next_quote_number(db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
+    check_quotes_access(user)
+    count = db.query(Quote).count()
+    return {"next_number": count + 1}
+
+@router.get("/api/quotes/")
+def list_quotes(
+    db: Session = Depends(deps.get_db),
+    user: User = Depends(deps.get_current_user),
+    limit: int = 20
+):
+    check_quotes_access(user)
+    quotes = visible_quotes(db, user).order_by(Quote.created_at.desc()).limit(limit).all()
+    names = account_names(db, quotes)
+    return [serialize(q, names) for q in quotes]
+
+@router.get("/api/quotes/{id}")
+def get_quote(id: int, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
+    check_quotes_access(user)
+    q = visible_quotes(db, user).filter(Quote.id == id).first()
+    if not q:
+        raise HTTPException(status_code=404, detail="Cotización no encontrada")
+    return serialize(q, account_names(db, [q]))
 
 @router.post("/api/quotes/")
 async def upsert_quote(request: Request, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
@@ -103,8 +105,25 @@ async def upsert_quote(request: Request, db: Session = Depends(deps.get_db), use
     except (ValueError, TypeError):
         issue_date = datetime.utcnow().date()
         
+    # Account: a client's quotes always go to its own account; admin and ventas must pick one.
+    opportunity = None
+    if user.role == CLIENT:
+        own = account_of_client_user(db, user)
+        account_id = own.id if own else None
+    else:
+        account_id = data.get("account_id")
+        account = db.get(Account, account_id) if isinstance(account_id, int) else None
+        if account is None or account.merged_into_id:
+            raise HTTPException(status_code=400, detail="Elija la cuenta del cliente (o créela) antes de guardar.")
+        if data.get("opportunity_id"):
+            opportunity = db.get(Opportunity, data.get("opportunity_id"))
+            if opportunity is None or opportunity.account_id != account.id:
+                raise HTTPException(status_code=400, detail="La oportunidad no es de esa cuenta.")
+
     quote = db.query(Quote).filter(Quote.numero_cotizacion == numero_cotizacion).first()
-    
+    if quote and user.role == CLIENT and (quote.account_id is None or quote.account_id != account_id):
+        raise HTTPException(status_code=403, detail="Ese número de cotización ya existe.")
+
     if quote:
         # Update
         quote.fecha_emision = issue_date
@@ -139,6 +158,12 @@ async def upsert_quote(request: Request, db: Session = Depends(deps.get_db), use
             items=data.get("items", [])
         )
         db.add(quote)
-        
+
+    quote.account_id = account_id
+    if user.role != CLIENT:
+        quote.opportunity_id = opportunity.id if opportunity else None
+    if opportunity is not None:
+        advance_to_proposal(db, opportunity, user)
     db.commit()
-    return {"status": "success", "id": quote.id}
+    return {"status": "success", "id": quote.id, "account_id": quote.account_id,
+            "opportunity_id": quote.opportunity_id}

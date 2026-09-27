@@ -155,8 +155,8 @@
             </div>
         </div>
 
-        <!-- Contact -->
-        {% if project.contacts or (project.contact_name or project.contact_phone or project.contact_email) %}
+        <!-- Contact: the account's contacts this project uses (Clientes) -->
+        {% if site_contacts %}
         <div class="bg-white shadow-sm rounded-lg border border-gray-200 p-6">
             <h3 class="text-base font-semibold leading-7 text-gray-900 mb-4 flex items-center gap-2">
                 <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -166,8 +166,7 @@
                 Contactos en Sitio
             </h3>
             <div class="space-y-4">
-                {% if project.contacts %}
-                {% for contact in project.contacts %}
+                {% for contact in site_contacts %}
                 <div class="border-b border-gray-100 pb-3 last:border-0 last:pb-0">
                     <div class="flex items-center justify-between mb-1">
                         <span class="text-gray-900 font-medium text-sm">{{ contact.name }}</span>
@@ -190,36 +189,12 @@
                             <span class="text-gray-500 text-xs">Email:</span>
                             <a href="mailto:{{ contact.email }}" class="text-indigo-600 hover:text-indigo-500 ml-1">{{
                                 contact.email }}</a>
+                            {% if contact.reports %}<span class="ml-1 text-[10px] text-green-700">· recibe reportes</span>{% endif %}
                         </div>
                         {% endif %}
                     </div>
                 </div>
                 {% endfor %}
-                {% else %}
-                <!-- Legacy Fallback -->
-                <div class="text-sm space-y-3">
-                    {% if project.contact_name %}
-                    <div>
-                        <span class="text-gray-500 block text-xs uppercase">Encargado</span>
-                        <span class="text-gray-900 font-medium">{{ project.contact_name }}</span>
-                    </div>
-                    {% endif %}
-                    {% if project.contact_phone %}
-                    <div>
-                        <span class="text-gray-500 block text-xs uppercase">Teléfono</span>
-                        <a href="tel:{{ project.contact_phone }}" class="text-indigo-600 hover:text-indigo-500">{{
-                            project.contact_phone }}</a>
-                    </div>
-                    {% endif %}
-                    {% if project.contact_email %}
-                    <div>
-                        <span class="text-gray-500 block text-xs uppercase">Correo</span>
-                        <a href="mailto:{{ project.contact_email }}" class="text-indigo-600 hover:text-indigo-500">{{
-                            project.contact_email }}</a>
-                    </div>
-                    {% endif %}
-                </div>
-                {% endif %}
             </div>
         </div>
         {% endif %}
