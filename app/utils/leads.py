@@ -45,16 +45,16 @@ def clean_lead(data: Dict) -> Dict:
     lead["motor"] = get("motor")
     errors = []
     if not lead["name"]:
-        errors.append("Escriba su nombre")
+        errors.append("Escribí tu nombre")
     if not lead["email"] and not lead["phone"]:
-        errors.append("Indique un correo o un teléfono")
+        errors.append("Dejanos un correo o un teléfono")
     if lead["email"] and not EMAIL_RE.match(lead["email"]):
-        errors.append("El correo no es válido")
+        errors.append("Revisá el correo, no parece válido")
     if lead["motor"] not in MOTORS:
-        errors.append("Elija qué le interesa")
+        errors.append("Elegí qué te interesa")
     consent = data.get("consent")
     if not (consent is True or str(consent).lower() in ("true", "1", "on", "si", "sí")):
-        errors.append("Debe aceptar la política de privacidad para que le contactemos")
+        errors.append("Aceptá la política de privacidad para que podamos contactarte")
     if errors:
         raise LeadRejected(errors)
     lead["consent_text_version"] = get("consent_text_version")[:20] or CONSENT_TEXT_VERSION
