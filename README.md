@@ -28,8 +28,22 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
 - **Evidencias Cloud**: Carga de notas operativas y material fotográfico en Alta Calidad conectado a repositorios persistentes.
 - **Notificaciones Dinámicas (Email)**: Reportería automática hacia partes interesadas vía SMTP.
 
-### 4. Cotizador Cloud In-App
-- Generación digital de cotizaciones visuales en formato paramétrico con exportación avanzada PDF y base híbrida autogestionable.
+### 4. Cotizador (`/cotizador`)
+- Secciones: 1. Cliente y servicio, 2. Ítems (descripción de varias líneas,
+  duplicar ítem), 3. Condiciones.
+- **Revisión de cotización completa** junto al total: en rojo lo obligatorio
+  (cuenta y nombre del cliente, fecha, validez, al menos un ítem con
+  descripción, cantidad y precio, descuento no mayor que el subtotal) y en
+  ámbar lo recomendado (contacto, correo o teléfono, ubicación, alcance,
+  términos). El PDF no se exporta si falta algo obligatorio.
+- El descuento y el % de IVA se guardan con la cotización. El número
+  (`TCR-AAAA-NNNN`) sigue al más alto del año, así nunca se repite.
+- **PDF** (impresión del navegador → "Guardar como PDF", tamaño Carta):
+  datos del emisor (TOMATO COSTA RICA ANY S.R.L., cédula 3-102-876296),
+  cliente, condiciones, tabla con encabezado repetido en cada página y sin
+  filas partidas, Subtotal − Descuento + IVA = Total, alcance, términos y
+  aceptación del cliente, que no se separan. Sin la URL ni la fecha del
+  navegador.
 
 ### 5. Reforestación y supervivencia
 - **Inventario** (`/dashboard/reforestacion`, solo admin): un solo formato de
@@ -236,7 +250,8 @@ Para volver atrás: `alembic downgrade <versión anterior>` (si hubo migración)
   `settings.SQLALCHEMY_DATABASE_URI`, nunca del archivo. Alembic se niega a
   correr si `USE_SQLITE` es verdadero.
 - Versiones: `0001` esquema base; `0002` supervivencia de árboles (Fase 1);
-  `0003` cuentas del CRM (Fase 2A); `0004` metas del embudo (Fase 2B).
+  `0003` cuentas del CRM (Fase 2A); `0004` metas del embudo (Fase 2B);
+  `0005` descuento e IVA guardados en cotizaciones.
 - Todo cambio de esquema es una migración nueva:
   `alembic revision --autogenerate -m "..."`, revisarla, probarla en un
   PostgreSQL local (ver Pruebas) con `upgrade`, `check` y `downgrade`.

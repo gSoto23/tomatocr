@@ -1,3 +1,7 @@
+import re
+from datetime import date
+from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
@@ -47,11 +51,20 @@ def serialize(q: Quote, account_names: dict) -> dict:
         "terminos": q.terminos,
         "iva": q.iva,
         "subtotal": q.subtotal,
+        "discount": q.discount or 0.0,
+        "tax_rate": q.tax_rate if q.tax_rate is not None else 13.0,
         "items": q.items,
         "account_id": q.account_id,
         "account_name": account_names.get(q.account_id),
         "opportunity_id": q.opportunity_id,
     }
+
+
+def number(value, default: float) -> float:
+    try:
+        return max(0.0, float(value))
+    except (TypeError, ValueError):
+        return default
 
 
 def account_names(db: Session, quotes) -> dict:
@@ -68,8 +81,22 @@ def view_cotizador(request: Request, user: User = Depends(deps.get_current_user)
 @router.get("/api/quotes/next-number")
 def get_next_quote_number(db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
     check_quotes_access(user)
-    count = db.query(Quote).count()
-    return {"next_number": count + 1}
+    return {"next_number": next_quote_sequence(db)}
+
+
+QUOTE_NUMBER_RE = re.compile(r"^TCR-(\d{4})-(\d+)$")
+
+
+def next_quote_sequence(db: Session, year: Optional[int] = None) -> int:
+    """Next sequence of the year after the highest TCR-YYYY-NNNN in use (every account),
+    so a deleted quote can't make two quotes share a number."""
+    year = year or date.today().year
+    highest = 0
+    for (number,) in db.query(Quote.numero_cotizacion).filter(Quote.numero_cotizacion.like(f"TCR-{year}-%")):
+        match = QUOTE_NUMBER_RE.match(number or "")
+        if match:
+            highest = max(highest, int(match.group(2)))
+    return highest + 1
 
 @router.get("/api/quotes/")
 def list_quotes(
@@ -138,6 +165,8 @@ async def upsert_quote(request: Request, db: Session = Depends(deps.get_db), use
         quote.subtotal = data.get("subtotal", 0.0)
         quote.iva = data.get("iva", 0.0)
         quote.total = data.get("total", 0.0)
+        quote.discount = number(data.get("discount"), 0.0)
+        quote.tax_rate = number(data.get("tax_rate"), 13.0)
         quote.items = data.get("items", [])
     else:
         # Create
@@ -155,6 +184,8 @@ async def upsert_quote(request: Request, db: Session = Depends(deps.get_db), use
             subtotal=data.get("subtotal", 0.0),
             iva=data.get("iva", 0.0),
             total=data.get("total", 0.0),
+            discount=number(data.get("discount"), 0.0),
+            tax_rate=number(data.get("tax_rate"), 13.0),
             items=data.get("items", [])
         )
         db.add(quote)
