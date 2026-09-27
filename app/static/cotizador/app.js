@@ -560,6 +560,11 @@ function addDays(iso, days) {
   return date.toISOString().slice(0, 10);
 }
 
+function textBlocks(text) {
+  const lines = String(text).split("\n").map(l => l.trimEnd());
+  return `<div class="lines">${lines.map(l => l.trim() ? `<div class="line">${escapeHtml(l)}</div>` : `<div class="gap"></div>`).join("")}</div>`;
+}
+
 function buildPrintableHTML(data) {
   const e = escapeHtml;
   const money = (v) => formatMoney(v, data.currency);
@@ -575,7 +580,7 @@ function buildPrintableHTML(data) {
     </tr>`).join("");
   const clientLines = [
     ["Cliente", c.name], ["Contacto", c.id], ["Correo", c.email], ["Teléfono", c.phone], ["Ubicación", c.address],
-  ].filter(([, v]) => String(v || "").trim()).map(([k, v]) => `<tr><th>${k}</th><td>${e(v)}</td></tr>`).join("");
+  ].filter(([, v]) => String(v || "").trim()).map(([k, v]) => `<tr><th>${k}</th><td>${e(String(v).trim())}</td></tr>`).join("");
   const validUntil = addDays(data.issueDate, data.validDays);
   const notes = String(data.notes || "").trim();
   const terms = String(data.terms || "").trim();
@@ -631,8 +636,15 @@ function buildPrintableHTML(data) {
     .totals td { text-align: right; padding: 4px 0; white-space: nowrap; }
     .totals .grand th, .totals .grand td { border-top: 2px solid #111; font-size: 13pt; font-weight: 700; color: #111; padding-top: 8px; }
     .section { margin-top: 16px; }
-    .section h2 { font-size: 9pt; text-transform: uppercase; letter-spacing: .08em; color: #6b7280; margin: 0 0 4px; }
-    .section p { margin: 0; white-space: pre-wrap; font-size: 9.5pt; }
+    /* Long scope or terms may continue on the next page, but a heading never stays
+       alone at the bottom and a page never starts or ends with a single line. */
+    .section h2 { font-size: 9pt; text-transform: uppercase; letter-spacing: .08em; color: #6b7280; margin: 0 0 4px;
+                  break-after: avoid; page-break-after: avoid; }
+    .section .lines { font-size: 9.5pt; }
+    /* One block per line of the text (each numbered term, each bullet): a page break
+       falls between two of them, never in the middle of one. */
+    .section .line { white-space: pre-wrap; word-break: break-word; break-inside: avoid; page-break-inside: avoid; }
+    .section .gap { height: .6em; }
     .accept { margin-top: 26px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
     .accept div { border-top: 1px solid #9ca3af; padding-top: 4px; font-size: 8.5pt; color: #6b7280; }
     .footer { position: fixed; left: 16mm; right: 16mm; bottom: 9mm; border-top: 1px solid #e5e7eb; padding-top: 5px;
@@ -676,8 +688,8 @@ function buildPrintableHTML(data) {
       </table></div>
     </div>
 
-    ${notes ? `<div class="section keep"><h2>Alcance y notas</h2><p>${e(notes)}</p></div>` : ""}
-    ${terms ? `<div class="section keep"><h2>Términos y condiciones</h2><p>${e(terms)}</p></div>` : ""}
+    ${notes ? `<div class="section"><h2>Alcance y notas</h2>${textBlocks(notes)}</div>` : ""}
+    ${terms ? `<div class="section"><h2>Términos y condiciones</h2>${textBlocks(terms)}</div>` : ""}
 
     <div class="keep section">
       <h2>Aceptación del cliente</h2>

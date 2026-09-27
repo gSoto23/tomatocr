@@ -1,3 +1,4 @@
+import os
 import re
 from datetime import date
 from typing import Optional
@@ -76,13 +77,17 @@ def view_cotizador(request: Request, user: User = Depends(deps.get_current_user)
     check_quotes_access(user)
     # Render the template
     return templates.TemplateResponse("cotizador/index.html", {"request": request, "user": user,
-                                                             "picks_account": user.role != CLIENT})
+                                                             "picks_account": user.role != CLIENT,
+                                                             "asset_version": ASSET_VERSION})
 
 @router.get("/api/quotes/next-number")
 def get_next_quote_number(db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
     check_quotes_access(user)
     return {"next_number": next_quote_sequence(db)}
 
+
+# Changes with every deploy, so browsers never keep an old copy of the quote tool.
+ASSET_VERSION = int(max(os.path.getmtime(f"app/static/cotizador/{name}") for name in ("app.js", "style.css")))
 
 QUOTE_NUMBER_RE = re.compile(r"^TCR-(\d{4})-(\d+)$")
 

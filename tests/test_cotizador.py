@@ -64,3 +64,8 @@ def test_the_page_has_the_review_panel_and_numbered_sections(login_as, account):
     for heading in ["1. Cliente y servicio", "2. Ítems", "3. Condiciones"]:
         assert heading in html
     assert "Supabase" not in html
+
+
+def test_quote_tool_assets_carry_a_version(login_as, account):
+    html = login_as("ventas").get("/cotizador").text
+    assert "/static/cotizador/app.js?v=" in html and "/static/cotizador/style.css?v=" in html
