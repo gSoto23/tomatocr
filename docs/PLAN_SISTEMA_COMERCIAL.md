@@ -16,7 +16,7 @@ Este documento lo usa el tab de Code (Claude Code) para implementar cada fase. I
 El historial detallado de cambios está en `CHANGELOG.md`.
 
 Quedan fuera del sistema (herramientas externas): plan de marketing, calendario de contenido y métricas de redes y pauta.
-Durante el piloto (15/10–15/12/2026) los prospectos se llevan en el tablero comercial de claude.ai; en la Fase 2 se importan.
+Durante el piloto (15/10–15/12/2026) los prospectos se llevan en el sistema, en Clientes (decisión del 27/09/2026; antes se iban a llevar en el tablero comercial de claude.ai y a importar). El script `scripts/import_tablero.py` queda disponible si hiciera falta.
 
 ## Estado actual (hallazgos de la revisión del 26/09/2026)
 
@@ -182,6 +182,5 @@ La Fase 2 fue la última fase de este plan. Quedan abiertos:
 
 - Pasar la IP real del visitante desde nginx (`X-Forwarded-For`) para que rija el límite por IP del formulario y del login.
 - Usuarios de Melina y Albert (rol ventas); mientras tanto sus motores están asignados a Alina. Reparto por turnos entre varios vendedores, cuando haga falta.
-- Clave `DARBOLES_API_KEY` cuando darboles.com vaya a enviar prospectos (hoy la API responde 503).
-- Tablero del piloto: exportación con 0 prospectos al 27/09/2026; importar con `scripts/import_tablero.py` si se usa.
+- Formulario para empresas en darboles.com y clave `DARBOLES_API_KEY` (hoy la API responde 503); contrato en `docs/INTEGRACION_DARBOLES.md`, se hace en el repositorio de darboles.com.
 - Volver a poner la cifra medida de supervivencia en /programas/darboles cuando haya monitoreos suficientes.

@@ -9,6 +9,9 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 ### Documentación: estado final de la Fase 2 (esta rama)
 - Plan y diseño del CRM marcan la Fase 2 completa; correo de /privacidad
   confirmado; lista de pendientes después de la Fase 2.
+- El piloto (15/10–15/12/2026) se lleva en el sistema, no en el tablero.
+- `docs/INTEGRACION_DARBOLES.md`: contrato para enviar prospectos desde
+  darboles.com.
 
 ### Tono "vos" en el formulario y /privacidad (#58)
 - El formulario de contacto, sus mensajes, /contacto/gracias y /privacidad
