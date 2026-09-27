@@ -6,6 +6,14 @@ from sqlalchemy import engine_from_config, pool
 from app.core.config import settings
 from app.db.base import Base  # imports every model, so autogenerate sees them
 
+# SQLite (local dev) creates its tables with create_all on startup. Running
+# Alembic there would mix both mechanisms, so refuse instead of guessing.
+if settings.USE_SQLITE:
+    raise SystemExit(
+        "Alembic solo se usa con PostgreSQL. USE_SQLITE es verdadero en este entorno: "
+        "definí USE_SQLITE=False y las variables DB_* de la base destino."
+    )
+
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.SQLALCHEMY_DATABASE_URI.replace("%", "%%"))
 
@@ -21,7 +29,6 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
-        render_as_batch=settings.USE_SQLITE,
     )
     with context.begin_transaction():
         context.run_migrations()
@@ -38,8 +45,7 @@ def run_migrations_online() -> None:
             connection=connection,
             target_metadata=target_metadata,
             # SQLite can't ALTER most columns; batch mode rebuilds the table instead.
-            render_as_batch=settings.USE_SQLITE,
-        )
+            )
         with context.begin_transaction():
             context.run_migrations()
 

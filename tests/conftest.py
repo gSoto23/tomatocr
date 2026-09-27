@@ -25,11 +25,17 @@ PASSWORD = "clave-de-prueba"
 PASSWORD_HASH = pwd_context.hash(PASSWORD, rounds=4)
 ROLES = ["admin", "supervisor", "worker", "client", "ventas"]
 
-engine = create_engine(
-    "sqlite://",
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
-)
+# TEST_DATABASE_URL runs the whole suite against another database (e.g. a
+# disposable local PostgreSQL). Default: SQLite in memory.
+TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL")
+if TEST_DATABASE_URL:
+    engine = create_engine(TEST_DATABASE_URL)
+else:
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
