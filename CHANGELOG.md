@@ -45,7 +45,7 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 - Despliegue: `alembic upgrade head` (0005 → 0006) y reiniciar. Opcional:
   `DARBOLES_API_KEY` en `.env` cuando darboles.com vaya a enviar prospectos.
 
-### PDF: textos largos y versión del cotizador (esta rama)
+### PDF: textos largos y versión del cotizador (#56)
 - El alcance y los términos largos continúan en la página siguiente en vez de
   saltar enteros y dejar un hueco; cada renglón (término numerado, viñeta)
   nunca se parte entre páginas y el título no queda solo al pie.
