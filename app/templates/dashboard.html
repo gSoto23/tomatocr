@@ -373,6 +373,19 @@
         </table>
     </div>
 </div>
+
+<!-- VENTAS VIEW -->
+{% elif user.role == 'ventas' %}
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+        <h3 class="font-bold text-gray-900">Ventas</h3>
+        <a href="/cotizador"
+            class="inline-flex items-center justify-center rounded-md bg-black px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800">
+            Abrir Cotizador
+        </a>
+    </div>
+    <p class="px-6 py-8 text-center text-sm text-gray-500 italic">Aquí aparecerán tus prospectos y próximos pasos.</p>
+</div>
 {% endif %}
 
 <!-- Worker Modal & Scripts -->

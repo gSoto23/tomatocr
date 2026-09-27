@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc
 
 from app.routers import deps
+from app.core.roles import ADMIN, CLIENT, SUPERVISOR, WORKER
 from app.db.models.user import User
 from app.db.models.project import Project
 from app.db.models.finance import Invoice, InvoiceStatus
@@ -31,7 +32,7 @@ def dashboard(
 ):
     data = {}
     
-    if user.role == "admin":
+    if user.role == ADMIN:
         # 1. Stats
         active_projects = db.query(Project).filter(Project.is_active == True).all()
         active_count = len(active_projects)
@@ -80,7 +81,7 @@ def dashboard(
         
         data["recent_activity"] = recent_invoices
         
-    elif user.role == "client":
+    elif user.role == CLIENT:
         # 1. Get Client Projects for Dropdown & Filter
         client_projects = db.query(Project).join(project_users).filter(project_users.c.user_id == user.id).all()
         project_ids = [p.id for p in client_projects]
@@ -134,7 +135,7 @@ def dashboard(
         data["sort"] = sort
         data["order"] = order
         
-    elif user.role in ["worker", "supervisor"]:
+    elif user.role in [WORKER, SUPERVISOR]:
         # 1. Recent Activity: Assignments (Schedule)
         # Order by date desc (future first? or past? typically recent means latest)
         # User said "lista de Asignación definidas en el calendario"
@@ -158,7 +159,7 @@ def activity_log(
     db: Session = Depends(deps.get_db), 
     user: User = Depends(deps.get_current_user)
 ):
-    if user.role != "admin":
+    if user.role != ADMIN:
         return RedirectResponse(url="/dashboard", status_code=status.HTTP_303_SEE_OTHER)
 
     from math import ceil

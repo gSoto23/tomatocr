@@ -72,8 +72,12 @@
         toastMessage: '',
         init() {
             const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('error') === 'invalid_credentials') {
-                this.toastMessage = 'Usuario o contraseña incorrectos';
+            const messages = {
+                invalid_credentials: 'Usuario o contraseña incorrectos',
+                too_many_attempts: 'Demasiados intentos fallidos. Espera 15 minutos e intenta de nuevo.',
+            };
+            if (messages[urlParams.get('error')]) {
+                this.toastMessage = messages[urlParams.get('error')];
                 this.showToast = true;
                 // Clean URL
                 window.history.replaceState({}, document.title, window.location.pathname);

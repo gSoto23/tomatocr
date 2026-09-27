@@ -1,0 +1,29 @@
+"""User roles and the access matrix shared by routers and templates.
+
+See docs/PLAN_SISTEMA_COMERCIAL.md (Fase 0) for the full matrix.
+"""
+
+ADMIN = "admin"
+SUPERVISOR = "supervisor"
+WORKER = "worker"
+CLIENT = "client"
+VENTAS = "ventas"
+
+ALL_ROLES = frozenset({ADMIN, SUPERVISOR, WORKER, CLIENT, VENTAS})
+
+# Labels for the user form, in display order.
+ROLE_LABELS = {
+    WORKER: "Trabajador (worker)",
+    SUPERVISOR: "Supervisor (supervisor)",
+    CLIENT: "Cliente (client)",
+    VENTAS: "Ventas (ventas)",
+    ADMIN: "Administrador (admin)",
+}
+
+# Roles that use the operations modules (projects, logs, calendar, finance,
+# payroll, payments, liquidation). Each route still applies its own finer
+# checks; this set only keeps roles outside operations (ventas) out entirely.
+OPERATIONS_ROLES = (ADMIN, SUPERVISOR, WORKER, CLIENT)
+
+FINANCE_ROLES = (ADMIN, SUPERVISOR, CLIENT)
+QUOTES_ROLES = (ADMIN, CLIENT, VENTAS)

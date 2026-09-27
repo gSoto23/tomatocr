@@ -89,8 +89,10 @@ from app.routers import reforestation
 app.include_router(reforestation.router)
 app.include_router(reforestation.public_router)
 
-# Create tables on startup (Simple approach)
+# SQLite (local dev, and prod until it moves to PostgreSQL) still creates its
+# tables on startup. On PostgreSQL the schema is managed only by Alembic.
 @app.on_event("startup")
 def on_startup():
-    Base.metadata.create_all(bind=engine)
+    if settings.USE_SQLITE:
+        Base.metadata.create_all(bind=engine)
 

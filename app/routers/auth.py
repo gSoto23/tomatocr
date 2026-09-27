@@ -9,6 +9,7 @@ from datetime import timedelta
 
 from app.routers import deps
 from app.utils.activity import log_activity
+from app.utils import login_throttle
 
 router = APIRouter()
 
@@ -22,13 +23,18 @@ def login(
     if not user or not pass_:
         return RedirectResponse(url="/?error=invalid_credentials", status_code=status.HTTP_303_SEE_OTHER)
 
-    # Authenticate
+    client_ip = request.client.host if request.client else None
+    if login_throttle.is_locked(db, user, client_ip):
+        return RedirectResponse(url="/?error=too_many_attempts", status_code=status.HTTP_303_SEE_OTHER)
+
+    # Authenticate. Inactive or liquidated users get the same message as a
+    # wrong password, so the response doesn't reveal which accounts exist.
     db_user = db.query(User).filter(User.username == user).first()
-    if not db_user or not verify_password(pass_, db_user.hashed_password):
-        # Return to login with error (simplified for now, ideally show error message)
-        # For HTMX or API, we return 401. For standard form, we might redirect back.
-        # Let's redirect back with a query param for error ?error=1
+    if not db_user or not verify_password(pass_, db_user.hashed_password) or not deps.can_log_in(db_user):
+        login_throttle.record_attempt(db, user, client_ip, success=False)
         return RedirectResponse(url="/?error=invalid_credentials", status_code=status.HTTP_303_SEE_OTHER)
+
+    login_throttle.record_attempt(db, user, client_ip, success=True)
 
     # Create Token
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)

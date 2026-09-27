@@ -9,11 +9,12 @@ from app.db.models.schedule import ProjectSchedule, ScheduleTask
 from app.db.models.project import Project
 from app.db.models.user import User
 from app.routers import deps
+from app.core.roles import ADMIN, CLIENT, OPERATIONS_ROLES, SUPERVISOR, WORKER
 
 router = APIRouter(
     prefix="/calendar",
     tags=["calendar"],
-    dependencies=[Depends(deps.get_current_user)]
+    dependencies=[Depends(deps.require_roles(*OPERATIONS_ROLES))]
 )
 
 from app.core.templates import templates
@@ -22,15 +23,15 @@ from app.core.templates import templates
 def calendar_view(request: Request, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
     # Supervisor sees admin view (can manage), Worker sees their own calendar
     # Client is redirected
-    if user.role == "client":
+    if user.role == CLIENT:
         return RedirectResponse(url="/projects", status_code=status.HTTP_303_SEE_OTHER)
 
     projects = []
     workers = []
     # Admin and Supervisor get full list
-    if user.role in ["admin", "supervisor"]:
+    if user.role in [ADMIN, SUPERVISOR]:
         projects = db.query(Project).filter(Project.is_active == True).all()
-        workers = db.query(User).filter(User.role.in_(["worker", "supervisor"])).all()
+        workers = db.query(User).filter(User.role.in_([WORKER, SUPERVISOR])).all()
 
     return templates.TemplateResponse("calendar/index.html", {
         "request": request, 
@@ -44,7 +45,7 @@ def get_events(start: str, end: str, db: Session = Depends(deps.get_db), user: U
     query = db.query(ProjectSchedule)
     
     # Admin and Supervisor see all
-    if user.role not in ["admin", "supervisor"]:
+    if user.role not in [ADMIN, SUPERVISOR]:
         query = query.filter(ProjectSchedule.user_id == user.id)
     
     schedules = query.filter(ProjectSchedule.date >= start, ProjectSchedule.date <= end).all()
@@ -54,7 +55,7 @@ def get_events(start: str, end: str, db: Session = Depends(deps.get_db), user: U
         if not s.user or not s.project:
             continue
             
-        is_manager = user.role in ["admin", "supervisor"]
+        is_manager = user.role in [ADMIN, SUPERVISOR]
         evt = {
             "id": s.id,
             "title": f"{s.project.name} ({s.user.username})",
@@ -84,7 +85,7 @@ def create_schedule(
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
-    if user.role not in ["admin", "supervisor"]:
+    if user.role not in [ADMIN, SUPERVISOR]:
         raise HTTPException(status_code=403, detail="Not authorized")
         
     start_date = datetime.strptime(date_val, "%Y-%m-%d").date()
@@ -133,7 +134,7 @@ def create_schedule(
 
 @router.post("/schedule/{id}/delete")
 def delete_schedule(id: int, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
-    if user.role not in ["admin", "supervisor"]:
+    if user.role not in [ADMIN, SUPERVISOR]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
     schedule = db.query(ProjectSchedule).filter(ProjectSchedule.id == id).first()
@@ -154,7 +155,7 @@ def update_schedule(
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
-    if user.role not in ["admin", "supervisor"]:
+    if user.role not in [ADMIN, SUPERVISOR]:
         raise HTTPException(status_code=403, detail="Not authorized")
 
     schedule = db.query(ProjectSchedule).filter(ProjectSchedule.id == id).first()
@@ -193,7 +194,7 @@ def toggle_task_status(id: int, db: Session = Depends(deps.get_db), user: User =
         return JSONResponse({"status": "error", "message": "Tarea no encontrada"}, status_code=404)
     
     # Check authorization: Admin, Supervisor, or the assigned worker
-    if user.role not in ["admin", "supervisor"] and task.schedule.user_id != user.id:
+    if user.role not in [ADMIN, SUPERVISOR] and task.schedule.user_id != user.id:
          raise HTTPException(status_code=403, detail="Not authorized")
 
     task.completed = not task.completed

@@ -32,7 +32,7 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
 - Generación digital de cotizaciones visuales en formato paramétrico con exportación avanzada PDF y base híbrida autogestionable.
 
 ### 5. Configuración Jerárquica & Auth
-- Prevención total basada en Roles: `[Admin, Supervisor, Worker, Client]`.
+- Prevención total basada en Roles: `[Admin, Supervisor, Worker, Client, Ventas]`.
 - Encriptación y seguridad a nivel de tokens en las capas.
 
 ---
@@ -62,7 +62,7 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
    ```
 
 3. **Variables de Entorno**
-   - Asegúrate de incluir el archivo `.env` en la raíz.
+   - Copiá `.env.example` a `.env` en la raíz y completá los valores.
    - Para desarrollo local se recomienda fuertemente: `USE_SQLITE="True"`.
    - `SECRET_KEY` es **obligatoria** (la app ya no arranca sin ella — antes tenía
      un valor por defecto inseguro). Generá una con:
@@ -108,9 +108,18 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
 En tus entornos de producción se sugiere un marco configurado bajo servidores nativos (AWS EC2 / Lightsail). El sistema está configurado para cambiar lógicas automáticamente al apagar la etiqueta de desarrollo:
 
 #### Configuración de la Nube (vía `.env`):
-- `USE_SQLITE="False"` activa la integración hacia **AWS PostgreSQL RDS**.
-- Modifica los parámetros credenciales (`MYSQL_SERVER`, `MYSQL_DB`, etc) hacia tu host Cloud.
-- Las fotografías apuntarán su tráfico nativo vía Boto3 / API hacia un bucket externo en **AWS S3** usando la capa `AWS_REGION` de tu configuración.
+- Las variables que lee la app están en `.env.example`. La base de datos usa
+  `DB_USER`, `DB_PASSWORD`, `DB_SERVER`, `DB_PORT` y `DB_NAME` (las claves
+  `MYSQL_*` ya no se leen).
+- `USE_SQLITE="False"` conecta a PostgreSQL (con `sslmode=require`).
+- **Ojo:** si el servicio systemd define `Environment="USE_SQLITE=..."`, ese
+  valor gana sobre el `.env` (`load_dotenv` no reemplaza variables existentes).
+  Al 26/09/2026 producción corre sobre SQLite (`sql_app.db` en el servidor)
+  por esa razón; la base PostgreSQL de Lightsail quedó desactualizada desde
+  marzo. No cambies esa línea sin migrar antes los datos.
+- Las fotografías van a **AWS S3** cuando hay claves `AWS_*`; sin claves se
+  guardan en `app/static/uploads`.
+- El driver de PostgreSQL (`psycopg2-binary`) está en `requirements.txt`.
 
 #### Git Automations
 Es fuertemente recomendado que el comando rutinario al jalar código actualizado contenga:
@@ -124,6 +133,29 @@ sudo systemctl restart tomato
 
 ---
 
+#### Migraciones (Alembic)
+- La configuración está en `alembic.ini` y `alembic/env.py`; la URL sale de
+  `settings.SQLALCHEMY_DATABASE_URI`, nunca del archivo.
+- Con SQLite (`USE_SQLITE="True"`) las tablas se siguen creando con
+  `create_all` al arrancar. Con PostgreSQL el esquema lo maneja solo Alembic.
+- Todavía no hay migración base: se genera cuando producción pase a
+  PostgreSQL, a partir de su esquema real. Hasta entonces no uses
+  `USE_SQLITE="False"` en producción.
+
+---
+
+## 🧪 Pruebas
+
+```bash
+pip install -r requirements-dev.txt
+pytest
+```
+Usan SQLite en memoria y no tocan `sql_app.db`. Incluyen la matriz de acceso
+por rol (`tests/test_access_matrix.py`), login, bloqueo por intentos y páginas
+públicas.
+
+---
+
 ## 🔒 Notas de Seguridad
 
 - **Subida de archivos** (fotos de bitácora, documentos de empleado): se valida
@@ -131,15 +163,22 @@ sudo systemctl restart tomato
   documentos) y un límite de tamaño (5 MB fotos, 10 MB documentos) en
   `app/utils/uploads.py`. El nombre físico en disco siempre se genera con un
   UUID — nunca se usa el nombre de archivo que manda el cliente.
-- **`/api/quotes/*`** (Cotizador): solo accesible para roles `admin` y
-  `client` (igual que ya lo restringía la UI en `base_dashboard.html`) — antes
-  cualquier usuario autenticado, incluyendo `worker`/`supervisor`, podía
-  llamar la API directamente sin pasar por la UI.
+- **Roles**: `admin`, `supervisor`, `worker`, `client` y `ventas`, definidos
+  en `app/core/roles.py`. Los routers de operaciones (proyectos, bitácora,
+  calendario, finanzas, planilla, pagos, liquidación) exigen uno de los cuatro
+  roles operativos con `deps.require_roles`; `ventas` solo ve el Dashboard y
+  el Cotizador. Al crear o editar usuarios solo se aceptan esos roles.
+- **Usuarios inactivos**: si `is_active` es falso o `status` es `inactive` o
+  `liquidated`, no pueden entrar y su sesión abierta deja de servir.
+- **Límite de intentos en `/login`**: 5 fallos en 15 minutos bloquean ese
+  usuario (o esa IP pública) por 15 minutos. Los intentos quedan en la tabla
+  `login_attempts` y cada bloqueo en Actividad (`LOGIN_BLOCKED`).
+- **`/api/quotes/*`** (Cotizador): solo accesible para roles `admin`,
+  `client` y `ventas` (igual que la UI en `base_dashboard.html`).
 - **CORS**: lista explícita de orígenes en `app/main.py`, ya no `["*"]`.
 - **Cookie de sesión**: `HttpOnly` + `SameSite=Lax` siempre, `Secure` cuando
   `USE_SQLITE="False"` (producción).
-- Pendiente (no incluido en esta ronda): rate-limiting en `/login`, migrar
-  `scripts/migrate_*.py` a Alembic.
+- Pendiente: migrar producción a PostgreSQL con la migración base de Alembic.
 
 ---
 

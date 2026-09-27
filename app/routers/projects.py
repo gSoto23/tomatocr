@@ -15,6 +15,7 @@ from app.db.models.associations import project_users
 from sqlalchemy import desc, func
 from math import ceil
 from app.routers import deps
+from app.core.roles import ADMIN, CLIENT, OPERATIONS_ROLES, SUPERVISOR, WORKER
 from app.utils.activity import log_activity
 import logging
 
@@ -23,7 +24,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(
     prefix="/projects",
     tags=["projects"],
-    dependencies=[Depends(deps.get_current_user)]
+    dependencies=[Depends(deps.require_roles(*OPERATIONS_ROLES))]
 )
 
 from app.core.templates import templates
@@ -89,7 +90,7 @@ def list_projects(
 ):
     offset = (page - 1) * limit
     
-    if user.role == "admin":
+    if user.role == ADMIN:
         count_query = db.query(func.count(Project.id))
         total_records = count_query.scalar()
         
@@ -127,11 +128,11 @@ def list_projects(
 
 @router.get("/new")
 def new_project_form(request: Request, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
-    if user.role != "admin": 
+    if user.role != ADMIN: 
         return RedirectResponse(url="/projects", status_code=status.HTTP_303_SEE_OTHER)
 
-    clients = db.query(User).filter(User.role == "client").all()
-    workers = db.query(User).filter(User.role.in_(["worker", "supervisor"])).all()
+    clients = db.query(User).filter(User.role == CLIENT).all()
+    workers = db.query(User).filter(User.role.in_([WORKER, SUPERVISOR])).all()
     
     return templates.TemplateResponse("projects/form.html", {
         "request": request, 
@@ -147,7 +148,7 @@ def create_project(
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
-    if user.role != "admin":
+    if user.role != ADMIN:
          raise HTTPException(status_code=403, detail="Not authorized")
 
     project = Project(
@@ -239,15 +240,15 @@ def create_project(
 
 @router.get("/{id}/edit")
 def edit_project_form(id: int, request: Request, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
-    if user.role != "admin":
+    if user.role != ADMIN:
         return RedirectResponse(url="/projects", status_code=status.HTTP_303_SEE_OTHER)
 
     project = db.query(Project).filter(Project.id == id).first()
     if not project:
         return RedirectResponse(url="/projects", status_code=status.HTTP_303_SEE_OTHER)
         
-    clients = db.query(User).filter(User.role == "client").all()
-    workers = db.query(User).filter(User.role.in_(["worker", "supervisor"])).all()
+    clients = db.query(User).filter(User.role == CLIENT).all()
+    workers = db.query(User).filter(User.role.in_([WORKER, SUPERVISOR])).all()
     
     return templates.TemplateResponse("projects/form.html", {
         "request": request, 
@@ -264,7 +265,7 @@ def update_project(
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
-    if user.role != "admin":
+    if user.role != ADMIN:
         raise HTTPException(status_code=403, detail="Not authorized")
 
     project = db.query(Project).filter(Project.id == id).first()
@@ -373,7 +374,7 @@ def get_project_detail(
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    if user.role not in ["admin", "supervisor"] and user.id not in [u.id for u in project.users]:
+    if user.role not in [ADMIN, SUPERVISOR] and user.id not in [u.id for u in project.users]:
         raise HTTPException(status_code=403, detail="Not authorized")
 
     # Financial Cost Integration
