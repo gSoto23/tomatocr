@@ -1,0 +1,5 @@
+Migraciones de esquema (Alembic). Ver README.md, sección "Migraciones (Alembic)".
+
+La migración base se genera durante el paso de producción a PostgreSQL, a partir
+del esquema real de producción. Hasta entonces esta carpeta no tiene versiones y
+SQLite sigue creando sus tablas con create_all al arrancar.

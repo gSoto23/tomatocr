@@ -6,18 +6,19 @@ from app.core.templates import templates
 from app.db.models.user import User
 from app.db.models.quote import Quote
 from app.routers import deps
+from app.core.roles import QUOTES_ROLES
 
 router = APIRouter(
     tags=["quotes"],
-    dependencies=[Depends(deps.get_current_user)]
+    dependencies=[Depends(deps.require_roles(*QUOTES_ROLES))]
 )
 
 def check_quotes_access(user: User):
-    # El "Cotizador" solo se muestra en la UI a admin y client
+    # El "Cotizador" solo se muestra en la UI a admin, client y ventas
     # (ver base_dashboard.html) — replicamos esa misma regla acá, porque el
     # modelo Quote no tiene relación con un usuario/cliente específico para
     # poder limitar a "solo las cotizaciones propias".
-    if user.role not in ("admin", "client"):
+    if user.role not in QUOTES_ROLES:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
 
 @router.get("/cotizador", response_class=JSONResponse)

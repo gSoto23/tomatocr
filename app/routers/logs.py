@@ -16,13 +16,14 @@ from app.db.models.log_task import DailyLogTask
 from app.db.models.user import User
 from app.db.models.associations import project_users
 from app.routers import deps
+from app.core.roles import ADMIN, CLIENT, OPERATIONS_ROLES
 from app.utils.activity import log_activity
 from app.utils.uploads import IMAGE_TYPES, MAX_IMAGE_SIZE_BYTES
 
 router = APIRouter(
     prefix="/logs",
     tags=["logs"],
-    dependencies=[Depends(deps.get_current_user)]
+    dependencies=[Depends(deps.require_roles(*OPERATIONS_ROLES))]
 )
 
 from app.core.templates import templates
@@ -39,7 +40,7 @@ def list_logs(
     user: User = Depends(deps.get_current_user)
 ):
     # RBAC: Admin sees all, others see only assigned projects
-    if user.role == "admin":
+    if user.role == ADMIN:
         count_query = db.query(func.count(DailyLog.id)).join(Project)
         query = db.query(DailyLog).join(Project)
     else:
@@ -57,7 +58,7 @@ def list_logs(
     # Filter by Project if provided (and authorized)
     if project_id:
         # Check authorization for specific project if not admin
-        if user.role != "admin":
+        if user.role != ADMIN:
             # Verify user belongs to this project
             is_member = db.query(project_users).filter(
                 project_users.c.user_id == user.id,
@@ -117,7 +118,7 @@ def get_log_detail(id: int, db: Session = Depends(deps.get_db), user: User = Dep
     if log.project and log.project.users:
         is_project_member = user.id in [u.id for u in log.project.users]
 
-    if user.role != "admin" and log.user_id != user.id and not is_project_member:
+    if user.role != ADMIN and log.user_id != user.id and not is_project_member:
         raise HTTPException(status_code=403, detail="Not authorized")
 
     # Get all project tasks to allow editing (checking missed ones)
@@ -149,8 +150,8 @@ def get_log_detail(id: int, db: Session = Depends(deps.get_db), user: User = Dep
         "photos": [{"file_path": p.file_path} for p in log.photos],
         "created_at": log.created_at.isoformat() if log.created_at else None,
         "updated_at": log.updated_at.isoformat() if log.updated_at else None,
-        "can_edit": (user.role == "admin" or log.user_id == user.id),
-        "is_admin": (user.role == "admin"),
+        "can_edit": (user.role == ADMIN or log.user_id == user.id),
+        "is_admin": (user.role == ADMIN),
         "tasks": tasks_data,
         "project_contacts": contacts_data
     }
@@ -161,7 +162,7 @@ def delete_log(id: int, db: Session = Depends(deps.get_db), user: User = Depends
     if not log:
         raise HTTPException(status_code=404, detail="Log not found")
 
-    if user.role != "admin" and log.user_id != user.id:
+    if user.role != ADMIN and log.user_id != user.id:
         raise HTTPException(status_code=403, detail="Not authorized")
     
     project_id = log.project_id
@@ -200,7 +201,7 @@ def update_log(
     if not log:
         raise HTTPException(status_code=404, detail="Log not found")
 
-    if user.role != "admin" and log.user_id != user.id:
+    if user.role != ADMIN and log.user_id != user.id:
         raise HTTPException(status_code=403, detail="Not authorized")
     
     log.notes = notes
@@ -230,11 +231,11 @@ def update_log(
 @router.get("/new")
 def new_log_form(request: Request, project_id: Optional[int] = None, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
     # RBAC: Clients cannot report
-    if user.role == "client":
+    if user.role == CLIENT:
         return RedirectResponse(url="/projects", status_code=status.HTTP_303_SEE_OTHER)
 
     # Get available projects
-    if user.role == "admin":
+    if user.role == ADMIN:
         projects = db.query(Project).filter(Project.is_active == True).all()
     else:
         # Worker: only assigned active projects
@@ -283,11 +284,11 @@ def create_log(
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
-    if user.role == "client":
+    if user.role == CLIENT:
          return RedirectResponse(url="/projects", status_code=status.HTTP_303_SEE_OTHER)
     
     # Validation
-    if user.role != "admin":
+    if user.role != ADMIN:
         assigned = db.query(Project).filter(Project.id == project_id, Project.users.any(id=user.id)).first()
         if not assigned:
              response = RedirectResponse(url="/projects", status_code=status.HTTP_303_SEE_OTHER)
@@ -376,7 +377,7 @@ def send_email(
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
-    if user.role != "admin":
+    if user.role != ADMIN:
         raise HTTPException(status_code=403, detail="Not authorized")
 
     log = db.query(DailyLog).filter(DailyLog.id == id).first()

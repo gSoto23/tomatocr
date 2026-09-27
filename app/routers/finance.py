@@ -12,18 +12,19 @@ from app.db.models.user import User
 from app.db.models.associations import project_users
 from app.db.models.payroll import PayrollPeriod
 from app.routers import deps
+from app.core.roles import ADMIN, CLIENT, FINANCE_ROLES, OPERATIONS_ROLES
 from app.utils.activity import log_activity, compute_diff
 
 router = APIRouter(
     prefix="/finance",
     tags=["finance"],
-    dependencies=[Depends(deps.get_current_user)]
+    dependencies=[Depends(deps.require_roles(*OPERATIONS_ROLES))]
 )
 
 from app.core.templates import templates
 
 def check_finance_access(user: User):
-    if user.role == "worker":
+    if user.role not in FINANCE_ROLES:
         raise HTTPException(status_code=403, detail="Forbidden")
 
 def get_project_budget_status(db: Session, project: Project):
@@ -109,7 +110,7 @@ def finance_dashboard(request: Request, db: Session = Depends(deps.get_db), user
     check_finance_access(user)
     
     # Get Projects
-    if user.role == "admin":
+    if user.role == ADMIN:
         projects = db.query(Project).all()
     else:
         # Client
@@ -154,7 +155,7 @@ def finance_detail(
     if not project:
          raise HTTPException(status_code=404, detail="Project not found")
 
-    if user.role == "client" and user.id not in [u.id for u in project.users]:
+    if user.role == CLIENT and user.id not in [u.id for u in project.users]:
         raise HTTPException(status_code=403, detail="Not authorized")
 
     # Update Overdue Statuses
@@ -289,7 +290,7 @@ def create_invoice(
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
-    if user.role != "admin":
+    if user.role != ADMIN:
         raise HTTPException(status_code=403, detail="Not authorized")
 
     project = db.query(Project).filter(Project.id == project_id).first()
@@ -334,7 +335,7 @@ def edit_invoice(
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
-    if user.role != "admin":
+    if user.role != ADMIN:
         raise HTTPException(status_code=403, detail="Not authorized")
 
     invoice = db.query(Invoice).filter(Invoice.id == invoice_id).first()
@@ -381,7 +382,7 @@ def delete_invoice(
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
-    if user.role != "admin":
+    if user.role != ADMIN:
         raise HTTPException(status_code=403, detail="Not authorized")
 
     invoice = db.query(Invoice).filter(Invoice.id == invoice_id).first()
@@ -410,7 +411,7 @@ def create_cost(
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
-    if user.role != "admin":
+    if user.role != ADMIN:
         raise HTTPException(status_code=403, detail="Not authorized")
 
     project = db.query(Project).filter(Project.id == project_id).first()
@@ -439,7 +440,7 @@ def edit_cost(
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
-    if user.role != "admin":
+    if user.role != ADMIN:
         raise HTTPException(status_code=403, detail="Not authorized")
 
     cost = db.query(ProjectCost).filter(ProjectCost.id == cost_id).first()
@@ -461,7 +462,7 @@ def delete_cost(
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
-    if user.role != "admin":
+    if user.role != ADMIN:
         raise HTTPException(status_code=403, detail="Not authorized")
 
     cost = db.query(ProjectCost).filter(ProjectCost.id == cost_id).first()
@@ -488,7 +489,7 @@ def pay_invoice(
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
-    if user.role != "admin":
+    if user.role != ADMIN:
         raise HTTPException(status_code=403, detail="Not authorized")
 
     invoice = db.query(Invoice).filter(Invoice.id == invoice_id).first()

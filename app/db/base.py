@@ -12,6 +12,7 @@ from app.db.models.project_details import ProjectSupply, ProjectTask, ProjectLoc
 from app.db.models.log_task import DailyLogTask
 from app.db.models.finance import ProjectBudget, BudgetLine, Invoice, Payment, ProjectCost
 from app.db.models.activity import ActivityLog
+from app.db.models.login_attempt import LoginAttempt
 from app.db.models.payroll import PayrollPeriod, PayrollEntry
 from app.db.models.payment import PayrollPayment
 from app.db.models.liquidation import Liquidation

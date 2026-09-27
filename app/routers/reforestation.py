@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, R
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from app.routers import deps
+from app.core.roles import ADMIN
 from app.db.models.reforestation import ReforestationProject, ReforestationTree
 from app.core.templates import templates
 from datetime import datetime
@@ -14,7 +15,7 @@ router = APIRouter(
 
 @router.get("/dashboard/reforestacion")
 def get_admin_dashboard(request: Request, db: Session = Depends(deps.get_db), current_user = Depends(deps.get_current_user)):
-    if current_user.role != 'admin':
+    if current_user.role != ADMIN:
         raise HTTPException(status_code=403, detail="Not authorized")
     projects = db.query(ReforestationProject).all()
     return templates.TemplateResponse("reforestation/admin.html", {"request": request, "user": current_user, "projects": projects})
@@ -26,7 +27,7 @@ async def upload_csv(
     db: Session = Depends(deps.get_db),
     current_user = Depends(deps.get_current_user)
 ):
-    if current_user.role != 'admin':
+    if current_user.role != ADMIN:
         raise HTTPException(status_code=403, detail="Not authorized")
         
     if not file.filename.endswith('.csv'):
@@ -96,7 +97,7 @@ def download_csv(
     db: Session = Depends(deps.get_db), 
     current_user = Depends(deps.get_current_user)
 ):
-    if current_user.role != 'admin':
+    if current_user.role != ADMIN:
         raise HTTPException(status_code=403, detail="Not authorized")
         
     project = db.query(ReforestationProject).filter(ReforestationProject.id == project_id).first()

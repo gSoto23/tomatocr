@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc
 
 from app.routers import deps
+from app.core.roles import ADMIN, OPERATIONS_ROLES, SUPERVISOR, WORKER
 from app.db.models.user import User
 from app.db.models.payment import PayrollPayment
 from app.utils.activity import log_activity
@@ -14,7 +15,7 @@ from app.utils.activity import log_activity
 router = APIRouter(
     prefix="/payments",
     tags=["payments"],
-    dependencies=[Depends(deps.get_current_user)]
+    dependencies=[Depends(deps.require_roles(*OPERATIONS_ROLES))]
 )
 
 from app.core.templates import templates
@@ -25,14 +26,14 @@ def list_payments_view(
     db: Session = Depends(deps.get_db), 
     user: User = Depends(deps.get_current_user)
 ):
-    if user.role != "admin":
+    if user.role != ADMIN:
         # Workers redirect to their own history
-        if user.role == "worker":
+        if user.role == WORKER:
             return RedirectResponse(url=f"/payments/history/{user.id}", status_code=303)
         return RedirectResponse(url="/", status_code=303)
 
     # Admin: List all workers to manage payments
-    workers = db.query(User).filter(User.role.in_(["worker", "supervisor"])).all()
+    workers = db.query(User).filter(User.role.in_([WORKER, SUPERVISOR])).all()
     
     return templates.TemplateResponse("payments/index.html", {
         "request": request,
@@ -48,7 +49,7 @@ def payment_history(
     user: User = Depends(deps.get_current_user)
 ):
     # Auth check
-    if user.role != "admin" and user.id != user_id:
+    if user.role != ADMIN and user.id != user_id:
         raise HTTPException(status_code=403, detail="Not authorized")
         
     target_user = db.query(User).get(user_id)
@@ -78,7 +79,7 @@ def create_payment(
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
-    if user.role != "admin":
+    if user.role != ADMIN:
         raise HTTPException(status_code=403, detail="Not authorized")
 
     payment_date = date.fromisoformat(date_val)

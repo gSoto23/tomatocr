@@ -5,6 +5,7 @@ from fastapi.responses import JSONResponse, HTMLResponse
 from sqlalchemy.orm import Session
 
 from app.routers import deps
+from app.core.roles import ADMIN, OPERATIONS_ROLES, SUPERVISOR, WORKER
 from app.db.models.user import User
 from app.db.models.schedule import ProjectSchedule
 from app.db.models.payroll import PayrollPeriod, PayrollEntry
@@ -16,7 +17,7 @@ from app.core.templates import templates
 router = APIRouter(
     prefix="/payroll",
     tags=["payroll"],
-    dependencies=[Depends(deps.get_current_user)]
+    dependencies=[Depends(deps.require_roles(*OPERATIONS_ROLES))]
 )
 
 @router.get("/", response_class=HTMLResponse)
@@ -25,7 +26,7 @@ def payroll_dashboard(
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
-    if user.role not in ["admin", "supervisor", "worker"]:
+    if user.role not in [ADMIN, SUPERVISOR, WORKER]:
          raise HTTPException(status_code=403, detail="Not authorized")
     
     # Admin: Full dashboard
@@ -34,7 +35,7 @@ def payroll_dashboard(
     
     query = db.query(PayrollPeriod).order_by(PayrollPeriod.start_date.desc())
     
-    if user.role in ["worker", "supervisor"]:
+    if user.role in [WORKER, SUPERVISOR]:
         # Only periods where user has an entry, OR allows seeing active/draft if they are scheduled?
         # Usually they only see finalized payrolls or drafts where they are calculated.
         # Filtering by existence of PayrollEntry for this user
@@ -44,7 +45,7 @@ def payroll_dashboard(
 
     # Calculate stats for Worker/Supervisor
     worker_stats = {}
-    if user.role in ["worker", "supervisor"]:
+    if user.role in [WORKER, SUPERVISOR]:
         vacation_days = 0
         if user.start_date:
             delta = date.today() - user.start_date
@@ -66,7 +67,7 @@ def approval_view(
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
-    if user.role not in ["admin", "supervisor"]:
+    if user.role not in [ADMIN, SUPERVISOR]:
          raise HTTPException(status_code=403, detail="Not authorized")
          
     # Fetch unconfirmed past schedules? Or all for a range?
@@ -85,7 +86,7 @@ def payroll_detail(
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
-    if user.role not in ["admin", "supervisor", "worker"]:
+    if user.role not in [ADMIN, SUPERVISOR, WORKER]:
          raise HTTPException(status_code=403, detail="Not authorized")
 
     period = db.query(PayrollPeriod).filter(PayrollPeriod.id == period_id).first()
@@ -112,7 +113,7 @@ def payroll_detail(
     
     for entry in entries:
         # Filter for worker/supervisor (only see own)
-        if user.role in ["worker", "supervisor"] and entry.user_id != user.id:
+        if user.role in [WORKER, SUPERVISOR] and entry.user_id != user.id:
             continue
             
         gross = entry.gross_salary
@@ -163,7 +164,7 @@ def payroll_detail(
 
     # For Worker/Supervisor view: Calculate Vacation Days
     worker_stats = {}
-    if user.role in ["worker", "supervisor"]:
+    if user.role in [WORKER, SUPERVISOR]:
         # Logic from liquidation: 1 day per month worked
         vacation_days = 0
         if user.start_date:
@@ -189,7 +190,7 @@ def payroll_report(
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
-    if user.role not in ["admin", "supervisor", "worker"]:
+    if user.role not in [ADMIN, SUPERVISOR, WORKER]:
          raise HTTPException(status_code=403, detail="Not authorized")
 
     period = db.query(PayrollPeriod).filter(PayrollPeriod.id == period_id).first()
@@ -203,7 +204,7 @@ def payroll_report(
 
     for entry in entries:
         # Filter logic: Admin sees all. Worker/Supervisor sees only own.
-        if user.role in ["worker", "supervisor"] and entry.user_id != user.id:
+        if user.role in [WORKER, SUPERVISOR] and entry.user_id != user.id:
             continue
         
         # Calculate overtime amount approx (or use what we stored if we stored it? We didn't stored overtime_pay separately)
@@ -238,7 +239,7 @@ def confirm_payroll(
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
-    if user.role != "admin":
+    if user.role != ADMIN:
         raise HTTPException(status_code=403, detail="Not authorized")
         
     period = db.query(PayrollPeriod).get(period_id)
@@ -258,7 +259,7 @@ def delete_payroll(
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
-    if user.role != "admin":
+    if user.role != ADMIN:
         raise HTTPException(status_code=403, detail="Not authorized")
         
     period = db.query(PayrollPeriod).get(period_id)
@@ -277,11 +278,11 @@ def get_supervisor_projects(
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
-    if user.role not in ["admin", "supervisor"]:
+    if user.role not in [ADMIN, SUPERVISOR]:
         raise HTTPException(status_code=403, detail="Not authorized")
         
     projects = []
-    if user.role == "supervisor":
+    if user.role == SUPERVISOR:
         # Return assigned projects
         # Assuming user.projects is a relationship if setup, OR we need to fetch from Project model
         # The User model has 'projects' relation via project_users table
@@ -302,7 +303,7 @@ def get_schedules_for_approval(
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
-    if user.role not in ["admin", "supervisor"]:
+    if user.role not in [ADMIN, SUPERVISOR]:
          raise HTTPException(status_code=403, detail="Not authorized")
     
     query = db.query(ProjectSchedule)
@@ -325,7 +326,7 @@ def get_schedules_for_approval(
         query = query.filter(ProjectSchedule.project_id == project_id)
     
     # Supervisors see only their projects check
-    if user.role == "supervisor":
+    if user.role == SUPERVISOR:
         supervisor_project_ids = [p.id for p in user.projects]
         if project_id and project_id not in supervisor_project_ids:
              raise HTTPException(status_code=403, detail="Project not assigned to supervisor")
@@ -368,7 +369,7 @@ def confirm_hours(
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
-    if user.role not in ["admin", "supervisor"]:
+    if user.role not in [ADMIN, SUPERVISOR]:
         raise HTTPException(status_code=403, detail="Not authorized")
 
     schedule = db.query(ProjectSchedule).filter(ProjectSchedule.id == schedule_id).first()
@@ -395,14 +396,14 @@ def confirm_hours_batch_update(
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
-    if user.role not in ["admin", "supervisor"]:
+    if user.role not in [ADMIN, SUPERVISOR]:
         raise HTTPException(status_code=403, detail="Not authorized")
 
     count = 0
     for item in updates:
         schedule = db.query(ProjectSchedule).filter(ProjectSchedule.id == item.id).first()
         if schedule:
-            if user.role == "supervisor":
+            if user.role == SUPERVISOR:
                  if schedule.project not in user.projects:
                      continue 
             
@@ -423,7 +424,7 @@ def confirm_hours_batch(
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
-    if user.role not in ["admin", "supervisor"]:
+    if user.role not in [ADMIN, SUPERVISOR]:
         raise HTTPException(status_code=403, detail="Not authorized")
 
     db.query(ProjectSchedule).filter(ProjectSchedule.id.in_(schedule_ids)).update(
@@ -443,7 +444,7 @@ def generate_payroll(
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
-    if user.role != "admin":
+    if user.role != ADMIN:
         raise HTTPException(status_code=403, detail="Not authorized")
 
     s_date = datetime.strptime(start_date, "%Y-%m-%d").date()
@@ -530,7 +531,7 @@ def update_payroll_entry_deductions(
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
-    if user.role != "admin":
+    if user.role != ADMIN:
         raise HTTPException(status_code=403, detail="Not authorized")
 
     entry = db.query(PayrollEntry).get(entry_id)

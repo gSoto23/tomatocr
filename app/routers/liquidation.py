@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc
 
 from app.routers import deps
+from app.core.roles import ADMIN, OPERATIONS_ROLES, SUPERVISOR, WORKER
 from app.db.models.user import User
 from app.db.models.liquidation import Liquidation
 from app.db.models.payment import PayrollPayment
@@ -15,7 +16,7 @@ from app.core.templates import templates
 router = APIRouter(
     prefix="/liquidation",
     tags=["liquidation"],
-    dependencies=[Depends(deps.get_current_user)]
+    dependencies=[Depends(deps.require_roles(*OPERATIONS_ROLES))]
 )
 
 @router.get("/", response_class=JSONResponse)
@@ -24,14 +25,14 @@ def list_liquidations(
     db: Session = Depends(deps.get_db), 
     user: User = Depends(deps.get_current_user)
 ):
-    if user.role != "admin":
+    if user.role != ADMIN:
         # Workers redirect to their own view
-        if user.role == "worker":
+        if user.role == WORKER:
             return RedirectResponse(url=f"/liquidation/history/{user.id}", status_code=303)
         return RedirectResponse(url="/", status_code=303)
 
     # Admin: List all workers
-    workers = db.query(User).filter(User.role.in_(["worker", "supervisor"])).all()
+    workers = db.query(User).filter(User.role.in_([WORKER, SUPERVISOR])).all()
     
     return templates.TemplateResponse("liquidation/index.html", {
         "request": request,
@@ -46,7 +47,7 @@ def liquidation_history(
     db: Session = Depends(deps.get_db), 
     user: User = Depends(deps.get_current_user)
 ):
-    if user.role != "admin" and user.id != user_id:
+    if user.role != ADMIN and user.id != user_id:
         raise HTTPException(status_code=403, detail="Not authorized")
 
     target_user = db.query(User).get(user_id)
@@ -155,7 +156,7 @@ def preview_liquidation(
     db: Session = Depends(deps.get_db), 
     user: User = Depends(deps.get_current_user)
 ):
-    if user.role != "admin":
+    if user.role != ADMIN:
         raise HTTPException(status_code=403, detail="Not authorized")
 
     target_user = db.query(User).filter(User.id == target_user_id).first()
@@ -189,7 +190,7 @@ def liquidation_letter(
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
-    if user.role != "admin":
+    if user.role != ADMIN:
         # Maybe allow the user themselves to see it? For now admin.
         raise HTTPException(status_code=403, detail="Not authorized")
 
@@ -234,7 +235,7 @@ def create_liquidation(
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
-    if user.role != "admin":
+    if user.role != ADMIN:
         raise HTTPException(status_code=403, detail="Not authorized")
 
     # Save
@@ -270,7 +271,7 @@ def reactivate_user(
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
-    if user.role != "admin":
+    if user.role != ADMIN:
         raise HTTPException(status_code=403, detail="Not authorized")
 
     target_user = db.query(User).get(target_user_id)

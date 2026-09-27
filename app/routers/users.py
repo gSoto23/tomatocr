@@ -10,6 +10,7 @@ from sqlalchemy import func
 
 from app.db.models.user import User
 from app.routers import deps
+from app.core.roles import ADMIN, ALL_ROLES, ROLE_LABELS
 from app.core.security import get_password_hash
 from sqlalchemy.exc import IntegrityError
 from app.utils.activity import log_activity
@@ -21,14 +22,20 @@ logger = logging.getLogger(__name__)
 router = APIRouter(
     prefix="/users",
     tags=["users"],
-    dependencies=[Depends(deps.get_current_user)]
+    dependencies=[Depends(deps.require_roles(ADMIN))]
 )
 
 from app.core.templates import templates
 
 def check_admin(user: User):
-    if user.role != "admin":
+    if user.role != ADMIN:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
+
+def error_redirect(url: str, message: str):
+    response = RedirectResponse(url=url, status_code=status.HTTP_303_SEE_OTHER)
+    response.set_cookie(key="toast_message", value=message)
+    response.set_cookie(key="toast_type", value="error")
+    return response
 
 @router.get("/")
 def list_users(
@@ -65,7 +72,7 @@ def list_users(
 @router.get("/new")
 def new_user_form(request: Request, user: User = Depends(deps.get_current_user)):
     check_admin(user)
-    return templates.TemplateResponse("users/form.html", {"request": request, "user": user, "edit_user": None})
+    return templates.TemplateResponse("users/form.html", {"request": request, "user": user, "edit_user": None, "role_labels": ROLE_LABELS})
 
 @router.post("/new")
 def create_user(
@@ -87,6 +94,9 @@ def create_user(
     user: User = Depends(deps.get_current_user)
 ):
     check_admin(user)
+
+    if role not in ALL_ROLES:
+        return error_redirect("/users/new", "Rol no válido")
     
     # Check if user exists
     existing = db.query(User).filter(User.username == username).first()
@@ -164,7 +174,7 @@ def edit_user_form(id: int, request: Request, db: Session = Depends(deps.get_db)
     edit_user = db.query(User).filter(User.id == id).first()
     if not edit_user:
         return RedirectResponse(url="/users", status_code=status.HTTP_303_SEE_OTHER)
-    return templates.TemplateResponse("users/form.html", {"request": request, "user": user, "edit_user": edit_user})
+    return templates.TemplateResponse("users/form.html", {"request": request, "user": user, "edit_user": edit_user, "role_labels": ROLE_LABELS})
 
 @router.post("/{id}/edit")
 def update_user(
@@ -187,6 +197,13 @@ def update_user(
     user: User = Depends(deps.get_current_user)
 ):
     check_admin(user)
+
+    if role not in ALL_ROLES:
+        return error_redirect(f"/users/{id}/edit", "Rol no válido")
+    # An inactive user can no longer log in, so an admin must not lock themselves out.
+    if id == user.id and (not is_active or role != ADMIN):
+        return error_redirect(f"/users/{id}/edit", "Error: No puedes desactivar tu propio usuario ni quitarte el rol de administrador.")
+
     edit_user = db.query(User).filter(User.id == id).first()
     if edit_user:
         # Check for duplicate username
