@@ -11,12 +11,12 @@ Este documento lo usa el tab de Code (Claude Code) para implementar cada fase. I
 | 0. Seguridad y base | Bloqueo de usuarios inactivos, permisos por lista de roles, límite de intentos en /login, Alembic y pruebas | 15/10/2026 | En producción (27/09/2026) |
 | Migración a PostgreSQL | No estaba en el plan: producción corría en SQLite (ver `docs/MIGRACION_POSTGRES.md`) | antes de Fase 1 | En producción (27/09/2026) |
 | 1. Supervivencia de árboles | Estado y monitoreos por árbol, indicador de supervivencia, mapa público con autorización por proyecto | 30/11/2026 | En producción (27/09/2026) |
-| 2. CRM y formulario web | Según `docs/DISENO_CRM.md` (reemplaza la sección de Fase 2 de este plan), en 4 sub-fases | 15/01/2027 | 2A, 2B y 2C en producción (27/09/2026); 2D (formulario web, API de darboles.com, /privacidad, asignación, importación del tablero) en PR |
+| 2. CRM y formulario web | Según `docs/DISENO_CRM.md` (reemplaza la sección de Fase 2 de este plan), en 4 sub-fases | 15/01/2027 | Completa: 2A, 2B, 2C y 2D en producción (27/09/2026) |
 
 El historial detallado de cambios está en `CHANGELOG.md`.
 
 Quedan fuera del sistema (herramientas externas): plan de marketing, calendario de contenido y métricas de redes y pauta.
-Durante el piloto (15/10–15/12/2026) los prospectos se llevan en el tablero comercial de claude.ai; en la Fase 2 se importan.
+Durante el piloto (15/10–15/12/2026) los prospectos se llevan en el sistema, en Clientes (decisión del 27/09/2026; antes se iban a llevar en el tablero comercial de claude.ai y a importar). El script `scripts/import_tablero.py` queda disponible si hiciera falta.
 
 ## Estado actual (hallazgos de la revisión del 26/09/2026)
 
@@ -174,9 +174,13 @@ Objetivo: que Melina y Albert trabajen sus prospectos dentro del sistema, del pr
 - Monitoreos sugeridos a los 3, 6 y 12 meses de la siembra; los registran admin, supervisores y los trabajadores asignados.
 - El nombre de la Municipalidad de Alajuela se muestra en el mapa (contratación pública, autorizado). Los demás proyectos, solo con autorización.
 - El formulario de darboles.com enviará prospectos al CRM de servidor a servidor, con clave de API; no se abre CORS a otros dominios.
-- `/privacidad`: responsable TOMATO COSTA RICA ANY S.R.L., cédula jurídica 3-102-876296, Alajuela, Alajuela, barrio San José, Condominio Botánica, casa 59A. Correo de contacto: [PENDIENTE].
+- `/privacidad`: responsable TOMATO COSTA RICA ANY S.R.L., cédula jurídica 3-102-876296, Alajuela, Alajuela, barrio San José, Condominio Botánica, casa 59A. Correo de contacto: info@tomatocr.com.
 
-## Pendiente antes de la Fase 2
+## Pendientes después de la Fase 2
 
-- Exportación del tablero comercial del piloto (JSON) para importar los prospectos.
-- Correo de contacto para la página de privacidad.
+La Fase 2 fue la última fase de este plan. Quedan abiertos:
+
+- Pasar la IP real del visitante desde nginx (`X-Forwarded-For`) para que rija el límite por IP del formulario y del login.
+- Asignación: la automática por motor queda en Alina y Gerardo, y el admin reparte cada oportunidad a mano (decisión del 27/09/2026). Reparto por turnos entre varios vendedores, si más adelante hace falta.
+- Formulario para empresas en darboles.com y clave `DARBOLES_API_KEY` (hoy la API responde 503); contrato en `docs/INTEGRACION_DARBOLES.md`, se hace en el repositorio de darboles.com.
+- Volver a poner la cifra medida de supervivencia en /programas/darboles cuando haya monitoreos suficientes.
