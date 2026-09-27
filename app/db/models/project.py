@@ -31,5 +31,13 @@ class Project(Base):
 
     users = relationship("User", secondary=project_users, back_populates="projects")
     contacts = relationship("ProjectContact", back_populates="project", cascade="all, delete-orphan")
-    locations = relationship("ProjectLocation", back_populates="project", cascade="all, delete-orphan")
+    # Every task and sede, archived ones included; `tasks` and `locations` are the ones in use.
+    all_tasks = relationship("ProjectTask", back_populates="project", order_by="ProjectTask.id")
+    all_locations = relationship("ProjectLocation", back_populates="project", cascade="all, delete-orphan",
+                                 order_by="ProjectLocation.id")
+    tasks = relationship("ProjectTask", viewonly=True, order_by="ProjectTask.id",
+                         primaryjoin="and_(ProjectTask.project_id == Project.id, ProjectTask.archived_at.is_(None))")
+    locations = relationship("ProjectLocation", viewonly=True, order_by="ProjectLocation.id",
+                             primaryjoin="and_(ProjectLocation.project_id == Project.id, "
+                                         "ProjectLocation.archived_at.is_(None))")
     budget = relationship("ProjectBudget", uselist=False, back_populates="project", cascade="all, delete-orphan")
