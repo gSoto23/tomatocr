@@ -31,6 +31,9 @@
                             {% endfor %}
                         </select>
                     </div>
+                    <p class="mt-2 text-sm" x-show="monitoredProjects.includes(parseInt(selectedProjectId))">
+                        <a :href="`/projects/${selectedProjectId}/monitoreo`" class="font-semibold text-green-700 hover:text-green-900">Registrar monitoreo de árboles de este proyecto &rarr;</a>
+                    </p>
                 </div>
 
                 <!-- Location Selection (Dynamic) -->
@@ -159,6 +162,7 @@
     function logForm() {
         return {
             selectedProjectId: '{{ selected_project_id or "" }}',
+            monitoredProjects: {{ monitored_project_ids | tojson }},
             selectedLocationId: '',
             tasksMap: projectTasksData,
             locationsMap: projectLocationsData,

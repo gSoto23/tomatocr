@@ -151,6 +151,37 @@
                     <div x-show="!isLoading" class="mt-2 text-sm text-gray-600">registrados en el área</div>
                 </div>
 
+                <!-- Supervivencia -->
+                <div x-show="!isLoading && selectedSummary" class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col items-center text-center">
+                    <div class="text-sm font-semibold text-gray-500 uppercase tracking-widest">Supervivencia a 12 meses</div>
+                    <template x-if="selectedSummary && selectedSummary.survival_12m !== null">
+                        <div>
+                            <div class="mt-2 text-5xl font-extrabold text-green-600" x-text="selectedSummary.survival_12m.toFixed(1).replace('.', ',') + ' %'"></div>
+                            <div class="mt-2 text-sm text-gray-600">
+                                de los árboles verificados
+                                (<span x-text="selectedSummary.verified_12m.toFixed(0)"></span> % del total),
+                                corte al <span x-text="formatDate(selectedSummary.last_check)"></span>
+                            </div>
+                        </div>
+                    </template>
+                    <template x-if="selectedSummary && selectedSummary.survival_12m === null">
+                        <div class="mt-2 text-sm text-gray-600">En monitoreo: aún no hay árboles verificados.</div>
+                    </template>
+                </div>
+
+                <!-- Leyenda -->
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+                    <h3 class="font-semibold text-sm text-gray-700">Estado de cada árbol</h3>
+                    <ul class="mt-3 space-y-2 text-sm text-gray-700">
+                        <template x-for="key in ['vivo', 'muerto', 'reemplazado', 'sin_verificar']" :key="key">
+                            <li class="flex items-center gap-2">
+                                <span class="inline-block h-3 w-3 rounded-full" :style="`background:${statusColors[key]}`"></span>
+                                <span x-text="statusLabels[key]"></span>
+                            </li>
+                        </template>
+                    </ul>
+                </div>
+
                 <div class="bg-blue-50 p-5 rounded-xl border border-blue-100 hidden md:block">
                     <h3 class="font-semibold text-blue-900 text-sm">Agrupación (Clusters)</h3>
                     <p class="mt-2 text-sm text-blue-800 opacity-90">Los árboles en la misma coordenada se agrupan en un globo verde indicando la cantidad. Haz clic para expandirlos.</p>
@@ -173,6 +204,9 @@
         document.addEventListener('alpine:init', () => {
             Alpine.data('reforestationApp', () => ({
                 allTrees: [],
+                projectSummaries: [],
+                statusColors: { vivo: '#16a34a', muerto: '#dc2626', reemplazado: '#d97706', sin_verificar: '#9ca3af' },
+                statusLabels: { vivo: 'Vivo', muerto: 'Muerto', reemplazado: 'Reemplazado', sin_verificar: 'Sin verificar' },
                 
                 clients: [],
                 selectedClient: 'all',
@@ -209,6 +243,7 @@
                         const response = await fetch('/api/reforestation/map-data');
                         const data = await response.json();
                         this.allTrees = data.trees || [];
+                        this.projectSummaries = data.projects || [];
                         
                         // Extract unique clients
                         const clientSet = new Set();
@@ -232,6 +267,16 @@
                     }
                 },
                 
+                get selectedSummary() {
+                    return this.projectSummaries.find(p => p.project === this.selectedClient) || null;
+                },
+
+                formatDate(iso) {
+                    if (!iso) return '';
+                    const [y, m, d] = iso.split('-');
+                    return `${d}/${m}/${y}`;
+                },
+
                 onClientChange() {
                     // Reset sector selection
                     this.selectedSector = 'all';
@@ -276,7 +321,7 @@
                     treesToRender.forEach(tree => {
                         const marker = L.circleMarker([tree.lat, tree.lng], {
                             radius: 6,
-                            fillColor: "#16a34a",
+                            fillColor: this.statusColors[tree.status] || this.statusColors.sin_verificar,
                             color: "#ffffff",
                             weight: 1,
                             opacity: 1,
@@ -294,6 +339,10 @@
                                     <div>
                                         <div class="text-gray-500 text-[10px] uppercase font-semibold">Locación</div>
                                         <div class="font-medium text-gray-900 leading-tight">${tree.sector}</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-gray-500 text-[10px] uppercase font-semibold">Estado</div>
+                                        <div class="font-medium text-gray-900 leading-tight">${this.statusLabels[tree.status] || 'Sin verificar'}</div>
                                     </div>
                                     <div>
                                         <div class="text-gray-500 text-[10px] uppercase font-semibold">Fecha Plantado</div>

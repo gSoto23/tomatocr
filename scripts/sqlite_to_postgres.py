@@ -19,6 +19,7 @@ import argparse
 import datetime
 import enum
 import sys
+from pathlib import Path
 
 from sqlalchemy import Enum, String, create_engine, func, inspect, select, text
 
@@ -30,6 +31,16 @@ BATCH_SIZE = 500
 
 class CopyError(Exception):
     pass
+
+
+def alembic_head() -> str:
+    """Latest migration in alembic/versions: the schema the models describe."""
+    from alembic.config import Config
+    from alembic.script import ScriptDirectory
+    root = Path(__file__).resolve().parent.parent
+    config = Config(str(root / "alembic.ini"))
+    config.set_main_option("script_location", str(root / "alembic"))
+    return ScriptDirectory.from_config(config).get_current_head()
 
 
 def normalize(value):
@@ -82,8 +93,10 @@ def check_target_ready(conn):
     if "alembic_version" not in insp.get_table_names():
         raise CopyError("La base destino no tiene alembic_version. Corré primero: alembic upgrade head")
     version = conn.execute(text("select version_num from alembic_version")).scalar()
-    if version != "0001":
-        raise CopyError(f"La base destino está en la versión {version}; este script espera 0001.")
+    head = alembic_head()
+    if version != head:
+        raise CopyError(f"La base destino está en la versión {version}; el código espera {head}. "
+                        "Corré: alembic upgrade head")
     not_empty = [t.name for t in Base.metadata.sorted_tables
                  if conn.execute(select(func.count()).select_from(t)).scalar()]
     if not_empty:

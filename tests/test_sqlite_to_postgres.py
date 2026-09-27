@@ -15,7 +15,7 @@ from sqlalchemy import (JSON, Boolean, Date, DateTime, Enum, Float, Integer, Str
 
 from app.db.base import Base
 from app.db.models.user import User
-from scripts.sqlite_to_postgres import CopyError, copy
+from scripts.sqlite_to_postgres import CopyError, alembic_head, copy
 
 PG_URL = os.environ.get("TEST_POSTGRES_URL")
 pytestmark = pytest.mark.skipif(not PG_URL, reason="TEST_POSTGRES_URL not set")
@@ -76,7 +76,7 @@ def target():
     Base.metadata.create_all(engine)
     with engine.begin() as conn:
         conn.execute(text("CREATE TABLE alembic_version (version_num VARCHAR(32) PRIMARY KEY)"))
-        conn.execute(text("INSERT INTO alembic_version VALUES ('0001')"))
+        conn.execute(text(f"INSERT INTO alembic_version VALUES ('{alembic_head()}')"))
     yield engine
     Base.metadata.drop_all(engine)
     engine.dispose()
@@ -89,7 +89,7 @@ def counts(engine):
 
 def test_copies_every_table_and_row(source_sqlite, target):
     report = copy(source_sqlite, PG_URL, dry_run=False)
-    assert len(report) == len(Base.metadata.tables) == 27
+    assert len(report) == len(Base.metadata.tables)
     assert set(counts(target).values()) == {ROWS_PER_TABLE}
 
 
@@ -114,7 +114,7 @@ def test_sequences_continue_after_copied_ids(source_sqlite, target):
 
 def test_dry_run_writes_nothing(source_sqlite, target):
     report = copy(source_sqlite, PG_URL, dry_run=True)
-    assert len(report) == 27
+    assert len(report) == len(Base.metadata.tables)
     assert set(counts(target).values()) == {0}
 
 

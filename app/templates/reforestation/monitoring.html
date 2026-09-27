@@ -1,0 +1,75 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Monitoreo de árboles | TOMATO{% endblock %}
+{% block header_title %}Monitoreo de árboles{% endblock %}
+
+{% block content %}
+{% set labels = {'vivo': 'Vivo', 'muerto': 'Muerto', 'reemplazado': 'Reemplazado'} %}
+<div class="max-w-2xl mx-auto space-y-6" x-data="{ mode: 'numbers', status: 'vivo' }">
+    <div>
+        <a href="/projects/{{ project.id }}" class="text-sm font-semibold text-gray-600 hover:text-black">&larr; {{ project.name }}</a>
+        <p class="mt-2 text-sm text-gray-600">
+            {{ summary.planted }} árboles · {{ summary.verified }} verificados · {{ summary.alive }} vivos · {{ summary.dead }} muertos · {{ summary.replaced }} reemplazados
+            {% if summary.last_check %}· último monitoreo {{ summary.last_check.strftime('%d/%m/%Y') }}{% endif %}
+        </p>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-5 text-sm">
+        <label class="block">
+            <span class="font-medium text-gray-700">Fecha del monitoreo</span>
+            <input type="date" name="checked_at" value="{{ today.isoformat() }}" max="{{ today.isoformat() }}" required class="mt-1 block w-full rounded-md border border-gray-300 p-2">
+        </label>
+
+        <fieldset>
+            <legend class="font-medium text-gray-700">¿Qué árboles?</legend>
+            <div class="mt-2 flex gap-4">
+                <label class="flex items-center gap-2"><input type="radio" name="mode" value="numbers" x-model="mode"> Por número</label>
+                <label class="flex items-center gap-2"><input type="radio" name="mode" value="sector" x-model="mode"> Todo un sector</label>
+            </div>
+            <input x-show="mode === 'numbers'" type="text" name="tree_numbers" placeholder="Ej. 1-20, 35, 40" inputmode="numeric"
+                class="mt-2 block w-full rounded-md border border-gray-300 p-2">
+            <select x-show="mode === 'sector'" name="sector" class="mt-2 block w-full rounded-md border border-gray-300 p-2">
+                {% for s in sectors %}
+                <option value="{{ s }}">{{ s }}</option>
+                {% endfor %}
+            </select>
+        </fieldset>
+
+        <fieldset>
+            <legend class="font-medium text-gray-700">Estado</legend>
+            <div class="mt-2 grid grid-cols-3 gap-2">
+                {% for s in statuses %}
+                <label class="flex items-center justify-center gap-2 rounded-md border p-3 cursor-pointer"
+                    :class="status === '{{ s }}' ? 'border-black bg-gray-50 font-semibold' : 'border-gray-300'">
+                    <input type="radio" name="status" value="{{ s }}" x-model="status" class="sr-only"> {{ labels[s] }}
+                </label>
+                {% endfor %}
+            </div>
+        </fieldset>
+
+        <label class="block" x-show="status === 'reemplazado'">
+            <span class="font-medium text-gray-700">Reemplazado por (número del árbol nuevo, opcional)</span>
+            <input type="text" name="replaced_by" inputmode="numeric" class="mt-1 block w-full rounded-md border border-gray-300 p-2">
+            <span class="mt-1 block text-xs text-gray-500">Solo cuando marca un único árbol. El árbol nuevo debe estar cargado en el inventario.</span>
+        </label>
+
+        <label class="block">
+            <span class="font-medium text-gray-700">Altura (cm, opcional)</span>
+            <input type="text" name="height_cm" inputmode="decimal" class="mt-1 block w-full rounded-md border border-gray-300 p-2">
+        </label>
+
+        <label class="block">
+            <span class="font-medium text-gray-700">Notas (opcional, uso interno)</span>
+            <textarea name="notes" rows="3" class="mt-1 block w-full rounded-md border border-gray-300 p-2"></textarea>
+        </label>
+
+        <label class="block">
+            <span class="font-medium text-gray-700">Foto (opcional)</span>
+            <input type="file" name="photo" accept="image/jpeg,image/png,image/webp" capture="environment" class="mt-1 block w-full text-sm">
+            <span class="mt-1 block text-xs text-gray-500">JPEG, PNG o WebP de hasta 5 MB. Uso interno: no se publica en el mapa.</span>
+        </label>
+
+        <button type="submit" class="w-full rounded-md bg-black px-4 py-3 font-semibold text-white hover:bg-gray-800">Guardar monitoreo</button>
+    </form>
+</div>
+{% endblock %}

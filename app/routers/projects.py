@@ -11,6 +11,7 @@ from app.db.models.finance import ProjectBudget, BudgetLine, ProjectCost
 from app.db.models.schedule import ProjectSchedule
 from app.db.models.user import User
 from app.db.models.log import DailyLog
+from app.db.models.reforestation import ReforestationProject
 from app.db.models.associations import project_users
 from sqlalchemy import desc, func
 from math import ceil
@@ -413,7 +414,14 @@ def get_project_detail(
         
     total_pages = ceil(total_records / limit)
 
+    # Tree monitoring: admin/supervisor on any linked project, workers on their assigned ones
+    # (the membership check above already applies to workers).
+    monitoring_available = user.role in (ADMIN, SUPERVISOR, WORKER) and db.query(ReforestationProject.id).filter(
+        ReforestationProject.project_id == project.id
+    ).first() is not None
+
     return templates.TemplateResponse("projects/detail.html", {
+        "monitoring_available": monitoring_available,
         "request": request, 
         "project": project, 
         "user": user,
