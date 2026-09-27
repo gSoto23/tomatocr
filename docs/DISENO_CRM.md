@@ -2,7 +2,7 @@
 
 Preparado el 26/09/2026. Reemplaza la sección "Fase 2. CRM y formulario web" de `docs/PLAN_SISTEMA_COMERCIAL.md` (aprobado el 27/09/2026).
 
-**Estado (27/09/2026):** 2A en producción (ajustada con `docs/ANALISIS_ENCAJE_CRM.md`). 2B en producción. 2C implementada en la rama `feat/fase-2c-conexiones`. 2D pendiente.
+**Estado (27/09/2026):** completo. 2A (ajustada con `docs/ANALISIS_ENCAJE_CRM.md`), 2B, 2C y 2D en producción.
 
 **Cambios aprobados sobre este diseño** (ver el análisis para el detalle):
 - **Una sola lista de contactos por cuenta.** `project_contact_roles` indica qué contactos usa cada proyecto (de sitio, recibe reportes). Los `project_contacts` actuales se copian a la cuenta con la migración; en 2C el formulario de proyecto y el correo de la bitácora pasan a usarlos.

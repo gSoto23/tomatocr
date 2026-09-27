@@ -6,6 +6,10 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-27
 
+### Documentación: estado final de la Fase 2 (esta rama)
+- Plan y diseño del CRM marcan la Fase 2 completa; correo de /privacidad
+  confirmado; lista de pendientes después de la Fase 2.
+
 ### Tono "vos" en el formulario y /privacidad (#58)
 - El formulario de contacto, sus mensajes, /contacto/gracias y /privacidad
   pasan de "usted" a "vos", como el resto del sitio. El tono queda definido en
