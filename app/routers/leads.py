@@ -18,7 +18,7 @@ from app.utils.leads import (CONSENT_TEXT_VERSION, LeadRejected, clean_lead, int
 
 router = APIRouter(tags=["leads"])
 
-TOO_MANY = "Recibimos muchas solicitudes en poco tiempo. Intente de nuevo en una hora o escríbanos por WhatsApp."
+TOO_MANY = "Recibimos muchas solicitudes en poco tiempo. Intentá de nuevo en una hora o escribinos por WhatsApp."
 
 
 def notify(background: BackgroundTasks, db: Session, result, lead, source):
@@ -60,7 +60,7 @@ async def contact(request: Request, background: BackgroundTasks, db: Session = D
 
     # Honeypot: people never see this field; bots fill it. Pretend it worked.
     if str(data.get("website") or "").strip():
-        return answer(True, "¡Gracias! Le contactaremos pronto.")
+        return answer(True, "¡Gracias! Te contactamos pronto.")
 
     ip = request.client.host if request.client else None
     if rate_limited(db, "web", ip, settings.LEADS_PER_IP_PER_HOUR, settings.LEADS_PER_HOUR):
@@ -72,7 +72,7 @@ async def contact(request: Request, background: BackgroundTasks, db: Session = D
     record_submission(db, "web", ip)
     result = intake_lead(db, lead, "web")
     notify(background, db, result, lead, "web")
-    return answer(True, "¡Gracias! Recibimos su solicitud y le contactaremos pronto.")
+    return answer(True, "¡Gracias! Recibimos tu solicitud y te contactamos pronto.")
 
 
 @router.post("/api/crm/leads")

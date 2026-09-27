@@ -18,10 +18,10 @@
             <input name="phone" type="tel" maxlength="30" autocomplete="tel" class="{{ field }}">
         </label>
     </div>
-    <p class="-mt-2 text-xs text-black/60 dark:text-white/60">Déjenos al menos un correo o un teléfono.</p>
-    <label class="block text-sm font-medium">¿Qué le interesa? *
+    <p class="-mt-2 text-xs text-black/60 dark:text-white/60">Dejanos al menos un correo o un teléfono.</p>
+    <label class="block text-sm font-medium">¿Qué te interesa? *
         <select name="motor" required class="{{ field }}">
-            {% if not ctx.default_motor %}<option value="">Elija una opción</option>{% endif %}
+            {% if not ctx.default_motor %}<option value="">Elegí una opción</option>{% endif %}
             {% for value, label in ctx.motors %}
             <option value="{{ value }}" {% if value == ctx.default_motor %}selected{% endif %}>{{ label }}</option>
             {% endfor %}
@@ -61,10 +61,10 @@
             event.preventDefault();
             var data = Object.fromEntries(new FormData(form).entries());
             data.consent = form.consent.checked;
-            if (!data.name.trim()) return show('Escriba su nombre.', false);
-            if (!data.email.trim() && !data.phone.trim()) return show('Indique un correo o un teléfono.', false);
-            if (!data.motor) return show('Elija qué le interesa.', false);
-            if (!data.consent) return show('Debe aceptar la política de privacidad para que le contactemos.', false);
+            if (!data.name.trim()) return show('Escribí tu nombre.', false);
+            if (!data.email.trim() && !data.phone.trim()) return show('Dejanos un correo o un teléfono.', false);
+            if (!data.motor) return show('Elegí qué te interesa.', false);
+            if (!data.consent) return show('Aceptá la política de privacidad para que podamos contactarte.', false);
             button.disabled = true;
             show('Enviando…', true);
             fetch('/contacto', {
@@ -79,10 +79,10 @@
                     show(answer.message, true);
                     if (typeof gtag === 'function') gtag('event', 'generate_lead', { form: 'contacto', motor: data.motor });
                 } else {
-                    show(answer.message || 'No se pudo enviar. Intente de nuevo o escríbanos por WhatsApp.', false);
+                    show(answer.message || 'No se pudo enviar. Intentá de nuevo o escribinos por WhatsApp.', false);
                 }
             }).catch(function () {
-                show('No se pudo enviar. Revise su conexión o escríbanos por WhatsApp.', false);
+                show('No se pudo enviar. Revisá tu conexión o escribinos por WhatsApp.', false);
             }).finally(function () { button.disabled = false; });
         });
     })();

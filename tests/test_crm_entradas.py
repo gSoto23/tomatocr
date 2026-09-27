@@ -98,8 +98,8 @@ def test_motor_without_seller_goes_to_default(db, sellers):
 @pytest.mark.parametrize("change,message", [
     ({"consent": False}, "política de privacidad"),
     ({"email": "", "phone": ""}, "correo o un teléfono"),
-    ({"email": "no-es-correo"}, "correo no es válido"),
-    ({"motor": "otra_cosa"}, "Elija qué le interesa"),
+    ({"email": "no-es-correo"}, "no parece válido"),
+    ({"motor": "otra_cosa"}, "Elegí qué te interesa"),
     ({"name": " "}, "nombre"),
 ])
 def test_form_validation(db, sellers, change, message):
@@ -297,3 +297,12 @@ def test_import_board(db, sellers):
 
 def test_import_empty_board(db, sellers):
     assert import_leads(db, [], sellers["gerardo"]).counts == {}
+
+
+def test_public_texts_use_vos():
+    """Tone of the public site (docs/DISENO_CRM.md, section 6): vos, never usted."""
+    client = new_client()
+    for path in ("/", "/programas/darboles", "/privacidad", "/contacto/gracias"):
+        html = client.get(path).text
+        for formal in ("usted", "Escríbanos", "Déjenos", "Elija ", "Le contactaremos", "¿Qué le interesa"):
+            assert formal not in html, (path, formal)
