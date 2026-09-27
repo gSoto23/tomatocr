@@ -6,15 +6,19 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-27
 
-### Tono "vos" en el formulario y /privacidad (esta rama)
+### Tono "vos" en el formulario y /privacidad (#58)
 - El formulario de contacto, sus mensajes, /contacto/gracias y /privacidad
   pasan de "usted" a "vos", como el resto del sitio. El tono queda definido en
   `docs/DISENO_CRM.md`, sección 6, con una prueba que lo revisa.
 - Solo cambia la forma; el contenido de la política es el mismo (misma
   versión 2026-09-27).
+- Corrección (QA en producción): "¿Prefiere escribirnos directo?" debajo del
+  formulario pasa a "¿Preferís…?" en la portada y en /programas/darboles; la
+  prueba del tono revisa más formas de "usted" y también
+  /proyectos-reforestacion.
 - Despliegue: sin migraciones; reiniciar.
 
-### Fase 2D: entradas de prospectos (esta rama)
+### Fase 2D: entradas de prospectos (#57)
 - Formulario de contacto en tomatocr.com (`#contact`) y en
   /programas/darboles (`#contacto`): nombre, empresa, correo o teléfono, qué
   le interesa, mensaje y casilla de consentimiento con enlace a /privacidad.

@@ -302,7 +302,8 @@ def test_import_empty_board(db, sellers):
 def test_public_texts_use_vos():
     """Tone of the public site (docs/DISENO_CRM.md, section 6): vos, never usted."""
     client = new_client()
-    for path in ("/", "/programas/darboles", "/privacidad", "/contacto/gracias"):
+    for path in ("/", "/programas/darboles", "/proyectos-reforestacion", "/privacidad", "/contacto/gracias"):
         html = client.get(path).text
-        for formal in ("usted", "Escríbanos", "Déjenos", "Elija ", "Le contactaremos", "¿Qué le interesa"):
+        for formal in ("usted", "Escríbanos", "Déjenos", "Elija ", "Le contactaremos", "¿Qué le interesa", "Prefiere",
+                       "Contáctenos", "Solicite", "Escriba ", "Indique", "Revise ", "Intente "):
             assert formal not in html, (path, formal)
