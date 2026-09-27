@@ -1,5 +1,5 @@
 
-from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime
+from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.db.base_class import Base
@@ -24,6 +24,10 @@ class Project(Base):
     contact_name = Column(String(100))
     contact_phone = Column(String(20))
     contact_email = Column(String(100))
+
+    # CRM (docs/DISENO_CRM.md). client_display_name stays as the text shown today.
+    account_id = Column(Integer, ForeignKey("accounts.id"), nullable=True, index=True)
+    opportunity_id = Column(Integer, ForeignKey("opportunities.id"), nullable=True)
 
     users = relationship("User", secondary=project_users, back_populates="projects")
     contacts = relationship("ProjectContact", back_populates="project", cascade="all, delete-orphan")

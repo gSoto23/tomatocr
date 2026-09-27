@@ -18,3 +18,4 @@ from app.db.models.payment import PayrollPayment
 from app.db.models.liquidation import Liquidation
 from app.db.models.quote import Quote
 from app.db.models.reforestation import ReforestationProject, ReforestationTree, TreeCheck
+from app.db.models.crm import Account, Contact, Opportunity, CrmActivity, AccountNotDuplicate, ProjectContactRole

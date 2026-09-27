@@ -70,7 +70,7 @@ def make_user(db, username, role, **fields):
     user = User(
         username=username,
         hashed_password=PASSWORD_HASH,
-        full_name=username,
+        full_name=fields.pop("full_name", username),
         role=role,
         is_active=fields.pop("is_active", True),
         status=fields.pop("status", "active"),

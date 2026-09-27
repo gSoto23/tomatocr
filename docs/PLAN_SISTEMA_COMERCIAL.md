@@ -11,7 +11,7 @@ Este documento lo usa el tab de Code (Claude Code) para implementar cada fase. I
 | 0. Seguridad y base | Bloqueo de usuarios inactivos, permisos por lista de roles, límite de intentos en /login, Alembic y pruebas | 15/10/2026 | En producción (27/09/2026) |
 | Migración a PostgreSQL | No estaba en el plan: producción corría en SQLite (ver `docs/MIGRACION_POSTGRES.md`) | antes de Fase 1 | En producción (27/09/2026) |
 | 1. Supervivencia de árboles | Estado y monitoreos por árbol, indicador de supervivencia, mapa público con autorización por proyecto | 30/11/2026 | En producción (27/09/2026) |
-| 2. CRM y formulario web | Prospectos, actividades, embudo, enlace con cotizador y proyectos, rol `ventas`, formulario de contacto con consentimiento | 15/01/2027 | Pendiente |
+| 2. CRM y formulario web | Según `docs/DISENO_CRM.md` (reemplaza la sección de Fase 2 de este plan), en 4 sub-fases | 15/01/2027 | 2A lista en PR (cuentas, contactos únicos y migración de clientes, ajustada por `docs/ANALISIS_ENCAJE_CRM.md`); 2B–2D pendientes |
 
 El historial detallado de cambios está en `CHANGELOG.md`.
 
@@ -113,6 +113,8 @@ Objetivo: medir la supervivencia real por proyecto. Ese dato reemplaza el "70 %"
 - Pendiente para cumplir el punto 5 de la tarea rápida: cuando haya monitoreos suficientes, volver a poner la cifra medida en /programas/darboles con su fecha de corte.
 
 ## Fase 2. CRM y formulario web
+
+> **Reemplazada por `docs/DISENO_CRM.md`** (decisión del 27/09/2026). Se conserva como referencia del planteamiento original.
 
 Objetivo: que Melina y Albert trabajen sus prospectos dentro del sistema, del primer contacto hasta la cotización y el proyecto.
 

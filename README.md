@@ -53,7 +53,30 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
   árboles de Dárboles no se manejan aquí: darboles.com es una plataforma
   independiente.
 
-### 6. Configuración Jerárquica & Auth
+### 6. Clientes / CRM (en construcción, `docs/DISENO_CRM.md` y `docs/ANALISIS_ENCAJE_CRM.md`)
+- **Cuentas**: prospectos y clientes actuales en una sola tabla, con sus
+  contactos, oportunidades y actividades. Los proyectos, cotizaciones y
+  proyectos de reforestación se ligan a su cuenta (`account_id`); los nombres
+  de texto que ya existían se mantienen.
+- **Migración de clientes actuales**: `scripts/crm_backfill.py` crea las
+  cuentas a partir de los usuarios cliente, proyectos, cotizaciones y
+  reforestación. Sin `--apply` solo genera el reporte
+  `crm_backfill_report.csv`; con `--apply` guarda. Correrlo de nuevo solo
+  agrega lo que falte.
+- **Contactos en un solo lugar**: cada cuenta tiene una lista de contactos;
+  cada proyecto indica cuáles usa (de sitio, recibe reportes). La migración
+  copia ahí los contactos que hoy están en los proyectos. Hasta la sub-fase 2C
+  los contactos se siguen editando en el proyecto: volver a correr el script
+  trae los nuevos.
+- **Estado calculado**: cliente (proyecto activo o reforestación), ex-cliente
+  (solo proyectos cerrados), prospecto (sin proyectos); "descartada" es lo
+  único manual.
+- **Duplicados** (`/clientes/duplicados`, solo admin): cuentas con nombres
+  parecidos o el mismo correo de contacto, para fusionarlas o marcarlas como
+  distintas. La fusión mueve todo a la cuenta que queda y se registra en
+  Actividad.
+
+### 7. Configuración Jerárquica & Auth
 - Prevención total basada en Roles: `[Admin, Supervisor, Worker, Client, Ventas]`.
 - Encriptación y seguridad a nivel de tokens en las capas.
 
@@ -175,7 +198,8 @@ Para volver atrás: `alembic downgrade <versión anterior>` (si hubo migración)
 - La configuración está en `alembic.ini` y `alembic/env.py`; la URL sale de
   `settings.SQLALCHEMY_DATABASE_URI`, nunca del archivo. Alembic se niega a
   correr si `USE_SQLITE` es verdadero.
-- Versiones: `0001` esquema base; `0002` supervivencia de árboles (Fase 1).
+- Versiones: `0001` esquema base; `0002` supervivencia de árboles (Fase 1);
+  `0003` cuentas del CRM (Fase 2A).
 - Todo cambio de esquema es una migración nueva:
   `alembic revision --autogenerate -m "..."`, revisarla, probarla en un
   PostgreSQL local (ver Pruebas) con `upgrade`, `check` y `downgrade`.
