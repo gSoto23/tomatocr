@@ -1,0 +1,90 @@
+{% extends "manual/_layout.html" %}
+
+{% block manual %}
+{% call m.section("que-es", "Qué es") %}
+<p>El Dashboard es la pantalla de inicio, la primera que ves al entrar. Te muestra lo más importante de tu trabajo
+    según tu rol: facturas pendientes, tus asignaciones, tus próximos pasos de venta o la bitácora de tus proyectos.
+    Para volver a él, tocá <strong>Dashboard</strong> en el menú.</p>
+{% endcall %}
+
+{% call m.section("por-rol", "Qué ves según tu rol") %}
+{% if user.role == 'admin' %}
+<h3 class="font-semibold text-gray-900">Admin</h3>
+{{ m.shot("dashboard/admin.webp", "Dashboard del admin", "Dashboard del admin con datos de ejemplo.") }}
+{{ m.steps([
+    (1, "<strong>Filtros</strong>: tocá el título para abrirlos. Filtran la facturación por fecha de emisión y estado (Pendiente, Pago parcial, Vencida, Pagada)."),
+    (2, "<strong>Proyectos Activos</strong>: cuántos proyectos están marcados como activos."),
+    (3, "<strong>Total Adjudicado</strong>: lo contratado en los proyectos activos, con IVA y prórrogas."),
+    (4, "<strong>Total Facturado</strong>: lo facturado en los proyectos activos. Es la única tarjeta que cambia con los filtros."),
+    (5, "<strong>Actividad Reciente (Facturación)</strong>: sin filtros muestra las facturas pendientes, parciales y vencidas, de la que vence primero a la última. <em>Ver</em> abre el presupuesto del proyecto."),
+    (6, "<strong>Embudo comercial del equipo</strong>: cuántas cuentas llegaron a cada etapa en el periodo del piloto, contra la meta. Ver el capítulo Clientes."),
+]) }}
+{% endif %}
+
+{% if user.role in ['admin', 'ventas'] %}
+<h3 class="mt-4 font-semibold text-gray-900">Ventas</h3>
+{{ m.shot("dashboard/ventas.webp", "Dashboard de ventas", "Dashboard de un vendedor.") }}
+{{ m.steps([
+    (1, "<strong>Vencidos</strong>: próximos pasos cuya fecha ya pasó. Atendelos primero."),
+    (2, "<strong>Para hoy</strong>."),
+    (3, "<strong>Próximos 7 días</strong>, para planear la semana."),
+    (4, "Cada línea abre la oportunidad. <strong>Abrir Cotizador</strong> te lleva directo a cotizar."),
+]) }}
+<p>Solo aparecen tus oportunidades abiertas que tienen fecha de próximo paso. Si una no aparece, revisá que tenga fecha.</p>
+{% endif %}
+
+{% if user.role in ['admin', 'supervisor', 'worker'] %}
+<h3 class="mt-4 font-semibold text-gray-900">Supervisor y trabajador</h3>
+{{ m.shot("dashboard/trabajador.webp", "Dashboard de un trabajador en el celular", "Mis Asignaciones, en el celular.", mobile=True) }}
+{{ m.steps([
+    (1, "<strong>Mis Asignaciones</strong>: los días y proyectos que te asignaron en el Calendario, con sus tareas."),
+    (2, "<strong>Gestionar</strong> abre la asignación: marcá cada tarea al terminarla (se guarda sola) o tocá <em>Ir al Proyecto</em>. En el celular, deslizá la tabla hacia la izquierda para ver el botón."),
+]) }}
+<p>El supervisor además ve <strong>Gestionar Calendario</strong>, para organizar las asignaciones del equipo.</p>
+{% endif %}
+
+{% if user.role in ['admin', 'client'] %}
+<h3 class="mt-4 font-semibold text-gray-900">Cliente</h3>
+{{ m.shot("dashboard/cliente.webp", "Dashboard de un cliente", "La bitácora de los proyectos del cliente.") }}
+{{ m.steps([
+    (1, "Elegí un proyecto para ver solo su bitácora, o dejá <em>Todos mis Proyectos</em>."),
+    (2, "Tocá <strong>Fecha</strong> para ordenar de la más nueva a la más vieja o al revés."),
+    (3, "<strong>Ver Detalle</strong> abre el registro del día con sus fotos."),
+]) }}
+{% endif %}
+{% endcall %}
+
+{% call m.section("preguntas", "Preguntas frecuentes") %}
+<div class="space-y-2">
+{% if user.role == 'admin' %}
+{% call m.faq("Filtré por fecha y el Total Adjudicado no cambió") %}
+<p>Es así: los filtros solo cambian <strong>Total Facturado</strong> y la tabla de facturación. Proyectos activos y
+    total adjudicado siempre muestran todo.</p>
+{% endcall %}
+{% call m.faq("Una factura vencida aparece como Pendiente") %}
+<p>El estado <em>Vencida</em> se actualiza al abrir el presupuesto de ese proyecto. Tocá <em>Ver</em> y se corrige.</p>
+{% endcall %}
+{% call m.faq("¿En qué moneda están los montos?") %}
+<p>En la moneda de cada presupuesto; el Dashboard no muestra el símbolo.</p>
+{% endcall %}
+{% endif %}
+{% if user.role in ['admin', 'supervisor', 'worker'] %}
+{% call m.faq("Marqué una tarea y la tabla no cambió") %}
+<p>Quedó guardada (sale el aviso <em>Actualizado</em>). La tabla se refresca al volver a cargar la página.</p>
+{% endcall %}
+{% call m.faq("¿Por qué veo asignaciones de días que no son hoy?") %}
+<p>La lista muestra tus últimas 20 asignaciones, empezando por la fecha más lejana. Buscá la del día en la columna Fecha
+    o abrí el Calendario.</p>
+{% endcall %}
+{% endif %}
+{% if user.role in ['admin', 'client'] %}
+{% call m.faq("Cambié de página y se perdió el orden por fecha") %}
+<p>Al pasar de página vuelve al orden normal (la más nueva primero). Volvé a tocar <em>Fecha</em> si lo necesitás.</p>
+{% endcall %}
+{% endif %}
+{% call m.faq("No veo algo que otra persona sí ve") %}
+<p>Cada rol ve una parte distinta del sistema. Si creés que te falta algo para tu trabajo, avisale al admin.</p>
+{% endcall %}
+</div>
+{% endcall %}
+{% endblock %}

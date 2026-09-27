@@ -1,0 +1,149 @@
+{% extends "manual/_layout.html" %}
+
+{% block manual %}
+{% call m.section("que-es", "Qué es") %}
+<p>Cada <strong>proyecto</strong> es un sitio donde TOMATO trabaja: un contrato de mantenimiento de zonas verdes, un
+    jardín o un proyecto de reforestación. En el proyecto están la ubicación y sus sedes, el equipo asignado, las tareas
+    que se hacen en cada visita, los contactos del cliente y el presupuesto.</p>
+<p>La <strong>bitácora</strong> es el registro del trabajo de cada día: qué tareas se hicieron, notas y fotos. Con esa
+    bitácora el cliente ve el avance y el admin le manda el reporte por correo.</p>
+<p>Quién lo usa: {{ m.roles(["admin", "supervisor", "worker", "client"]) }}. Cada persona ve solo los proyectos a los
+    que está asignada; el admin ve todos.</p>
+{% endcall %}
+
+{% call m.section("lista", "La lista de proyectos") %}
+{{ m.shot("proyectos/lista.webp", "Lista de proyectos", "Proyectos, con datos de ejemplo.") }}
+{{ m.steps([
+    (1, "Tocá el <strong>nombre</strong> de un proyecto para abrir su ficha."),
+    (2, "<strong>Cliente</strong>, <strong>Ubicación</strong> y <strong>Estado</strong> (Activo o Inactivo)."),
+    (3, "<strong>Nuevo Proyecto</strong> y <strong>Editar</strong>: solo para el admin."),
+]) }}
+{% endcall %}
+
+{% call m.section("ficha", "La ficha del proyecto") %}
+{{ m.shot("proyectos/ficha.webp", "Ficha de un proyecto", "La ficha de un proyecto.") }}
+{{ m.steps([
+    (1, "<strong>Nuevo Reporte</strong>: registra la bitácora de hoy en este proyecto (no aparece para clientes)."),
+    (2, "<strong>Ubicación</strong> con el botón <em>Abrir en Waze</em>, y las sedes adicionales con su propio Waze."),
+    (3, "<strong>Contactos en Sitio</strong> del cliente y quién <em>recibe reportes</em>, y el <strong>Equipo</strong> asignado."),
+    (4, "<strong>Checklist de Tareas</strong>: lo que se hace en cada visita. <em>Req</em> quiere decir obligatoria."),
+    (5, "<strong>Bitácora Reciente</strong>: los reportes del proyecto. <em>Ver Detalle</em> abre cada uno con sus fotos."),
+]) }}
+{% if user.role in ['admin', 'client'] %}
+<p>El admin y el cliente ven además la <strong>Definición de Presupuesto</strong> (licitación, duración, prórroga y
+    líneas adjudicadas). <em>Ver Detalle Financiero Completo</em> abre Presupuestos.</p>
+{% endif %}
+{% endcall %}
+
+{% call m.section("bitacora", "Registrar la bitácora del día") %}
+{% if user.role == 'client' %}
+<p>La bitácora la registra el equipo de TOMATO. Vos la ves en la ficha de cada proyecto y en tu Dashboard: tocá
+    <strong>Ver Detalle</strong> para ver las notas, las tareas hechas y las fotos.</p>
+{{ m.shot("proyectos/reporte-detalle.webp", "Detalle de un reporte", "El detalle de un reporte, con sus fotos.") }}
+{% else %}
+<p>Al terminar el trabajo en un sitio, registrá lo que se hizo. Se puede hacer desde el celular, en el mismo sitio.</p>
+{{ m.shot("proyectos/bitacora.webp", "Formulario de la bitácora diaria en el celular", "La bitácora del día, en el celular.", mobile=True) }}
+{{ m.steps([
+    (1, "En la ficha del proyecto tocá <strong>Nuevo Reporte</strong>. El proyecto ya viene elegido."),
+    (2, "Si el proyecto tiene sedes, elegí la <strong>Sede</strong> donde trabajaste (o <em>General</em>)."),
+    (3, "Marcá las <strong>Tareas Realizadas</strong>. Las que dicen <em>*Requerido</em> hay que marcarlas para poder guardar."),
+    (4, "Escribí las <strong>Notas</strong>: lo que se hizo, lo que falta, algo que el cliente deba saber."),
+    (5, "Agregá las <strong>Fotografías del avance</strong> (podés elegir varias a la vez)."),
+    (6, "Tocá <strong>Guardar Reporte</strong>. Volvés a la ficha con el aviso <em>Reporte creado correctamente</em>."),
+]) }}
+{% call m.warn("Sobre las fotos") %}
+<p>Se aceptan fotos <strong>JPEG, PNG o WebP de hasta 5 MB cada una</strong> (el formulario dice otra cosa; vale esto).
+    Si una sola foto no cumple, <strong>no se guarda nada del reporte</strong>. En iPhone, si la foto es HEIC, cambiá en
+    Ajustes → Cámara → Formatos a <em>Más compatible</em>.</p>
+{% endcall %}
+<p>El reporte queda con la <strong>fecha de hoy</strong>: no se puede registrar un día anterior. Hacelo el mismo día.</p>
+<h3 class="font-semibold text-gray-900">Corregir o borrar un reporte</h3>
+<p>Abrí el reporte con <strong>Ver Detalle</strong> y tocá <strong>Editar</strong>: podés cambiar las tareas marcadas y
+    las notas y tocar <em>Guardar Cambios</em>, o <em>Eliminar</em> el reporte. Cada persona corrige solo sus reportes;
+    el admin, cualquiera. Las fotos no se cambian al editar.</p>
+{% endif %}
+{% endcall %}
+
+{% call m.section("reporte", "El reporte por correo al cliente") %}
+{% if user.role == 'admin' %}
+<p>El admin manda el reporte de un día a los contactos del cliente.</p>
+{{ m.shot("proyectos/enviar-correo.webp", "Enviar un reporte por correo", "Enviar el reporte por correo.") }}
+{{ m.steps([
+    (1, "Abrí el reporte con <strong>Ver Detalle</strong> y tocá <strong>Enviar por Correo</strong>."),
+    (2, "<strong>Destinatarios</strong>: vienen marcados los contactos del proyecto que <em>reciben reportes</em>. Podés agregar otro correo a mano."),
+    (3, "Revisá el <strong>Texto del Reporte</strong> y agregá un <strong>Mensaje Adicional</strong> si hace falta. Cambiar el texto aquí no cambia el reporte guardado."),
+    (4, "Tocá <strong>Enviar Correo</strong>. El correo lleva las notas, las tareas hechas y las fotos adjuntas."),
+]) }}
+{% call m.warn("Antes de enviar") %}
+<p>La dirección tomatocostarica@gmail.com va como destinatario <strong>visible</strong> (no oculto, aunque la pantalla
+    diga copia oculta). Y el aviso <em>Correo enviado exitosamente</em> sale apenas se pone en cola: si el cliente dice
+    que no le llegó, revisá con el admin del correo.</p>
+{% endcall %}
+<p>Para que un contacto reciba reportes, marcá <strong>Recibe reportes</strong> en los contactos del proyecto (ver
+    Crear o editar un proyecto). Tiene que tener correo.</p>
+{% else %}
+<p>El reporte por correo lo manda el admin a los contactos del cliente que <em>reciben reportes</em>, con las notas, las
+    tareas hechas y las fotos. {% if user.role == 'client' %}Si querés que otra persona de tu empresa los reciba, avisale a TOMATO.{% endif %}</p>
+{% endif %}
+{% endcall %}
+
+{% call m.section("crear", "Crear o editar un proyecto") %}
+{% if user.role == 'admin' %}
+{{ m.shot("proyectos/formulario.webp", "Formulario de proyecto", "El formulario de un proyecto (parte de arriba).") }}
+{{ m.steps([
+    (1, "<strong>Nombre Interno del Proyecto</strong> (obligatorio)."),
+    (2, "<strong>Cliente (cuenta)</strong>: buscá la cuenta por nombre o cédula, o creala. Si hay cuentas parecidas, el sistema te las muestra para no duplicar."),
+    (3, "<strong>Clientes (Usuarios)</strong>: las personas del cliente con acceso al portal. <strong>Trabajadores</strong>: supervisores y trabajadores asignados; solo ellos ven el proyecto."),
+    (4, "<strong>Ubicación</strong>: provincia, link de Waze y dirección. Con <em>Agregar Sede</em> sumás otros sitios del mismo contrato."),
+]) }}
+<p>Más abajo en el mismo formulario:</p>
+<ul class="list-disc space-y-1 pl-5">
+    <li><strong>Contactos del proyecto</strong>: se eligen de los contactos de la cuenta. Marcá <em>De sitio</em> (se
+        muestra en la ficha) y <em>Recibe reportes</em> (le llega el correo). Con <em>+ Agregar contacto a la cuenta</em>
+        creás uno nuevo; se guarda en la cuenta en ese momento.</li>
+    <li><strong>Insumos Requeridos</strong> y <strong>Checklist de Tareas</strong> (marcá <em>Requerido</em> en las que no pueden faltar).</li>
+    <li><strong>Definición de Presupuesto</strong>: licitación, duración, fechas, prórroga y <em>Líneas Adjudicadas</em>.
+        Es lo mismo que se ve en Presupuestos.</li>
+    <li><strong>Proyecto Activo</strong> (al editar): desmarcalo para archivar un proyecto terminado.</li>
+</ul>
+<p>Tocá <strong>Guardar</strong>. Si el proyecto viene de una oportunidad ganada en Clientes, la cuenta ya viene puesta.</p>
+{% call m.tip("Cambiar tareas y sedes sin perder la historia") %}
+<p>Podés cambiar el nombre de una tarea o sede: los reportes viejos siguen ligados a ella. Si quitás una tarea o sede
+    que ya tiene reportes, queda archivada: ya no aparece en la bitácora nueva, pero los reportes viejos la siguen
+    mostrando. Una línea del presupuesto que ya tiene facturas no se puede quitar.</p>
+{% endcall %}
+{% else %}
+<p>Los proyectos los crea y edita el admin. Si un dato está mal (dirección, contactos, tareas), avisale.</p>
+{% endif %}
+{% endcall %}
+
+{% call m.section("preguntas", "Preguntas frecuentes") %}
+<div class="space-y-2">
+{% if user.role != 'client' %}
+{% call m.faq("No me deja guardar el reporte") %}
+<p>Revisá tres cosas: que elegiste el proyecto, que marcaste todas las tareas <em>*Requerido</em>, y que las fotos son
+    JPEG, PNG o WebP de menos de 5 MB. Si una foto es más grande, quitala (✕) y probá de nuevo.</p>
+{% endcall %}
+{% call m.faq("Olvidé registrar la bitácora ayer") %}
+<p>El reporte siempre queda con la fecha de hoy. Registralo hoy y escribí en las notas a qué día corresponde el trabajo.</p>
+{% endcall %}
+{% call m.faq("No aparece el proyecto al hacer un reporte") %}
+<p>Solo aparecen los proyectos activos a los que estás asignado. Pedile al admin que te asigne.</p>
+{% endcall %}
+{% endif %}
+{% call m.faq("No veo un proyecto") %}
+<p>Cada persona ve los proyectos a los que está asignada. Si falta uno, avisale al admin.</p>
+{% endcall %}
+{% if user.role == 'admin' %}
+{% call m.faq("Un contacto no aparece en los destinatarios del correo") %}
+<p>Tiene que estar marcado <em>Recibe reportes</em> en ese proyecto y tener correo. Si no tiene correo, la casilla
+    está apagada: agregáselo en la cuenta, en Clientes.</p>
+{% endcall %}
+{% call m.faq("¿«Clientes (Usuarios)» y «Cliente (cuenta)» son lo mismo?") %}
+<p>No. La <strong>cuenta</strong> es la empresa (en Clientes), con sus contactos. Los <strong>usuarios</strong> son las
+    personas de esa empresa que tienen acceso al portal para ver el proyecto.</p>
+{% endcall %}
+{% endif %}
+</div>
+{% endcall %}
+{% endblock %}

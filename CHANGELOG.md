@@ -6,7 +6,19 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-27
 
-### Arreglo: editar proyectos con trabajo registrado (esta rama)
+### Manual del usuario, parte 1 (esta rama)
+- Menú **Manual** (`/manual`) para todos los roles: índice con buscador y capítulos
+  Primeros pasos, Dashboard, Proyectos y bitácora, Clientes y Cotizador, con
+  capturas de pantalla y marcas numeradas. Cada rol ve solo sus capítulos.
+- Botón **?** en todas las pantallas internas y en el Cotizador: abre el capítulo
+  de esa pantalla.
+- La guía "Cómo trabajar" de Clientes pasa al manual (`/clientes/ayuda` redirige).
+- Capturas con datos ficticios locales, regenerables:
+  `scripts/manual/datos_demo.py` y `scripts/manual/capturas.mjs`.
+- `docs/PUNTOS_DIFICILES_UX.md`: lo que cuesta usar, para el trabajo de UI/UX.
+- Despliegue: sin migraciones; reiniciar.
+
+### Arreglo: editar proyectos con trabajo registrado (#61)
 - Desde el cambio a PostgreSQL, guardar un proyecto fallaba ("Error al
   guardar") si ya tenía bitácoras con tareas marcadas, facturas, o bitácoras o
   asignaciones del calendario en una sede: se borraban y recreaban tareas,
@@ -20,7 +32,7 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 - Los errores al guardar un proyecto se muestran sin comillas de JSON.
 - Despliegue: `alembic upgrade head` (0007 → 0008) y reiniciar.
 
-### Piloto en el sistema (esta rama)
+### Piloto en el sistema (#60)
 - El Embudo cuenta solo oportunidades **nuevas** creadas en el periodo del
   piloto (15/10–15/12/2026, editable por admin junto a las metas).
   Renovaciones y ampliaciones no cuentan; "Todo el historial" muestra el

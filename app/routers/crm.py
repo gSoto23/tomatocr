@@ -129,11 +129,9 @@ def pipeline(request: Request, motor: Optional[str] = None, owner: Optional[str]
 
 
 @router.get("/ayuda")
-def guide(request: Request, db: Session = Depends(deps.get_db), user: User = Depends(view_roles)):
-    period = funnel_period(db)
-    return templates.TemplateResponse("crm/ayuda.html", {
-        "request": request, "user": user, "period": period, "funnel": funnel(db, period=period),
-    })
+def guide(user: User = Depends(view_roles)):
+    """The team guide moved to the manual (/manual/clientes); old links keep working."""
+    return RedirectResponse(url="/manual/clientes", status_code=status.HTTP_301_MOVED_PERMANENTLY)
 
 
 @router.post("/metas")

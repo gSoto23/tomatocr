@@ -99,7 +99,7 @@ El portal de clientes (`role = client`) no cambia.
 - **Periodo del embudo** (tabla `crm_settings`, migración 0007): nombre, desde y hasta, editables por admin en "Editar metas y periodo". Por defecto "Piloto", 15/10/2026–15/12/2026. Las fechas son días de Costa Rica (UTC-6).
 - En el periodo, el embudo cuenta las cuentas con una oportunidad de tipo `nuevo` **creada dentro del periodo**, por su etapa más alta alcanzada. Renovaciones y ampliaciones no cuentan para las metas. El selector "Todo el historial" muestra el conteo anterior (todas las oportunidades). La lista de oportunidades, los próximos pasos y los montos en propuesta no se filtran por periodo. La tarjeta del dashboard usa el periodo.
 - **Asignación por el admin:** la asignación automática por motor sigue igual (hoy Alina y Gerardo); el admin reparte cada oportunidad cambiando su vendedor en la página de la oportunidad. Solo se puede elegir un usuario activo admin o ventas. El nuevo vendedor recibe un correo con el enlace y el próximo paso, y el cambio queda en Actividad.
-- **Guía del equipo:** `/clientes/ayuda` ("Cómo trabajar" en Clientes, admin y ventas): de dónde salen los prospectos, cómo registrarlos sin duplicar, qué significa cada etapa, seguimientos, cotizar, qué cuenta para las metas, permisos y datos personales.
+- **Guía del equipo:** capítulo Clientes del manual, `/manual/clientes` ("Cómo trabajar" en Clientes, admin y ventas; `/clientes/ayuda` redirige ahí): de dónde salen los prospectos, cómo registrarlos sin duplicar, qué significa cada etapa, seguimientos, cotizar, qué cuenta para las metas, permisos y datos personales.
 
 ## 6. Integraciones
 

@@ -1,0 +1,77 @@
+# Puntos difíciles de usar (insumo para el trabajo de UI/UX)
+
+Lo que se encontró al escribir el manual (27/09/2026): comportamientos poco claros,
+textos que no coinciden con lo que hace el sistema y pantallas que se cortan. El manual
+los explica mientras tanto. Cuando se corrija uno, sacarlo de aquí y ajustar su
+capítulo del manual.
+
+Prioridad sugerida: **A** confunde o hace perder trabajo; **B** molesta; **C** detalle.
+
+## Acceso y navegación
+
+| | Punto | Dónde |
+| --- | --- | --- |
+| A | No se puede cambiar ni recuperar la contraseña: solo el admin, desde Empleados. | `app/routers/users.py` |
+| A | Sesión vencida, usuario desactivado o token inválido devuelven a la portada sin ningún mensaje (`?error=login_required`, `invalid_token`). | `app/templates/index.html` |
+| B | Usuario desactivado ve "Usuario o contraseña incorrectos", igual que una contraseña mala. | `app/routers/auth.py` |
+| B | Entre 768 y 1023 px (tablet) el acceso no está en la barra: hay que abrir el menú ☰. | `app/templates/index.html` |
+| B | El título de la barra dice "Dashboard" en Proyectos, la ficha y el formulario de proyecto (no definen `header_title`). | `app/templates/projects/*.html` |
+| C | En el menú del celular la X de cerrar queda encima de la palabra "SISTEMA". | `app/templates/base_dashboard.html` |
+| C | El menú del celular no se cierra al tocar una opción (la página recarga). | `base_dashboard.html` |
+| C | El rol aparece con la palabra interna ("worker", "client", "ventas"). | `base_dashboard.html` |
+| C | Supervisor y trabajador que abren /cotizador reciben un JSON crudo de error. | `app/routers/quotes.py` |
+
+## Tablas que se cortan
+
+| | Punto | Dónde |
+| --- | --- | --- |
+| A | En el celular, "Mis Asignaciones" del trabajador esconde el botón **Gestionar** a la derecha: hay que deslizar la tabla. | `app/templates/dashboard.html` |
+| B | A 1280 px, la Bitácora del cliente corta **Ver Detalle** y la lista de Proyectos corta Estado y **Editar**. | `dashboard.html`, `projects/list.html` |
+
+## Dashboard
+
+| | Punto | Dónde |
+| --- | --- | --- |
+| B | Los filtros del admin solo cambian "Total Facturado" y la tabla; "Proyectos Activos" y "Total Adjudicado" no. El panel de filtros empieza cerrado aunque haya un filtro puesto. | `app/routers/dashboard.py` |
+| B | "Vencida" solo se actualiza al abrir el presupuesto del proyecto; el Dashboard puede mostrarla como Pendiente. | `app/routers/finance.py` |
+| B | Sin filtros oculta las pagadas; con Estado "Todos" las muestra. El mensaje vacío dice "pendientes" aunque se filtre por Pagada. | `dashboard.html` |
+| C | Montos sin símbolo de moneda. | `dashboard.html` |
+| C | Marcar una tarea en "Gestionar" no refresca la tabla. | `dashboard.html` |
+| C | "Mis Asignaciones" muestra las últimas 20 empezando por la fecha más lejana, no las de hoy. | `dashboard.py` |
+| C | Al cambiar de página se pierde el orden por fecha (Dashboard del cliente y Bitácora Global). | `dashboard.html`, `logs/list.html` |
+
+## Proyectos y bitácora
+
+| | Punto | Dónde |
+| --- | --- | --- |
+| A | La caja de fotos dice "PNG, JPG, GIF hasta 10MB"; el servidor acepta JPEG, PNG o WebP de hasta 5 MB. GIF y HEIC (iPhone) se rechazan, y si una foto falla no se guarda nada del reporte. | `app/templates/logs/form.html`, `app/utils/uploads.py` |
+| A | El reporte siempre queda con la fecha de hoy: no se puede registrar un día olvidado. | `app/routers/logs.py` |
+| A | "Siempre se enviará una copia oculta a tomatocostarica@gmail.com", pero se envía como destinatario visible. | `app/templates/components/log_modal.html` |
+| A | "Correo enviado exitosamente" sale al ponerlo en cola; si el envío falla después, nadie se entera. | `app/utils/email.py` |
+| B | "Nuevo Proyecto" aparece a supervisores y trabajadores, pero solo el admin puede crear. | `projects/list.html` |
+| B | El supervisor abre la ficha de proyectos no asignados, pero no puede reportar ni abrir sus reportes ("Error al cargar el reporte"). | `app/routers/projects.py`, `logs.py` |
+| B | El filtro de Bitácora Global lista todos los proyectos; elegir uno no asignado da un 403 crudo. | `logs.py` |
+| B | Al editar un reporte no se revisan las tareas obligatorias ni se pueden cambiar fotos; vaciar las notas da error. | `log_modal.html`, `logs.py` |
+| B | En el formulario de proyecto, "+ Agregar contacto a la cuenta" y "Crear cuenta" guardan en ese momento, aunque luego se cancele el proyecto. "Cambiar" la cuenta borra las selecciones de contactos. | `app/templates/projects/form.html` |
+| B | "Clientes (Usuarios)" y "Cliente (cuenta)" en el mismo formulario se confunden. | `projects/form.html` |
+| C | Trabajadores y clientes ven "Costo Total del Proyecto" en la ficha. | `projects/detail.html` |
+| C | Formatos de fecha distintos: dd/mm/aaaa, dd-mm-aaaa y AAAA-MM-DD según la pantalla. | varias |
+
+Corregido el 27/09/2026 (PR #61): editar un proyecto con reportes, calendario o
+facturas fallaba en PostgreSQL; editar un reporte le borraba la sede.
+
+## Cotizador
+
+| | Punto | Dónde |
+| --- | --- | --- |
+| A | Lo no guardado se pierde al recargar: el borrador se escribe en el navegador pero nunca se recupera. "Borrar Borrador" hace lo mismo que "Nueva". | `app/static/cotizador/app.js` |
+| A | Dos personas que abren el cotizador a la vez reciben el mismo número y la segunda en guardar reemplaza a la primera. Guardar una cotización cargada la reemplaza sin historial. | `app.js`, `app/routers/quotes.py` |
+| B | "Cambiar" la cuenta quita el vínculo con la oportunidad sin avisar. | `app.js` |
+| B | Cambiar la moneda no convierte precios; cambiar la validez no actualiza el texto de Términos. | `app.js` |
+| B | El descuento es un monto, no un porcentaje, y no lo dice. | `cotizador/index.html` |
+| B | El Historial solo tiene "Cargar": no hay borrar ni PDF desde la lista. | `index.html` |
+| C | Una cotización guardada con IVA 0 se recarga con la casilla de IVA desmarcada. | `app.js` |
+| C | La insignia de una cotización cargada dice "Oportunidad: #ID" en vez del título. | `app.js` |
+| C | Un usuario cliente que no es contacto de ninguna cuenta puede guardar, pero no ve su cotización en el Historial. | `quotes.py` |
+| C | En el celular el botón "Volver" es solo una flecha. | `index.html` |
+| C | Los textos del cotizador tratan de "usted" ("Elija el cliente…") y el resto del sistema de "vos". | `index.html`, `app.js` |
