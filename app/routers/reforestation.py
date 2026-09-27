@@ -7,7 +7,10 @@ from app.db.models.reforestation import ReforestationProject, ReforestationTree
 from app.core.templates import templates
 from datetime import datetime
 import csv
+import re
+import unicodedata
 from io import StringIO
+from urllib.parse import quote
 
 router = APIRouter(
     tags=["reforestation_admin"],
@@ -119,12 +122,23 @@ def download_csv(
         ])
         
     output.seek(0)
-    filename = f"{project.client_name.replace(' ', '_')}_inventario.csv"
+    filename = f"{(project.client_name or 'proyecto').replace(' ', '_')}_inventario.csv"
     return StreamingResponse(
         iter([output.getvalue()]),
         media_type="text/csv",
-        headers={"Content-Disposition": f"attachment; filename={filename}"}
+        headers={"Content-Disposition": content_disposition(filename)}
     )
+
+
+def content_disposition(filename: str) -> str:
+    """Attachment header that survives non-ASCII names (RFC 6266 / RFC 5987).
+
+    HTTP headers are latin-1, so a name like "Árbol" can't go in `filename`
+    as-is: that gets an ASCII fallback, and browsers use `filename*` instead.
+    """
+    ascii_name = unicodedata.normalize("NFKD", filename).encode("ascii", "ignore").decode("ascii")
+    ascii_name = re.sub(r'[^A-Za-z0-9._-]', "_", ascii_name) or "inventario.csv"
+    return f"attachment; filename=\"{ascii_name}\"; filename*=UTF-8''{quote(filename, safe='')}"
 
 
 public_router = APIRouter(prefix="/api/reforestation", tags=["reforestation_api"])
