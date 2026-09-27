@@ -21,8 +21,8 @@ def test_csv_download_with_any_client_name(db, login_as, client_name, ascii_name
 
     assert response.status_code == 200
     assert response.text.splitlines() == [
-        "TreeNumber,Species,Sector,Lat,Lng,Date",
-        "1,Guanacaste,Sector Á,10.01,-84.21,2026-06-01",
+        "TreeNumber,Species,Sector,Lat,Lng,Date,Status,CheckDate,HeightCm,Notes,ReplacedBy",
+        "1,Guanacaste,Sector Á,10.01,-84.21,2026-06-01,,,,,",
     ]
     disposition = response.headers["content-disposition"]
     assert disposition.startswith(f'attachment; filename="{ascii_name}"; filename*=UTF-8\'\'')
