@@ -3,68 +3,156 @@
 {% block title %}Reforestación Admin | TOMATO{% endblock %}
 {% block header_title %}Administración de Reforestación{% endblock %}
 
+{% macro pct(value) %}{{ '%.1f'|format(value) ~ ' %' if value is not none else '—' }}{% endmacro %}
+
 {% block content %}
-<div class="max-w-4xl mx-auto space-y-6" x-data="reforestationAdmin()">
-    
-    <!-- Proyectos Activos -->
+<div class="max-w-6xl mx-auto space-y-6" x-data="reforestationAdmin()">
+
+    <!-- Indicadores -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
-            <h2 class="text-lg font-semibold text-gray-900">Proyectos / Clientes Actuales</h2>
-            <button @click="showUploadModal = true" class="bg-black text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-gray-800 transition-colors flex items-center gap-2">
+        <div class="px-6 py-4 border-b border-gray-200 flex flex-wrap gap-3 justify-between items-center bg-gray-50">
+            <h2 class="text-lg font-semibold text-gray-900">Supervivencia por proyecto</h2>
+            <button @click="openPlanting()" class="bg-black text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-gray-800 transition-colors flex items-center gap-2">
                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                 </svg>
-                Importar CSV
+                Importar CSV de siembra
             </button>
         </div>
-        <div class="p-6">
-            {% if projects %}
-            <ul class="divide-y divide-gray-100">
-                {% for project in projects %}
-                <li class="py-4 flex justify-between items-center">
-                    <div>
-                        <div class="font-medium text-gray-900">{{ project.client_name }}</div>
-                        <div class="text-sm text-gray-500">Registrado el {{ project.created_at.strftime('%Y-%m-%d') }}</div>
-                    </div>
-                    <div class="flex items-center gap-4">
-                        <span class="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Activo</span>
-                        <a href="/dashboard/reforestacion/download-csv/{{ project.id }}" class="text-sm text-black hover:text-gray-600 font-semibold flex items-center gap-1" title="Descargar base de datos">
-                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                            </svg>
-                            CSV
-                        </a>
-                    </div>
-                </li>
-                {% endfor %}
-            </ul>
-            {% else %}
-            <div class="text-center py-8 text-gray-500 text-sm">
-                No hay proyectos registrados. Haz clic en "Importar CSV" para subir el primer inventario.
-            </div>
-            {% endif %}
+        {% if rows %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 text-sm">
+                <thead class="bg-gray-50 text-xs uppercase text-gray-500">
+                    <tr>
+                        <th class="px-4 py-3 text-left font-semibold">Proyecto</th>
+                        <th class="px-3 py-3 text-right font-semibold">Plantados</th>
+                        <th class="px-3 py-3 text-right font-semibold">Verificados</th>
+                        <th class="px-3 py-3 text-right font-semibold">Vivos</th>
+                        <th class="px-3 py-3 text-right font-semibold">Muertos</th>
+                        <th class="px-3 py-3 text-right font-semibold">Reemplazados</th>
+                        <th class="px-3 py-3 text-right font-semibold">Superv. 6 m</th>
+                        <th class="px-3 py-3 text-right font-semibold">Superv. 12 m</th>
+                        <th class="px-4 py-3 text-left font-semibold">Último monitoreo</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for row in rows %}
+                    {% set s = row.summary %}
+                    <tr>
+                        <td class="px-4 py-3">
+                            <div class="font-medium text-gray-900">{{ row.project.client_name }}</div>
+                            <div class="text-xs text-gray-500">{{ 'Institucional' if row.project.kind == 'institucional' else 'Dárboles' }}</div>
+                        </td>
+                        <td class="px-3 py-3 text-right">{{ s.planted }}</td>
+                        <td class="px-3 py-3 text-right">{{ s.verified }}</td>
+                        <td class="px-3 py-3 text-right text-green-700">{{ s.alive }}</td>
+                        <td class="px-3 py-3 text-right text-red-700">{{ s.dead }}</td>
+                        <td class="px-3 py-3 text-right text-amber-700">{{ s.replaced }}</td>
+                        {% for months in [6, 12] %}
+                        {% set c = s.cohorts[months] %}
+                        <td class="px-3 py-3 text-right">
+                            <div class="font-semibold">{{ pct(c.survival_pct) }}</div>
+                            <div class="text-xs text-gray-500">{{ pct(c.verified_pct) }} verif. de {{ c.trees }}</div>
+                        </td>
+                        {% endfor %}
+                        <td class="px-4 py-3 text-gray-700">{{ s.last_check.strftime('%d/%m/%Y') if s.last_check else 'Sin monitoreos' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
+        <p class="px-6 py-3 text-xs text-gray-500 border-t border-gray-100">
+            Supervivencia = vivos ÷ (vivos + muertos + reemplazados) entre los árboles verificados, sembrados hace al menos 6 o 12 meses.
+            Un árbol reemplazado cuenta como pérdida; los árboles sembrados como reposición se cuentan aparte y no suben la cifra.
+        </p>
+        {% else %}
+        <div class="text-center py-8 text-gray-500 text-sm">
+            No hay proyectos registrados. Haz clic en "Importar CSV de siembra" para subir el primer inventario.
+        </div>
+        {% endif %}
     </div>
 
+    <!-- Proyectos -->
+    {% for row in rows %}
+    {% set p = row.project %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 flex flex-wrap gap-3 justify-between items-center">
+            <div>
+                <h3 class="font-semibold text-gray-900">{{ p.client_name }}</h3>
+                <div class="text-sm text-gray-500">
+                    Registrado el {{ p.created_at.strftime('%d/%m/%Y') if p.created_at else '—' }}
+                    {% if row.summary.replacements %} · {{ row.summary.replacements }} reposiciones{% endif %}
+                    {% if row.summary.without_date %} · {{ row.summary.without_date }} sin fecha de siembra{% endif %}
+                </div>
+            </div>
+            <div class="flex flex-wrap items-center gap-3 text-sm">
+                <button @click='openPlanting({{ p.client_name|tojson }})' class="font-semibold text-black hover:text-gray-600">Actualizar siembra</button>
+                <button @click='openMonitoring({{ p.id }}, {{ p.client_name|tojson }})' class="font-semibold text-black hover:text-gray-600">Subir monitoreo</button>
+                <a href="/dashboard/reforestacion/download-csv/{{ p.id }}" class="font-semibold text-black hover:text-gray-600">Descargar CSV</a>
+                {% if p.project_id %}
+                <a href="/projects/{{ p.project_id }}/monitoreo" class="font-semibold text-green-700 hover:text-green-900">Monitoreo en campo</a>
+                {% endif %}
+            </div>
+        </div>
+        <form method="post" action="/dashboard/reforestacion/{{ p.id }}/settings" class="p-6 grid gap-4 sm:grid-cols-2 text-sm">
+            <label class="block">
+                <span class="font-medium text-gray-700">Tipo</span>
+                <select name="kind" class="mt-1 block w-full rounded-md border border-gray-300 p-2">
+                    <option value="institucional" {% if p.kind == 'institucional' %}selected{% endif %}>Institucional (sale en el mapa de tomatocr.com)</option>
+                    <option value="darboles" {% if p.kind == 'darboles' %}selected{% endif %}>Dárboles (comercial o personal, no sale en este mapa)</option>
+                </select>
+            </label>
+            <label class="block">
+                <span class="font-medium text-gray-700">Proyecto de operaciones (para monitorear desde la bitácora)</span>
+                <select name="linked_project_id" class="mt-1 block w-full rounded-md border border-gray-300 p-2">
+                    <option value="">Sin vincular</option>
+                    {% for op in operations_projects %}
+                    <option value="{{ op.id }}" {% if p.project_id == op.id %}selected{% endif %}>{{ op.name }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label class="block">
+                <span class="font-medium text-gray-700">Nombre público en el mapa</span>
+                <input type="text" name="public_name" value="{{ p.public_name or '' }}" placeholder="Ej. Municipalidad de Alajuela" class="mt-1 block w-full rounded-md border border-gray-300 p-2">
+            </label>
+            <label class="block">
+                <span class="font-medium text-gray-700">Fecha de la autorización</span>
+                <input type="date" name="consent_date" value="{{ p.consent_date.isoformat() if p.consent_date else '' }}" class="mt-1 block w-full rounded-md border border-gray-300 p-2">
+            </label>
+            <label class="flex items-start gap-2 sm:col-span-2">
+                <input type="checkbox" name="is_public" value="true" {% if p.is_public %}checked{% endif %} class="mt-1">
+                <span class="text-gray-700">El cliente autorizó mostrar su nombre en el mapa público. Sin esta autorización el mapa dice "Proyecto institucional".</span>
+            </label>
+            <div class="sm:col-span-2">
+                <button type="submit" class="rounded-md bg-black px-4 py-2 font-semibold text-white hover:bg-gray-800">Guardar configuración</button>
+            </div>
+        </form>
+    </div>
+    {% endfor %}
+
     <!-- Upload Modal -->
-    <div x-show="showUploadModal" class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true" x-cloak>
-        <div x-show="showUploadModal" x-transition.opacity class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+    <div x-show="modal" class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true" x-cloak>
+        <div x-show="modal" x-transition.opacity class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
         <div class="fixed inset-0 z-10 overflow-y-auto">
             <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-                <div x-show="showUploadModal" x-transition class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
-                    <form @submit.prevent="submitUpload" id="uploadForm">
+                <div x-show="modal" x-transition class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+                    <form @submit.prevent="submitUpload">
                         <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
-                            <h3 class="text-base font-semibold leading-6 text-gray-900" id="modal-title">Subir Inventario CSV</h3>
+                            <h3 class="text-base font-semibold leading-6 text-gray-900" id="modal-title"
+                                x-text="modal === 'planting' ? 'CSV de siembra' : 'CSV de monitoreo · ' + projectName"></h3>
                             <div class="mt-4 space-y-4">
-                                <div>
+                                <div x-show="modal === 'planting'">
                                     <label class="block text-sm font-medium text-gray-700">Nombre del Cliente (Proyecto)</label>
-                                    <input type="text" x-model="clientName" required placeholder="Ej. Municipalidad de Alajuela" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm border p-2">
+                                    <input type="text" x-model="clientName" :required="modal === 'planting'" placeholder="Ej. Municipalidad Alajuela" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm border p-2">
+                                    <p class="mt-1 text-xs text-gray-500">Si el nombre ya existe, se actualizan sus árboles. Nunca se borran árboles ni monitoreos.</p>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700">Archivo CSV</label>
                                     <input type="file" x-ref="fileInput" accept=".csv" required class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-gray-50 file:text-gray-700 hover:file:bg-gray-100 border border-gray-200 rounded-md">
-                                    <p class="mt-1 text-xs text-gray-500">Debe contener las columnas: TreeNumber, Species, Sector, Lat, Lng</p>
+                                    <p class="mt-1 text-xs text-gray-500" x-show="modal === 'planting'">Columnas: TreeNumber, Species, Sector, Lat, Lng y opcional Date (AAAA-MM-DD o DD/MM/AAAA).</p>
+                                    <p class="mt-1 text-xs text-gray-500" x-show="modal === 'monitoring'">Columnas: TreeNumber, Date, Status (vivo, muerto o reemplazado), HeightCm y Notes; opcional ReplacedBy (número del árbol nuevo).</p>
                                 </div>
+                                <p class="text-sm text-red-700 whitespace-pre-line" x-show="errorText" x-text="errorText"></p>
                             </div>
                         </div>
                         <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
@@ -72,7 +160,7 @@
                                 <span x-show="!isLoading">Subir e Importar</span>
                                 <span x-show="isLoading">Importando...</span>
                             </button>
-                            <button type="button" @click="showUploadModal = false" class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">Cancelar</button>
+                            <button type="button" @click="modal = null" class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">Cancelar</button>
                         </div>
                     </form>
                 </div>
@@ -84,31 +172,49 @@
 <script>
 document.addEventListener('alpine:init', () => {
     Alpine.data('reforestationAdmin', () => ({
-        showUploadModal: false,
+        modal: null,
         isLoading: false,
         clientName: '',
-        
+        projectId: null,
+        projectName: '',
+        errorText: '',
+
+        openPlanting(name = '') {
+            this.modal = 'planting';
+            this.clientName = name;
+            this.errorText = '';
+        },
+
+        openMonitoring(id, name) {
+            this.modal = 'monitoring';
+            this.projectId = id;
+            this.projectName = name;
+            this.errorText = '';
+        },
+
         async submitUpload() {
             this.isLoading = true;
-            const fileInput = this.$refs.fileInput;
+            this.errorText = '';
             const formData = new FormData();
-            formData.append('client_name', this.clientName);
-            formData.append('file', fileInput.files[0]);
-            
+            formData.append('file', this.$refs.fileInput.files[0]);
+            let url = '/dashboard/reforestacion/upload-csv';
+            if (this.modal === 'planting') {
+                formData.append('client_name', this.clientName);
+            } else {
+                url = `/dashboard/reforestacion/${this.projectId}/upload-monitoring`;
+            }
+
             try {
-                const response = await fetch('/dashboard/reforestacion/upload-csv', {
-                    method: 'POST',
-                    body: formData
-                });
+                const response = await fetch(url, { method: 'POST', body: formData });
                 const result = await response.json();
-                if(response.ok) {
+                if (response.ok) {
                     showGlobalToast('Éxito', result.message);
                     setTimeout(() => window.location.reload(), 1500);
                 } else {
-                    showGlobalToast('Error', result.detail || 'Error al subir', 'error');
+                    this.errorText = (result.detail || 'Error al subir').split(' | ').join('\n');
                     this.isLoading = false;
                 }
-            } catch(e) {
+            } catch (e) {
                 showGlobalToast('Error', 'Error de red al subir el archivo', 'error');
                 this.isLoading = false;
             }

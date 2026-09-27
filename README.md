@@ -31,7 +31,24 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
 ### 4. Cotizador Cloud In-App
 - Generación digital de cotizaciones visuales en formato paramétrico con exportación avanzada PDF y base híbrida autogestionable.
 
-### 5. Configuración Jerárquica & Auth
+### 5. Reforestación y supervivencia
+- **Inventario** (`/dashboard/reforestacion`, solo admin): CSV de siembra con
+  `TreeNumber, Species, Sector, Lat, Lng` y opcional `Date`. Volver a subirlo
+  agrega y actualiza árboles por número; nunca borra árboles ni monitoreos. Si
+  una fila tiene errores no se importa nada y se indica la línea.
+- **Monitoreos**: CSV con `TreeNumber, Date, Status, HeightCm, Notes` y
+  opcional `ReplacedBy`, o desde el campo en `/projects/{id}/monitoreo` (por
+  números o por sector, con foto opcional) para admin, supervisores y los
+  trabajadores asignados, cuando el proyecto está vinculado a un inventario.
+- **Supervivencia** a 6 y 12 meses: vivos ÷ (vivos + muertos + reemplazados)
+  entre los árboles verificados sembrados hace al menos ese tiempo; siempre se
+  muestra el % verificado. Las reposiciones se cuentan aparte.
+- **Mapa público** (`/proyectos-reforestacion`): solo proyectos de tipo
+  institucional; el nombre del cliente solo con su autorización (si no, dice
+  "Proyecto institucional"). Nunca publica notas, fotos ni usuarios. Los
+  proyectos de Dárboles se registran aquí pero no salen en este mapa.
+
+### 6. Configuración Jerárquica & Auth
 - Prevención total basada en Roles: `[Admin, Supervisor, Worker, Client, Ventas]`.
 - Encriptación y seguridad a nivel de tokens en las capas.
 

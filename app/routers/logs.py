@@ -16,6 +16,7 @@ from app.db.models.log_task import DailyLogTask
 from app.db.models.user import User
 from app.db.models.associations import project_users
 from app.routers import deps
+from app.db.models.reforestation import ReforestationProject
 from app.core.roles import ADMIN, CLIENT, OPERATIONS_ROLES
 from app.utils.activity import log_activity
 from app.utils.uploads import IMAGE_TYPES, MAX_IMAGE_SIZE_BYTES
@@ -271,6 +272,11 @@ def new_log_form(request: Request, project_id: Optional[int] = None, db: Session
         "project_tasks_json": project_tasks_json,
         "project_locations_json": project_locations_json,
         "selected_project_id": project_id,
+        "monitored_project_ids": [
+            pid for (pid,) in db.query(ReforestationProject.project_id).filter(
+                ReforestationProject.project_id.in_([p.id for p in projects])
+            )
+        ],
     })
 
 @router.post("/new")

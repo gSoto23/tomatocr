@@ -313,14 +313,25 @@
                 if (parts.length === 2) return parts.pop().split(';').shift();
             }
 
+            // The server sets messages with accents as a quoted cookie with octal
+            // escapes ("Liquidaci\363n"); older ones may be percent-encoded.
+            const decodeToast = (value) => {
+                let text = value;
+                if (text.length > 1 && text.startsWith('"') && text.endsWith('"')) text = text.slice(1, -1);
+                text = text.replace(/\\([0-7]{3})/g, (m, octal) => String.fromCharCode(parseInt(octal, 8)))
+                           .replace(/\\(.)/g, '$1');
+                try { text = decodeURIComponent(text); } catch (e) { /* not percent-encoded */ }
+                return text.replace(/\+/g, ' ');
+            };
+
             const toastMsg = getCookie('toast_message');
             if (toastMsg) {
-                // Decode URI component because cookie value might be encoded
-                const decodedMsg = decodeURIComponent(toastMsg).replace(/\+/g, ' ');
-                showGlobalToast('Éxito', decodedMsg);
+                const isError = getCookie('toast_type') === 'error';
+                showGlobalToast(isError ? 'Error' : 'Éxito', decodeToast(toastMsg), isError ? 'error' : 'success');
 
-                // Delete cookie
+                // Delete cookies
                 document.cookie = "toast_message=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                document.cookie = "toast_type=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
             }
 
             // Bind global loader to links and forms
