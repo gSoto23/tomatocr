@@ -20,6 +20,8 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 - Ninguna pantalla existente cambia.
 - Despliegue: snapshot, `alembic upgrade head`, script en prueba, revisar el
   reporte, `--apply`.
+- `docs/ANALISIS_ENCAJE_CRM.md`: análisis de qué repetiría el CRM respecto de
+  lo que ya existe y cambios recomendados antes de desplegar 2A.
 
 ### Sin opción "Dárboles" en la configuración de reforestación (#51)
 - Se quitó el campo "Tipo" del formulario del admin: darboles.com es una

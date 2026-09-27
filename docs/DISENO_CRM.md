@@ -2,7 +2,7 @@
 
 Preparado el 26/09/2026. Reemplaza la sección "Fase 2. CRM y formulario web" de `docs/PLAN_SISTEMA_COMERCIAL.md` (aprobado el 27/09/2026).
 
-**Estado (27/09/2026):** 2A implementada en la rama `feat/fase-2-crm` (sin desplegar). 2B, 2C y 2D pendientes, sujetas al análisis de encaje con el sistema actual que pidió Gerardo antes de seguir.
+**Estado (27/09/2026):** 2A implementada en la rama `feat/fase-2-crm` (sin desplegar). 2B, 2C y 2D pendientes. El análisis de encaje con el sistema actual está en `docs/ANALISIS_ENCAJE_CRM.md`, con cambios recomendados a este diseño que esperan decisión.
 Principio: **una sola cuenta por cliente**. Prospectos y clientes actuales viven en la misma tabla, y todo lo que ya existe (proyectos, cotizaciones, usuarios del portal, reforestación) se liga a esa cuenta sin romperse.
 
 ## 1. Cómo están hoy los clientes en el sistema
