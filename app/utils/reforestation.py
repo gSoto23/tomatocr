@@ -14,8 +14,11 @@ from app.db.models.reforestation import (
     ReforestationProject, ReforestationTree, TreeCheck,
 )
 
-PLANTING_COLUMNS = {"TreeNumber", "Species", "Sector", "Lat", "Lng"}
-MONITORING_COLUMNS = {"TreeNumber", "Date", "Status"}
+# One format for download and import: download, fill in or correct, import again.
+# Date = planting date; Status/CheckDate/HeightCm/Notes = latest monitoring;
+# ReplacedBy = number of the tree that replaced this one.
+CSV_COLUMNS = ["TreeNumber", "Species", "Sector", "Lat", "Lng", "Date",
+               "Status", "CheckDate", "HeightCm", "Notes", "ReplacedBy"]
 MAX_TREES_PER_SELECTION = 5000
 MAX_ERRORS_SHOWN = 20
 
@@ -74,60 +77,12 @@ def parse_tree_numbers(text: str) -> List[int]:
     return sorted(numbers)
 
 
-def _check_columns(reader: csv.DictReader, required: set):
-    missing = required - set(reader.fieldnames or [])
-    if missing:
-        raise CsvRejected([f"Faltan columnas: {', '.join(sorted(missing))}"])
-
-
 def _raise_if_errors(errors: List[str]):
     if errors:
         shown = errors[:MAX_ERRORS_SHOWN]
         if len(errors) > MAX_ERRORS_SHOWN:
             shown.append(f"... y {len(errors) - MAX_ERRORS_SHOWN} errores más")
         raise CsvRejected(shown)
-
-
-def import_planting_csv(db: Session, project: ReforestationProject, reader: csv.DictReader) -> Dict[str, int]:
-    """Upsert trees by number. Never deletes trees or their checks.
-
-    All-or-nothing: if any row is invalid nothing is saved and every problem is
-    reported with its line number.
-    """
-    _check_columns(reader, PLANTING_COLUMNS)
-    existing = {t.tree_number: t for t in project.trees}
-    errors, rows, seen = [], [], set()
-    for line, row in enumerate(reader, start=2):
-        try:
-            number = int(row["TreeNumber"])
-            lat, lng = float(row["Lat"]), float(row["Lng"])
-            planted = parse_date(row["Date"]) if (row.get("Date") or "").strip() else None
-        except (ValueError, TypeError) as e:
-            errors.append(f"Línea {line}: {e if 'fecha' in str(e) else 'TreeNumber, Lat y Lng deben ser números'}")
-            continue
-        if number in seen:
-            errors.append(f"Línea {line}: el árbol {number} está repetido en el archivo")
-            continue
-        seen.add(number)
-        rows.append((number, row["Species"], row["Sector"], lat, lng, planted))
-    _raise_if_errors(errors)
-
-    created = updated = 0
-    for number, species, sector, lat, lng, planted in rows:
-        tree = existing.get(number)
-        if tree is None:
-            project.trees.append(ReforestationTree(
-                tree_number=number, species=species, sector_name=sector,
-                lat=lat, lng=lng, date_planted=planted,
-            ))
-            created += 1
-        else:
-            tree.species, tree.sector_name, tree.lat, tree.lng = species, sector, lat, lng
-            if planted:
-                tree.date_planted = planted
-            updated += 1
-    db.commit()
-    return {"created": created, "updated": updated, "not_in_file": len(set(existing) - seen)}
 
 
 def record_check(tree: ReforestationTree, checked_at: date, status: str, *, height_cm: Optional[float] = None,
@@ -147,50 +102,149 @@ def record_check(tree: ReforestationTree, checked_at: date, status: str, *, heig
     return check
 
 
-def import_monitoring_csv(db: Session, project: ReforestationProject, reader: csv.DictReader,
-                          user_id: Optional[int]) -> Dict[str, int]:
-    """Columns TreeNumber, Date, Status, HeightCm, Notes (and optional ReplacedBy). All-or-nothing."""
-    _check_columns(reader, MONITORING_COLUMNS)
-    trees = {t.tree_number: t for t in project.trees}
-    errors, rows = [], []
+def _number(value: str, what: str) -> Optional[float]:
+    value = (value or "").strip()
+    if not value:
+        return None
+    try:
+        return float(value.replace(",", "."))
+    except ValueError:
+        raise ValueError(f"{what} debe ser un número")
+
+
+def latest_check(tree: ReforestationTree) -> Optional[TreeCheck]:
+    return max(tree.checks, key=lambda c: (c.checked_at, c.id or 0), default=None)
+
+
+def inventory_rows(project: ReforestationProject) -> List[List[str]]:
+    """The project's trees in CSV_COLUMNS order, empty where there is no data."""
+    rows = []
+    for tree in sorted(project.trees, key=lambda t: t.tree_number or 0):
+        check = latest_check(tree)
+        rows.append([
+            tree.tree_number,
+            tree.species or "",
+            tree.sector_name or "",
+            "" if tree.lat is None else tree.lat,
+            "" if tree.lng is None else tree.lng,
+            tree.date_planted.isoformat() if tree.date_planted else "",
+            tree.status if check else "",
+            check.checked_at.isoformat() if check else "",
+            "" if not check or check.height_cm is None else f"{check.height_cm:g}",
+            (check.notes or "") if check else "",
+            tree.replaced_by.tree_number if tree.replaced_by else "",
+        ])
+    return rows
+
+
+def import_inventory_csv(db: Session, project: ReforestationProject, reader: csv.DictReader,
+                         user_id: Optional[int], today: Optional[date] = None) -> Dict[str, int]:
+    """Imports the full inventory format. Only TreeNumber is required per row.
+
+    - New numbers create trees; existing numbers are updated.
+    - An empty cell never erases what is stored: data can be completed later.
+    - Trees missing from the file are kept, and so is their monitoring.
+    - Status + CheckDate record a monitoring check. A check on the same date as
+      an existing one updates it instead of adding another, so importing a
+      downloaded file again doesn't duplicate anything.
+    - All-or-nothing: any invalid row rejects the file, listing every line.
+    """
+    today = today or date.today()
+    if "TreeNumber" not in (reader.fieldnames or []):
+        raise CsvRejected(["Falta la columna TreeNumber. Descargue la plantilla para ver el formato."])
+    existing = {t.tree_number: t for t in project.trees}
+    errors, rows, seen = [], [], set()
     for line, row in enumerate(reader, start=2):
+        get = lambda col: (row.get(col) or "").strip()
+        if not any(get(col) for col in CSV_COLUMNS):
+            continue  # blank line
         try:
-            number = int(row["TreeNumber"])
-        except (ValueError, TypeError):
-            errors.append(f"Línea {line}: TreeNumber debe ser un número")
-            continue
-        tree = trees.get(number)
-        if tree is None:
-            errors.append(f"Línea {line}: el árbol {number} no existe en este proyecto")
-            continue
-        status = (row.get("Status") or "").strip().lower()
-        if status not in CHECK_STATUSES:
-            errors.append(f"Línea {line}: Status debe ser {', '.join(CHECK_STATUSES)}")
-            continue
-        try:
-            checked_at = parse_date(row["Date"])
-            height = row.get("HeightCm")
-            height = float(height.replace(",", ".")) if height and height.strip() else None
+            try:
+                number = int(get("TreeNumber"))
+            except ValueError:
+                raise ValueError("TreeNumber debe ser un número entero")
+            if number in seen:
+                raise ValueError(f"el árbol {number} está repetido en el archivo")
+            lat, lng = _number(get("Lat"), "Lat"), _number(get("Lng"), "Lng")
+            planted = parse_date(get("Date")) if get("Date") else None
+            status = get("Status").lower()
+            if status == STATUS_UNVERIFIED:
+                status = ""
+            check_date = parse_date(get("CheckDate")) if get("CheckDate") else None
+            height = _number(get("HeightCm"), "HeightCm")
+            if status and status not in CHECK_STATUSES:
+                raise ValueError(f"Status debe ser {', '.join(CHECK_STATUSES)} o quedar vacío")
+            if status and not check_date:
+                raise ValueError("falta CheckDate para registrar el Status")
+            if check_date and not status:
+                raise ValueError("CheckDate necesita un Status")
+            if (height is not None or get("Notes")) and not status:
+                raise ValueError("HeightCm y Notes van con un Status y su CheckDate")
+            if check_date and check_date > today:
+                raise ValueError("CheckDate no puede ser una fecha futura")
+            replaced_by = get("ReplacedBy")
+            if replaced_by:
+                if status != STATUS_REPLACED:
+                    raise ValueError("ReplacedBy solo aplica con Status reemplazado")
+                if not replaced_by.isdigit() or int(replaced_by) == number:
+                    raise ValueError("ReplacedBy debe ser el número de otro árbol")
         except ValueError as e:
-            errors.append(f"Línea {line}: {e if 'fecha' in str(e) else 'HeightCm debe ser un número'}")
+            errors.append(f"Línea {line}: {e}")
             continue
-        replaced_by = None
-        replaced_by_text = (row.get("ReplacedBy") or "").strip()
-        if replaced_by_text:
-            if status != STATUS_REPLACED:
-                errors.append(f"Línea {line}: ReplacedBy solo aplica con Status reemplazado")
-                continue
-            replaced_by = trees.get(int(replaced_by_text)) if replaced_by_text.isdigit() else None
-            if replaced_by is None or replaced_by is tree:
-                errors.append(f"Línea {line}: ReplacedBy debe ser otro árbol de este proyecto")
-                continue
-        rows.append((tree, checked_at, status, height, (row.get("Notes") or "").strip(), replaced_by))
+        seen.add(number)
+        rows.append(dict(line=line, number=number, species=get("Species"), sector=get("Sector"), lat=lat, lng=lng,
+                         planted=planted, status=status, check_date=check_date, height=height,
+                         notes=get("Notes"), replaced_by=int(replaced_by) if replaced_by else None))
+    for r in rows:
+        if r["replaced_by"] and r["replaced_by"] not in existing and r["replaced_by"] not in seen:
+            errors.append(f"Línea {r['line']}: ReplacedBy {r['replaced_by']} no existe en el proyecto ni en el archivo")
+    if not rows and not errors:
+        errors.append("El archivo no tiene filas con árboles")
     _raise_if_errors(errors)
 
-    for tree, checked_at, status, height, notes, replaced_by in rows:
-        record_check(tree, checked_at, status, height_cm=height, notes=notes, user_id=user_id, replaced_by=replaced_by)
+    result = {"created": 0, "updated": 0, "checks_added": 0, "checks_updated": 0}
+    trees = dict(existing)
+    for r in rows:
+        tree = trees.get(r["number"])
+        if tree is None:
+            tree = ReforestationTree(tree_number=r["number"])
+            project.trees.append(tree)
+            trees[r["number"]] = tree
+            result["created"] += 1
+        else:
+            result["updated"] += 1
+        for attr, key in (("species", "species"), ("sector_name", "sector"), ("lat", "lat"),
+                          ("lng", "lng"), ("date_planted", "planted")):
+            if r[key] not in (None, ""):
+                setattr(tree, attr, r[key])
+    db.flush()
+
+    for r in rows:
+        if not r["status"]:
+            continue
+        tree = trees[r["number"]]
+        same_day = next((c for c in tree.checks if c.checked_at == r["check_date"]), None)
+        if same_day is None:
+            record_check(tree, r["check_date"], r["status"], height_cm=r["height"], notes=r["notes"], user_id=user_id)
+            result["checks_added"] += 1
+        else:
+            changed = same_day.status != r["status"] or (r["height"] is not None and same_day.height_cm != r["height"]) \
+                or (r["notes"] and same_day.notes != r["notes"])
+            if changed:
+                same_day.status = r["status"]
+                if r["height"] is not None:
+                    same_day.height_cm = r["height"]
+                if r["notes"]:
+                    same_day.notes = r["notes"]
+                result["checks_updated"] += 1
+            if tree.last_checked_at == r["check_date"]:
+                tree.status = r["status"]
+        if r["replaced_by"]:
+            tree.replaced_by = trees[r["replaced_by"]]
+
     db.commit()
-    return {"checks": len(rows), "trees": len({id(r[0]) for r in rows})}
+    result["not_in_file"] = len(set(existing) - seen)
+    return result
 
 
 def add_months(day: date, months: int) -> date:

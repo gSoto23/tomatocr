@@ -89,7 +89,15 @@ def test_survival_is_none_without_verified_trees():
     assert s.cohorts[12].verified_pct == 0.0
 
 
-# --- Planting CSV: upsert, never delete ------------------------------------
+# --- Inventory CSV: one format to download, complete and import again ------
+
+UPLOAD_URL = "/dashboard/reforestacion/upload-csv"
+HEADER = "TreeNumber,Species,Sector,Lat,Lng,Date,Status,CheckDate,HeightCm,Notes,ReplacedBy\n"
+
+
+def import_csv(client, text, name="Municipalidad Alajuela"):
+    return upload(client, UPLOAD_URL, text, client_name=name)
+
 
 def test_reupload_updates_adds_and_never_deletes(db, admin, planted, users):
     trees = trees_of(db, planted)
@@ -99,7 +107,7 @@ def test_reupload_updates_adds_and_never_deletes(db, admin, planted, users):
     csv2 = "TreeNumber,Species,Sector,Lat,Lng,Date\n" \
            "1,Guanacaste negro,Parque Norte,10.01,-84.21,2024-06-01\n" \
            "4,Cenízaro,Parque Este,10.04,-84.24,2026-06-01\n"
-    response = upload(admin, "/dashboard/reforestacion/upload-csv", csv2, client_name="Municipalidad Alajuela")
+    response = import_csv(admin, csv2)
     assert response.status_code == 200
     assert "1 árboles nuevos, 1 actualizados" in response.json()["message"]
     assert "2 árboles registrados no venían en el archivo" in response.json()["message"]
@@ -110,57 +118,108 @@ def test_reupload_updates_adds_and_never_deletes(db, admin, planted, users):
     assert db.query(TreeCheck).count() == 1
 
 
-def test_invalid_planting_row_saves_nothing(db, admin, planted):
-    bad = "TreeNumber,Species,Sector,Lat,Lng,Date\n" \
-          "10,Roble,Sur,10.1,-84.1,2026-01-01\n" \
-          "abc,Roble,Sur,10.1,-84.1,2026-01-01\n" \
-          "11,Roble,Sur,10.1,-84.1,2026-13-45\n" \
-          "10,Roble,Sur,10.1,-84.1,2026-01-01\n"
-    response = upload(admin, "/dashboard/reforestacion/upload-csv", bad, client_name="Municipalidad Alajuela")
+def test_invalid_row_saves_nothing(db, admin, planted):
+    bad = HEADER + \
+          "10,Roble,Sur,10.1,-84.1,2026-01-01,,,,,\n" \
+          "abc,Roble,Sur,10.1,-84.1,2026-01-01,,,,,\n" \
+          "11,Roble,Sur,10.1,-84.1,2026-13-45,,,,,\n" \
+          "10,Roble,Sur,10.1,-84.1,2026-01-01,,,,,\n" \
+          "1,,,,,,enfermo,2026-09-01,,,\n" \
+          "2,,,,,,vivo,,,,\n" \
+          "3,,,,,,,,,nota sin estado,\n"
+    response = import_csv(admin, bad)
     assert response.status_code == 400
     detail = response.json()["detail"]
-    assert "Línea 3" in detail and "Línea 4" in detail and "Línea 5" in detail
+    for line in range(3, 9):
+        assert f"Línea {line}" in detail
     assert sorted(trees_of(db, planted)) == [1, 2, 3]
+    assert db.query(TreeCheck).count() == 0
 
 
-# --- Monitoring CSV ----------------------------------------------------------
-
-MONITORING_URL = "/dashboard/reforestacion/{}/upload-monitoring"
-
-
-def test_monitoring_csv_updates_status(db, admin, planted):
-    csv_text = "TreeNumber,Date,Status,HeightCm,Notes,ReplacedBy\n" \
-               "1,2026-09-01,vivo,\"120,5\",Buen estado,\n" \
-               "2,26/09/2026,Muerto,,Seco,\n" \
-               "3,2026-09-01,reemplazado,,,1\n"
-    response = upload(admin, MONITORING_URL.format(planted.id), csv_text)
+def test_only_tree_number_is_required(db, admin, planted):
+    response = import_csv(admin, HEADER + "50,,,,,,,,,,\n")
     assert response.status_code == 200, response.text
+    tree = trees_of(db, planted)[50]
+    assert (tree.species, tree.lat, tree.date_planted, tree.status) == (None, None, None, "sin_verificar")
+
+
+def test_empty_cells_never_erase_stored_data(db, admin, planted):
+    import_csv(admin, HEADER + "1,,,,,,vivo,2026-09-01,120,Buen estado,\n")
+    trees = trees_of(db, planted)
+    assert (trees[1].species, trees[1].sector_name, trees[1].lat) == ("Guanacaste", "Parque Norte", 10.01)
+    assert trees[1].status == "vivo" and trees[1].checks[0].height_cm == 120
+
+
+def test_monitoring_columns_record_checks(db, admin, planted):
+    csv_text = HEADER + \
+        '1,,,,,,vivo,2026-09-01,"120,5",Buen estado,\n' \
+        "2,,,,,,Muerto,26/09/2026,,Seco,\n" \
+        "3,,,,,,reemplazado,2026-09-01,,,4\n" \
+        "4,Roble,Parque Sur,10.05,-84.25,2026-09-01,,,,,\n"
+    response = import_csv(admin, csv_text)
+    assert response.status_code == 200, response.text
+    assert "3 monitoreos nuevos" in response.json()["message"]
     trees = trees_of(db, planted)
     assert trees[1].status == "vivo" and trees[1].checks[0].height_cm == 120.5
     assert trees[2].status == "muerto" and trees[2].last_checked_at == date(2026, 9, 26)
-    assert trees[3].status == "reemplazado" and trees[3].replaced_by_id == trees[1].id
+    assert trees[3].status == "reemplazado" and trees[3].replaced_by_id == trees[4].id
+
+
+def test_download_has_every_column_and_blanks(db, admin, planted):
+    import_csv(admin, HEADER + "1,,,,,,vivo,2026-09-01,85,Sano,\n3,,,,,,reemplazado,2026-09-02,,,2\n")
+    import_csv(admin, HEADER + "60,,,,,,,,,,\n")
+    lines = admin.get(f"/dashboard/reforestacion/download-csv/{planted.id}").text.splitlines()
+    assert lines[0] == HEADER.strip()
+    assert lines[1] == "1,Guanacaste,Parque Norte,10.01,-84.21,2024-06-01,vivo,2026-09-01,85,Sano,"
+    assert lines[2] == "2,Cortez,Parque Norte,10.02,-84.22,2024-06-01,,,,,"
+    assert lines[3] == "3,Roble,Parque Sur,10.03,-84.23,2024-06-01,reemplazado,2026-09-02,,,2"
+    assert lines[4] == "60,,,,,,,,,,"
+
+
+def test_reimporting_the_download_changes_nothing(db, admin, planted):
+    import_csv(admin, HEADER + "1,,,,,,vivo,2026-09-01,85,Sano,\n2,,,,,,muerto,2026-09-01,,,\n")
+    downloaded = admin.get(f"/dashboard/reforestacion/download-csv/{planted.id}").text
+    response = import_csv(admin, downloaded)
+    assert response.status_code == 200, response.text
+    assert "monitoreos" not in response.json()["message"]
+    assert db.query(TreeCheck).count() == 2
+    assert admin.get(f"/dashboard/reforestacion/download-csv/{planted.id}").text == downloaded
+
+
+def test_edit_the_download_and_import_it_again(db, admin, planted):
+    import_csv(admin, HEADER + "1,,,,,,vivo,2026-09-01,85,,\n")
+    lines = admin.get(f"/dashboard/reforestacion/download-csv/{planted.id}").text.splitlines()
+    lines[1] = "1,Guanacaste,Parque Norte,10.01,-84.21,2024-06-01,muerto,2026-09-01,85,Corregido,"  # same date: fix
+    lines[2] = "2,Cortez,Parque Norte,10.02,-84.22,2024-06-01,vivo,2026-09-20,40,,"            # new check
+    response = import_csv(admin, "\n".join(lines) + "\n")
+    assert "1 monitoreos nuevos y 1 corregidos" in response.json()["message"]
+    trees = trees_of(db, planted)
+    assert trees[1].status == "muerto" and len(trees[1].checks) == 1 and trees[1].checks[0].notes == "Corregido"
+    assert trees[2].status == "vivo"
 
 
 def test_older_check_does_not_override_latest_status(db, admin, planted):
-    upload(admin, MONITORING_URL.format(planted.id), "TreeNumber,Date,Status\n1,2026-09-01,muerto\n")
-    upload(admin, MONITORING_URL.format(planted.id), "TreeNumber,Date,Status\n1,2026-03-01,vivo\n")
+    import_csv(admin, HEADER + "1,,,,,,muerto,2026-09-01,,,\n")
+    import_csv(admin, HEADER + "1,,,,,,vivo,2026-03-01,,,\n")
     t = trees_of(db, planted)[1]
     assert t.status == "muerto" and t.last_checked_at == date(2026, 9, 1)
     assert len(t.checks) == 2
 
 
-def test_invalid_monitoring_row_saves_nothing(db, admin, planted):
-    csv_text = "TreeNumber,Date,Status\n1,2026-09-01,vivo\n99,2026-09-01,vivo\n2,2026-09-01,enfermo\n"
-    response = upload(admin, MONITORING_URL.format(planted.id), csv_text)
-    assert response.status_code == 400
-    assert "árbol 99 no existe" in response.json()["detail"]
-    assert "Línea 4" in response.json()["detail"]
-    assert db.query(TreeCheck).count() == 0
+def test_future_check_date_is_rejected(db, admin, planted):
+    response = import_csv(admin, HEADER + "1,,,,,,vivo,2999-01-01,,,\n")
+    assert response.status_code == 400 and "futura" in response.json()["detail"]
 
 
-def test_monitoring_csv_requires_columns(admin, planted):
-    response = upload(admin, MONITORING_URL.format(planted.id), "TreeNumber,Status\n1,vivo\n")
-    assert response.status_code == 400 and "Date" in response.json()["detail"]
+def test_file_needs_tree_number_column(admin, planted):
+    response = import_csv(admin, "Species,Status\nRoble,vivo\n")
+    assert response.status_code == 400 and "TreeNumber" in response.json()["detail"]
+
+
+def test_template_has_every_column(admin):
+    response = admin.get("/dashboard/reforestacion/plantilla-csv")
+    assert response.status_code == 200
+    assert response.text.splitlines()[0] == HEADER.strip()
 
 
 # --- Settings ------------------------------------------------------------------
@@ -187,7 +246,8 @@ def test_settings_reject_authorization_without_name(db, admin, planted):
 def test_only_admin_manages_reforestation(role, login_as, planted):
     client = login_as(role)
     assert client.post(f"/dashboard/reforestacion/{planted.id}/settings", data={"kind": "darboles"}).status_code == 403
-    assert upload(client, MONITORING_URL.format(planted.id), "TreeNumber,Date,Status\n1,2026-09-01,vivo\n").status_code == 403
+    assert import_csv(client, HEADER + "1,,,,,,vivo,2026-09-01,,,\n").status_code == 403
+    assert client.get(f"/dashboard/reforestacion/download-csv/{planted.id}").status_code == 403
 
 
 # --- Field monitoring ------------------------------------------------------------
@@ -291,8 +351,8 @@ def test_map_shows_only_institutional_projects_and_authorized_names(db, admin, p
         db.add(p)
     planted.is_public, planted.public_name = True, "Municipalidad de Alajuela"
     db.commit()
-    upload(admin, MONITORING_URL.format(planted.id),
-           "TreeNumber,Date,Status,Notes\n1,2026-09-01,vivo,nota interna\n2,2026-09-01,muerto,\n")
+    import_csv(admin, HEADER + "1,,,,,,vivo,2026-09-01,,nota interna,\n2,,,,,,muerto,2026-09-01,,,\n"
+               "99,,,,,,,,,,\n")  # no coordinates yet: not on the map
 
     data = new_client().get("/api/reforestation/map-data").json()
     names = {t["project"] for t in data["trees"]}
@@ -301,6 +361,7 @@ def test_map_shows_only_institutional_projects_and_authorized_names(db, admin, p
     assert "nota interna" not in str(data)
     assert set(data["trees"][0]) == {"id", "project", "sector", "species", "lat", "lng", "date", "status"}
 
+    assert 99 not in {t["id"] for t in data["trees"]}
     summary = next(p for p in data["projects"] if p["project"] == "Municipalidad de Alajuela")
-    assert summary == {"project": "Municipalidad de Alajuela", "planted": 3, "survival_12m": 50.0,
+    assert summary == {"project": "Municipalidad de Alajuela", "planted": 4, "survival_12m": 50.0,
                        "verified_12m": 66.7, "last_check": "2026-09-01"}

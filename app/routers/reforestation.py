@@ -14,7 +14,7 @@ from app.db.models.user import User
 from app.core.templates import templates
 from app.utils.activity import log_activity
 from app.utils.reforestation import (
-    CsvRejected, decode_csv, import_monitoring_csv, import_planting_csv, parse_date, parse_tree_numbers,
+    CSV_COLUMNS, CsvRejected, decode_csv, import_inventory_csv, inventory_rows, parse_date, parse_tree_numbers,
     record_check, survival_summary,
 )
 from app.utils.uploads import IMAGE_TYPES, MAX_IMAGE_SIZE_BYTES, read_validated_upload
@@ -79,7 +79,8 @@ async def upload_csv(
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(require_admin)
 ):
-    """Planting inventory. Adds new trees and updates existing ones by number; never deletes."""
+    """Full inventory CSV (same columns as the download). Adds and updates trees and
+    their monitoring; never deletes, and empty cells never erase stored data."""
     reader = read_csv_upload(file, await file.read())
     client_name = client_name.strip()
     project = db.query(ReforestationProject).filter(ReforestationProject.client_name == client_name).first()
@@ -88,34 +89,18 @@ async def upload_csv(
         db.add(project)
         db.flush()
     try:
-        result = import_planting_csv(db, project, reader)
+        result = import_inventory_csv(db, project, reader, user_id=current_user.id)
     except CsvRejected as e:
         db.rollback()
         raise HTTPException(status_code=400, detail="No se importó nada. " + " | ".join(e.errors))
 
-    message = f"{client_name}: {result['created']} árboles nuevos, {result['updated']} actualizados."
+    message = f"{client_name}: {result['created']} árboles nuevos, {result['updated']} actualizados"
+    if result["checks_added"] or result["checks_updated"]:
+        message += f", {result['checks_added']} monitoreos nuevos y {result['checks_updated']} corregidos"
+    message += "."
     if result["not_in_file"]:
         message += f" {result['not_in_file']} árboles registrados no venían en el archivo y se conservaron."
     log_activity(db, current_user, "IMPORT", "REFORESTATION", project.id, message)
-    return {"message": message}
-
-@router.post("/dashboard/reforestacion/{project_id}/upload-monitoring")
-async def upload_monitoring_csv(
-    project_id: int,
-    file: UploadFile = File(...),
-    db: Session = Depends(deps.get_db),
-    current_user: User = Depends(require_admin)
-):
-    """Monitoring CSV: TreeNumber, Date, Status, HeightCm, Notes (optional ReplacedBy)."""
-    project = get_reforestation_project(db, project_id)
-    reader = read_csv_upload(file, await file.read())
-    try:
-        result = import_monitoring_csv(db, project, reader, user_id=current_user.id)
-    except CsvRejected as e:
-        db.rollback()
-        raise HTTPException(status_code=400, detail="No se importó nada. " + " | ".join(e.errors))
-    message = f"{result['checks']} monitoreos registrados en {result['trees']} árboles."
-    log_activity(db, current_user, "IMPORT", "TREE_CHECKS", project.id, message)
     return {"message": message}
 
 @router.post("/dashboard/reforestacion/{project_id}/settings")
@@ -157,35 +142,35 @@ def update_settings(
     return toast_redirect(url, "Configuración guardada")
 
 
-@router.get("/dashboard/reforestacion/download-csv/{project_id}")
-def download_csv(
-    project_id: int,
-    db: Session = Depends(deps.get_db),
-    current_user: User = Depends(require_admin)
-):
-    project = get_reforestation_project(db, project_id)
-
+def csv_response(rows, filename: str) -> StreamingResponse:
     output = StringIO()
     writer = csv.writer(output)
-    writer.writerow(["TreeNumber", "Species", "Sector", "Lat", "Lng", "Date"])
-
-    for tree in project.trees:
-        writer.writerow([
-            tree.tree_number,
-            tree.species,
-            tree.sector_name,
-            tree.lat,
-            tree.lng,
-            tree.date_planted.strftime("%Y-%m-%d") if tree.date_planted else ""
-        ])
-
-    output.seek(0)
-    filename = f"{(project.client_name or 'proyecto').replace(' ', '_')}_inventario.csv"
+    writer.writerow(CSV_COLUMNS)
+    writer.writerows(rows)
     return StreamingResponse(
         iter([output.getvalue()]),
         media_type="text/csv",
         headers={"Content-Disposition": content_disposition(filename)}
     )
+
+
+@router.get("/dashboard/reforestacion/download-csv/{project_id}")
+def download_csv(
+    project_id: int, 
+    db: Session = Depends(deps.get_db), 
+    current_user: User = Depends(require_admin)
+):
+    """Every column, empty where there is no data yet: fill in, then import again."""
+    project = get_reforestation_project(db, project_id)
+    filename = f"{(project.client_name or 'proyecto').replace(' ', '_')}_inventario.csv"
+    return csv_response(inventory_rows(project), filename)
+
+
+@router.get("/dashboard/reforestacion/plantilla-csv")
+def download_template(current_user: User = Depends(require_admin)):
+    """Empty inventory with every column and one example row."""
+    example = [1, "Guanacaste", "Parque central", 10.0163, -84.2116, "2026-06-01", "", "", "", "", ""]
+    return csv_response([example], "plantilla_inventario_arboles.csv")
 
 
 def content_disposition(filename: str) -> str:
@@ -326,6 +311,8 @@ def get_map_data(db: Session = Depends(deps.get_db)):
             "last_check": summary.last_check.isoformat() if summary.last_check else None,
         })
         for t in project.trees:
+            if t.lat is None or t.lng is None:
+                continue  # coordinates not loaded yet
             trees.append({
                 "id": t.tree_number,
                 "project": name,
