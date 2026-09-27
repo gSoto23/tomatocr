@@ -3,9 +3,10 @@ from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.db.base_class import Base
 
-# Project kinds. Only "institucional" projects (public contracts) appear on the
-# tomatocr.com map; "darboles" projects (commercial/personal) are tracked here
-# but shown on the Dárboles map instead.
+# Project kinds. Every project here is "institucional" (public contracts shown on
+# the tomatocr.com map). Dárboles trees live on darboles.com, an independent
+# platform, so "darboles" is not offered in the admin form; the column stays so
+# the public map can keep filtering on it without a migration.
 KIND_INSTITUCIONAL = "institucional"
 KIND_DARBOLES = "darboles"
 PROJECT_KINDS = (KIND_INSTITUCIONAL, KIND_DARBOLES)

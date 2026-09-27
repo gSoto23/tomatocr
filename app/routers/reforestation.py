@@ -8,7 +8,7 @@ from app.core.storage import s3_service
 from app.db.models.log import DailyLog
 from app.db.models.project import Project
 from app.db.models.reforestation import (
-    CHECK_STATUSES, KIND_INSTITUCIONAL, PROJECT_KINDS, STATUS_REPLACED, ReforestationProject, ReforestationTree,
+    CHECK_STATUSES, KIND_INSTITUCIONAL, STATUS_REPLACED, ReforestationProject, ReforestationTree,
 )
 from app.db.models.user import User
 from app.core.templates import templates
@@ -69,7 +69,7 @@ def get_admin_dashboard(request: Request, db: Session = Depends(deps.get_db), cu
     operations_projects = db.query(Project).order_by(Project.name).all()
     return templates.TemplateResponse("reforestation/admin.html", {
         "request": request, "user": current_user, "rows": rows,
-        "operations_projects": operations_projects, "kinds": PROJECT_KINDS,
+        "operations_projects": operations_projects,
     })
 
 @router.post("/dashboard/reforestacion/upload-csv")
@@ -106,7 +106,6 @@ async def upload_csv(
 @router.post("/dashboard/reforestacion/{project_id}/settings")
 def update_settings(
     project_id: int,
-    kind: str = Form(...),
     linked_project_id: Optional[str] = Form(None),
     is_public: bool = Form(False),
     public_name: Optional[str] = Form(None),
@@ -116,8 +115,6 @@ def update_settings(
 ):
     project = get_reforestation_project(db, project_id)
     url = "/dashboard/reforestacion"
-    if kind not in PROJECT_KINDS:
-        return toast_redirect(url, "Tipo de proyecto no válido", error=True)
     linked = None
     if linked_project_id:
         linked = db.query(Project).filter(Project.id == int(linked_project_id)).first() if linked_project_id.isdigit() else None
@@ -131,14 +128,13 @@ def update_settings(
     except ValueError as e:
         return toast_redirect(url, f"Fecha de autorización: {e}", error=True)
 
-    project.kind = kind
     project.project_id = linked.id if linked else None
     project.is_public = is_public
     project.public_name = public_name
     project.consent_date = consent
     db.commit()
     log_activity(db, current_user, "UPDATE", "REFORESTATION", project.id,
-                 f"Configuración: tipo {kind}, nombre público {'autorizado' if is_public else 'no autorizado'}")
+                 f"Configuración: nombre público {'autorizado' if is_public else 'no autorizado'}")
     return toast_redirect(url, "Configuración guardada")
 
 

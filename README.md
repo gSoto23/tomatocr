@@ -47,10 +47,11 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
 - **Supervivencia** a 6 y 12 meses: vivos ÷ (vivos + muertos + reemplazados)
   entre los árboles verificados sembrados hace al menos ese tiempo; siempre se
   muestra el % verificado. Las reposiciones se cuentan aparte.
-- **Mapa público** (`/proyectos-reforestacion`): solo proyectos de tipo
+- **Mapa público** (`/proyectos-reforestacion`): los proyectos de reforestación
   institucional; el nombre del cliente solo con su autorización (si no, dice
   "Proyecto institucional"). Nunca publica notas, fotos ni usuarios. Los
-  proyectos de Dárboles se registran aquí pero no salen en este mapa.
+  árboles de Dárboles no se manejan aquí: darboles.com es una plataforma
+  independiente.
 
 ### 6. Configuración Jerárquica & Auth
 - Prevención total basada en Roles: `[Admin, Supervisor, Worker, Client, Ventas]`.

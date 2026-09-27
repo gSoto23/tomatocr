@@ -105,7 +105,7 @@ Objetivo: medir la supervivencia real por proyecto. Ese dato reemplaza el "70 %"
 
 **Cómo quedó implementada (27/09/2026)**, con los ajustes decididos durante el trabajo:
 
-- **Tipo de proyecto** (`kind`): `institucional` sale en el mapa de tomatocr.com; `darboles` (comercial o personal) se registra y mide aquí pero no sale en ese mapa, porque va en el mapa de Dárboles.
+- **Solo reforestación institucional**: todos los proyectos de este sistema son contrataciones institucionales y salen en el mapa de tomatocr.com. Los árboles comerciales y personales van en darboles.com, que es una plataforma independiente. La Fase 1 agregó un campo "Tipo" (institucional / Dárboles) que se quitó del formulario el 27/09/2026; la columna `kind` queda en la base, siempre `institucional`, sin uso visible.
 - **`is_public` controla el nombre, no la visibilidad**: los árboles de proyectos institucionales siempre salen en el mapa; sin autorización el nombre es "Proyecto institucional". El de la Municipalidad de Alajuela quedó autorizado desde la migración `0002`.
 - **Un solo CSV** para siembra y monitoreo, el mismo que se descarga: `TreeNumber, Species, Sector, Lat, Lng, Date, Status, CheckDate, HeightCm, Notes, ReplacedBy`. Solo `TreeNumber` es obligatorio; una casilla vacía no borra lo guardado; un monitoreo con la misma fecha se corrige en vez de duplicarse, así que reimportar lo descargado no cambia nada. Hay plantilla vacía para descargar.
 - **Registro en campo** en una página propia, `/projects/{id}/monitoreo` (enlazada desde el proyecto y desde la bitácora), en vez de una sección dentro del formulario de bitácora: permite registrar varios grupos seguidos desde el celular. Se liga a la bitácora del día si existe.

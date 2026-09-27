@@ -226,7 +226,7 @@ def test_template_has_every_column(admin):
 
 def test_settings_link_and_authorization(db, admin, planted, users):
     response = admin.post(f"/dashboard/reforestacion/{planted.id}/settings", data={
-        "kind": "institucional", "linked_project_id": str(users["project_id"]),
+        "linked_project_id": str(users["project_id"]),
         "is_public": "true", "public_name": "Municipalidad de Alajuela", "consent_date": "2026-09-27",
     }, follow_redirects=False)
     assert response.status_code == 303
@@ -237,7 +237,7 @@ def test_settings_link_and_authorization(db, admin, planted, users):
 
 def test_settings_reject_authorization_without_name(db, admin, planted):
     admin.post(f"/dashboard/reforestacion/{planted.id}/settings",
-               data={"kind": "institucional", "is_public": "true", "public_name": ""})
+               data={"is_public": "true", "public_name": ""})
     db.refresh(planted)
     assert planted.is_public is False
 
@@ -245,7 +245,7 @@ def test_settings_reject_authorization_without_name(db, admin, planted):
 @pytest.mark.parametrize("role", ["supervisor", "worker", "client", "ventas"])
 def test_only_admin_manages_reforestation(role, login_as, planted):
     client = login_as(role)
-    assert client.post(f"/dashboard/reforestacion/{planted.id}/settings", data={"kind": "darboles"}).status_code == 403
+    assert client.post(f"/dashboard/reforestacion/{planted.id}/settings", data={"public_name": "X"}).status_code == 403
     assert import_csv(client, HEADER + "1,,,,,,vivo,2026-09-01,,,\n").status_code == 403
     assert client.get(f"/dashboard/reforestacion/download-csv/{planted.id}").status_code == 403
 
@@ -365,3 +365,12 @@ def test_map_shows_only_institutional_projects_and_authorized_names(db, admin, p
     summary = next(p for p in data["projects"] if p["project"] == "Municipalidad de Alajuela")
     assert summary == {"project": "Municipalidad de Alajuela", "planted": 4, "survival_12m": 50.0,
                        "verified_12m": 66.7, "last_check": "2026-09-01"}
+
+
+def test_settings_form_has_no_project_type(db, admin, planted):
+    # darboles.com is an independent platform: every project here is institutional.
+    html = admin.get("/dashboard/reforestacion").text
+    assert 'name="kind"' not in html and "Dárboles (comercial" not in html
+    admin.post(f"/dashboard/reforestacion/{planted.id}/settings", data={"public_name": "Municipalidad de Alajuela"})
+    db.refresh(planted)
+    assert planted.kind == "institucional"
