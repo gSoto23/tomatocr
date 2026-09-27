@@ -5,28 +5,34 @@ Este documento lo usa el tab de Code (Claude Code) para implementar cada fase. I
 
 ## Resumen
 
-| Fase | Qué entrega | Fecha objetivo |
-| --- | --- | --- |
-| 0. Seguridad y base | Bloqueo de usuarios inactivos, permisos por lista de roles, límite de intentos en /login, Alembic y pruebas | 15/10/2026 |
-| 1. Supervivencia de árboles | Estado y monitoreos por árbol, indicador de supervivencia, mapa público con autorización por proyecto | 30/11/2026 |
-| 2. CRM y formulario web | Prospectos, actividades, embudo, enlace con cotizador y proyectos, rol `ventas`, formulario de contacto con consentimiento | 15/01/2027 |
+| Fase | Qué entrega | Fecha objetivo | Estado |
+| --- | --- | --- | --- |
+| Tarea rápida | Quitar el 70 % de /programas/darboles | antes de Fase 0 | En producción (27/09/2026, con la Fase 1) |
+| 0. Seguridad y base | Bloqueo de usuarios inactivos, permisos por lista de roles, límite de intentos en /login, Alembic y pruebas | 15/10/2026 | En producción (27/09/2026) |
+| Migración a PostgreSQL | No estaba en el plan: producción corría en SQLite (ver `docs/MIGRACION_POSTGRES.md`) | antes de Fase 1 | En producción (27/09/2026) |
+| 1. Supervivencia de árboles | Estado y monitoreos por árbol, indicador de supervivencia, mapa público con autorización por proyecto | 30/11/2026 | En producción (27/09/2026) |
+| 2. CRM y formulario web | Prospectos, actividades, embudo, enlace con cotizador y proyectos, rol `ventas`, formulario de contacto con consentimiento | 15/01/2027 | Pendiente |
+
+El historial detallado de cambios está en `CHANGELOG.md`.
 
 Quedan fuera del sistema (herramientas externas): plan de marketing, calendario de contenido y métricas de redes y pauta.
 Durante el piloto (15/10–15/12/2026) los prospectos se llevan en el tablero comercial de claude.ai; en la Fase 2 se importan.
 
-## Estado actual (hallazgos de la revisión)
+## Estado actual (hallazgos de la revisión del 26/09/2026)
 
-- `routers/auth.py` y `routers/deps.py`: el login y `get_current_user` no revisan `is_active` ni `status`. Un usuario desactivado o liquidado puede seguir entrando.
-- Los permisos se revisan dentro de cada ruta con comparaciones de texto. Algunas solo bloquean a `worker`: `check_finance_access` en `routers/finance.py`. Un rol nuevo pasaría esos controles.
-- `routers/users.py` acepta cualquier texto como `role` al crear o editar usuarios.
-- Sin límite de intentos en `/login` (ya anotado en el README).
-- Esquema creado con `Base.metadata.create_all` al arrancar y scripts sueltos en `scripts/migrate_*.py`; no hay Alembic.
-- No hay pruebas automáticas.
-- `routers/reforestation.py`: al volver a subir el CSV de un cliente se borran todos sus árboles y se vuelven a crear. Con monitoreos, eso borraría el historial.
-- `ReforestationTree` guarda número, especie, sector, coordenadas y fecha de siembra; no guarda estado, monitoreos ni fotos. `ReforestationProject` no está ligado a `Project`.
-- `/api/reforestation/map-data` es público y devuelve todos los árboles con el nombre del cliente.
-- El cotizador (`/cotizador`, `/api/quotes/*`) está abierto a `admin` y `client`. Confirmar si `client` debe tenerlo.
-- `.env` local usa claves `MYSQL_*`; `core/config.py` lee `DB_*`. Verificar el entorno de producción.
+Los puntos resueltos llevan su estado entre corchetes.
+
+- `routers/auth.py` y `routers/deps.py`: el login y `get_current_user` no revisan `is_active` ni `status`. Un usuario desactivado o liquidado puede seguir entrando. [Resuelto en Fase 0]
+- Los permisos se revisan dentro de cada ruta con comparaciones de texto. Algunas solo bloquean a `worker`: `check_finance_access` en `routers/finance.py`. Un rol nuevo pasaría esos controles. [Resuelto en Fase 0: listas de roles]
+- `routers/users.py` acepta cualquier texto como `role` al crear o editar usuarios. [Resuelto en Fase 0]
+- Sin límite de intentos en `/login` (ya anotado en el README). [Resuelto en Fase 0]
+- Esquema creado con `Base.metadata.create_all` al arrancar y scripts sueltos en `scripts/migrate_*.py`; no hay Alembic. [Resuelto: Alembic desde la Fase 0; base `0001` y `0002`]
+- No hay pruebas automáticas. [Resuelto: pytest, 196 pruebas]
+- `routers/reforestation.py`: al volver a subir el CSV de un cliente se borran todos sus árboles y se vuelven a crear. Con monitoreos, eso borraría el historial. [Resuelto en Fase 1]
+- `ReforestationTree` guarda número, especie, sector, coordenadas y fecha de siembra; no guarda estado, monitoreos ni fotos. `ReforestationProject` no está ligado a `Project`. [Resuelto en Fase 1]
+- `/api/reforestation/map-data` es público y devuelve todos los árboles con el nombre del cliente. [Resuelto en Fase 1]
+- El cotizador (`/cotizador`, `/api/quotes/*`) está abierto a `admin` y `client`. Confirmar si `client` debe tenerlo. [Decidido: `client` lo conserva]
+- `.env` local usa claves `MYSQL_*`; `core/config.py` lee `DB_*`. Verificar el entorno de producción. [Verificado: producción usa `DB_*`; además corría en SQLite por `USE_SQLITE=True` en el servicio, ya corregido]
 - Ya existen: GA4, sitemap, canonical, OG/Twitter y schema LocalBusiness en las páginas públicas.
 
 ## Tarea rápida. Textos de /programas/darboles (antes de la Fase 0)
@@ -97,6 +103,15 @@ Objetivo: medir la supervivencia real por proyecto. Ese dato reemplaza el "70 %"
 
 **Criterios de aceptación:** volver a subir un CSV de siembra no borra monitoreos; un CSV de monitoreo actualiza estados; la supervivencia se calcula con las reglas de arriba; un proyecto con `is_public = False` no aparece en el endpoint público.
 
+**Cómo quedó implementada (27/09/2026)**, con los ajustes decididos durante el trabajo:
+
+- **Tipo de proyecto** (`kind`): `institucional` sale en el mapa de tomatocr.com; `darboles` (comercial o personal) se registra y mide aquí pero no sale en ese mapa, porque va en el mapa de Dárboles.
+- **`is_public` controla el nombre, no la visibilidad**: los árboles de proyectos institucionales siempre salen en el mapa; sin autorización el nombre es "Proyecto institucional". El de la Municipalidad de Alajuela quedó autorizado desde la migración `0002`.
+- **Un solo CSV** para siembra y monitoreo, el mismo que se descarga: `TreeNumber, Species, Sector, Lat, Lng, Date, Status, CheckDate, HeightCm, Notes, ReplacedBy`. Solo `TreeNumber` es obligatorio; una casilla vacía no borra lo guardado; un monitoreo con la misma fecha se corrige en vez de duplicarse, así que reimportar lo descargado no cambia nada. Hay plantilla vacía para descargar.
+- **Registro en campo** en una página propia, `/projects/{id}/monitoreo` (enlazada desde el proyecto y desde la bitácora), en vez de una sección dentro del formulario de bitácora: permite registrar varios grupos seguidos desde el celular. Se liga a la bitácora del día si existe.
+- **Supervivencia**: vivos ÷ (vivos + muertos + reemplazados) entre verificados sembrados hace al menos 6 o 12 meses; un reemplazado cuenta como pérdida y las reposiciones se cuentan aparte.
+- Pendiente para cumplir el punto 5 de la tarea rápida: cuando haya monitoreos suficientes, volver a poner la cifra medida en /programas/darboles con su fecha de corte.
+
 ## Fase 2. CRM y formulario web
 
 Objetivo: que Melina y Albert trabajen sus prospectos dentro del sistema, del primer contacto hasta la cotización y el proyecto.
@@ -131,7 +146,8 @@ Objetivo: que Melina y Albert trabajen sus prospectos dentro del sistema, del pr
 1. Abrir la carpeta `/Users/gsoto/Desktop/tomatocr` en el tab de Code.
 2. Pegar el prompt de la fase (abajo). Code crea la rama, implementa, corre las pruebas y deja el PR listo para revisar.
 3. Probar en local con `USE_SQLITE=True`.
-4. Antes de desplegar: respaldo de la base de PostgreSQL, `git pull`, `pip install -r requirements.txt`, `alembic upgrade head`, `sudo systemctl restart tomato`.
+4. Antes de desplegar: snapshot de la base en Lightsail, `git pull`, `pip install -r requirements.txt`, `alembic upgrade head`, `sudo systemctl restart tomato` (detalle en el README, "Cómo desplegar").
+5. Cada PR actualiza la documentación: README, este plan (estado de la fase) y `CHANGELOG.md`.
 
 **Prompt tarea rápida de textos:**
 
@@ -149,9 +165,16 @@ Objetivo: que Melina y Albert trabajen sus prospectos dentro del sistema, del pr
 
 > Lee docs/PLAN_SISTEMA_COMERCIAL.md e implementa la Fase 2 en una rama nueva `feat/fase-2-crm`, con migraciones de Alembic, el rol `ventas`, las vistas, el formulario de contacto, la página /privacidad y el script de importación. Agrega pruebas de permisos del CRM. No toques producción. Resume los cambios y abre el PR.
 
-## Decisiones pendientes
+## Decisiones tomadas (27/09/2026)
 
-- ¿El rol `client` debe seguir usando el cotizador?
-- Asignación automática de prospectos del formulario: ¿Melina para ESG y regalo, Albert para mantenimiento y tienda?
-- ¿Quién hace los monitoreos de árboles y cada cuánto (sugerido: a los 3, 6 y 12 meses de la siembra)?
-- Autorización de la Municipalidad de Alajuela y del Museo de Arte Costarricense para mostrar su nombre en el mapa público.
+- El rol `client` conserva el cotizador como hoy.
+- Prospectos del formulario: ESG y regalo corporativo a Melina; mantenimiento y tienda a Albert; se puede cambiar desde administración.
+- Monitoreos sugeridos a los 3, 6 y 12 meses de la siembra; los registran admin, supervisores y los trabajadores asignados.
+- El nombre de la Municipalidad de Alajuela se muestra en el mapa (contratación pública, autorizado). Los demás proyectos, solo con autorización.
+- El formulario de darboles.com enviará prospectos al CRM de servidor a servidor, con clave de API; no se abre CORS a otros dominios.
+- `/privacidad`: responsable TOMATO COSTA RICA ANY S.R.L., cédula jurídica 3-102-876296, Alajuela, Alajuela, barrio San José, Condominio Botánica, casa 59A. Correo de contacto: [PENDIENTE].
+
+## Pendiente antes de la Fase 2
+
+- Exportación del tablero comercial del piloto (JSON) para importar los prospectos.
+- Correo de contacto para la página de privacidad.

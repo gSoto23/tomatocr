@@ -1,5 +1,11 @@
 # Migración de producción: SQLite → PostgreSQL
 
+> **Completada el 27/09/2026 (05:10 UTC).** Se copiaron 1.756 filas en 27
+> tablas a la base `tomato_prod_2026`, el servicio quedó con
+> `USE_SQLITE=False` y se confirmó que los registros nuevos se guardan en
+> PostgreSQL. Esta guía queda como registro de lo que se hizo y del plan de
+> reversa. Para desplegar cambios normales, ver "Cómo desplegar" en el README.
+
 Al 26/09/2026 producción guarda todo en `/home/ubuntu/tomatocr/sql_app.db`
 (SQLite), porque el servicio `tomato` define `Environment="USE_SQLITE=True"`.
 La base `Database-Tomato-Prod` (PostgreSQL 17.9 en Lightsail) quedó con una
