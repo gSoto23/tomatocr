@@ -57,8 +57,8 @@ def test_ventas_cannot_post_to_restricted_modules(path, users, login_as):
     assert response.status_code == 403
 
 
-def test_ventas_menu_shows_only_dashboard_and_quotes(users, login_as):
+def test_ventas_menu_shows_only_dashboard_quotes_and_clients(users, login_as):
     html = login_as("ventas").get("/dashboard/").text
-    assert 'href="/cotizador"' in html
+    assert 'href="/cotizador"' in html and 'href="/clientes"' in html
     for hidden in ['href="/projects"', 'href="/finance"', 'href="/payroll"', 'href="/calendar"', 'href="/users"']:
         assert hidden not in html

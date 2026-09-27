@@ -53,7 +53,28 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
   árboles de Dárboles no se manejan aquí: darboles.com es una plataforma
   independiente.
 
-### 6. Clientes / CRM (en construcción, `docs/DISENO_CRM.md` y `docs/ANALISIS_ENCAJE_CRM.md`)
+### 6. Clientes / CRM (`docs/DISENO_CRM.md` y `docs/ANALISIS_ENCAJE_CRM.md`)
+- **Menú "Clientes"** (admin y ventas):
+  - **Embudo** (`/clientes`): cuentas que alcanzaron cada etapa (prospecto,
+    respuesta, reunión, propuesta, ganado) contra metas que edita el admin
+    (piloto: 150, 60, 25, 10, 4); monto en propuesta por motor, tomado de la
+    cotización ligada; próximos pasos vencidos y de hoy; lista de
+    oportunidades con filtros por motor, vendedor, etapa y búsqueda.
+  - **Cuentas** (`/clientes/cuentas`): búsqueda por nombre, cédula o correo;
+    estado calculado, motores, dueño y último seguimiento. "Nueva cuenta" pide
+    solo nombre, tipo y un contacto, y avisa si ya existe una parecida (la
+    misma cédula nunca se repite).
+  - **Ficha de la cuenta**: "Registrar seguimiento", "Más datos", y pestañas
+    Seguimientos, Contactos, Oportunidades, Cotizaciones y Proyectos (el
+    enlace a finanzas solo para admin).
+  - **Oportunidad**: cambio de etapa (queda como seguimiento y en Actividad;
+    "perdido" pide motivo y conserva la etapa más alta), próximo paso y
+    seguimientos.
+- **Dashboard**: ventas ve sus próximos pasos (vencidos, hoy, 7 días); admin
+  ve el embudo del equipo.
+- **Permisos**: ventas ve todas las cuentas sin finanzas y edita las suyas y
+  las que no tienen dueño (al editarlas queda como dueño). Solo admin
+  reasigna dueños, edita metas y fusiona. Los demás roles reciben 403.
 - **Cuentas**: prospectos y clientes actuales en una sola tabla, con sus
   contactos, oportunidades y actividades. Los proyectos, cotizaciones y
   proyectos de reforestación se ligan a su cuenta (`account_id`); los nombres
@@ -199,7 +220,7 @@ Para volver atrás: `alembic downgrade <versión anterior>` (si hubo migración)
   `settings.SQLALCHEMY_DATABASE_URI`, nunca del archivo. Alembic se niega a
   correr si `USE_SQLITE` es verdadero.
 - Versiones: `0001` esquema base; `0002` supervivencia de árboles (Fase 1);
-  `0003` cuentas del CRM (Fase 2A).
+  `0003` cuentas del CRM (Fase 2A); `0004` metas del embudo (Fase 2B).
 - Todo cambio de esquema es una migración nueva:
   `alembic revision --autogenerate -m "..."`, revisarla, probarla en un
   PostgreSQL local (ver Pruebas) con `upgrade`, `check` y `downgrade`.
@@ -242,8 +263,8 @@ públicas.
 - **Roles**: `admin`, `supervisor`, `worker`, `client` y `ventas`, definidos
   en `app/core/roles.py`. Los routers de operaciones (proyectos, bitácora,
   calendario, finanzas, planilla, pagos, liquidación) exigen uno de los cuatro
-  roles operativos con `deps.require_roles`; `ventas` solo ve el Dashboard y
-  el Cotizador. Al crear o editar usuarios solo se aceptan esos roles.
+  roles operativos con `deps.require_roles`; `ventas` solo ve el Dashboard,
+  Clientes y el Cotizador. Al crear o editar usuarios solo se aceptan esos roles.
 - **Usuarios inactivos**: si `is_active` es falso o `status` es `inactive` o
   `liquidated`, no pueden entrar y su sesión abierta deja de servir.
 - **Límite de intentos en `/login`**: 5 fallos en 15 minutos bloquean ese

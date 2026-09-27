@@ -3,15 +3,16 @@ See docs/DISENO_CRM.md, sections 2 and 3."""
 import re
 import unicodedata
 from dataclasses import dataclass, field
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from difflib import SequenceMatcher
 from typing import Dict, List, Optional, Tuple
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.db.models.activity import ActivityLog
-from app.db.models.crm import (Account, AccountNotDuplicate, Contact, CrmActivity, Opportunity, ProjectContactRole,
-                                stage_index)
+from app.db.models.crm import (DEFAULT_GOALS, FUNNEL_STAGES, LABELS, STAGES, Account, AccountNotDuplicate, Contact,
+                                CrmActivity, CrmGoal, Opportunity, ProjectContactRole, stage_index)
 from app.db.models.project_details import ProjectContact
 from app.db.models.project import Project
 from app.db.models.quote import Quote
@@ -312,3 +313,161 @@ def merge_accounts(db: Session, keep: Account, drop: Account, user: User) -> Dic
                                + ", ".join(f"{v} {k}" for k, v in moved.items() if v)))
     db.commit()
     return moved
+
+
+# --- Pipeline, permissions and follow-ups (sub-fase 2B) -----------------------------
+
+
+
+CLOSED_STAGES = ("ganado", "perdido")
+
+
+def can_edit_account(user: User, account: Account) -> bool:
+    """Admin edits everything; ventas edits its own accounts and unowned ones."""
+    if user.role == "admin":
+        return True
+    return user.role == "ventas" and account.owner_id in (None, user.id)
+
+
+def can_edit_opportunity(user: User, opportunity: Opportunity) -> bool:
+    if user.role == "admin":
+        return True
+    return user.role == "ventas" and opportunity.owner_id in (None, user.id)
+
+
+def claim_if_unowned(entity, user: User):
+    """A seller who edits an unowned account or opportunity becomes its owner."""
+    if entity.owner_id is None and user.role == "ventas":
+        entity.owner_id = user.id
+
+
+def goals(db: Session) -> Dict[str, int]:
+    stored = {g.stage: g.target for g in db.query(CrmGoal)}
+    return {stage: stored.get(stage, DEFAULT_GOALS[stage]) for stage in FUNNEL_STAGES}
+
+
+def set_goals(db: Session, targets: Dict[str, int]):
+    for stage in FUNNEL_STAGES:
+        if stage in targets:
+            goal = db.get(CrmGoal, stage) or CrmGoal(stage=stage)
+            goal.target = max(0, int(targets[stage]))
+            db.add(goal)
+    db.commit()
+
+
+def quote_amount(db: Session, opportunity: Opportunity) -> Optional[float]:
+    """Latest linked quote in colones; otherwise the amount typed in the opportunity."""
+    quote = db.query(Quote).filter(Quote.opportunity_id == opportunity.id).order_by(
+        Quote.fecha_emision.desc(), Quote.id.desc()).first()
+    if quote is not None:
+        return quote.total if (quote.moneda or "CRC").upper() == "CRC" else None
+    return opportunity.amount_crc
+
+
+def filter_opportunities(query, motor: Optional[str] = None, owner_id: Optional[int] = None,
+                         stage: Optional[str] = None, search: Optional[str] = None):
+    if motor:
+        query = query.filter(Opportunity.motor == motor)
+    if owner_id:
+        query = query.filter(Opportunity.owner_id == owner_id)
+    if stage:
+        query = query.filter(Opportunity.stage == stage)
+    if search:
+        like = f"%{search.strip()}%"
+        query = query.join(Account, Account.id == Opportunity.account_id).filter(
+            (Opportunity.title.ilike(like)) | (Account.name.ilike(like)))
+    return query
+
+
+def funnel(db: Session, motor: Optional[str] = None, owner_id: Optional[int] = None) -> List[Dict]:
+    """Accounts that reached each stage (by the highest stage of any of their opportunities)."""
+    query = filter_opportunities(db.query(Opportunity.account_id, Opportunity.max_stage), motor, owner_id)
+    best: Dict[int, int] = {}
+    for account_id, max_stage in query:
+        best[account_id] = max(best.get(account_id, 0), max_stage or 0)
+    targets = goals(db)
+    rows = []
+    for index, stage in enumerate(FUNNEL_STAGES):
+        reached = sum(1 for value in best.values() if value >= index)
+        target = targets[stage]
+        rows.append({"stage": stage, "reached": reached, "target": target,
+                     "pct": round(100 * reached / target) if target else None})
+    return rows
+
+
+def proposal_amounts(db: Session, owner_id: Optional[int] = None) -> Dict[str, float]:
+    """Amount in open proposals by motor, taken from the linked quotes."""
+    query = db.query(Opportunity).filter(Opportunity.stage == "propuesta")
+    if owner_id:
+        query = query.filter(Opportunity.owner_id == owner_id)
+    totals: Dict[str, float] = {}
+    for opportunity in query:
+        amount = quote_amount(db, opportunity)
+        if amount:
+            key = opportunity.motor or "sin_motor"
+            totals[key] = totals.get(key, 0) + amount
+    return totals
+
+
+def next_steps(db: Session, owner_id: Optional[int] = None, today: Optional[date] = None) -> Dict[str, List[Opportunity]]:
+    """Open opportunities with a next-step date: overdue, today and the next 7 days."""
+    today = today or date.today()
+    query = db.query(Opportunity).filter(Opportunity.stage.notin_(CLOSED_STAGES),
+                                         Opportunity.next_step_date.isnot(None))
+    if owner_id:
+        query = query.filter(Opportunity.owner_id == owner_id)
+    result = {"vencidos": [], "hoy": [], "semana": []}
+    for opportunity in query.order_by(Opportunity.next_step_date, Opportunity.id):
+        if opportunity.next_step_date < today:
+            result["vencidos"].append(opportunity)
+        elif opportunity.next_step_date == today:
+            result["hoy"].append(opportunity)
+        elif opportunity.next_step_date <= today + timedelta(days=7):
+            result["semana"].append(opportunity)
+    return result
+
+
+def change_stage(db: Session, opportunity: Opportunity, stage: str, user: User, lost_reason: Optional[str] = None):
+    """Moves an opportunity; records a follow-up and an audit entry. "perdido" keeps the highest stage reached."""
+    if stage not in STAGES:
+        raise ValueError("Etapa no válida")
+    if stage == "perdido" and not (lost_reason or "").strip():
+        raise ValueError("Indique por qué se perdió")
+    if stage == opportunity.stage:
+        return
+    previous = opportunity.stage
+    opportunity.stage = stage
+    if stage != "perdido":
+        opportunity.max_stage = max(opportunity.max_stage or 0, stage_index(stage))
+        opportunity.lost_reason = None
+    else:
+        opportunity.lost_reason = lost_reason.strip()
+    note = f"{LABELS['stage'][previous]} → {LABELS['stage'][stage]}"
+    if stage == "perdido":
+        note += f". Motivo: {opportunity.lost_reason}"
+    db.add(CrmActivity(account_id=opportunity.account_id, opportunity_id=opportunity.id, type="cambio_etapa",
+                       happened_at=datetime.utcnow(), notes=note, user_id=user.id))
+    db.add(ActivityLog(user_id=user.id, action="UPDATE", entity_type="OPPORTUNITY", entity_id=opportunity.id,
+                       details=f"{opportunity.title}: {note}"))
+
+
+def similar_accounts(db: Session, name: str, tax_id: Optional[str] = None, email: Optional[str] = None) -> List[Account]:
+    """Existing accounts that could be the same client: same cédula, contact email, or a similar name."""
+    found = {}
+    for account in active_accounts(db):
+        if tax_id and account.tax_id and account.tax_id == tax_id.strip():
+            found[account.id] = account
+        elif name and (normalize_name(account.name) == normalize_name(name)
+                       or similarity(account.name, name) >= SIMILARITY_THRESHOLD):
+            found[account.id] = account
+    if email:
+        for contact in db.query(Contact).filter(Contact.email == email.strip().lower()):
+            account = db.get(Account, contact.account_id)
+            if account and not account.merged_into_id:
+                found[account.id] = account
+    return list(found.values())
+
+
+def last_followups(db: Session) -> Dict[int, datetime]:
+    return dict(db.query(CrmActivity.account_id, func.max(CrmActivity.happened_at)).group_by(CrmActivity.account_id))
+

@@ -20,6 +20,25 @@ STAGES = ("prospecto", "respuesta", "reunion", "propuesta", "ganado", "perdido")
 ACTIVITY_TYPES = ("llamada", "correo", "whatsapp", "visita", "reunion", "nota", "cambio_etapa")
 
 
+# Stages counted in the funnel, in order ("perdido" is not a step of the funnel).
+FUNNEL_STAGES = STAGES[:5]
+# Pilot targets per funnel stage (docs/PLAN_SISTEMA_COMERCIAL.md); editable by admin.
+DEFAULT_GOALS = {"prospecto": 150, "respuesta": 60, "reunion": 25, "propuesta": 10, "ganado": 4}
+
+LABELS = {
+    "stage": {"prospecto": "Prospecto", "respuesta": "Respuesta", "reunion": "Reunión", "propuesta": "Propuesta",
+              "ganado": "Ganado", "perdido": "Perdido"},
+    "motor": {"esg": "ESG", "regalo_corporativo": "Regalo corporativo", "mantenimiento": "Mantenimiento",
+              "tienda": "Tienda", "sector_publico": "Sector público"},
+    "kind": {"empresa": "Empresa", "institucion_publica": "Institución pública", "condominio": "Condominio",
+             "hotel": "Hotel", "persona": "Persona", "otro": "Otro"},
+    "status": {"prospecto": "Prospecto", "cliente": "Cliente", "ex_cliente": "Ex-cliente", "descartada": "Descartada"},
+    "activity": {"llamada": "Llamada", "correo": "Correo", "whatsapp": "WhatsApp", "visita": "Visita",
+                 "reunion": "Reunión", "nota": "Nota", "cambio_etapa": "Cambio de etapa"},
+    "opportunity_kind": {"nuevo": "Nuevo", "renovacion": "Renovación", "ampliacion": "Ampliación"},
+}
+
+
 def stage_index(stage: str) -> int:
     return STAGES.index(stage)
 
@@ -153,3 +172,11 @@ class ProjectContactRole(Base):
     position = Column(String(100), nullable=True)  # role on this site, e.g. "Encargado de obra"
 
     contact = relationship("Contact")
+
+
+class CrmGoal(Base):
+    """Funnel target per stage (accounts that should reach it)."""
+    __tablename__ = "crm_goals"
+
+    stage = Column(String(20), primary_key=True)
+    target = Column(Integer, nullable=False)

@@ -1,0 +1,237 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}{{ account.name }} | Clientes | TOMATO{% endblock %}
+{% block header_title %}Clientes · {{ account.name }}{% endblock %}
+
+{% macro money(value) %}{{ '₡{:,.0f}'.format(value) if value else '—' }}{% endmacro %}
+
+{% block content %}
+{% set L = crm_labels %}
+{% set badge = {'cliente': 'bg-green-50 text-green-700 ring-green-600/20', 'prospecto': 'bg-blue-50 text-blue-700 ring-blue-600/20',
+                'ex_cliente': 'bg-gray-100 text-gray-700 ring-gray-500/20', 'descartada': 'bg-red-50 text-red-700 ring-red-600/20'} %}
+{% set input = "mt-1 block w-full rounded-md border border-gray-300 p-2" %}
+<div class="max-w-5xl mx-auto space-y-5" x-data='{ tab: {{ tab|tojson }}, followup: false, more: false, newContact: false, newOpp: false }'>
+    <a href="/clientes/cuentas" class="text-sm font-semibold text-gray-600 hover:text-black">&larr; Cuentas</a>
+
+    <!-- Encabezado -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+        <div class="flex flex-wrap items-start justify-between gap-4">
+            <div>
+                <div class="flex flex-wrap items-center gap-2">
+                    <h2 class="text-xl font-bold text-gray-900">{{ account.name }}</h2>
+                    <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset {{ badge[status] }}">{{ L.status[status] }}</span>
+                </div>
+                <p class="mt-1 text-sm text-gray-600">
+                    {{ L.kind.get(account.kind, 'Otro') }}{% if account.tax_id %} · cédula {{ account.tax_id }}{% endif %}
+                    · dueño {{ (account.owner.full_name or account.owner.username) if account.owner else 'sin dueño' }}
+                </p>
+                {% if not can_edit %}<p class="mt-1 text-xs text-gray-500">Solo lectura: esta cuenta tiene otro dueño.</p>{% endif %}
+            </div>
+            <div class="flex flex-wrap gap-2 text-sm">
+                {% if can_edit %}
+                <button @click="followup = !followup" class="rounded-md bg-black px-3 py-2 font-semibold text-white hover:bg-gray-800">Registrar seguimiento</button>
+                <button @click="more = !more" class="rounded-md bg-white px-3 py-2 font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Más datos</button>
+                {% endif %}
+                {% if user.role == 'admin' or account.owner_id == user.id %}
+                <form method="post" action="/clientes/cuentas/{{ account.id }}/descartar">
+                    <button class="rounded-md bg-white px-3 py-2 font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">{{ 'Reactivar' if account.discarded_at else 'Descartar' }}</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if user.role == 'admin' %}
+        <form method="post" action="/clientes/cuentas/{{ account.id }}/duenio" class="mt-4 flex flex-wrap items-end gap-2 text-sm">
+            <label class="block"><span class="text-xs text-gray-600">Dueño</span>
+                <select name="owner_id" class="mt-1 block rounded-md border border-gray-300 p-2">
+                    <option value="">Sin dueño</option>
+                    {% for s in sellers %}<option value="{{ s.id }}" {% if account.owner_id == s.id %}selected{% endif %}>{{ s.full_name or s.username }}</option>{% endfor %}
+                </select></label>
+            <button class="rounded-md bg-white px-3 py-2 font-semibold ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Reasignar</button>
+        </form>
+        {% endif %}
+
+        <!-- Registrar seguimiento -->
+        {% if can_edit %}
+        <form x-show="followup" x-cloak method="post" action="/clientes/cuentas/{{ account.id }}/seguimientos" class="mt-5 grid gap-3 border-t border-gray-100 pt-5 text-sm sm:grid-cols-2">
+            <label class="block"><span class="font-medium text-gray-700">Tipo</span>
+                <select name="type" class="{{ input }}">{% for t in activity_types %}<option value="{{ t }}">{{ L.activity[t] }}</option>{% endfor %}</select></label>
+            <label class="block"><span class="font-medium text-gray-700">Fecha</span>
+                <input type="date" name="happened_at" value="{{ today.isoformat() }}" max="{{ today.isoformat() }}" class="{{ input }}"></label>
+            <label class="block"><span class="font-medium text-gray-700">Con quién (opcional)</span>
+                <select name="contact_id" class="{{ input }}"><option value="">—</option>{% for c in contacts %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}</select></label>
+            <label class="block"><span class="font-medium text-gray-700">Oportunidad (opcional)</span>
+                <select name="opportunity_id" class="{{ input }}"><option value="">—</option>{% for o, _ in opportunities %}{% if o.stage not in ['ganado', 'perdido'] %}<option value="{{ o.id }}">{{ o.title }}</option>{% endif %}{% endfor %}</select></label>
+            <label class="block sm:col-span-2"><span class="font-medium text-gray-700">Qué pasó</span>
+                <textarea name="notes" rows="3" class="{{ input }}"></textarea></label>
+            <label class="block"><span class="font-medium text-gray-700">Próximo paso (si eligió oportunidad)</span>
+                <input type="text" name="next_step" placeholder="Ej. Enviar propuesta" class="{{ input }}"></label>
+            <label class="block"><span class="font-medium text-gray-700">Fecha del próximo paso</span>
+                <input type="date" name="next_step_date" class="{{ input }}"></label>
+            <div class="sm:col-span-2"><button class="rounded-md bg-black px-4 py-2 font-semibold text-white hover:bg-gray-800">Guardar seguimiento</button></div>
+        </form>
+
+        <!-- Más datos -->
+        <form x-show="more" x-cloak method="post" action="/clientes/cuentas/{{ account.id }}/editar" class="mt-5 grid gap-3 border-t border-gray-100 pt-5 text-sm sm:grid-cols-2">
+            <label class="block"><span class="font-medium text-gray-700">Nombre</span><input type="text" name="name" required value="{{ account.name }}" class="{{ input }}"></label>
+            <label class="block"><span class="font-medium text-gray-700">Tipo</span>
+                <select name="kind" class="{{ input }}">{% for k in kinds %}<option value="{{ k }}" {% if account.kind == k %}selected{% endif %}>{{ L.kind[k] }}</option>{% endfor %}</select></label>
+            <label class="block"><span class="font-medium text-gray-700">Razón social</span><input type="text" name="legal_name" value="{{ account.legal_name or '' }}" class="{{ input }}"></label>
+            <label class="block"><span class="font-medium text-gray-700">Cédula</span><input type="text" name="tax_id" value="{{ account.tax_id or '' }}" class="{{ input }}"></label>
+            <label class="block"><span class="font-medium text-gray-700">Provincia</span><input type="text" name="province" value="{{ account.province or '' }}" class="{{ input }}"></label>
+            <label class="block"><span class="font-medium text-gray-700">Sitio web</span><input type="text" name="website" value="{{ account.website or '' }}" class="{{ input }}"></label>
+            <label class="block sm:col-span-2"><span class="font-medium text-gray-700">Dirección</span><input type="text" name="address" value="{{ account.address or '' }}" class="{{ input }}"></label>
+            <label class="block"><span class="font-medium text-gray-700">Código de exención de IVA</span><input type="text" name="vat_exemption_code" value="{{ account.vat_exemption_code or '' }}" class="{{ input }}"></label>
+            <label class="block"><span class="font-medium text-gray-700">Cómo llegó</span><input type="text" name="source" value="{{ account.source or '' }}" placeholder="Ej. referido, LinkedIn" class="{{ input }}"></label>
+            <label class="block sm:col-span-2"><span class="font-medium text-gray-700">Notas</span><textarea name="notes" rows="2" class="{{ input }}">{{ account.notes or '' }}</textarea></label>
+            <div class="sm:col-span-2"><button class="rounded-md bg-black px-4 py-2 font-semibold text-white hover:bg-gray-800">Guardar datos</button></div>
+        </form>
+        {% endif %}
+    </div>
+
+    <!-- Pestañas -->
+    <nav class="flex flex-wrap gap-1 rounded-lg bg-gray-100 p-1 text-sm font-semibold">
+        {% for key, label, count in [('seguimientos', 'Seguimientos', activities|length), ('contactos', 'Contactos', contacts|length),
+                                     ('oportunidades', 'Oportunidades', opportunities|length), ('cotizaciones', 'Cotizaciones', quotes|length),
+                                     ('proyectos', 'Proyectos', projects|length + reforestation|length)] %}
+        <button @click="tab = '{{ key }}'" :class="tab === '{{ key }}' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-600 hover:text-gray-900'" class="rounded-md px-3 py-2">{{ label }} ({{ count }})</button>
+        {% endfor %}
+    </nav>
+
+    <!-- Seguimientos -->
+    <div x-show="tab === 'seguimientos'" class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+        <ol class="space-y-4 text-sm">
+            {% for a in activities %}
+            <li class="border-l-2 {{ 'border-gray-300' if a.type == 'cambio_etapa' else 'border-green-600' }} pl-3">
+                <div class="font-medium text-gray-900">{{ L.activity[a.type] }} · {{ a.happened_at|format_datetime_cr }}</div>
+                <div class="text-gray-700 whitespace-pre-line">{{ a.notes or '' }}</div>
+                <div class="text-xs text-gray-500">{{ (a.user.full_name or a.user.username) if a.user else '' }}</div>
+            </li>
+            {% else %}
+            <li class="text-gray-500 italic">Todavía no hay seguimientos.{% if can_edit %} Use "Registrar seguimiento" arriba.{% endif %}</li>
+            {% endfor %}
+        </ol>
+    </div>
+
+    <!-- Contactos -->
+    <div x-show="tab === 'contactos'" x-cloak class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 space-y-4 text-sm">
+        {% for c in contacts %}
+        <div class="rounded-lg border border-gray-200 p-4" x-data="{ edit: false }">
+            <div class="flex flex-wrap justify-between gap-2">
+                <div>
+                    <div class="font-semibold text-gray-900">{{ c.name }}{% if c.is_primary %} <span class="text-xs font-normal text-gray-500">· principal</span>{% endif %}</div>
+                    <div class="text-gray-600">{{ c.role_title or '' }}</div>
+                    <div class="text-gray-700">
+                        {% if c.email %}<a href="mailto:{{ c.email }}" class="text-indigo-600 hover:underline">{{ c.email }}</a>{% endif %}
+                        {% if c.phone %} · <a href="tel:{{ c.phone }}" class="text-indigo-600 hover:underline">{{ c.phone }}</a>{% endif %}
+                    </div>
+                    <div class="mt-1 flex flex-wrap gap-1 text-xs">
+                        {% if c.is_commercial %}<span class="rounded bg-gray-100 px-2 py-0.5">Comercial</span>{% endif %}
+                        {% if c.is_billing %}<span class="rounded bg-gray-100 px-2 py-0.5">Facturación</span>{% endif %}
+                        {% if c.user_id %}<span class="rounded bg-gray-100 px-2 py-0.5">Acceso al portal</span>{% endif %}
+                        {% for p in contact_projects.get(c.id, []) %}
+                        <span class="rounded bg-green-50 px-2 py-0.5 text-green-800">{{ p.project }}{% if p.site %} · sitio{% endif %}{% if p.reports %} · recibe reportes{% endif %}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% if can_edit %}<button @click="edit = !edit" class="self-start font-semibold text-gray-600 hover:text-black">Editar</button>{% endif %}
+            </div>
+            {% if can_edit %}
+            <form x-show="edit" x-cloak method="post" action="/clientes/contactos/{{ c.id }}/editar" class="mt-3 grid gap-2 sm:grid-cols-2">
+                <input type="text" name="name" required value="{{ c.name }}" placeholder="Nombre" class="rounded-md border border-gray-300 p-2">
+                <input type="text" name="role_title" value="{{ c.role_title or '' }}" placeholder="Cargo" class="rounded-md border border-gray-300 p-2">
+                <input type="email" name="email" value="{{ c.email or '' }}" placeholder="Correo" class="rounded-md border border-gray-300 p-2">
+                <input type="text" name="phone" value="{{ c.phone or '' }}" placeholder="Teléfono" class="rounded-md border border-gray-300 p-2">
+                <div class="flex flex-wrap gap-4 sm:col-span-2">
+                    <label class="flex items-center gap-2"><input type="checkbox" name="is_commercial" value="true" {% if c.is_commercial %}checked{% endif %}> Comercial</label>
+                    <label class="flex items-center gap-2"><input type="checkbox" name="is_billing" value="true" {% if c.is_billing %}checked{% endif %}> Facturación</label>
+                    <label class="flex items-center gap-2"><input type="checkbox" name="is_primary" value="true" {% if c.is_primary %}checked{% endif %}> Principal</label>
+                </div>
+                <div class="sm:col-span-2"><button class="rounded-md bg-black px-3 py-2 font-semibold text-white hover:bg-gray-800">Guardar contacto</button></div>
+            </form>
+            {% endif %}
+        </div>
+        {% else %}
+        <p class="text-gray-500 italic">Sin contactos.</p>
+        {% endfor %}
+        <p class="text-xs text-gray-500">Los contactos de sitio y quién recibe los reportes de cada proyecto se siguen eligiendo en el formulario del proyecto.</p>
+        {% if can_edit %}
+        <button @click="newContact = !newContact" class="font-semibold text-black hover:text-gray-600">+ Agregar contacto</button>
+        <form x-show="newContact" x-cloak method="post" action="/clientes/cuentas/{{ account.id }}/contactos" class="grid gap-2 sm:grid-cols-2">
+            <input type="text" name="name" required placeholder="Nombre" class="rounded-md border border-gray-300 p-2">
+            <input type="text" name="role_title" placeholder="Cargo" class="rounded-md border border-gray-300 p-2">
+            <input type="email" name="email" placeholder="Correo" class="rounded-md border border-gray-300 p-2">
+            <input type="text" name="phone" placeholder="Teléfono" class="rounded-md border border-gray-300 p-2">
+            <div class="flex gap-4 sm:col-span-2">
+                <label class="flex items-center gap-2"><input type="checkbox" name="is_commercial" value="true" checked> Comercial</label>
+                <label class="flex items-center gap-2"><input type="checkbox" name="is_billing" value="true"> Facturación</label>
+            </div>
+            <div class="sm:col-span-2"><button class="rounded-md bg-black px-3 py-2 font-semibold text-white hover:bg-gray-800">Agregar</button></div>
+        </form>
+        {% endif %}
+    </div>
+
+    <!-- Oportunidades -->
+    <div x-show="tab === 'oportunidades'" x-cloak class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 space-y-4 text-sm">
+        <ul class="divide-y divide-gray-100">
+            {% for o, amount in opportunities %}
+            <li class="flex flex-wrap justify-between gap-2 py-3">
+                <div><a href="/clientes/oportunidades/{{ o.id }}" class="font-semibold text-gray-900 hover:underline">{{ o.title }}</a>
+                    <div class="text-gray-600">{{ L.stage[o.stage] }} · {{ L.motor.get(o.motor, 'sin motor') }}{% if o.kind != 'nuevo' %} · {{ L.opportunity_kind[o.kind] }}{% endif %}</div></div>
+                <div class="text-right">{{ money(amount) }}{% if o.next_step_date %}<div class="text-xs text-gray-600">{{ o.next_step or 'Próximo paso' }} · {{ o.next_step_date|format_date }}</div>{% endif %}</div>
+            </li>
+            {% else %}
+            <li class="py-2 text-gray-500 italic">Sin oportunidades.</li>
+            {% endfor %}
+        </ul>
+        {% if can_edit %}
+        <button @click="newOpp = !newOpp" class="font-semibold text-black hover:text-gray-600">+ Nueva oportunidad</button>
+        <form x-show="newOpp" x-cloak method="post" action="/clientes/cuentas/{{ account.id }}/oportunidades" class="grid gap-3 sm:grid-cols-2">
+            <label class="block sm:col-span-2"><span class="font-medium text-gray-700">Título *</span><input type="text" name="title" required placeholder="Ej. Mantenimiento de zonas verdes 2027" class="{{ input }}"></label>
+            <label class="block"><span class="font-medium text-gray-700">Motor</span>
+                <select name="motor" class="{{ input }}"><option value="">—</option>{% for m in motors %}<option value="{{ m }}">{{ L.motor[m] }}</option>{% endfor %}</select></label>
+            <label class="block"><span class="font-medium text-gray-700">Tipo</span>
+                <select name="kind" class="{{ input }}">{% for k in opportunity_kinds %}<option value="{{ k }}">{{ L.opportunity_kind[k] }}</option>{% endfor %}</select></label>
+            <label class="block"><span class="font-medium text-gray-700">Próximo paso</span><input type="text" name="next_step" class="{{ input }}"></label>
+            <label class="block"><span class="font-medium text-gray-700">Fecha del próximo paso</span><input type="date" name="next_step_date" class="{{ input }}"></label>
+            <label class="block"><span class="font-medium text-gray-700">Monto estimado (₡, hasta que haya cotización)</span><input type="text" name="amount_crc" inputmode="numeric" class="{{ input }}"></label>
+            <div class="sm:col-span-2"><button class="rounded-md bg-black px-4 py-2 font-semibold text-white hover:bg-gray-800">Crear oportunidad</button></div>
+        </form>
+        {% endif %}
+    </div>
+
+    <!-- Cotizaciones -->
+    <div x-show="tab === 'cotizaciones'" x-cloak class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 text-sm">
+        <ul class="divide-y divide-gray-100">
+            {% for q in quotes %}
+            <li class="flex justify-between gap-2 py-3">
+                <div><span class="font-semibold text-gray-900">{{ q.numero_cotizacion }}</span> · {{ q.fecha_emision|format_date }}
+                    <div class="text-gray-600">{{ q.tipo_servicio or '' }}</div></div>
+                <div class="text-right">{{ (q.moneda or 'CRC') }} {{ '{:,.2f}'.format(q.total or 0) }}</div>
+            </li>
+            {% else %}
+            <li class="py-2 text-gray-500 italic">Sin cotizaciones.</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <!-- Proyectos -->
+    <div x-show="tab === 'proyectos'" x-cloak class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 text-sm">
+        <ul class="divide-y divide-gray-100">
+            {% for p in projects %}
+            <li class="flex justify-between gap-2 py-3">
+                <div><span class="font-semibold text-gray-900">{{ p.name }}</span>
+                    <span class="ml-2 text-xs {{ 'text-green-700' if p.is_active != false else 'text-gray-500' }}">{{ 'Activo' if p.is_active != false else 'Cerrado' }}</span></div>
+                {% if user.role == 'admin' %}
+                <div class="flex gap-3"><a href="/projects/{{ p.id }}" class="font-semibold hover:underline">Proyecto</a><a href="/finance/{{ p.id }}" class="font-semibold hover:underline">Finanzas</a></div>
+                {% endif %}
+            </li>
+            {% endfor %}
+            {% for r in reforestation %}
+            <li class="py-3"><span class="font-semibold text-gray-900">{{ r.client_name }}</span> <span class="ml-2 text-xs text-gray-600">Reforestación · {{ r.trees|length }} árboles</span></li>
+            {% endfor %}
+            {% if not projects and not reforestation %}<li class="py-2 text-gray-500 italic">Sin proyectos todavía.</li>{% endif %}
+        </ul>
+    </div>
+</div>
+{% endblock %}
