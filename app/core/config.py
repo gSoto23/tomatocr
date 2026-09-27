@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     DB_SERVER: str = os.getenv("DB_SERVER", "localhost")
     DB_PORT: str = os.getenv("DB_PORT", "5432")
     DB_NAME: str = os.getenv("DB_NAME", "tomatodb")
+    # Production (Lightsail) requires SSL; "disable" is only for a local PostgreSQL.
+    DB_SSLMODE: str = os.getenv("DB_SSLMODE", "require")
     USE_SQLITE: bool = os.getenv("USE_SQLITE", "True").lower() in ("true", "1", "t")
 
     # AWS S3 Storage
@@ -53,7 +55,7 @@ class Settings(BaseSettings):
             host=self.DB_SERVER,
             port=int(self.DB_PORT) if self.DB_PORT else 5432,
             database=self.DB_NAME,
-            query={"sslmode": "require"}
+            query={"sslmode": self.DB_SSLMODE}
         )
         return url.render_as_string(hide_password=False)
 

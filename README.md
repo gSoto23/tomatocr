@@ -138,9 +138,11 @@ sudo systemctl restart tomato
   `settings.SQLALCHEMY_DATABASE_URI`, nunca del archivo.
 - Con SQLite (`USE_SQLITE="True"`) las tablas se siguen creando con
   `create_all` al arrancar. Con PostgreSQL el esquema lo maneja solo Alembic.
-- Todavía no hay migración base: se genera cuando producción pase a
-  PostgreSQL, a partir de su esquema real. Hasta entonces no uses
-  `USE_SQLITE="False"` en producción.
+- La migración base es `0001` (todo el esquema actual). Alembic se niega a
+  correr si `USE_SQLITE` es verdadero.
+- El paso de producción de SQLite a PostgreSQL está en
+  `docs/MIGRACION_POSTGRES.md`, con el script `scripts/sqlite_to_postgres.py`.
+  Hasta hacerlo, no cambies `USE_SQLITE` en el servicio.
 
 ---
 
@@ -150,7 +152,14 @@ sudo systemctl restart tomato
 pip install -r requirements-dev.txt
 pytest
 ```
-Usan SQLite en memoria y no tocan `sql_app.db`. Incluyen la matriz de acceso
+Usan SQLite en memoria y no tocan `sql_app.db`. Para correrlas contra un
+PostgreSQL local desechable (Docker):
+```bash
+docker run -d --name tomato-pg17 -e POSTGRES_USER=tomato -e POSTGRES_PASSWORD=tomato-local -e POSTGRES_DB=tomato -p 55432:5432 postgres:17
+TEST_DATABASE_URL=postgresql://tomato:tomato-local@127.0.0.1:55432/tomato pytest --ignore=tests/test_sqlite_to_postgres.py
+TEST_POSTGRES_URL=postgresql://tomato:tomato-local@127.0.0.1:55432/tomato pytest tests/test_sqlite_to_postgres.py
+```
+Esas bases se borran en cada corrida. Incluyen la matriz de acceso
 por rol (`tests/test_access_matrix.py`), login, bloqueo por intentos y páginas
 públicas.
 
