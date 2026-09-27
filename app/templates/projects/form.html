@@ -550,6 +550,7 @@
     // Populate lists if project exists
     {% for loc in project.locations %}
     _initialData.locations.push({
+        id: {{ loc.id }},
         name: {{ loc.name | tojson | safe }},
         location: {{ (loc.location if loc.location else "") | tojson | safe }},
         waze_pin: {{ (loc.waze_pin if loc.waze_pin else "") | tojson | safe }}
@@ -573,6 +574,7 @@
 
     {% for t in project.tasks %}
     _initialData.tasks.push({
+        id: {{ t.id }},
         description: {{ t.description | tojson | safe }},
         is_required: {{ "true" if t.is_required else "false" }}
     });
@@ -581,6 +583,7 @@
     {% if project.budget and project.budget.lines %}
     {% for line in project.budget.lines %}
     _initialData.budget_lines.push({
+        id: {{ line.id }},
         name: {{ line.name | tojson | safe }},
         subtotal: {{ line.subtotal | tojson | safe }},
         tax_percentage: {{ line.tax_percentage | tojson | safe }}
@@ -732,7 +735,7 @@
                     if (response.ok) {
                         window.location.href = result.redirect_url;
                     } else {
-                        alert('Error al guardar: ' + (result.detail ? JSON.stringify(result.detail) : 'Error desconocido'));
+                        alert('Error al guardar: ' + (typeof result.detail === 'string' ? result.detail : (result.detail ? JSON.stringify(result.detail) : 'Error desconocido')));
                     }
                 } catch (error) {
                     console.error(error);

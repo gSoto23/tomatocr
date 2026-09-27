@@ -40,18 +40,9 @@ async def send_log_email(log_id: int, recipients: List[EmailStr], additional_tex
             logger.error(f"Cannot send email: Log ID {log_id} not found.")
             return
 
-        # Prepare template context
-        # Need to reconstruct logic for tasks (completed vs all)
-        completed_task_ids = {entry.task_id for entry in log.task_entries}
-        
-        # We want to show "Tareas marcadas como done"
-        # log.project.tasks contains all tasks of project
-        
-        done_tasks = []
-        if log.project and log.project.tasks:
-            for t in log.project.tasks:
-                if t.id in completed_task_ids:
-                    done_tasks.append(t.description)
+        # Tasks marked done, from the report's own entries, so a task later archived still appears.
+        done_tasks = [entry.task.description for entry in sorted(log.task_entries, key=lambda e: e.task_id)
+                      if entry.task is not None]
 
         # Attachments (Photos)
         # log.photos contains paths relative to static, e.g. /static/uploads/...

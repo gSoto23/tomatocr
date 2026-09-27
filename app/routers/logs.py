@@ -123,10 +123,12 @@ def get_log_detail(id: int, db: Session = Depends(deps.get_db), user: User = Dep
     if user.role != ADMIN and log.user_id != user.id and not is_project_member:
         raise HTTPException(status_code=403, detail="Not authorized")
 
-    # Get all project tasks to allow editing (checking missed ones)
-    all_project_tasks = log.project.tasks
-    # Create a set of completed task IDs for O(1) lookup
+    # The project's current tasks (to allow checking missed ones) plus any archived
+    # task this report had completed, so old reports keep showing it.
     completed_task_ids = {entry.task_id for entry in log.task_entries}
+    all_project_tasks = list(log.project.tasks) + [
+        entry.task for entry in log.task_entries
+        if entry.task is not None and entry.task.archived_at is not None]
 
     tasks_data = []
     for task in all_project_tasks:
@@ -206,7 +208,9 @@ def update_log(
         raise HTTPException(status_code=403, detail="Not authorized")
     
     log.notes = notes
-    log.location_id = location_id if location_id else None
+    # The edit window doesn't show the sede: keep it unless one is sent.
+    if location_id:
+        log.location_id = location_id
     
     # Update tasks
     # Clear existing tasks? Or merge?

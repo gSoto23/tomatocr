@@ -155,5 +155,10 @@ SQLite. Por eso la decisión de volver se toma en la primera hora.
   `alembic upgrade head` en cada despliegue que las traiga, después de un
   snapshot de la base.
 - La base vieja de marzo se puede borrar más adelante, cuando todo esté estable.
+- PostgreSQL sí hace cumplir las llaves foráneas; SQLite no. Código que borra
+  filas que otras usan falla en producción aunque las pruebas en SQLite pasen:
+  corré también la suite contra PostgreSQL (`TEST_DATABASE_URL`). Caso
+  encontrado el 27/09/2026: editar un proyecto borraba y recreaba tareas,
+  sedes y líneas del presupuesto (corregido, migración 0008).
 - Con `USE_SQLITE=False` la cookie de sesión pasa a ser `Secure` (el sitio ya
   usa HTTPS) y la app deja de crear tablas al arrancar.

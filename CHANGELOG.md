@@ -6,6 +6,20 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-27
 
+### Arreglo: editar proyectos con trabajo registrado (esta rama)
+- Desde el cambio a PostgreSQL, guardar un proyecto fallaba ("Error al
+  guardar") si ya tenía bitácoras con tareas marcadas, facturas, o bitácoras o
+  asignaciones del calendario en una sede: se borraban y recreaban tareas,
+  sedes y líneas del presupuesto, y PostgreSQL no deja borrar filas en uso. En
+  SQLite no fallaba, pero los reportes perdían sus tareas en silencio.
+- Ahora se actualizan en su lugar. Quitar una tarea o sede en uso la archiva
+  (los reportes viejos la siguen mostrando); una línea con facturas no se
+  puede quitar y el mensaje lo dice.
+- El detalle y el correo de un reporte toman las tareas del propio reporte.
+- Editar un reporte ya no le borra la sede.
+- Los errores al guardar un proyecto se muestran sin comillas de JSON.
+- Despliegue: `alembic upgrade head` (0007 → 0008) y reiniciar.
+
 ### Piloto en el sistema (esta rama)
 - El Embudo cuenta solo oportunidades **nuevas** creadas en el periodo del
   piloto (15/10–15/12/2026, editable por admin junto a las metas).

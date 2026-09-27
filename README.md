@@ -17,6 +17,11 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
     - Configuración de licitaciones y contratos de vigencia.
     - Líneas presupuestarias con asignación de saldos y control total.
 - **Calendario Operativo**: Asignación logística de personal hacia sedes específicas de trabajo.
+- **Editar un proyecto con trabajo registrado**: tareas, sedes y líneas del
+  presupuesto se actualizan en su lugar (`app/utils/project_sync.py`). Una
+  tarea o sede que ya usan reportes o el calendario y se quita del proyecto
+  queda archivada: no aparece en formularios, pero los reportes viejos la
+  siguen mostrando. Una línea del presupuesto con facturas no se puede quitar.
 
 ### 2. Módulo Financiero
 - **Facturación**: Control al momento de ingresos adjudicados vs facturados, y saldo pendiente real.
