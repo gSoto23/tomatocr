@@ -10,7 +10,9 @@ from typing import Dict, List, Optional, Tuple
 from sqlalchemy.orm import Session
 
 from app.db.models.activity import ActivityLog
-from app.db.models.crm import Account, AccountNotDuplicate, Contact, CrmActivity, Opportunity, stage_index
+from app.db.models.crm import (Account, AccountNotDuplicate, Contact, CrmActivity, Opportunity, ProjectContactRole,
+                                stage_index)
+from app.db.models.project_details import ProjectContact
 from app.db.models.project import Project
 from app.db.models.quote import Quote
 from app.db.models.reforestation import ReforestationProject
@@ -55,12 +57,26 @@ def active_accounts(db: Session) -> List[Account]:
     return db.query(Account).filter(Account.merged_into_id.is_(None)).order_by(Account.id).all()
 
 
+def account_status(db: Session, account: Account) -> str:
+    """cliente: an active project or a reforestation project; ex_cliente: only closed
+    projects; prospecto: no projects yet; descartada: set by hand."""
+    if account.discarded_at:
+        return "descartada"
+    if db.query(ReforestationProject.id).filter(ReforestationProject.account_id == account.id).first():
+        return "cliente"
+    projects = db.query(Project.is_active).filter(Project.account_id == account.id).all()
+    if any(active is not False for (active,) in projects):
+        return "cliente"
+    return "ex_cliente" if projects else "prospecto"
+
+
 # --- Backfill ------------------------------------------------------------------
 
 @dataclass
 class BackfillReport:
     rows: List[Dict[str, str]] = field(default_factory=list)
     counts: Dict[str, int] = field(default_factory=dict)
+    new_accounts: List[Account] = field(default_factory=list)
 
     def add(self, action: str, account: Optional[Account], origin: str, detail: str = ""):
         self.rows.append({"accion": action, "cuenta": account.name if account else "",
@@ -89,18 +105,19 @@ class _Matcher:
         return self.by_name.get(key) if key else None
 
 
-def _new_account(db, matcher, report, name, origin, owner, status, tax_id=None):
-    account = Account(name=name.strip(), status=status, kind=guess_kind(name), owner_id=owner.id if owner else None,
+def _new_account(db, matcher, report, name, origin, owner, tax_id=None):
+    account = Account(name=name.strip(), kind=guess_kind(name), owner_id=owner.id if owner else None,
                       created_by_id=owner.id if owner else None, origin_ref=origin, source="migracion",
                       tax_id=tax_id if tax_id and tax_id not in matcher.by_tax else None)
     db.add(account)
     db.flush()
     matcher.remember(account)
-    report.add("cuenta nueva", account, origin, f"estado {status}")
+    report.add("cuenta nueva", account, origin)
+    report.new_accounts.append(account)
     return account
 
 
-def _add_contact(db, report, account, origin, name=None, email=None, phone=None, user_id=None):
+def _add_contact(db, report, account, origin, name=None, email=None, phone=None, user_id=None, role_title=None):
     """Adds a contact unless the account already has one with that email, phone or name."""
     name, email, phone = (name or "").strip(), (email or "").strip().lower() or None, (phone or "").strip() or None
     if not (name or email or phone):
@@ -110,9 +127,12 @@ def _add_contact(db, report, account, origin, name=None, email=None, phone=None,
                 or (name and normalize_name(c.name) == normalize_name(name)):
             if user_id and not c.user_id:
                 c.user_id = user_id
+            for attr, value in (("email", email), ("phone", phone), ("role_title", role_title)):
+                if value and not getattr(c, attr):
+                    setattr(c, attr, value)
             return c
     contact = Contact(account=account, name=name or email or phone, email=email, phone=phone, user_id=user_id,
-                      is_primary=not account.contacts, origin_ref=origin)
+                      role_title=(role_title or "").strip() or None, is_primary=not account.contacts, origin_ref=origin)
     db.add(contact)
     db.flush()
     report.add("contacto nuevo", account, origin, contact.name)
@@ -123,7 +143,10 @@ def backfill(db: Session, owner: User, today: Optional[date] = None) -> Backfill
     """Creates accounts and contacts from current clients, projects, quotes and reforestation.
 
     Idempotent: records already linked (project/quote/reforestation account_id, or a
-    contact with the portal user) are skipped, so running it twice adds nothing.
+    contact with the portal user) are skipped, and contacts are matched by email,
+    phone or name, so running it twice adds nothing. Project contacts are copied to
+    the account's single contact list and linked back to their project; run it again
+    to pick up contacts added to projects later.
     Doesn't commit: the caller commits (--apply) or rolls back (dry run).
     """
     today = today or date.today()
@@ -136,7 +159,7 @@ def backfill(db: Session, owner: User, today: Optional[date] = None) -> Backfill
         if user.id in linked_users:
             continue
         name = user.full_name or user.username
-        account = matcher.find(name) or _new_account(db, matcher, report, name, f"user:{user.id}", owner, "cliente")
+        account = matcher.find(name) or _new_account(db, matcher, report, name, f"user:{user.id}", owner)
         _add_contact(db, report, account, f"user:{user.id}", name=name, email=user.email, phone=user.phone,
                      user_id=user.id)
         linked_users[user.id] = account
@@ -151,11 +174,29 @@ def backfill(db: Session, owner: User, today: Optional[date] = None) -> Backfill
             account = matcher.find(name)
             how = "por nombre"
             if account is None:
-                account = _new_account(db, matcher, report, name, origin, owner, "cliente")
+                account = _new_account(db, matcher, report, name, origin, owner)
                 how = "cuenta nueva"
         project.account_id = account.id
         report.add("proyecto ligado", account, origin, f"{project.name} ({how})")
-        _add_contact(db, report, account, origin, project.contact_name, project.contact_email, project.contact_phone)
+    db.flush()
+
+    # 2b. Project contacts (and the old single contact fields) -> the account's contact list,
+    # linked back to the project as site contacts; those with email receive the reports.
+    for project in db.query(Project).filter(Project.account_id.isnot(None)).order_by(Project.id):
+        account = db.get(Account, project.account_id)
+        people = [(pc.name, pc.email, pc.phone, pc.position, f"project_contact:{pc.id}")
+                  for pc in db.query(ProjectContact).filter(ProjectContact.project_id == project.id).order_by(ProjectContact.id)]
+        if not people and (project.contact_name or project.contact_email or project.contact_phone):
+            people = [(project.contact_name, project.contact_email, project.contact_phone, None, f"project:{project.id}")]
+        for name, email, phone, position, origin in people:
+            contact = _add_contact(db, report, account, origin, name, email, phone, role_title=position)
+            if contact is None:
+                continue
+            if not db.get(ProjectContactRole, (project.id, contact.id)):
+                db.add(ProjectContactRole(project_id=project.id, contact_id=contact.id, is_site=True,
+                                          receives_reports=bool(contact.email), position=(position or "").strip() or None))
+                db.flush()
+                report.add("contacto del proyecto", account, origin, f"{contact.name} en {project.name}")
 
     # 3. Quotes: by cédula when the field holds one, then by name.
     for quote in db.query(Quote).filter(Quote.account_id.is_(None)).order_by(Quote.id):
@@ -168,7 +209,7 @@ def backfill(db: Session, owner: User, today: Optional[date] = None) -> Backfill
         name = quote.cliente_nombre or data.get("name") or f"Cotización {quote.numero_cotizacion}"
         account = matcher.find(name, tax_id)
         if account is None:
-            account = _new_account(db, matcher, report, name, origin, owner, "prospecto", tax_id=tax_id)
+            account = _new_account(db, matcher, report, name, origin, owner, tax_id=tax_id)
         elif tax_id and not account.tax_id and tax_id not in matcher.by_tax:
             account.tax_id = tax_id
             matcher.remember(account)
@@ -180,41 +221,32 @@ def backfill(db: Session, owner: User, today: Optional[date] = None) -> Backfill
     for reforestation in db.query(ReforestationProject).filter(ReforestationProject.account_id.is_(None)):
         origin = f"reforestation:{reforestation.id}"
         name = reforestation.client_name or f"Reforestación {reforestation.id}"
-        account = matcher.find(name) or _new_account(db, matcher, report, name, origin, owner, "cliente")
+        account = matcher.find(name) or _new_account(db, matcher, report, name, origin, owner)
         reforestation.account_id = account.id
         report.add("reforestación ligada", account, origin, name)
     db.flush()
 
-    # 5. Status: cliente with at least one project or reforestation; prospecto otherwise.
-    for account in active_accounts(db):
-        has_work = db.query(Project.id).filter(Project.account_id == account.id).first() or \
-            db.query(ReforestationProject.id).filter(ReforestationProject.account_id == account.id).first()
-        wanted = "cliente" if has_work else "prospecto"
-        if account.status != "inactivo" and account.status != wanted:
-            report.add("estado", account, f"account:{account.id}", f"{account.status} -> {wanted}")
-            account.status = wanted
-
-    # 6. Recent quotes of prospects become opportunities in "propuesta".
+    # 5. Recent quotes of prospects become opportunities in "propuesta".
     since = today - timedelta(days=RECENT_QUOTE_DAYS)
     for quote in db.query(Quote).filter(Quote.opportunity_id.is_(None), Quote.fecha_emision >= since).order_by(Quote.id):
         account = db.get(Account, quote.account_id)
-        if account is None or account.status != "prospecto":
+        if account is None or account_status(db, account) != "prospecto":
             continue
-        crc = (quote.moneda or "CRC").upper() == "CRC"
+        # No amount_crc: while a quote is linked, the amount comes from the quote.
         opportunity = Opportunity(
             account_id=account.id, title=f"Cotización {quote.numero_cotizacion}", stage="propuesta",
-            max_stage=stage_index("propuesta"), amount_crc=quote.total if crc else None, owner_id=account.owner_id,
-            source="cotizador", created_by_id=owner.id,
+            max_stage=stage_index("propuesta"), owner_id=account.owner_id, source="cotizador", created_by_id=owner.id,
         )
         db.add(opportunity)
         db.flush()
         quote.opportunity_id = opportunity.id
-        detail = f"{quote.numero_cotizacion} del {quote.fecha_emision}"
-        if not crc:
-            detail += f" (monto en {quote.moneda}, no se copia a colones)"
-        report.add("oportunidad nueva", account, f"quote:{quote.id}", detail)
+        report.add("oportunidad nueva", account, f"quote:{quote.id}", f"{quote.numero_cotizacion} del {quote.fecha_emision}")
 
-    # 7. Possible duplicates, for review only.
+    # Computed status of the new accounts, for the review.
+    for account in report.new_accounts:
+        report.add("estado calculado", account, "", account_status(db, account))
+
+    # 6. Possible duplicates, for review only.
     for a, b, score in find_duplicates(db):
         report.add("posible duplicado", a, f"account:{b.id}", f"{b.name} (similitud {score:.2f})")
     db.flush()
@@ -247,7 +279,7 @@ def dismiss_duplicate(db: Session, a_id: int, b_id: int, user: User):
         db.add(AccountNotDuplicate(account_a_id=low, account_b_id=high, user_id=user.id))
 
 
-MERGE_FIELDS = ("legal_name", "tax_id", "segment", "source", "owner_id", "province", "address", "website",
+MERGE_FIELDS = ("legal_name", "tax_id", "source", "owner_id", "province", "address", "website",
                 "vat_exemption_code")
 
 
@@ -270,12 +302,11 @@ def merge_accounts(db: Session, keep: Account, drop: Account, user: User) -> Dic
     for attr in MERGE_FIELDS:
         if getattr(keep, attr) in (None, ""):
             setattr(keep, attr, tax_id if attr == "tax_id" else getattr(drop, attr))
-    if keep.status == "prospecto" and drop.status == "cliente":
-        keep.status = "cliente"
+    if keep.discarded_at and not drop.discarded_at:
+        keep.discarded_at = None  # the merged account is still active
     if drop.notes:
         keep.notes = f"{keep.notes}\n{drop.notes}" if keep.notes else drop.notes
     drop.merged_into_id = keep.id
-    drop.status = "inactivo"
     db.add(ActivityLog(user_id=user.id, action="MERGE", entity_type="ACCOUNT", entity_id=keep.id,
                        details=f"Cuenta '{drop.name}' (#{drop.id}) fusionada en '{keep.name}' (#{keep.id}): "
                                + ", ".join(f"{v} {k}" for k, v in moved.items() if v)))

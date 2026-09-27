@@ -89,7 +89,18 @@ de **renovación**. Eso es lo que el CRM debe agregar, y nada más.
 | 2C | Cotizador y proyectos ligados, renovaciones automáticas | Proyecto y cotizador **eligen la cuenta**; contactos del proyecto tomados de la cuenta (y el correo de la bitácora usa esos); "Contratos por vencer" con botón |
 | 2D | Formulario web, API darboles.com, `/privacidad`, importación del tablero | Igual |
 
-## 7. Decisiones que necesito
+## 7. Decisiones (tomadas el 27/09/2026: sí a las cuatro)
+
+**Aplicado en 2A:** contactos en una sola lista por cuenta, con
+`project_contact_roles` para los contactos de sitio y los que reciben reportes
+de cada proyecto; estado calculado (`discarded_at` es lo único manual); sin
+`segment`; oportunidades migradas sin monto escrito; rutas bajo `/clientes`.
+**Queda para 2B y 2C:** menú "Clientes" con Embudo y Cuentas, "Seguimientos",
+formulario de proyecto y cotizador eligiendo la cuenta, correo de la bitácora
+tomando los contactos de la cuenta, y "Contratos por vencer" con botón.
+
+Las preguntas que se plantearon fueron:
+
 
 1. **Contactos en un solo lugar (R1)**: ¿los contactos viven en la cuenta y el
    proyecto elige cuáles usa? Es el cambio más grande (toca el formulario de

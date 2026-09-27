@@ -53,7 +53,7 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
   árboles de Dárboles no se manejan aquí: darboles.com es una plataforma
   independiente.
 
-### 6. CRM (en construcción, `docs/DISENO_CRM.md`)
+### 6. Clientes / CRM (en construcción, `docs/DISENO_CRM.md` y `docs/ANALISIS_ENCAJE_CRM.md`)
 - **Cuentas**: prospectos y clientes actuales en una sola tabla, con sus
   contactos, oportunidades y actividades. Los proyectos, cotizaciones y
   proyectos de reforestación se ligan a su cuenta (`account_id`); los nombres
@@ -63,7 +63,15 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
   reforestación. Sin `--apply` solo genera el reporte
   `crm_backfill_report.csv`; con `--apply` guarda. Correrlo de nuevo solo
   agrega lo que falte.
-- **Duplicados** (`/crm/duplicados`, solo admin): cuentas con nombres
+- **Contactos en un solo lugar**: cada cuenta tiene una lista de contactos;
+  cada proyecto indica cuáles usa (de sitio, recibe reportes). La migración
+  copia ahí los contactos que hoy están en los proyectos. Hasta la sub-fase 2C
+  los contactos se siguen editando en el proyecto: volver a correr el script
+  trae los nuevos.
+- **Estado calculado**: cliente (proyecto activo o reforestación), ex-cliente
+  (solo proyectos cerrados), prospecto (sin proyectos); "descartada" es lo
+  único manual.
+- **Duplicados** (`/clientes/duplicados`, solo admin): cuentas con nombres
   parecidos o el mismo correo de contacto, para fusionarlas o marcarlas como
   distintas. La fusión mueve todo a la cuenta que queda y se registra en
   Actividad.

@@ -12,7 +12,8 @@ from app.db.models.user import User
 from app.routers import deps
 from app.utils.crm import dismiss_duplicate, find_duplicates, merge_accounts
 
-router = APIRouter(prefix="/crm", tags=["crm"])
+# "Clientes" in the menu (docs/ANALISIS_ENCAJE_CRM.md, R7).
+router = APIRouter(prefix="/clientes", tags=["clientes"])
 
 
 def toast_redirect(url: str, message: str, error: bool = False) -> RedirectResponse:
@@ -57,9 +58,9 @@ def merge(keep_id: int, drop_id: int, db: Session = Depends(deps.get_db),
     try:
         moved = merge_accounts(db, keep, drop, user)
     except ValueError as e:
-        return toast_redirect("/crm/duplicados", str(e), error=True)
+        return toast_redirect("/clientes/duplicados", str(e), error=True)
     total = sum(moved.values())
-    return toast_redirect("/crm/duplicados", f"'{drop.name}' se fusionó en '{keep.name}' ({total} registros movidos)")
+    return toast_redirect("/clientes/duplicados", f"'{drop.name}' se fusionó en '{keep.name}' ({total} registros movidos)")
 
 
 @router.post("/duplicados/{a_id}/{b_id}/descartar")
@@ -68,4 +69,4 @@ def not_duplicate(a_id: int, b_id: int, db: Session = Depends(deps.get_db),
     get_active_account(db, a_id), get_active_account(db, b_id)
     dismiss_duplicate(db, a_id, b_id, user)
     db.commit()
-    return toast_redirect("/crm/duplicados", "Marcadas como cuentas distintas")
+    return toast_redirect("/clientes/duplicados", "Marcadas como cuentas distintas")

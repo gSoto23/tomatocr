@@ -1,5 +1,6 @@
-"""CRM: accounts (prospects and clients in one table), contacts, opportunities and
-activities. See docs/DISENO_CRM.md."""
+"""CRM ("Clientes" in the UI): accounts (prospects and clients in one table), their
+contacts, opportunities and follow-ups ("Seguimientos"). See docs/DISENO_CRM.md and
+docs/ANALISIS_ENCAJE_CRM.md."""
 from datetime import datetime
 
 from sqlalchemy import (Column, Integer, String, Text, Boolean, Date, DateTime, Float, ForeignKey,
@@ -9,7 +10,9 @@ from sqlalchemy.orm import relationship
 from app.db.base_class import Base
 
 ACCOUNT_KINDS = ("empresa", "institucion_publica", "condominio", "hotel", "persona", "otro")
-ACCOUNT_STATUSES = ("prospecto", "cliente", "inactivo")
+# Account status is computed from its projects (see app.utils.crm.account_status);
+# only "descartada" is set by hand (discarded_at).
+ACCOUNT_STATUSES = ("prospecto", "cliente", "ex_cliente", "descartada")
 MOTORS = ("esg", "regalo_corporativo", "mantenimiento", "tienda", "sector_publico")
 OPPORTUNITY_KINDS = ("nuevo", "renovacion", "ampliacion")
 # Order matters: max_stage stores the index of the highest stage reached.
@@ -30,8 +33,8 @@ class Account(Base):
     # Cédula física o jurídica. Unique when present (NULLs don't collide).
     tax_id = Column(String(30), nullable=True, unique=True)
     kind = Column(String(30), nullable=False, default="otro", server_default="otro")
-    status = Column(String(20), nullable=False, default="prospecto", server_default="prospecto")
-    segment = Column(String(30), nullable=True)
+    # Set by hand when a prospect won't move forward; the other statuses are computed.
+    discarded_at = Column(DateTime, nullable=True)
     source = Column(String(30), nullable=True)
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     province = Column(String(50), nullable=True)
@@ -63,6 +66,10 @@ class Contact(Base):
     email = Column(String(150), nullable=True, index=True)
     phone = Column(String(30), nullable=True)
     is_primary = Column(Boolean, nullable=False, default=False, server_default="false")
+    # What the contact is for, account-wide. Site contacts and report recipients are
+    # set per project in ProjectContactRole.
+    is_commercial = Column(Boolean, nullable=False, default=False, server_default="false")
+    is_billing = Column(Boolean, nullable=False, default=False, server_default="false")
     # Portal user when the person has access (role client).
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True, unique=True)
     consent_marketing = Column(Boolean, nullable=False, default=False, server_default="false")
@@ -132,3 +139,17 @@ class AccountNotDuplicate(Base):
     account_b_id = Column(Integer, ForeignKey("accounts.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class ProjectContactRole(Base):
+    """Which of the account's contacts a project uses: on site and/or receiving the
+    daily-log reports. One contact list per account; projects pick from it."""
+    __tablename__ = "project_contact_roles"
+
+    project_id = Column(Integer, ForeignKey("projects.id"), primary_key=True)
+    contact_id = Column(Integer, ForeignKey("contacts.id"), primary_key=True)
+    is_site = Column(Boolean, nullable=False, default=True, server_default="true")
+    receives_reports = Column(Boolean, nullable=False, default=False, server_default="false")
+    position = Column(String(100), nullable=True)  # role on this site, e.g. "Encargado de obra"
+
+    contact = relationship("Contact")

@@ -4,11 +4,13 @@ from datetime import date, timedelta
 import pytest
 
 from app.db.models.activity import ActivityLog
-from app.db.models.crm import Account, Contact, Opportunity
+from app.db.models.crm import Account, Contact, Opportunity, ProjectContactRole
 from app.db.models.project import Project
+from app.db.models.project_details import ProjectContact
 from app.db.models.quote import Quote
 from app.db.models.reforestation import ReforestationProject
-from app.utils.crm import backfill, find_duplicates, looks_like_tax_id, merge_accounts, normalize_name, similarity
+from app.utils.crm import (account_status, backfill, find_duplicates, looks_like_tax_id, merge_accounts,
+                            normalize_name, similarity)
 from tests.conftest import make_user
 
 TODAY = date(2026, 9, 27)
@@ -41,6 +43,7 @@ def data(db, users):
     client.full_name, client.email, client.phone = "Museo de Arte", "museo@example.cr", "8888-0000"
     tical = Project(name="Tical - Paisajismo", client_display_name="Tical S.A.",
                     contact_name="Ana Rojas", contact_email="ana@tical.cr")
+    tical2 = Project(name="Tical - Mantenimiento", client_display_name="TICAL", is_active=False)
     muni = Project(name="Arborización Alajuela", client_display_name="Municipalidad de Alajuela")
     quotes = [
         Quote(numero_cotizacion="C-1", fecha_emision=TODAY - timedelta(days=10), cliente_nombre="TICAL",
@@ -54,9 +57,15 @@ def data(db, users):
               cliente_datos={"id": "Luis"}, moneda="USD", total=900),
     ]
     reforestation = ReforestationProject(client_name="Municipalidad Alajuela")
-    db.add_all([tical, muni, reforestation, *quotes])
+    db.add_all([tical, tical2, muni, reforestation, *quotes])
+    db.flush()
+    db.add_all([
+        ProjectContact(project_id=tical2.id, name="Ana Rojas", email="ANA@tical.cr", position="Gerente"),
+        ProjectContact(project_id=tical2.id, name="Pedro Sitio", phone="8000-1111", position="Encargado de obra"),
+        ProjectContact(project_id=muni.id, name="Ing. Laura Mora", email="lmora@munialajuela.go.cr", position="Ingeniera"),
+    ])
     db.commit()
-    return {"tical": tical, "muni": muni, "reforestation": reforestation, "quotes": quotes}
+    return {"tical": tical, "tical2": tical2, "muni": muni, "reforestation": reforestation, "quotes": quotes}
 
 
 def accounts_by_name(db):
@@ -80,26 +89,40 @@ def test_backfill_covers_every_client_project_and_quote(db, owner, users, data):
     assert db.get(Project, users["project_id"]).account_id == museo.id
     assert [c.user_id for c in museo.contacts] == [users["client"].id]
 
-    # 2 and 3. Project and quote with the same normalized name share the account and contact.
+    # 2 and 3. Projects and quote with the same normalized name share the account.
     tical = accounts["Tical S.A."]
-    assert data["quotes"][0].account_id == tical.id
-    assert [c.email for c in tical.contacts] == ["ana@tical.cr"]
+    assert data["tical2"].account_id == tical.id and data["quotes"][0].account_id == tical.id
+
+    # 2b. One contact list per account: Ana appears in two projects (and the quote) only once,
+    # and each project records which contacts it uses; those with email receive the reports.
+    assert sorted(c.name for c in tical.contacts) == ["Ana Rojas", "Pedro Sitio"]
+    ana = next(c for c in tical.contacts if c.name == "Ana Rojas")
+    assert ana.email == "ana@tical.cr" and ana.role_title == "Gerente"
+    roles = {(r.project_id, r.contact.name): r for r in db.query(ProjectContactRole)}
+    assert set(roles) == {(data["tical"].id, "Ana Rojas"), (data["tical2"].id, "Ana Rojas"),
+                          (data["tical2"].id, "Pedro Sitio"), (data["muni"].id, "Ing. Laura Mora")}
+    assert roles[(data["tical2"].id, "Pedro Sitio")].receives_reports is False  # no email
+    assert roles[(data["tical2"].id, "Pedro Sitio")].position == "Encargado de obra"
+    assert roles[(data["muni"].id, "Ing. Laura Mora")].receives_reports is True
 
     # Quote "id" that looks like a cédula becomes the tax id; otherwise it's the contact's name.
     assert accounts["Hotel Playa Azul"].tax_id == "3-101-123456"
     assert accounts["Empresa Dólares"].tax_id is None
     assert accounts["Empresa Dólares"].contacts[0].name == "Luis"
 
-    # 5. Status and kind.
-    assert {tical.status, museo.status, accounts["Municipalidad Alajuela"].status} == {"cliente"}
-    assert accounts["Hotel Playa Azul"].status == "prospecto"
+    # Status is computed from the projects; kind is guessed from the name.
+    assert account_status(db, tical) == "cliente"            # one active, one closed project
+    assert account_status(db, museo) == "cliente"
+    assert account_status(db, accounts["Municipalidad Alajuela"]) == "cliente"  # reforestation
+    assert account_status(db, accounts["Hotel Playa Azul"]) == "prospecto"
     assert accounts["Municipalidad Alajuela"].kind == "institucion_publica"
 
     # 6. Recent prospect quotes -> opportunities in "propuesta"; old ones and client quotes don't.
     opportunities = {o.title: o for o in db.query(Opportunity)}
     assert set(opportunities) == {"Cotización C-2", "Cotización C-4"}
-    assert opportunities["Cotización C-2"].stage == "propuesta" and opportunities["Cotización C-2"].amount_crc == 1250000
-    assert opportunities["Cotización C-4"].amount_crc is None  # USD isn't copied as colones
+    assert opportunities["Cotización C-2"].stage == "propuesta"
+    # No amount typed in: while a quote is linked, the amount comes from the quote.
+    assert {o.amount_crc for o in opportunities.values()} == {None}
     assert data["quotes"][1].opportunity_id == opportunities["Cotización C-2"].id
 
     # 7. Owner and duplicates for review (not merged automatically).
@@ -117,11 +140,13 @@ def test_backfill_twice_adds_nothing(db, owner, users, data):
     db.commit()
     assert (db.query(Account).count(), db.query(Contact).count(), db.query(Opportunity).count()) == counts
     assert set(report.counts) <= {"posible duplicado"}
+    assert db.query(ProjectContactRole).count() == 4
 
 
 def test_dry_run_rolls_back_everything(db, owner, users, data):
     report = backfill(db, owner, today=TODAY)
     assert report.counts["cuenta nueva"] == 7
+    assert report.counts["estado calculado"] == 7
     db.rollback()
     assert db.query(Account).count() == 0
     assert db.query(Project).filter(Project.account_id.isnot(None)).count() == 0
@@ -131,10 +156,25 @@ def test_new_clients_after_a_backfill_are_picked_up(db, owner, users, data):
     backfill(db, owner, today=TODAY)
     db.commit()
     db.add(Project(name="Nuevo", client_display_name="tical sa"))
+    db.add(ProjectContact(project_id=data["tical"].id, name="Nuevo Contacto", email="nuevo@tical.cr"))
     db.commit()
     report = backfill(db, owner, today=TODAY)
     db.commit()
     assert report.counts.get("cuenta nueva", 0) == 0 and report.counts["proyecto ligado"] == 1
+    assert report.counts["contacto nuevo"] == 1 and report.counts["contacto del proyecto"] == 1
+
+
+def test_status_ex_cliente_and_descartada(db, owner, users, data):
+    from datetime import datetime
+    backfill(db, owner, today=TODAY)
+    db.commit()
+    tical = accounts_by_name(db)["Tical S.A."]
+    data["tical"].is_active = False
+    db.commit()
+    assert account_status(db, tical) == "ex_cliente"
+    tical.discarded_at = datetime(2026, 9, 27)
+    db.commit()
+    assert account_status(db, tical) == "descartada"
 
 
 # --- Merge ------------------------------------------------------------------------
@@ -153,7 +193,7 @@ def test_merge_moves_everything_and_keeps_history(db, owner, users, data):
     assert data["reforestation"].account_id == keep.id
     assert data["muni"].account_id == keep.id
     assert keep.tax_id == "3-014-042063" and drop.tax_id is None
-    assert drop.merged_into_id == keep.id and drop.status == "inactivo"
+    assert drop.merged_into_id == keep.id
     assert db.query(ActivityLog).filter_by(action="MERGE", entity_id=keep.id).count() == 1
     assert find_duplicates(db) == []
 
@@ -176,7 +216,7 @@ def backfilled(db, owner, users, data):
 
 
 def test_duplicates_page_lists_the_pair(login_as, backfilled):
-    html = login_as("admin").get("/crm/duplicados").text
+    html = login_as("admin").get("/clientes/duplicados").text
     assert "Municipalidad Alajuela" in html and "Municipalidad de Alajuela" in html
     assert "Quedarse con" in html
 
@@ -185,14 +225,14 @@ def test_duplicates_page_lists_the_pair(login_as, backfilled):
 def test_only_admin_reviews_duplicates(role, login_as, backfilled):
     client = login_as(role)
     keep, drop = backfilled["Municipalidad de Alajuela"], backfilled["Municipalidad Alajuela"]
-    assert client.get("/crm/duplicados", follow_redirects=False).status_code == 403
-    assert client.post(f"/crm/cuentas/{keep.id}/fusionar/{drop.id}", follow_redirects=False).status_code == 403
-    assert client.post(f"/crm/duplicados/{keep.id}/{drop.id}/descartar", follow_redirects=False).status_code == 403
+    assert client.get("/clientes/duplicados", follow_redirects=False).status_code == 403
+    assert client.post(f"/clientes/cuentas/{keep.id}/fusionar/{drop.id}", follow_redirects=False).status_code == 403
+    assert client.post(f"/clientes/duplicados/{keep.id}/{drop.id}/descartar", follow_redirects=False).status_code == 403
 
 
 def test_merge_from_the_screen(db, login_as, backfilled, data):
     keep, drop = backfilled["Municipalidad de Alajuela"], backfilled["Municipalidad Alajuela"]
-    response = login_as("admin").post(f"/crm/cuentas/{keep.id}/fusionar/{drop.id}", follow_redirects=False)
+    response = login_as("admin").post(f"/clientes/cuentas/{keep.id}/fusionar/{drop.id}", follow_redirects=False)
     assert response.status_code == 303
     db.expire_all()
     assert db.get(Account, drop.id).merged_into_id == keep.id
@@ -202,6 +242,6 @@ def test_merge_from_the_screen(db, login_as, backfilled, data):
 def test_dismissed_pair_is_not_shown_again(db, login_as, backfilled):
     admin = login_as("admin")
     keep, drop = backfilled["Municipalidad de Alajuela"], backfilled["Municipalidad Alajuela"]
-    admin.post(f"/crm/duplicados/{drop.id}/{keep.id}/descartar")
-    assert "No hay posibles duplicados" in admin.get("/crm/duplicados").text
+    admin.post(f"/clientes/duplicados/{drop.id}/{keep.id}/descartar")
+    assert "No hay posibles duplicados" in admin.get("/clientes/duplicados").text
     assert db.get(Account, drop.id).merged_into_id is None

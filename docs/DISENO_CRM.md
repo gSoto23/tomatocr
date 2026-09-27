@@ -2,7 +2,15 @@
 
 Preparado el 26/09/2026. Reemplaza la sección "Fase 2. CRM y formulario web" de `docs/PLAN_SISTEMA_COMERCIAL.md` (aprobado el 27/09/2026).
 
-**Estado (27/09/2026):** 2A implementada en la rama `feat/fase-2-crm` (sin desplegar). 2B, 2C y 2D pendientes. El análisis de encaje con el sistema actual está en `docs/ANALISIS_ENCAJE_CRM.md`, con cambios recomendados a este diseño que esperan decisión.
+**Estado (27/09/2026):** 2A implementada en la rama `feat/fase-2-crm`, ya ajustada con las decisiones del análisis de encaje (`docs/ANALISIS_ENCAJE_CRM.md`). 2B, 2C y 2D pendientes.
+
+**Cambios aprobados sobre este diseño** (ver el análisis para el detalle):
+- **Una sola lista de contactos por cuenta.** `project_contact_roles` indica qué contactos usa cada proyecto (de sitio, recibe reportes). Los `project_contacts` actuales se copian a la cuenta con la migración; en 2C el formulario de proyecto y el correo de la bitácora pasan a usarlos.
+- **Estado de la cuenta calculado:** cliente (proyecto activo o reforestación), ex-cliente (solo proyectos cerrados), prospecto (sin proyectos). Solo "descartada" es manual (`discarded_at`). No hay columna `status`.
+- **Sin `segment` en la cuenta:** el motor va en la oportunidad.
+- **Monto de la oportunidad:** sale de la cotización ligada; `amount_crc` solo mientras no haya cotización.
+- **Renovaciones:** lista "Contratos por vencer" con botón "Crear renovación", no automáticas.
+- **Nombres:** menú "Clientes" (rutas `/clientes`), con Embudo y Cuentas; las actividades comerciales se llaman "Seguimientos".
 Principio: **una sola cuenta por cliente**. Prospectos y clientes actuales viven en la misma tabla, y todo lo que ya existe (proyectos, cotizaciones, usuarios del portal, reforestación) se liga a esa cuenta sin romperse.
 
 ## 1. Cómo están hoy los clientes en el sistema
