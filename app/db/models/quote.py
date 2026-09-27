@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, Float, JSON, Date, DateTime
+from sqlalchemy import Column, Integer, String, Text, Float, JSON, Date, DateTime, ForeignKey
 from sqlalchemy.sql import func
 from app.db.base_class import Base
 
@@ -26,3 +26,7 @@ class Quote(Base):
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # CRM (docs/DISENO_CRM.md). cliente_nombre stays as the text shown today.
+    account_id = Column(Integer, ForeignKey("accounts.id"), nullable=True, index=True)
+    opportunity_id = Column(Integer, ForeignKey("opportunities.id"), nullable=True)

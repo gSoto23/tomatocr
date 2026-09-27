@@ -6,7 +6,22 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-27
 
-### Sin opción "Dárboles" en la configuración de reforestación (esta rama)
+### Fase 2A: cuentas del CRM y migración de clientes (esta rama, sin desplegar)
+- Migración `0003`: tablas `accounts`, `contacts`, `opportunities`,
+  `crm_activities` y `account_not_duplicates`; columnas opcionales
+  `account_id` y `opportunity_id` en proyectos y cotizaciones, y
+  `account_id` en reforestación. Ninguna columna existente cambia.
+- `scripts/crm_backfill.py`: crea cuentas y contactos desde los clientes
+  actuales, con reporte en modo prueba y `--apply`. Cotizaciones de
+  prospectos de los últimos 90 días pasan a oportunidades en "propuesta".
+  Dueño de las cuentas nuevas: Gerardo.
+- Pantalla `/crm/duplicados` (solo admin) para fusionar o descartar posibles
+  duplicados.
+- Ninguna pantalla existente cambia.
+- Despliegue: snapshot, `alembic upgrade head`, script en prueba, revisar el
+  reporte, `--apply`.
+
+### Sin opción "Dárboles" en la configuración de reforestación (#51)
 - Se quitó el campo "Tipo" del formulario del admin: darboles.com es una
   plataforma independiente, así que todos los proyectos de este sistema son
   institucionales y salen en el mapa de tomatocr.com.

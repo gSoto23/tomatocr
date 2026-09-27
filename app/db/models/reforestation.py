@@ -34,6 +34,8 @@ class ReforestationProject(Base):
     is_public = Column(Boolean, nullable=False, default=False, server_default=text("false"))
     public_name = Column(String(255), nullable=True)
     consent_date = Column(Date, nullable=True)
+    # CRM account (docs/DISENO_CRM.md). client_name stays as the text shown today.
+    account_id = Column(Integer, ForeignKey("accounts.id"), nullable=True, index=True)
 
     trees = relationship("ReforestationTree", back_populates="project", cascade="all, delete-orphan")
     project = relationship("Project")

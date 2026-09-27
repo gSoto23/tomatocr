@@ -121,14 +121,30 @@ def copy(sqlite_path, target_url, dry_run):
             # Naive datetimes from SQLite are UTC; store them as such in timestamptz columns.
             target.execute(text("SET LOCAL TIME ZONE 'UTC'"))
             check_target_ready(target)
+            source_rows = {}
+            deferred = []  # (table, column): foreign keys in a cycle (use_alter), filled in after all inserts
             for table in Base.metadata.sorted_tables:
                 rows = read_rows(source, table)
+                source_rows[table.name] = rows
                 problems = check_lengths(table, rows)
                 if problems:
                     raise CopyError("Valores más largos de lo permitido:\n  " + "\n  ".join(problems))
-                for start in range(0, len(rows), BATCH_SIZE):
-                    target.execute(table.insert(), rows[start:start + BATCH_SIZE])
+                cyclic = [c.name for c in table.columns if any(fk.use_alter for fk in c.foreign_keys)]
+                deferred += [(table, name) for name in cyclic]
+                to_insert = [{**r, **{name: None for name in cyclic}} for r in rows]
+                for start in range(0, len(to_insert), BATCH_SIZE):
+                    target.execute(table.insert(), to_insert[start:start + BATCH_SIZE])
 
+            for table, name in deferred:
+                pk = table.primary_key.columns["id"]
+                for row in source_rows[table.name]:
+                    if row[name] is not None:
+                        # Keep onupdate columns (updated_at) as they were in the source.
+                        keep = {c.name: row[c.name] for c in table.columns if c.onupdate is not None}
+                        target.execute(table.update().where(pk == row["id"]).values({name: row[name], **keep}))
+
+            for table in Base.metadata.sorted_tables:
+                rows = source_rows[table.name]
                 copied = read_rows(target, table)
                 if len(copied) != len(rows):
                     raise CopyError(f"{table.name}: {len(rows)} filas en SQLite, {len(copied)} en PostgreSQL")

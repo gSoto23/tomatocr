@@ -1,0 +1,51 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Cuentas duplicadas | TOMATO{% endblock %}
+{% block header_title %}CRM · Posibles cuentas duplicadas{% endblock %}
+
+{% macro card(s) %}
+<div class="flex-1 rounded-lg border border-gray-200 p-4 text-sm">
+    <div class="font-semibold text-gray-900">{{ s.account.name }}</div>
+    <div class="text-xs text-gray-500">#{{ s.account.id }} · {{ s.account.status }}{% if s.account.tax_id %} · cédula {{ s.account.tax_id }}{% endif %}{% if s.account.origin_ref %} · origen {{ s.account.origin_ref }}{% endif %}</div>
+    <ul class="mt-2 space-y-0.5 text-gray-700">
+        <li>{{ s.contacts }} contactos · {{ s.opportunities }} oportunidades · {{ s.quotes }} cotizaciones</li>
+        <li>{{ s.projects|length }} proyectos{% if s.projects %}: {{ s.projects|join(', ') }}{% endif %}</li>
+        {% if s.reforestation %}<li>{{ s.reforestation }} proyecto(s) de reforestación</li>{% endif %}
+    </ul>
+</div>
+{% endmacro %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-4">
+    <p class="text-sm text-gray-600">
+        Cuentas con nombres parecidos (similitud de 0,85 o más) o con un contacto con el mismo correo.
+        Al fusionar, todo pasa a la cuenta que queda: contactos, oportunidades, actividades, proyectos, cotizaciones y reforestación.
+        La otra queda inactiva y registrada en Actividad.
+    </p>
+
+    {% for pair in pairs %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 space-y-4">
+        <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Similitud {{ '%.2f'|format(pair.score) }}</div>
+        <div class="flex flex-col md:flex-row gap-4">
+            {{ card(pair.a) }}
+            {{ card(pair.b) }}
+        </div>
+        <div class="flex flex-wrap gap-3 text-sm">
+            <form method="post" action="/crm/cuentas/{{ pair.a.account.id }}/fusionar/{{ pair.b.account.id }}"
+                onsubmit='return confirm({{ ("¿Fusionar en «" ~ pair.a.account.name ~ "»? No se puede deshacer desde la pantalla.")|tojson }})'>
+                <button class="rounded-md bg-black px-3 py-2 font-semibold text-white hover:bg-gray-800">Quedarse con «{{ pair.a.account.name }}»</button>
+            </form>
+            <form method="post" action="/crm/cuentas/{{ pair.b.account.id }}/fusionar/{{ pair.a.account.id }}"
+                onsubmit='return confirm({{ ("¿Fusionar en «" ~ pair.b.account.name ~ "»? No se puede deshacer desde la pantalla.")|tojson }})'>
+                <button class="rounded-md bg-black px-3 py-2 font-semibold text-white hover:bg-gray-800">Quedarse con «{{ pair.b.account.name }}»</button>
+            </form>
+            <form method="post" action="/crm/duplicados/{{ pair.a.account.id }}/{{ pair.b.account.id }}/descartar">
+                <button class="rounded-md bg-white px-3 py-2 font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">No son la misma</button>
+            </form>
+        </div>
+    </div>
+    {% else %}
+    <div class="bg-white rounded-xl border border-gray-200 p-8 text-center text-sm text-gray-500">No hay posibles duplicados.</div>
+    {% endfor %}
+</div>
+{% endblock %}

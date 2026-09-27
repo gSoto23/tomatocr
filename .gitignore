@@ -59,3 +59,6 @@ logs/
 # Uploads & Media
 app/static/uploads/*
 !app/static/uploads/.gitkeep
+
+# CRM backfill report (client names and emails)
+crm_backfill_report.csv
