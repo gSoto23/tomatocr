@@ -31,6 +31,15 @@ class Settings(BaseSettings):
     AWS_REGION: str = os.getenv("AWS_REGION", "us-east-1")
     S3_BUCKET_NAME: str = os.getenv("S3_BUCKET_NAME", "tomato-prod-media-cr")
 
+    # darboles.com sends leads server-to-server with this key (header X-API-Key).
+    # Empty = the endpoint is disabled.
+    DARBOLES_API_KEY: str = os.getenv("DARBOLES_API_KEY", "")
+    # Web form limits: per public IP and for the whole site, per hour.
+    LEADS_PER_IP_PER_HOUR: int = int(os.getenv("LEADS_PER_IP_PER_HOUR", 5))
+    LEADS_PER_HOUR: int = int(os.getenv("LEADS_PER_HOUR", 30))
+    # Address that receives a copy of every new lead notification.
+    LEADS_NOTIFY_EMAIL: str = os.getenv("LEADS_NOTIFY_EMAIL", "info@tomatocr.com")
+
     # Email
     MAIL_USERNAME: str = os.getenv("MAIL_USERNAME", "")
     MAIL_PASSWORD: str = os.getenv("MAIL_PASSWORD", "")

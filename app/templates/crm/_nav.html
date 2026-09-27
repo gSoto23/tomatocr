@@ -10,6 +10,9 @@
             {{ duplicates }} posible{{ 's' if duplicates != 1 }} duplicado{{ 's' if duplicates != 1 }} por revisar
         </a>
         {% endif %}
+        {% if user and user.role == 'admin' %}
+        <a href="/clientes/asignacion" class="rounded-md px-3 py-2 font-semibold text-gray-600 hover:text-gray-900">Asignación de prospectos</a>
+        {% endif %}
         <a href="/clientes/cuentas/nueva" class="rounded-md bg-black px-3 py-2 font-semibold text-white hover:bg-gray-800">Nueva cuenta</a>
     </div>
 </div>

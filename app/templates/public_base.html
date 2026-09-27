@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-HL6PM4KVF3"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+        gtag('config', 'G-HL6PM4KVF3');
+    </script>
+    <title>{% block title %}TOMATO{% endblock %}</title>
+    <meta name="description" content="{% block description %}TOMATO COSTA RICA ANY S.R.L.{% endblock %}" />
+    {% block head %}{% endblock %}
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/images/fav/favicon-32x32.png">
+    <meta name="theme-color" content="#ffffff">
+    <!-- Tailwind CSS (compiled, see package.json build:css) -->
+    <link rel="stylesheet" href="/static/css/tailwind.css">
+</head>
+
+<body class="bg-white text-black antialiased dark:bg-black dark:text-white">
+    <header class="border-b border-black/10 dark:border-white/10">
+        <div class="mx-auto max-w-3xl px-4 py-4 flex items-center justify-between gap-4">
+            <a href="/" class="flex items-center">
+                <img src="/static/images/LogoTomatoB.png" alt="TOMATO" class="h-8 block dark:hidden" />
+                <img src="/static/images/LogoTomatoW.png" alt="TOMATO" class="h-8 hidden dark:block" />
+            </a>
+            <a href="/" class="text-sm font-semibold hover:opacity-70">← Volver a tomatocr.com</a>
+        </div>
+    </header>
+    <main class="mx-auto max-w-3xl px-4 py-10">
+        {% block content %}{% endblock %}
+    </main>
+    <footer class="mx-auto max-w-3xl px-4 pb-10 text-sm text-black/60 dark:text-white/60">
+        TOMATO COSTA RICA ANY S.R.L. · Cédula jurídica 3-102-876296 · <a href="/privacidad" class="underline">Privacidad</a>
+    </footer>
+</body>
+
+</html>

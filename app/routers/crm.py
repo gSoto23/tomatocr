@@ -9,19 +9,21 @@ from sqlalchemy.orm import Session
 
 from app.core.roles import ADMIN, VENTAS
 from app.core.templates import templates
-from app.db.models.crm import (ACCOUNT_KINDS, ACTIVITY_TYPES, FUNNEL_STAGES, LABELS, MOTORS, OPPORTUNITY_KINDS,
-                               STAGES, Account, Contact, CrmActivity, Opportunity, ProjectContactRole)
+from app.db.models.crm import (ACCOUNT_KINDS, ACTIVITY_TYPES, ASSIGNMENT_DEFAULT, FUNNEL_STAGES, LABELS, MOTORS,
+                               OPPORTUNITY_KINDS, STAGES, Account, Contact, CrmActivity, CrmAssignment, Opportunity,
+                               ProjectContactRole)
 from app.db.models.project import Project
 from app.db.models.quote import Quote
 from app.db.models.reforestation import ReforestationProject
 from app.db.models.user import User
 from app.routers import deps
 from app.utils.activity import log_activity
-from app.utils.crm import (account_payload, account_status, active_accounts, can_edit_account, can_edit_opportunity,
+from app.utils.crm import (account_payload, account_status, active_accounts, anonymize_contact, can_edit_account,
+                           can_edit_opportunity,
                            change_stage, claim_if_unowned, create_renewal, dismiss_duplicate, expiring_contracts,
                            filter_opportunities, find_duplicates, funnel, last_followups, merge_accounts, next_steps,
-                           proposal_amounts, quote_amount, search_accounts, set_goals, similar_accounts,
-                           win_opportunity)
+                           proposal_amounts, quote_amount, rename_account_projects, search_accounts, set_goals,
+                           similar_accounts, win_opportunity)
 from app.utils.reforestation import parse_date
 
 # "Clientes" in the menu (docs/ANALISIS_ENCAJE_CRM.md, R7).
@@ -249,15 +251,19 @@ def update_account(
         return toast_redirect(url, "Esa cédula ya está en otra cuenta", error=True)
     if not name.strip():
         return toast_redirect(url, "El nombre no puede quedar vacío", error=True)
+    old_name = account.name
     account.name, account.kind = name.strip(), kind if kind in ACCOUNT_KINDS else account.kind
+    renamed = rename_account_projects(db, account, old_name) if account.name != old_name else 0
     for attr, value in (("legal_name", legal_name), ("tax_id", tax_id), ("source", source), ("province", province),
                         ("address", address), ("website", website), ("vat_exemption_code", vat_exemption_code),
                         ("notes", notes)):
         setattr(account, attr, clean(value))
     claim_if_unowned(account, user)
     db.commit()
-    log_activity(db, user, "UPDATE", "ACCOUNT", account.id, f"Cuenta {account.name}")
-    return toast_redirect(url, "Datos guardados")
+    log_activity(db, user, "UPDATE", "ACCOUNT", account.id,
+                 f"Cuenta {account.name}" + (f" (antes {old_name}; {renamed} proyecto(s) actualizados)"
+                                             if account.name != old_name else ""))
+    return toast_redirect(url, "Datos guardados" + (f"; {renamed} proyecto(s) muestran el nombre nuevo" if renamed else ""))
 
 
 @router.post("/cuentas/{account_id}/duenio")
@@ -331,6 +337,22 @@ def update_contact(contact_id: int, name: str = Form(...), role_title: Optional[
     claim_if_unowned(account, user)
     db.commit()
     return toast_redirect(url, "Contacto guardado")
+
+
+@router.post("/contactos/{contact_id}/anonimizar")
+def anonymize(contact_id: int, db: Session = Depends(deps.get_db), user: User = Depends(admin_only)):
+    """When a person asks us to delete their data (derecho de supresión, /privacidad)."""
+    contact = db.get(Contact, contact_id)
+    if contact is None:
+        raise HTTPException(status_code=404, detail="Contacto no encontrado")
+    url = f"/clientes/cuentas/{contact.account_id}?tab=contactos"
+    try:
+        anonymize_contact(db, contact)
+    except ValueError as e:
+        return toast_redirect(url, str(e), error=True)
+    db.commit()
+    log_activity(db, user, "UPDATE", "CONTACT", contact.id, "Contacto anonimizado a pedido de la persona")
+    return toast_redirect(url, "Datos del contacto eliminados; el historial de la cuenta se conserva")
 
 
 # --- Oportunidades ------------------------------------------------------------------
@@ -588,3 +610,35 @@ def not_duplicate(a_id: int, b_id: int, db: Session = Depends(deps.get_db), user
     dismiss_duplicate(db, a_id, b_id, user)
     db.commit()
     return toast_redirect("/clientes/duplicados", "Marcadas como cuentas distintas")
+
+
+# --- Asignación de prospectos -------------------------------------------------------
+
+@router.get("/asignacion")
+def assignment(request: Request, db: Session = Depends(deps.get_db), user: User = Depends(admin_only)):
+    rows = {row.motor: row.user_id for row in db.query(CrmAssignment).all()}
+    motors = [(m, LABELS["motor"][m]) for m in MOTORS] + [(ASSIGNMENT_DEFAULT, "Cualquier otro / sin motor")]
+    return templates.TemplateResponse("crm/asignacion.html", {
+        "request": request, "user": user, "motors": motors, "rows": rows, "sellers": sellers(db),
+    })
+
+
+@router.post("/asignacion")
+async def update_assignment(request: Request, db: Session = Depends(deps.get_db), user: User = Depends(admin_only)):
+    form = await request.form()
+    valid = {s.id for s in sellers(db)}
+    changes = []
+    for motor in list(MOTORS) + [ASSIGNMENT_DEFAULT]:
+        user_id = optional_int(form.get(motor))
+        user_id = user_id if user_id in valid else None
+        row = db.get(CrmAssignment, motor)
+        if row is None:
+            row = CrmAssignment(motor=motor)
+            db.add(row)
+        if row.user_id != user_id:
+            changes.append(motor)
+        row.user_id = user_id
+    db.commit()
+    if changes:
+        log_activity(db, user, "UPDATE", "CRM_ASSIGNMENT", None, "Asignación de prospectos: " + ", ".join(changes))
+    return toast_redirect("/clientes/asignacion", "Asignación guardada")

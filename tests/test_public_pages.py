@@ -2,7 +2,7 @@ import pytest
 
 from tests.conftest import new_client
 
-PAGES = ["/", "/proyectos-reforestacion", "/programas/darboles"]
+PAGES = ["/", "/proyectos-reforestacion", "/programas/darboles", "/privacidad", "/contacto/gracias"]
 
 
 @pytest.mark.parametrize("path", PAGES)

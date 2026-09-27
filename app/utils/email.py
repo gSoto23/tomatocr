@@ -166,3 +166,16 @@ async def send_log_email(log_id: int, recipients: List[EmailStr], additional_tex
         
         # Close DB session
         db.close()
+
+
+
+async def send_plain_email(recipients: List[str], subject: str, body: str):
+    """Short internal notification (new leads). Does nothing if mail isn't configured."""
+    recipients = sorted({r for r in recipients if r})
+    if not recipients or not settings.MAIL_USERNAME:
+        return
+    try:
+        message = MessageSchema(subject=subject, recipients=recipients, body=body, subtype=MessageType.plain)
+        await FastMail(conf).send_message(message)
+    except Exception as e:
+        logger.error(f"Error sending notification '{subject}': {e}")

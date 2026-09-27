@@ -1,0 +1,89 @@
+{# Public contact form. Include with: {% set form_motor = "esg" %}{% include "components/contact_form.html" %}
+   Posts to /contacto (app/routers/leads.py). Works without JavaScript; with it, it sends JSON
+   and shows the answer in place. #}
+{% set ctx = contact_form_context(form_motor | default(None)) %}
+{% set field = "mt-1 w-full rounded-md border border-black/15 bg-white px-3 py-2 text-sm text-black focus:border-black focus:outline-none dark:border-white/20 dark:bg-black dark:text-white dark:focus:border-white" %}
+<form action="/contacto" method="post" data-contact-form novalidate class="space-y-4">
+    <div class="grid sm:grid-cols-2 gap-4">
+        <label class="block text-sm font-medium">Nombre *
+            <input name="name" required maxlength="150" autocomplete="name" class="{{ field }}">
+        </label>
+        <label class="block text-sm font-medium">Empresa o institución
+            <input name="company" maxlength="200" autocomplete="organization" class="{{ field }}">
+        </label>
+        <label class="block text-sm font-medium">Correo
+            <input name="email" type="email" maxlength="150" autocomplete="email" class="{{ field }}">
+        </label>
+        <label class="block text-sm font-medium">Teléfono
+            <input name="phone" type="tel" maxlength="30" autocomplete="tel" class="{{ field }}">
+        </label>
+    </div>
+    <p class="-mt-2 text-xs text-black/60 dark:text-white/60">Déjenos al menos un correo o un teléfono.</p>
+    <label class="block text-sm font-medium">¿Qué le interesa? *
+        <select name="motor" required class="{{ field }}">
+            {% if not ctx.default_motor %}<option value="">Elija una opción</option>{% endif %}
+            {% for value, label in ctx.motors %}
+            <option value="{{ value }}" {% if value == ctx.default_motor %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </label>
+    <label class="block text-sm font-medium">Mensaje
+        <textarea name="message" rows="4" maxlength="3000" class="{{ field }}"
+            placeholder="Ubicación, tamaño aproximado, fechas…"></textarea>
+    </label>
+    {# Honeypot: hidden from people, bots fill it. #}
+    <div aria-hidden="true" style="position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden">
+        <label>No llenar <input name="website" tabindex="-1" autocomplete="off"></label>
+    </div>
+    <label class="flex items-start gap-2 text-sm text-black/70 dark:text-white/70">
+        <input type="checkbox" name="consent" value="true" required class="mt-1">
+        <span>Acepto que TOMATO use estos datos para responder mi solicitud, según su
+            <a href="/privacidad" target="_blank" class="underline">política de privacidad</a>.</span>
+    </label>
+    <div class="flex flex-wrap items-center gap-3">
+        <button type="submit"
+            class="inline-flex items-center justify-center rounded-md bg-black px-5 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50 dark:bg-white dark:text-black">
+            Enviar solicitud
+        </button>
+        <p data-contact-message role="status" class="text-sm"></p>
+    </div>
+</form>
+<script>
+    (function () {
+        var form = document.currentScript.previousElementSibling;
+        var message = form.querySelector('[data-contact-message]');
+        var button = form.querySelector('button[type=submit]');
+        function show(text, ok) {
+            message.textContent = text;
+            message.className = 'text-sm ' + (ok ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400');
+        }
+        form.addEventListener('submit', function (event) {
+            event.preventDefault();
+            var data = Object.fromEntries(new FormData(form).entries());
+            data.consent = form.consent.checked;
+            if (!data.name.trim()) return show('Escriba su nombre.', false);
+            if (!data.email.trim() && !data.phone.trim()) return show('Indique un correo o un teléfono.', false);
+            if (!data.motor) return show('Elija qué le interesa.', false);
+            if (!data.consent) return show('Debe aceptar la política de privacidad para que le contactemos.', false);
+            button.disabled = true;
+            show('Enviando…', true);
+            fetch('/contacto', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify(data)
+            }).then(function (response) {
+                return response.json().catch(function () { return { ok: false }; });
+            }).then(function (answer) {
+                if (answer.ok) {
+                    form.reset();
+                    show(answer.message, true);
+                    if (typeof gtag === 'function') gtag('event', 'generate_lead', { form: 'contacto', motor: data.motor });
+                } else {
+                    show(answer.message || 'No se pudo enviar. Intente de nuevo o escríbanos por WhatsApp.', false);
+                }
+            }).catch(function () {
+                show('No se pudo enviar. Revise su conexión o escríbanos por WhatsApp.', false);
+            }).finally(function () { button.disabled = false; });
+        });
+    })();
+</script>

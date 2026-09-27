@@ -610,3 +610,43 @@ def search_accounts(db: Session, query: str, limit: int = 15) -> List[Account]:
         elif similarity(account.name, query) >= SIMILARITY_THRESHOLD:
             scored.append((2, account.name.lower(), account))
     return [a for _, _, a in sorted(scored, key=lambda t: t[:2])][:limit]
+
+
+def rename_account_projects(db: Session, account: Account, old_name: str) -> int:
+    """After renaming an account, projects that showed the old name show the new one.
+    A project with its own display name (e.g. "ICE · Sede Colima") keeps it."""
+    old_key = normalize_name(old_name)
+    changed = 0
+    for project in db.query(Project).filter(Project.account_id == account.id).all():
+        if not project.client_display_name or normalize_name(project.client_display_name) == old_key:
+            project.client_display_name = account.name[:100]
+            changed += 1
+    return changed
+
+
+ANONYMIZED_NAME = "Contacto eliminado"
+
+
+def anonymize_contact(db: Session, contact: Contact) -> int:
+    """Right to erasure (Ley 8968): removes the person's data but keeps the follow-ups
+    (they belong to the account). Also clears the same person in the old project
+    contacts table. Returns how many of those old rows were cleared."""
+    if contact.user_id:
+        raise ValueError("Este contacto tiene acceso al portal; desactive primero su usuario")
+    email, phone = (contact.email or "").lower(), contact.phone
+    project_ids = [p.id for p in db.query(Project.id).filter(Project.account_id == contact.account_id)]
+    legacy = 0
+    if project_ids and (email or phone):
+        for row in db.query(ProjectContact).filter(ProjectContact.project_id.in_(project_ids)).all():
+            if (email and (row.email or "").lower() == email) or (phone and row.phone == phone):
+                row.name, row.email, row.phone, row.position = ANONYMIZED_NAME, None, None, None
+                legacy += 1
+    db.query(ProjectContactRole).filter(ProjectContactRole.contact_id == contact.id).delete()
+    # Requests from the web form keep "Solicitud desde ..." but lose the message the person wrote.
+    for activity in db.query(CrmActivity).filter(CrmActivity.contact_id == contact.id,
+                                                 CrmActivity.notes.like("Solicitud desde%")):
+        activity.notes = activity.notes.split("\n")[0].rstrip(":")
+    contact.name, contact.role_title, contact.email, contact.phone, contact.notes = ANONYMIZED_NAME, None, None, None, None
+    contact.is_primary = contact.is_commercial = contact.is_billing = False
+    contact.consent_marketing, contact.consent_at, contact.consent_text_version = False, None, None
+    return legacy
