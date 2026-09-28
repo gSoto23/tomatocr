@@ -70,3 +70,13 @@ def crc_filter(value) -> str:
 
 
 templates.env.filters["crc"] = crc_filter
+
+
+def long_date_weekday(day) -> str:
+    """lunes 28 de septiembre de 2026 (not dependent on the server locale)."""
+    from app.utils.company import long_date
+    weekdays = ("lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo")
+    return f"{weekdays[day.weekday()]} {long_date(day)}"
+
+
+templates.env.globals["long_date"] = long_date_weekday
