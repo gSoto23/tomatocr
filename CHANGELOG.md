@@ -6,7 +6,17 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-28
 
-### Arreglo: texto del calendario vacío (esta rama)
+### Arreglo: eliminar empleado y usuarios de clientes aparte (esta rama)
+- Eliminar a una persona con historial (bitácoras, asignaciones, planillas, pagos,
+  liquidaciones, monitoreos, Clientes o Actividad) daba "Internal Server Error". Ahora
+  dice qué historial tiene y que hay que desactivarla; solo se elimina a quien no tiene
+  historial, quitando antes sus vínculos (proyectos, contacto, motor de prospectos,
+  entradas de LOGIN).
+- Empleados se separa en dos pestañas: **Equipo** y **Usuarios de clientes** (los del
+  portal, con la advertencia de que eliminarlos les quita el acceso).
+- Despliegue: sin migraciones; reiniciar.
+
+### Arreglo: texto del calendario vacío (#75)
 - Una semana sin asignaciones dice "No hay asignaciones en estas fechas" en vez de
   "No events to display".
 - Datos: se quitaron 5 asignaciones repetidas y vacías de Will Perez en Casa Guácima

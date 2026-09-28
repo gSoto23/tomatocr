@@ -15,7 +15,8 @@
     (2, "Tocá el <strong>nombre</strong> para ver el expediente: contacto, fecha de ingreso, cargas sociales y documentos."),
     (3, "<strong>Estado</strong>: Activo, Inactivo o Liquidado, y <em>Editar</em>."),
 ]) }}
-<p>Arriba de la tabla podés <strong>buscar</strong> por nombre, usuario o correo y <strong>ordenar</strong> por nombre, rol,
+<p>La lista tiene dos pestañas: <strong>Equipo</strong> (trabajadores, supervisores, ventas y admins) y <strong>Usuarios
+    de clientes</strong> (los usuarios con los que cada cliente entra al portal). Arriba de la tabla podés <strong>buscar</strong> por nombre, usuario o correo y <strong>ordenar</strong> por nombre, rol,
     activos primero o más recientes.</p>
 {% endcall %}
 
@@ -54,8 +55,9 @@
     <li><strong>Desactivar</strong> (desmarcar <em>Empleado Activo</em>): la persona ya no puede entrar y, si tenía la
         sesión abierta, la pierde en la siguiente pantalla. Su historial se conserva. <strong>Es lo recomendado</strong>
         cuando alguien deja de trabajar.</li>
-    <li><strong>Eliminar Empleado</strong> borra a la persona para siempre y no se puede deshacer. Usalo solo para usuarios
-        creados por error.</li>
+    <li><strong>Eliminar Empleado</strong> borra a la persona para siempre y no se puede deshacer. Solo funciona con usuarios
+        creados por error, <strong>sin historial</strong>: si tiene bitácoras, asignaciones, planillas, pagos u otros
+        registros, el sistema dice cuáles y hay que desactivarla. Eliminar un usuario de cliente le quita el acceso al portal.</li>
     <li>Cuando alguien sale de la empresa con liquidación, hacelo desde Planilla → Liquidaciones: queda desactivado y marcado como liquidado.</li>
     <li>No podés desactivarte, quitarte el rol de admin ni eliminarte a vos mismo.</li>
 </ul>

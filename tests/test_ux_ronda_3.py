@@ -234,3 +234,38 @@ def test_panel_uses_decimal_comma(db, login_as):
     html = login_as("admin").get("/dashboard/reforestacion").text
     assert "66,7 %" in html
     assert "Superv. 3 m" in html
+
+
+# --- Deleting a person ----------------------------------------------------------------------
+
+def test_person_with_history_is_not_deleted(db, login_as, users):
+    from app.db.models.log import DailyLog as Log
+    db.add(Log(project_id=users["project_id"], user_id=users["worker"].id, date=date.today(), notes="x"))
+    db.commit()
+    response = login_as("admin").post(f"/users/{users['worker'].id}/delete", follow_redirects=False)
+    assert response.status_code == 303 and response.headers["location"] == f"/users/{users['worker'].id}/edit"
+    assert response.cookies.get("toast_type") == "error"
+    assert db.get(User, users["worker"].id) is not None
+
+
+def test_person_created_by_mistake_is_deleted_with_its_links(db, login_as, users):
+    from app.db.models.activity import ActivityLog
+    from app.db.models.project import Project
+    from tests.conftest import make_user
+    extra = make_user(db, "por_error", "worker")
+    project = db.get(Project, users["project_id"])
+    project.users.append(extra)
+    db.add(ActivityLog(user_id=extra.id, action="LOGIN", entity_type="SISTEMA", details="entró"))
+    db.commit()
+    response = login_as("admin").post(f"/users/{extra.id}/delete", follow_redirects=False)
+    assert response.headers["location"] == "/users"
+    db.expire_all()
+    assert db.query(User).filter(User.username == "por_error").count() == 0
+
+
+def test_client_users_have_their_own_tab(login_as, users):
+    client = login_as("admin")
+    team = client.get("/users/").text.split("<tbody", 1)[1].split("</tbody>", 1)[0]
+    portal = client.get("/users/?tipo=clientes").text.split("<tbody", 1)[1].split("</tbody>", 1)[0]
+    assert "u_client" not in team and "u_worker" in team
+    assert "u_client" in portal and "u_worker" not in portal
