@@ -383,274 +383,143 @@
         </div>
     </section>
 
-    <!-- SERVICES (Accordion) -->
+    <!-- SERVICES: photo cards. Reforestation is the flagship (wide card); the full scope of each
+         service stays in a native <details>, so the text is still on the page for search engines. -->
+    {% set muted = "text-black/70 dark:text-white/70" %}
+    {% set card = "overflow-hidden rounded-2xl border border-black/10 bg-white dark:border-white/10 dark:bg-neutral-950" %}
+    {% set summary = "inline-flex cursor-pointer list-none items-center gap-1 text-sm font-semibold text-green-700 hover:underline dark:text-green-400 [&::-webkit-details-marker]:hidden" %}
+    {% set scope_box = "rounded-xl border border-black/10 p-4 dark:border-white/10" %}
+    {% macro includes(items) %}
+    <ul class="mt-4 space-y-2 text-sm">
+        {% for item in items %}
+        <li class="flex gap-2"><span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-green-600 dark:bg-green-400" aria-hidden="true"></span>{{ item }}</li>
+        {% endfor %}
+    </ul>
+    {% endmacro %}
     <section id="services" class="border-t border-black/10 dark:border-white/10">
         <div class="mx-auto max-w-6xl px-4 py-14">
             <h2 class="text-2xl md:text-3xl font-semibold tracking-tight">Servicios</h2>
-            <p class="mt-3 text-black/70 dark:text-white/70 w-full leading-relaxed">
-                <span class="font-semibold">Reforestación con trazabilidad real</span> es nuestra especialidad insignia
-
-                además ofrecemos jardinería, paisajismo y mantenimiento de zonas verdes con el mismo estándar
-                profesional.
-                Los servicios se adaptan por tipo de propiedad, extensión del área, tránsito de personas y objetivos
-                (presentación, seguridad, control de crecimiento y estética). A continuación podés ver el alcance de
-                cada
-                línea de trabajo.
+            <p class="mt-3 max-w-2xl {{ muted }} leading-relaxed">
+                Reforestación con trazabilidad real es nuestra especialidad. Jardinería, paisajismo y
+                mantenimiento de zonas verdes, con el mismo estándar. El alcance se adapta a cada propiedad.
             </p>
 
-            <div class="mt-8 space-y-3" id="servicesAccordion">
-                <!-- Item 1 (Proyectos de Reforestación) -->
-                <div class="rounded-2xl border border-black/10 dark:border-white/10 overflow-hidden">
-                    <button type="button"
-                        class="services-toggle w-full flex items-center justify-between gap-4 px-5 py-4 text-left hover:bg-black/5 dark:hover:bg-white/10"
-                        aria-expanded="false" aria-controls="servicePanel1">
-                        <div>
-                            <div class="text-sm font-semibold">Proyectos de Reforestación</div>
-                            <div class="mt-1 text-sm text-black/60 dark:text-white/60">
-                                Ingeniería forestal, trazabilidad y garantía de supervivencia.
-                            </div>
-                        </div>
-                        <span class="shrink-0 rounded-full border border-black/20 p-2 dark:border-white/20"
-                            aria-hidden="true">
-                            <svg class="h-4 w-4 transition-transform duration-200" viewBox="0 0 24 24" fill="none">
-                                <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                    stroke-linejoin="round" />
-                            </svg>
-                        </span>
-                    </button>
-
-                    <div id="servicePanel1" class="services-panel hidden px-5 pb-5">
-                        <div class="pt-2 text-sm text-black/70 dark:text-white/70 leading-relaxed space-y-3">
+            <!-- Flagship: reforestation -->
+            <article class="mt-8 md:grid md:grid-cols-2 {{ card }}">
+                <img src="/static/images/servicios/reforestacion.jpg" width="800" height="600" loading="lazy" decoding="async"
+                    alt="Árboles y plantas recién sembrados en una zona verde de un parque de Alajuela"
+                    class="aspect-[4/3] h-full w-full object-cover md:aspect-auto" />
+                <div class="flex flex-col p-6 md:p-8">
+                    <span class="inline-flex w-fit items-center rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-800 dark:bg-green-500/10 dark:text-green-300">Especialidad insignia</span>
+                    <h3 class="mt-3 text-xl md:text-2xl font-semibold tracking-tight">Proyectos de reforestación</h3>
+                    <p class="mt-2 text-sm {{ muted }} leading-relaxed">
+                        Ingeniería forestal, vivero propio y la coordenada GPS de cada árbol, para una reforestación que se
+                        puede medir y comprobar.
+                    </p>
+                    <div class="{{ muted }}">{{ includes([
+                        "Siembra dirigida por ingenieros forestales, con plantas de nuestro vivero.",
+                        "Control georreferenciado (GPS) de cada individuo.",
+                        "Hidrokeeper para la supervivencia y reportes periódicos.",
+                    ]) }}</div>
+                    <details class="group mt-4">
+                        <summary class="{{ summary }}">Ver alcance completo <svg class="h-4 w-4 transition-transform group-open:rotate-180" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></summary>
+                        <div class="mt-3 space-y-3 text-sm {{ muted }} leading-relaxed">
                             <p>
-                                Basados en nuestra amplia experiencia de proyectos exitosos, ejecutamos planes de
-                                reforestación
-                                integral orientados a la recuperación ecológica y la compensación ambiental. Contamos
-                                con
-                                nuestro propio <span class="font-semibold">vivero</span> para garantizar la calidad y
-                                adaptabilidad de cada individuo,
-                                todo respaldado por el seguimiento de nuestro <span class="font-semibold">servicio de
-                                    ingenieros forestales</span>.
+                                Basados en nuestra amplia experiencia de proyectos exitosos, ejecutamos planes de reforestación
+                                integral orientados a la recuperación ecológica y la compensación ambiental. Contamos con nuestro
+                                propio <span class="font-semibold">vivero</span> para garantizar la calidad y adaptabilidad de cada
+                                individuo, todo respaldado por el seguimiento de nuestro
+                                <span class="font-semibold">servicio de ingenieros forestales</span>.
                             </p>
                             <p>
-                                Nos diferenciamos por la aplicación de tecnología y ciencia en el campo. Cada árbol
-                                plantado
-                                cuenta con <span class="font-semibold">control individualizado por medio de coordenadas
-                                    (GPS)</span>. Además, implementamos
-                                productos de alta eficacia como el <span class="font-semibold">hidrokeeper (polímeros
-                                    retenedores de agua)</span> para asegurar
-                                la supervivencia de la planta, permitiendo una <span class="font-semibold">trazabilidad
-                                    absoluta de los resultados</span>.
+                                Nos diferenciamos por la aplicación de tecnología y ciencia en el campo. Cada árbol plantado cuenta con
+                                <span class="font-semibold">control individualizado por medio de coordenadas (GPS)</span>. Además,
+                                implementamos productos de alta eficacia como el
+                                <span class="font-semibold">hidrokeeper (polímeros retenedores de agua)</span> para asegurar la
+                                supervivencia de la planta, permitiendo una
+                                <span class="font-semibold">trazabilidad absoluta de los resultados</span>.
                             </p>
-
-                            <div class="rounded-xl border border-black/10 p-4 dark:border-white/10">
-                                <div class="text-xs uppercase tracking-widest text-black/60 dark:text-white/60">Incluye
-                                    típicamente</div>
+                            <div class="{{ scope_box }}">
+                                <div class="text-xs uppercase tracking-widest text-black/60 dark:text-white/60">Incluye típicamente</div>
                                 <ul class="mt-3 list-disc pl-5 space-y-2">
                                     <li>Provisión de individuos desde nuestro vivero con genética adaptada.</li>
                                     <li>Dirección y ejecución de siembra por ingenieros forestales.</li>
                                     <li>Control georreferenciado (coordenadas) de cada individuo en el área.</li>
-                                    <li>Aplicación de hidrokeeper para maximizar la supervivencia ante estrés hídrico.
-                                    </li>
+                                    <li>Aplicación de hidrokeeper para maximizar la supervivencia ante estrés hídrico.</li>
                                     <li>Reportes periódicos y trazabilidad real de los resultados del proyecto.</li>
                                 </ul>
                             </div>
-
-                            <div class="text-sm text-black/60 dark:text-white/60">
-                                Resultado esperado: reforestación exitosa, medible y con impacto ecológico comprobable a
-                                lo largo del tiempo.
-                            </div>
-
-                            <div class="mt-4 flex flex-wrap gap-3">
-                                <a href="/proyectos-reforestacion"
-                                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-colors bg-brand text-white hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand dark:bg-brand-light dark:hover:bg-brand">
-                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                                    </svg>
-                                    Ver Reporte en Vivo
-                                </a>
-                                <a href="/programas/darboles"
-                                    class="inline-flex items-center gap-2 px-4 py-2 border border-black/20 text-sm font-semibold rounded-lg hover:bg-black hover:text-white transition-colors dark:border-white/20 dark:hover:bg-white dark:hover:text-black">
-                                    ¿Sos empresa o institución? Conocé el programa Dárboles →
-                                </a>
-                            </div>
+                            <p>Resultado esperado: reforestación exitosa, medible y con impacto ecológico comprobable a lo largo del tiempo.</p>
                         </div>
-                    </div>
-                </div>
-
-                <!-- Item 2 -->
-                <div class="rounded-2xl border border-black/10 dark:border-white/10 overflow-hidden">
-                    <button type="button"
-                        class="services-toggle w-full flex items-center justify-between gap-4 px-5 py-4 text-left hover:bg-black/5 dark:hover:bg-white/10"
-                        aria-expanded="false" aria-controls="servicePanel2">
-                        <div>
-                            <div class="text-sm font-semibold">Mantenimiento de Zonas Verdes</div>
-                            <div class="mt-1 text-sm text-black/60 dark:text-white/60">
-                                Control, orden y presentación constante durante todo el año.
-                            </div>
-                        </div>
-                        <span class="shrink-0 rounded-full border border-black/20 p-2 dark:border-white/20"
-                            aria-hidden="true">
-                            <svg class="h-4 w-4 transition-transform duration-200" viewBox="0 0 24 24" fill="none">
-                                <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                    stroke-linejoin="round" />
+                    </details>
+                    <div class="mt-6 flex flex-wrap gap-3 md:mt-auto md:pt-6">
+                        <a href="/proyectos-reforestacion"
+                            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-colors bg-brand text-white hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand dark:bg-brand-light dark:hover:bg-brand">
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                             </svg>
-                        </span>
-                    </button>
-
-                    <div id="servicePanel2" class="services-panel hidden px-5 pb-5">
-                        <div class="pt-2 text-sm text-black/70 dark:text-white/70 leading-relaxed space-y-3">
-                            <p>
-                                Diseñamos y ejecutamos rutinas de mantenimiento para que las áreas verdes se mantengan
-                                estables, limpias y con un acabado consistente.
-                                Este servicio es ideal para condominios, empresas, centros educativos, áreas comunes y
-                                propiedades residenciales que requieren
-                                buena presentación sin interrupciones.
-                            </p>
-                            <p>
-                                El alcance se define por frecuencia (semanal, quincenal, mensual o por demanda) y por la
-                                condición del sitio. Nos enfocamos en
-                                controlar crecimiento, reducir maleza, mantener bordes definidos y garantizar limpieza
-                                post-trabajo para que el área quede lista
-                                para uso inmediato.
-                            </p>
-
-                            <div class="rounded-xl border border-black/10 p-4 dark:border-white/10">
-                                <div class="text-xs uppercase tracking-widest text-black/60 dark:text-white/60">Incluye
-                                    típicamente</div>
-                                <ul class="mt-3 list-disc pl-5 space-y-2">
-                                    <li>Corte de césped con altura adecuada según temporada y tipo de área.</li>
-                                    <li>Bordeado de aceras, jardineras, árboles y límites de zona verde.</li>
-                                    <li>Control de maleza y limpieza general del área intervenida.</li>
-                                    <li>Recolección y disposición de residuos vegetales según condiciones del sitio.
-                                    </li>
-                                    <li>Recomendaciones de frecuencia para evitar deterioro y costos correctivos.</li>
-                                </ul>
-                            </div>
-
-                            <div class="text-sm text-black/60 dark:text-white/60">
-                                Resultado esperado: áreas verdes uniformes, limpias y con un estándar visible de orden y
-                                mantenimiento.
-                            </div>
-                        </div>
+                            Ver reporte en vivo
+                        </a>
+                        <a href="/programas/darboles"
+                            class="inline-flex items-center gap-2 px-4 py-2 border border-black/20 text-sm font-semibold rounded-lg hover:bg-black hover:text-white transition-colors dark:border-white/20 dark:hover:bg-white dark:hover:text-black">
+                            Empresas e instituciones: programa Dárboles →
+                        </a>
                     </div>
                 </div>
+            </article>
 
-                <!-- Item 3 -->
-                <div class="rounded-2xl border border-black/10 dark:border-white/10 overflow-hidden">
-                    <button type="button"
-                        class="services-toggle w-full flex items-center justify-between gap-4 px-5 py-4 text-left hover:bg-black/5 dark:hover:bg-white/10"
-                        aria-expanded="false" aria-controls="servicePanel3">
-                        <div>
-                            <div class="text-sm font-semibold">Jardinería</div>
-                            <div class="mt-1 text-sm text-black/60 dark:text-white/60">
-                                Detalle, salud de plantas y estética controlada.
+            <!-- The other three lines of work -->
+            {% set services = [
+                ("mantenimiento", "Mantenimiento de zonas verdes", "Control, orden y presentación constante durante todo el año.",
+                 "Césped recién cortado y senderos definidos en el jardín del Museo de Arte Costarricense",
+                 ["Frecuencia semanal, quincenal, mensual o por demanda.", "Corte, bordeado y control de maleza.", "Limpieza y retiro de residuos vegetales."],
+                 ["Diseñamos y ejecutamos rutinas de mantenimiento para que las áreas verdes se mantengan estables, limpias y con un acabado consistente. Este servicio es ideal para condominios, empresas, centros educativos, áreas comunes y propiedades residenciales que requieren buena presentación sin interrupciones.",
+                  "El alcance se define por frecuencia (semanal, quincenal, mensual o por demanda) y por la condición del sitio. Nos enfocamos en controlar crecimiento, reducir maleza, mantener bordes definidos y garantizar limpieza post-trabajo para que el área quede lista para uso inmediato."],
+                 ["Corte de césped con altura adecuada según temporada y tipo de área.", "Bordeado de aceras, jardineras, árboles y límites de zona verde.", "Control de maleza y limpieza general del área intervenida.", "Recolección y disposición de residuos vegetales según condiciones del sitio.", "Recomendaciones de frecuencia para evitar deterioro y costos correctivos."],
+                 "áreas verdes uniformes, limpias y con un estándar visible de orden y mantenimiento."),
+                ("jardineria", "Jardinería", "Detalle, salud de plantas y estética controlada.",
+                 "Camas de flores blancas y arbustos alrededor de una escultura en el Museo de Arte Costarricense",
+                 ["Poda de formación y control de crecimiento.", "Limpieza de camas y jardineras.", "Fertilización y reposición de plantas."],
+                 ["La jardinería es donde se define el “acabado” de la propiedad. Nos enfocamos en mantener plantas, arbustos y elementos decorativos en condiciones óptimas, con una estética cuidada y coherente. Este servicio es ideal para entradas, jardines frontales, áreas de alto tránsito y espacios que requieren buena impresión.",
+                  "Trabajamos con podas de formación, control de crecimiento y limpieza de camas. Cuando aplica, se incorporan ajustes de suelo, fertilización según necesidad y reposición de plantas para mantener continuidad visual. El objetivo es evitar jardines “cansados”, desordenados o con vacíos."],
+                 ["Poda de arbustos y plantas ornamentales para forma y control.", "Limpieza de camas/jardineras: hojas secas, maleza y residuos.", "Reposición de plantas (según diseño y disponibilidad) para mantener estética.", "Fertilización y mejoras puntuales (según diagnóstico del sitio).", "Detalle final: alineación visual, limpieza de bordes y presentación."],
+                 "jardines con orden, salud y una presentación consistente."),
+                ("paisajismo", "Paisajismo", "Diseño e instalación con visión de mantenimiento.",
+                 "Jardín de esculturas con setos, flores y senderos de piedra roja en el Museo de Arte Costarricense",
+                 ["Propuesta de diseño y selección de especies.", "Preparación del área e instalación.", "Plan de continuidad para mantener el resultado."],
+                 ["El paisajismo no es solo “poner plantas”: es crear un espacio funcional y estético que se pueda mantener en el tiempo. Diseñamos e instalamos soluciones que ordenan visualmente el entorno, mejoran el uso del espacio y elevan la presentación de la propiedad.",
+                  "Priorizamos criterios prácticos: selección de especies, distribución para evitar mantenimiento excesivo, y una propuesta que considere riego, crecimiento y exposición. El resultado es un espacio más limpio, armónico y coherente con el entorno y con el objetivo del cliente (corporativo o residencial)."],
+                 ["Propuesta de diseño (según alcance): distribución, estilo y criterios de mantenimiento.", "Selección e instalación de plantas y elementos verdes según el entorno.", "Preparación de área: limpieza, conformación y orden base para instalación.", "Plan de continuidad: recomendaciones y rutina para mantener el resultado.", "Ajustes posteriores: reposiciones o correcciones puntuales según evolución."],
+                 "un espacio más armónico, ordenado y sostenible de mantener."),
+            ] %}
+            <div class="mt-4 grid gap-4 md:grid-cols-3">
+                {% for slug, title, lead, alt, key_points, paragraphs, scope, result in services %}
+                <article class="flex flex-col {{ card }}">
+                    <img src="/static/images/servicios/{{ slug }}.jpg" width="800" height="600" loading="lazy" decoding="async"
+                        alt="{{ alt }}" class="aspect-[4/3] w-full object-cover" />
+                    <div class="flex flex-1 flex-col p-5">
+                        <h3 class="text-lg font-semibold tracking-tight">{{ title }}</h3>
+                        <p class="mt-1 text-sm {{ muted }}">{{ lead }}</p>
+                        <div class="{{ muted }}">{{ includes(key_points) }}</div>
+                        <details class="group mt-4">
+                            <summary class="{{ summary }}">Ver alcance completo <svg class="h-4 w-4 transition-transform group-open:rotate-180" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></summary>
+                            <div class="mt-3 space-y-3 text-sm {{ muted }} leading-relaxed">
+                                {% for paragraph in paragraphs %}<p>{{ paragraph }}</p>{% endfor %}
+                                <div class="{{ scope_box }}">
+                                    <div class="text-xs uppercase tracking-widest text-black/60 dark:text-white/60">Incluye típicamente</div>
+                                    <ul class="mt-3 list-disc pl-5 space-y-2">
+                                        {% for item in scope %}<li>{{ item }}</li>{% endfor %}
+                                    </ul>
+                                </div>
+                                <p>Resultado esperado: {{ result }}</p>
                             </div>
-                        </div>
-                        <span class="shrink-0 rounded-full border border-black/20 p-2 dark:border-white/20"
-                            aria-hidden="true">
-                            <svg class="h-4 w-4 transition-transform duration-200" viewBox="0 0 24 24" fill="none">
-                                <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                    stroke-linejoin="round" />
-                            </svg>
-                        </span>
-                    </button>
-
-                    <div id="servicePanel3" class="services-panel hidden px-5 pb-5">
-                        <div class="pt-2 text-sm text-black/70 dark:text-white/70 leading-relaxed space-y-3">
-                            <p>
-                                La jardinería es donde se define el “acabado” de la propiedad. Nos enfocamos en mantener
-                                plantas, arbustos y elementos decorativos
-                                en condiciones óptimas, con una estética cuidada y coherente. Este servicio es ideal
-                                para entradas, jardines frontales,
-                                áreas de alto tránsito y espacios que requieren buena impresión.
-                            </p>
-                            <p>
-                                Trabajamos con podas de formación, control de crecimiento y limpieza de camas. Cuando
-                                aplica, se incorporan ajustes de suelo,
-                                fertilización según necesidad y reposición de plantas para mantener continuidad visual.
-                                El objetivo es evitar jardines “cansados”,
-                                desordenados o con vacíos.
-                            </p>
-
-                            <div class="rounded-xl border border-black/10 p-4 dark:border-white/10">
-                                <div class="text-xs uppercase tracking-widest text-black/60 dark:text-white/60">Incluye
-                                    típicamente</div>
-                                <ul class="mt-3 list-disc pl-5 space-y-2">
-                                    <li>Poda de arbustos y plantas ornamentales para forma y control.</li>
-                                    <li>Limpieza de camas/jardineras: hojas secas, maleza y residuos.</li>
-                                    <li>Reposición de plantas (según diseño y disponibilidad) para mantener estética.
-                                    </li>
-                                    <li>Fertilización y mejoras puntuales (según diagnóstico del sitio).</li>
-                                    <li>Detalle final: alineación visual, limpieza de bordes y presentación.</li>
-                                </ul>
-                            </div>
-
-                            <div class="text-sm text-black/60 dark:text-white/60">
-                                Resultado esperado: jardines con orden, salud y una presentación consistente.
-                            </div>
-                        </div>
+                        </details>
+                        <a href="#contact" class="mt-auto pt-5 text-sm font-semibold hover:underline">Cotizar este servicio →</a>
                     </div>
-                </div>
-
-                <!-- Item 4 -->
-                <div class="rounded-2xl border border-black/10 dark:border-white/10 overflow-hidden">
-                    <button type="button"
-                        class="services-toggle w-full flex items-center justify-between gap-4 px-5 py-4 text-left hover:bg-black/5 dark:hover:bg-white/10"
-                        aria-expanded="false" aria-controls="servicePanel4">
-                        <div>
-                            <div class="text-sm font-semibold">Paisajismo</div>
-                            <div class="mt-1 text-sm text-black/60 dark:text-white/60">
-                                Diseño e instalación con visión de mantenimiento.
-                            </div>
-                        </div>
-                        <span class="shrink-0 rounded-full border border-black/20 p-2 dark:border-white/20"
-                            aria-hidden="true">
-                            <svg class="h-4 w-4 transition-transform duration-200" viewBox="0 0 24 24" fill="none">
-                                <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                    stroke-linejoin="round" />
-                            </svg>
-                        </span>
-                    </button>
-
-                    <div id="servicePanel4" class="services-panel hidden px-5 pb-5">
-                        <div class="pt-2 text-sm text-black/70 dark:text-white/70 leading-relaxed space-y-3">
-                            <p>
-                                El paisajismo no es solo “poner plantas”: es crear un espacio funcional y estético que
-                                se pueda mantener en el tiempo.
-                                Diseñamos e instalamos soluciones que ordenan visualmente el entorno, mejoran el uso del
-                                espacio y elevan la presentación
-                                de la propiedad.
-                            </p>
-                            <p>
-                                Priorizamos criterios prácticos: selección de especies, distribución para evitar
-                                mantenimiento excesivo, y una propuesta que
-                                considere riego, crecimiento y exposición. El resultado es un espacio más limpio,
-                                armónico y coherente con el entorno
-                                y con el objetivo del cliente (corporativo o residencial).
-                            </p>
-
-                            <div class="rounded-xl border border-black/10 p-4 dark:border-white/10">
-                                <div class="text-xs uppercase tracking-widest text-black/60 dark:text-white/60">Incluye
-                                    típicamente</div>
-                                <ul class="mt-3 list-disc pl-5 space-y-2">
-                                    <li>Propuesta de diseño (según alcance): distribución, estilo y criterios de
-                                        mantenimiento.</li>
-                                    <li>Selección e instalación de plantas y elementos verdes según el entorno.</li>
-                                    <li>Preparación de área: limpieza, conformación y orden base para instalación.</li>
-                                    <li>Plan de continuidad: recomendaciones y rutina para mantener el resultado.</li>
-                                    <li>Ajustes posteriores: reposiciones o correcciones puntuales según evolución.</li>
-                                </ul>
-                            </div>
-
-                            <div class="text-sm text-black/60 dark:text-white/60">
-                                Resultado esperado: un espacio más armónico, ordenado y sostenible de mantener.
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                </article>
+                {% endfor %}
             </div>
-
         </div>
     </section>
 

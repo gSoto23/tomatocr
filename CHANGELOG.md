@@ -6,7 +6,19 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-28
 
-### Sitio público: verde de marca en las acciones de venta
+### Home: servicios en tarjetas con foto
+- Los acordeones de Servicios pasan a tarjetas con foto real: **Proyectos de reforestación**
+  como tarjeta destacada y ancha (*Especialidad insignia*, *Ver reporte en vivo* y el enlace
+  a Dárboles), y debajo Mantenimiento de zonas verdes, Jardinería y Paisajismo.
+- Cada tarjeta: foto, una línea de resumen, 3 puntos clave y *Cotizar este servicio*. El
+  alcance completo (el texto que tenían los acordeones) queda en *Ver alcance completo*, un
+  desplegable nativo sin JavaScript, así que sigue en la página para los buscadores.
+- Fotos en `static/images/servicios/` (800 px, sin metadatos, carga diferida).
+- Se quita de `static/js/script.js` el código del acordeón y el de un carrusel de galería
+  que ya no existía en la página.
+- Despliegue: sin migraciones; reiniciar.
+
+### Sitio público: verde de marca en las acciones de venta (#84)
 - Color `brand` en Tailwind (verde bosque #166534; #15803d en modo oscuro), con texto
   blanco y contraste AA en los dos temas.
 - En verde: *Cotizar* (barra), *Cotizar por WhatsApp* (hero y menú del celular), *Enviar

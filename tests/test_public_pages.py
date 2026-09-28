@@ -18,7 +18,9 @@ def test_public_page_head(path):
 @pytest.mark.parametrize("path", ["/robots.txt", "/sitemap.xml", "/api/reforestation/map-data",
                                   "/static/images/hero/siembra-640.jpg", "/static/images/hero/siembra-960.jpg",
                                   *[f"/static/images/proyectos/{name}.jpg" for name in
-                                    ("museo-jardin", "alajuela-parque", "vivero", "mantenimiento-residencial")]])
+                                    ("museo-jardin", "alajuela-parque", "vivero", "mantenimiento-residencial")],
+                                  *[f"/static/images/servicios/{name}.jpg" for name in
+                                    ("reforestacion", "mantenimiento", "jardineria", "paisajismo")]])
 def test_public_resources(path):
     assert new_client().get(path).status_code == 200
 
@@ -94,3 +96,15 @@ def test_sales_actions_use_the_brand_green():
         assert "bg-brand" in tag, label
     css = open("app/static/css/tailwind.css").read()
     assert ".bg-brand{" in css and "bg-brand-light" in css
+
+
+def test_services_are_photo_cards_that_keep_the_full_scope():
+    html = new_client().get("/").text
+    services = html[html.index('id="services"'):html.index('id="projects"')]
+    assert services.count("<article") == 4
+    assert services.count('src="/static/images/servicios/') == 4
+    assert services.count("<details") == 4
+    # The detailed scope text stays on the page (inside <details>)
+    assert "hidrokeeper (polímeros retenedores de agua)" in services
+    assert "Resultado esperado: un espacio más armónico" in services
+    assert "services-toggle" not in html
