@@ -158,7 +158,7 @@ def test_double_assignment_asks_first(db, login_as, users):
     client = login_as("admin")
     assert assign(client, users, "2026-09-22").status_code == 200
     again = assign(client, users, "2026-09-22")
-    assert again.status_code == 409 and "ya tiene asignación" in again.json()["message"]
+    assert again.status_code == 409 and "Ya tiene asignación" in again.json()["message"]
     assert assign(client, users, "2026-09-22", confirm_conflicts="true").status_code == 200
     assert db.query(ProjectSchedule).count() == 2
 
@@ -171,7 +171,7 @@ def test_assignment_keeps_sede_and_hours(db, login_as, users):
     s = db.query(ProjectSchedule).one()
     assert (s.location_id, s.hours_worked) == (sede.id, 6)
     event = login_as("admin").get("/calendar/events?start=2026-09-01&end=2026-09-30").json()[0]
-    assert event["extendedProps"]["location_name"] == "Torre A"
+    assert event["extendedProps"]["members"][0]["location_name"] == "Torre A"
 
 
 def test_calendar_lists_only_active_people(db, login_as, users):

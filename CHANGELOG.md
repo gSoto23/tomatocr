@@ -6,6 +6,25 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-28
 
+### Calendario por proyecto (esta rama)
+- El admin y el supervisor ven **un bloque por proyecto y día** (nombre y cuántas
+  personas, un color fijo por proyecto, ✓ y borde verde cuando las horas del día están
+  confirmadas) en vez de una barra por persona. Por dentro sigue una asignación por
+  persona: planilla, horas y Dashboard no cambian y no hay migración.
+- Al tocar el bloque se abre **el día del proyecto**: cada persona con sede, tareas
+  hechas, horas y extras; *Editar*, *Quitar*, *+ Agregar persona* y **Confirmar horas del
+  día** (`POST /calendar/day/confirm-hours`). El supervisor no confirma sus propias
+  horas y un día dentro de una planilla final no se cambia.
+- **Asignar** a varias personas a la vez (`user_ids`), con las mismas tareas.
+- Arrastrar el bloque mueve el día de todo el equipo (`POST /calendar/day/move`), con
+  aviso si alguien ya tiene algo ese día; no si hay horas confirmadas.
+- El trabajador sigue viendo solo sus días (proyecto y sede). Se quitó el enlace roto
+  `/calendar/null` y los textos de las tareas se muestran como texto, nunca como HTML.
+- En el celular: "Todo el día" en vez de "all-day", título más chico y nombres que no se
+  cortan en la lista.
+- Manual (Calendario, Planilla, Dashboard) y capturas al día.
+- Despliegue: sin migraciones; reiniciar.
+
 ### UI/UX ronda 3: detalles y rangos del Calendario (#72)
 - **Errores**: una página abierta en el navegador que da 403, 404 o 400 muestra una
   pantalla en español con "Volver" e "Ir al Dashboard" (`errors/page.html`); fetch y

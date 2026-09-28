@@ -41,6 +41,12 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
 - **Notificaciones Dinámicas (Email)**: Reportería automática hacia partes interesadas vía SMTP. TOMATO
   (`REPORT_BCC_EMAIL`) va en copia oculta; si el envío falla, la pantalla lo dice.
 
+### Calendario (`/calendar`)
+- Admin y supervisor ven un bloque por proyecto y día, con su equipo; desde ahí se
+  agregan o quitan personas, se confirman las horas del día y se mueve el día
+  arrastrándolo. Cada persona en cada día sigue siendo una `ProjectSchedule` (lo que
+  usan la planilla y el Dashboard).
+
 ### 4. Cotizador (`/cotizador`)
 - Secciones: 1. Cliente y servicio, 2. Ítems (descripción de varias líneas,
   duplicar ítem), 3. Condiciones.

@@ -30,7 +30,7 @@
 {% if user.role in ['admin', 'supervisor'] %}
 {{ m.shot("planilla/aprobar.webp", "Aprobación de horas", "Aprobar Horas de un proyecto.") }}
 {{ m.steps([
-    (None, "En Planilla tocá <strong>Aprobar Horas</strong> y elegí el proyecto."),
+    (None, "Para un solo día, lo más rápido es el <strong>Calendario</strong>: tocá el proyecto en ese día, corregí las horas y tocá <em>Confirmar horas del día</em>. Para revisar varios días juntos: en Planilla tocá <strong>Aprobar Horas</strong> y elegí el proyecto."),
     (1, "Elegí las fechas con <strong>Desde</strong> y <strong>Hasta</strong>, o <em>Hoy</em> / <em>Semana</em>, y tocá <em>Refrescar</em>."),
     (2, "Corregí las <strong>Horas</strong> y las horas <strong>Extra (1.5x)</strong> de cada persona si no fueron las 8 de siempre."),
     (3, "Tocá <strong>Confirmar pendientes</strong> y aceptá el aviso. Las filas pasan a <em>Confirmado</em>."),

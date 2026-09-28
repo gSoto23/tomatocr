@@ -59,7 +59,7 @@ CHAPTERS: List[Chapter] = [
         "Quién trabaja en qué proyecto cada día y con qué tareas.",
         (ADMIN, SUPERVISOR, WORKER), ("/calendar",),
         (("que-es", "Qué es"), ("vistas", "Ver el calendario"), ("asignar", "Asignar un proyecto"),
-         ("editar", "Cambiar o borrar una asignación"), ("tareas", "Marcar las tareas hechas"), ("horas", "Las horas"),
+         ("editar", "El día de un proyecto: personas, cambios y horas"), ("tareas", "Marcar las tareas hechas"), ("horas", "Las horas"),
          ("preguntas", "Preguntas frecuentes")),
         "calendario asignación asignar trabajador tareas día semana horas",
     ),

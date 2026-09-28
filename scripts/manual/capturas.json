@@ -812,7 +812,7 @@
    "path": "/calendar",
    "as": "admin",
    "wait": 1800,
-   "height": 1000,
+   "height": 1300,
    "before": [
     "openModal(); await new Promise(r => setTimeout(r, 600))"
    ],
@@ -839,7 +839,7 @@
     },
     {
      "n": 3,
-     "selector": "#user_id"
+     "selector": "#people-box"
     },
     {
      "n": 4,
@@ -848,6 +848,41 @@
     {
      "n": 5,
      "text": "Guardar",
+     "tags": "button"
+    }
+   ]
+  },
+  {
+   "name": "calendario/dia",
+   "path": "/calendar",
+   "as": "admin",
+   "wait": 1800,
+   "height": 1100,
+   "before": [
+    "document.querySelector('.fc-event').click(); await new Promise(r => setTimeout(r, 700))"
+   ],
+   "markers": [
+    {
+     "n": 1,
+     "selector": "#day-title"
+    },
+    {
+     "n": 2,
+     "selector": "#day-members > div:first-child input[data-hours]"
+    },
+    {
+     "n": 3,
+     "text": "Editar",
+     "tags": "button"
+    },
+    {
+     "n": 4,
+     "text": "+ Agregar persona",
+     "tags": "button"
+    },
+    {
+     "n": 5,
+     "text": "Confirmar horas del día",
      "tags": "button"
     }
    ]
