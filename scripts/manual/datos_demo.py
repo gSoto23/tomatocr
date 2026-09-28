@@ -72,7 +72,10 @@ def fill():
     from app.db.models.activity import ActivityLog
     from app.db.models.crm import (Account, Contact, CrmActivity, CrmAssignment, CrmSetting, Opportunity,
                                    ProjectContactRole, stage_index)
-    from app.db.models.finance import BudgetLine, Invoice, InvoiceStatus, Payment, ProjectBudget
+    from app.db.models.finance import BudgetLine, Invoice, InvoiceStatus, Payment, ProjectBudget, ProjectCost
+    from app.db.models.payment import PayrollPayment
+    from app.db.models.payroll import PayrollEntry, PayrollPeriod
+    from app.db.models.reforestation import ReforestationProject, ReforestationTree, TreeCheck
     from app.db.models.log import DailyLog, Photo
     from app.db.models.log_task import DailyLogTask
     from app.db.models.project import Project
@@ -255,6 +258,93 @@ def fill():
     db.add(schedule)
     db.flush()
     db.add(ScheduleTask(schedule_id=schedule.id, description="Corta de zacate"))
+
+    # --- Planilla ---------------------------------------------------------------------------
+    worker, maria, supervisor = users["worker"], extra_worker, users["supervisor"]
+    for person, start, salary, method, account_no in (
+            (worker, date(2025, 3, 3), 441600, "Sinpe", "8800-7001"), (maria, date(2025, 11, 3), 441600, "Efectivo", None),
+            (supervisor, date(2024, 8, 1), 576000, "Transferencia", "CR05015201001026284066")):
+        person.start_date, person.monthly_salary, person.hourly_rate = start, salary, round(salary / 192 / 100) * 100
+        person.payment_method, person.account_number, person.phone = method, account_no, "8800-9000"
+    p3.users = [users["supervisor"], worker]
+
+    def weekdays(first, last):
+        day = first
+        while day <= last:
+            if day.weekday() < 5:
+                yield day
+            day += timedelta(days=1)
+
+    confirmed = []
+    for day in weekdays(today - timedelta(days=28), today - timedelta(days=1)):
+        for person, project, extra in ((worker, p1, 1.0 if day.weekday() == 4 else 0.0), (maria, p2, 0.0),
+                                       (supervisor, p1, 0.0)):
+            schedule = ProjectSchedule(project_id=project.id, user_id=person.id, date=day, hours_worked=8,
+                                       overtime_hours=extra, is_confirmed=True)
+            db.add(schedule)
+            confirmed.append(schedule)
+    db.flush()
+
+    def payroll(first, last, status):
+        period = PayrollPeriod(start_date=first, end_date=last, status=status)
+        db.add(period)
+        db.flush()
+        for person in (worker, maria, supervisor):
+            rows = [s for s in confirmed if s.user_id == person.id and first <= s.date <= last]
+            hours, extra = sum(s.hours_worked for s in rows), sum(s.overtime_hours for s in rows)
+            gross = round((hours * person.hourly_rate + extra * person.hourly_rate * 1.5) / 100) * 100
+            charges = round(gross * 0.0917 / 100) * 100
+            db.add(PayrollEntry(payroll_period_id=period.id, user_id=person.id, total_hours=hours, overtime_hours=extra,
+                                gross_salary=gross, social_charges=charges, net_salary=gross - charges,
+                                apply_deductions=True,
+                                details=[{"date": s.date.isoformat(), "hours": s.hours_worked,
+                                          "overtime": s.overtime_hours,
+                                          "project": p1.name if s.project_id == p1.id else p2.name} for s in rows]))
+        return period
+    payroll(today - timedelta(days=28), today - timedelta(days=15), "final")
+    payroll(today - timedelta(days=14), today - timedelta(days=1), "draft")
+    db.add_all([PayrollPayment(user_id=worker.id, amount=172400, hours_paid=80, overtime_hours=2,
+                               date=today - timedelta(days=13), notes="Quincena por Sinpe", created_by_id=admin.id),
+                PayrollPayment(user_id=maria.id, amount=167000, hours_paid=80, date=today - timedelta(days=13),
+                               notes="Quincena en efectivo", created_by_id=admin.id)])
+    db.add_all([ProjectCost(project_id=p1.id, date=today - timedelta(days=20), amount=48500,
+                            description="Abono orgánico y sustrato"),
+                ProjectCost(project_id=p1.id, date=today - timedelta(days=9), amount=22000,
+                            description="Transporte de residuos verdes")])
+
+    # --- Reforestación ------------------------------------------------------------------------
+    forest = ReforestationProject(client_name="Municipalidad de San Rafael", project_id=p3.id, account_id=muni.id,
+                                  is_public=True, public_name="Municipalidad de San Rafael",
+                                  consent_date=today - timedelta(days=60))
+    db.add(forest)
+    db.flush()
+    species = ["Guanacaste", "Cortez amarillo", "Roble sabana", "Cenízaro", "Poró", "Guachipelín"]
+    sectors = [("Margen norte", 10.0258, -84.0995), ("Margen sur", 10.0231, -84.0972), ("Parque lineal", 10.0209, -84.1021)]
+    planted = today.replace(year=today.year - 1) - timedelta(days=30)
+    trees = []
+    for n in range(1, 43):
+        name, lat, lng = sectors[(n - 1) // 14]
+        tree = ReforestationTree(project_id=forest.id, tree_number=n, species=species[n % len(species)],
+                                 sector_name=name, lat=lat + (n % 7) * 0.0004, lng=lng + (n % 5) * 0.0005,
+                                 date_planted=planted if n <= 36 else today - timedelta(days=90))
+        db.add(tree)
+        trees.append(tree)
+    db.flush()
+    check_day = today - timedelta(days=10)
+    for tree in trees[:30]:
+        status = "muerto" if tree.tree_number in (4, 11, 19) else "reemplazado" if tree.tree_number == 23 else "vivo"
+        tree.status, tree.last_checked_at = status, check_day
+        db.add(TreeCheck(tree_id=tree.id, checked_at=check_day, status=status, user_id=supervisor.id,
+                         height_cm=90 + tree.tree_number * 3 if status == "vivo" else None))
+    trees[22].replaced_by_id = trees[41].id
+
+    for action, entity, details, who in (
+            ("LOGIN", "SISTEMA", "Inicio de sesión", worker), ("CREATE", "REPORT", "Reporte del proyecto Mantenimiento Condominio Los Robles", worker),
+            ("EMAIL", "REPORT", "Reporte enviado a sofia.castro@example.com, jorge.arias@example.com", admin),
+            ("PAGO", "Factura", "Pago registrado para la factura FE-00121", admin),
+            ("Aprobar Lote", "SCHEDULE", "10 registros confirmados en Mantenimiento Condominio Los Robles", supervisor),
+            ("Generar Planilla", "PAYROLL", "Periodo del último mes", admin)):
+        db.add(ActivityLog(user_id=who.id, action=action, entity_type=entity, details=details))
 
     # --- Cotizaciones ----------------------------------------------------------------------
     year = today.year

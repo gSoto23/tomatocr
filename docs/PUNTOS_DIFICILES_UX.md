@@ -1,6 +1,6 @@
 # Puntos difíciles de usar (insumo para el trabajo de UI/UX)
 
-Lo que se encontró al escribir el manual (27/09/2026): comportamientos poco claros,
+Lo que se encontró al escribir el manual (27/09/2026, partes 1 y 2): comportamientos poco claros,
 textos que no coinciden con lo que hace el sistema y pantallas que se cortan. El manual
 los explica mientras tanto. Cuando se corrija uno, sacarlo de aquí y ajustar su
 capítulo del manual.
@@ -26,7 +26,7 @@ Prioridad sugerida: **A** confunde o hace perder trabajo; **B** molesta; **C** d
 | | Punto | Dónde |
 | --- | --- | --- |
 | A | En el celular, "Mis Asignaciones" del trabajador esconde el botón **Gestionar** a la derecha: hay que deslizar la tabla. | `app/templates/dashboard.html` |
-| B | A 1280 px, la Bitácora del cliente corta **Ver Detalle** y la lista de Proyectos corta Estado y **Editar**. | `dashboard.html`, `projects/list.html` |
+| B | A 1280 px, la Bitácora del cliente corta **Ver Detalle** y la lista de Proyectos corta Estado y **Editar**. El detalle de Planilla corta **Ver desglose** incluso a 1700 px. | `dashboard.html`, `projects/list.html`, `payroll/detail.html` |
 
 ## Dashboard
 
@@ -75,3 +75,62 @@ facturas fallaba en PostgreSQL; editar un reporte le borraba la sede.
 | C | Un usuario cliente que no es contacto de ninguna cuenta puede guardar, pero no ve su cotización en el Historial. | `quotes.py` |
 | C | En el celular el botón "Volver" es solo una flecha. | `index.html` |
 | C | Los textos del cotizador tratan de "usted" ("Elija el cliente…") y el resto del sistema de "vos". | `index.html`, `app.js` |
+
+## Presupuestos
+
+| | Punto | Dónde |
+| --- | --- | --- |
+| A | "+ Agregar Costo" después de abrir y cancelar "Editar" en un gasto abre ese gasto: guardar lo **sobrescribe** en vez de crear uno nuevo. | `app/templates/finance/detail.html` |
+| A | Cada factura guarda un solo pago: reportar otro pago de una factura en Pago Parcial **reemplaza** el anterior (hay que escribir el acumulado). | `app/routers/finance.py` |
+| B | Tres nombres para el mismo módulo: "Presupuestos" (menú), "Gestión Financiera" y "Finanzas". El botón de pago se llama "Reporte". | `finance/*.html` |
+| B | "Monto por Retención (2%)" no calcula el 2 %: es facturado − depositado. | `detail.html` |
+| B | "Saldo" es lo que queda por facturar, no lo pendiente de cobro; "Balance (Ganancia)" usa lo facturado. | `finance.py` |
+| B | "Disp:" en la línea a facturar muestra el total de la línea; no impide facturar de más. | `detail.html` |
+| B | Eliminar factura o gasto no pide confirmación; borrar una factura con pago da un JSON en inglés. | `detail.html`, `finance.py` |
+| B | El cliente ve costos internos, planillas y el balance del proyecto. | `detail.html` |
+| C | El supervisor no tiene el menú pero entra por el enlace de la ficha y ve cualquier proyecto. | `finance.py` |
+| C | Errores del módulo en inglés y como JSON crudo. | `finance.py` |
+
+## Planilla y liquidaciones
+
+| | Punto | Dónde |
+| --- | --- | --- |
+| A | La carta de liquidación dice **"Cédula Jurídica: 3-101-876296"** (la correcta es 3-102-876296), "TOMATO COSTA RICA SRL" en vez de "TOMATO COSTA RICA ANY S.R.L.", un teléfono distinto al del sitio y el mes en inglés. | `app/templates/liquidation/letter.html` |
+| A | La liquidación calcula vacaciones y aguinaldo sobre toda la antigüedad y no incluye cesantía ni preaviso. Revisar con el contador. Sin salario mensual, da error 500. | `app/routers/liquidation.py` |
+| A | La casilla "Apl. Ded?" del detalle no funciona (error de JavaScript: la fila no trae su id). | `payroll/detail.html`, `payroll.py` |
+| A | Se pueden generar varias planillas sobre las mismas horas; nada marca las horas como pagadas. | `payroll.py` |
+| B | "Finalizar Planilla" dice que no se podrá editar, pero una planilla final se puede eliminar. | `payroll.py` |
+| B | "Confirmar Todo" confirma también filas ya confirmadas y de otras páginas, con lo que diga cada casilla. | `payroll/approval.html` |
+| B | Monto Extra redondeado en el detalle y sin redondear en el reporte; ambos usan la tarifa actual. El total del reporte queda bajo la columna equivocada. | `payroll.py`, `report.html` |
+| B | La carta recalcula el salario pendiente e ignora la corrección hecha en la ventana. | `liquidation.py` |
+| B | Pagos: sin método ni referencia, no ligados a la planilla; el trabajador no tiene enlace para verlos. | `payments.py` |
+| C | "Hoy" y "Semana" en Aprobar Horas usan UTC (después de las 6 p. m. es mañana). Estado del periodo en inglés (draft/final). | `approval.html`, `payroll/index.html` |
+| C | "Vacaciones Disponibles" no descuenta días tomados. Reactivar un contrato pone la fecha de inicio en hoy. | `payroll.py`, `liquidation.py` |
+
+## Calendario
+
+| | Punto | Dónde |
+| --- | --- | --- |
+| A | Editar una asignación borra y recrea sus tareas: las ya marcadas por el trabajador quedan sin marcar. | `app/routers/calendar.py` |
+| B | Un rango de fechas crea una asignación por día, fines de semana incluidos, sin forma de editarlas juntas. | `calendar.py` |
+| B | No hay sede ni horas en la asignación (la sede existe en la base pero el formulario no la pide). | `calendar/index.html` |
+| B | No avisa si la persona ya tiene otra asignación ese día; lista trabajadores inactivos. | `calendar.py` |
+| C | "Asignar Proyecto" pone la fecha en UTC (después de las 6 p. m. trae mañana). Las asignaciones muestran el usuario, no el nombre. Sin arrastrar y soltar. | `calendar/index.html` |
+
+## Empleados y Actividad
+
+| | Punto | Dónde |
+| --- | --- | --- |
+| B | La pantalla dice que se aceptan documentos Word, pero el servidor los rechaza con una página de error; si falla al crear, la persona queda creada sin el archivo. | `users/form.html`, `users.py` |
+| B | Escribir el salario mensual reemplaza la tarifa por hora. | `users/form.html` |
+| C | La lista no muestra quién está liquidado; el rol aparece con el nombre interno. Sin búsqueda ni orden. | `users/list.html` |
+| B | Actividad: el buscador solo revisa la página abierta; las horas están en UTC; el Calendario no queda registrado. | `admin/activity.html`, `dashboard.py` |
+
+## Reforestación
+
+| | Punto | Dónde |
+| --- | --- | --- |
+| B | El nombre del proyecto es la llave: un nombre mal escrito al importar crea otro proyecto, y no se puede renombrar ni borrar. | `app/routers/reforestation.py` |
+| B | No hay forma de borrar un árbol ni un monitoreo equivocado desde la pantalla. | `reforestation.py` |
+| B | Una altura no numérica en el monitoreo da un error en inglés; los errores de la foto salen como página cruda. | `reforestation.py`, `app/utils/uploads.py` |
+| C | El mapa usa coma decimal y el panel punto. El monitoreo de 3 meses del plan no existe en el sistema (solo 6 y 12). | `reforestacion.html`, `app/utils/reforestation.py` |

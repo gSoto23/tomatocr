@@ -80,7 +80,10 @@ async function connect() {
 // Runs in the page: numbered red markers over the elements named in the shot.
 function drawMarkers(markers) {
   const find = (m) => {
-    if (m.selector) return document.querySelectorAll(m.selector)[m.index || 0];
+    if (m.selector) {
+      const visible = [...document.querySelectorAll(m.selector)].filter((el) => el.getBoundingClientRect().width > 0);
+      return visible[m.index || 0];
+    }
     const tags = m.tags || "a,button,label,h1,h2,h3,th,td,span,div,p,li,summary,option,input,select";
     const wanted = m.text.trim().toLowerCase();
     const matches = [...document.querySelectorAll(tags)].filter((el) => {

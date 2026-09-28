@@ -1,88 +1,1001 @@
 {
-  "_comment": "Screenshots of the manual. Each shot: name (file under app/static/manual/), path, as (demo role, or omit for no session), viewport (desktop|mobile), height (optional), before (JS run before the capture), markers ({n, selector|text, exact, tags, index, badge}), clip (selector). See scripts/manual/README.md.",
-  "shots": [
-    {"name": "primeros-pasos/login", "path": "/", "clip": "header",
-     "markers": [{"n": 1, "selector": "header input[name=\"user\"]"}, {"n": 2, "selector": "header input[name=\"pass\"]"},
-                 {"n": 3, "selector": "header form[action=\"/login\"] button"}]},
-    {"name": "primeros-pasos/login-celular", "path": "/", "viewport": "mobile",
-     "before": ["document.querySelector('#menuBtn').click()"],
-     "markers": [{"n": 1, "selector": "#mobileMenu input[name=\"user\"]"}, {"n": 2, "selector": "#mobileMenu input[name=\"pass\"]"},
-                 {"n": 3, "selector": "#mobileMenu form[action=\"/login\"] button"}]},
-    {"name": "primeros-pasos/menu", "path": "/dashboard", "as": "admin",
-     "markers": [{"n": 1, "selector": "aside nav", "pad": 2}, {"n": 2, "selector": "aside a[href=\"/manual\"]"},
-                 {"n": 3, "selector": "header [data-help-button]"}, {"n": 4, "selector": "header a[href=\"/cotizador\"]"},
-                 {"n": 5, "selector": "aside a[href=\"/logout\"]", "badge": "right"}]},
-    {"name": "primeros-pasos/menu-celular", "path": "/dashboard", "as": "worker", "viewport": "mobile",
-     "before": ["[...document.querySelectorAll('button')].find(b => b.getAttribute('@click') === 'sidebarOpen = true').click()"]},
-
-    {"name": "dashboard/admin", "path": "/dashboard", "as": "admin", "height": 1250,
-     "markers": [{"n": 1, "text": "Filtros"}, {"n": 2, "text": "Proyectos Activos"}, {"n": 3, "text": "Total Adjudicado"},
-                 {"n": 4, "text": "Total Facturado"}, {"n": 5, "text": "Actividad Reciente (Facturación)"},
-                 {"n": 6, "text": "Embudo comercial del equipo"}]},
-    {"name": "dashboard/ventas", "path": "/dashboard", "as": "ventas",
-     "markers": [{"n": 1, "text": "Vencidos", "exact": false, "tags": "h3,h4,h5,p,span,div"}, {"n": 2, "text": "Para hoy", "exact": false, "tags": "h3,h4,h5,p,span,div"},
-                 {"n": 3, "text": "Próximos 7 días", "exact": false, "tags": "h3,h4,h5,p,span,div"}, {"n": 4, "text": "Abrir Cotizador"}]},
-    {"name": "dashboard/trabajador", "path": "/dashboard", "as": "worker", "viewport": "mobile", "height": 1000,
-     "before": ["const b = [...document.querySelectorAll('button')].find(x => x.textContent.trim() === 'Gestionar'); let el = b.parentElement; while (el && el.scrollWidth <= el.clientWidth) el = el.parentElement; if (el) el.scrollLeft = el.scrollWidth"],
-     "markers": [{"n": 1, "text": "Mis Asignaciones (Calendario)", "exact": false, "tags": "h2,h3"}, {"n": 2, "text": "Gestionar", "tags": "button,a"}]},
-    {"name": "dashboard/cliente", "path": "/dashboard", "as": "client", "width": 1500,
-     "markers": [{"n": 1, "selector": "select[name=\"project_id\"]"}, {"n": 2, "text": "Fecha", "exact": false, "tags": "th,a"},
-                 {"n": 3, "text": "Ver Detalle", "tags": "button,a"}]},
-
-    {"name": "proyectos/lista", "path": "/projects", "as": "admin", "width": 1500,
-     "markers": [{"n": 1, "text": "Mantenimiento Condominio Los Robles", "tags": "a"}, {"n": 2, "text": "Cliente", "tags": "th"},
-                 {"n": 3, "text": "Nuevo Proyecto", "exact": false, "tags": "a"}, {"n": 3, "text": "Editar", "tags": "a"}]},
-    {"name": "proyectos/ficha", "path": "/projects/1", "as": "admin", "height": 1500,
-     "markers": [{"n": 1, "text": "Nuevo Reporte", "exact": false, "tags": "a"}, {"n": 2, "text": "Ubicación", "tags": "h2,h3"},
-                 {"n": 3, "text": "Contactos en Sitio", "tags": "h2,h3"}, {"n": 4, "text": "Checklist de Tareas", "tags": "h2,h3"},
-                 {"n": 5, "text": "Bitácora Reciente", "tags": "h2,h3"}]},
-    {"name": "proyectos/bitacora", "path": "/logs/new?project_id=1", "as": "worker", "viewport": "mobile", "height": 1400,
-     "markers": [{"n": 2, "selector": "#location_id"}, {"n": 3, "text": "Tareas Realizadas", "tags": "label,h3,h4,p,span"},
-                 {"n": 4, "selector": "#notes"}, {"n": 5, "text": "Seleccionar archivos", "exact": false, "tags": "label,span"},
-                 {"n": 6, "text": "Guardar Reporte", "tags": "button"}]},
-    {"name": "proyectos/reporte-detalle", "path": "/projects/1", "as": "client", "wait": 900,
-     "before": ["[...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Ver Detalle').click(); await new Promise(r => setTimeout(r, 1200))"]},
-    {"name": "proyectos/enviar-correo", "path": "/projects/1", "as": "admin", "height": 1000,
-     "before": ["[...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Ver Detalle').click(); await new Promise(r => setTimeout(r, 1200))",
-                "document.querySelector('#btn-email').click(); await new Promise(r => setTimeout(r, 600))"],
-     "markers": [{"n": 2, "selector": "#email-recipients-container"}, {"n": 3, "selector": "#email-full-notes"},
-                 {"n": 4, "selector": "#btn-send-email-confirm"}]},
-    {"name": "proyectos/formulario", "path": "/projects/1/edit", "as": "admin", "height": 1150,
-     "markers": [{"n": 1, "selector": "#name"}, {"n": 2, "text": "Cliente (cuenta)", "exact": false, "tags": "label,span"},
-                 {"n": 3, "text": "Clientes (Usuarios)", "exact": false, "tags": "label,span"}, {"n": 4, "text": "Ubicación", "tags": "h2,h3,h4"}]},
-
-    {"name": "cotizador/cliente", "path": "/cotizador?opportunity_id=1", "as": "ventas", "wait": 1500,
-     "markers": [{"n": 1, "selector": "#accountChosen"}, {"n": 2, "selector": "#contactSelect"},
-                 {"n": 3, "selector": "#serviceType"}, {"n": 4, "selector": "#qualityPanel"}]},
-    {"name": "cotizador/items", "path": "/cotizador", "as": "ventas", "wait": 1500,
-     "before": ["[...document.querySelectorAll('#recentBody button')].find(b => b.textContent.trim() === 'Cargar').click(); await new Promise(r => setTimeout(r, 1200))",
-                "document.querySelector('#itemsBody').closest('.card, section, div.rounded-2xl, div.p-4, div.p-5').setAttribute('data-clip', 'items')"],
-     "clip": "[data-clip=items]",
-     "markers": [{"n": 1, "selector": "#btnAddService"}, {"n": 1, "selector": "#btnAddMaterial"},
-                 {"n": 2, "selector": "#itemsBody textarea"}, {"n": 3, "selector": "button[title=\"Duplicar ítem\"]"},
-                 {"n": 3, "selector": "button[title=\"Quitar ítem\"]"}]},
-    {"name": "cotizador/revision", "path": "/cotizador", "as": "ventas", "wait": 1500, "height": 1000,
-     "before": ["[...document.querySelectorAll('#recentBody button')].find(b => b.textContent.trim() === 'Cargar').click(); await new Promise(r => setTimeout(r, 1200))",
-                "document.querySelector('#qualityPanel').closest('.card, aside, section, div.rounded-2xl').setAttribute('data-clip', 'summary')"],
-     "clip": "[data-clip=summary]",
-     "markers": [{"n": 1, "selector": "#taxEnabled"}, {"n": 2, "selector": "#discount"}, {"n": 3, "selector": "#qualityPanel"},
-                 {"n": 4, "selector": "#btnPDF"}]},
-    {"name": "cotizador/guardar", "path": "/cotizador", "as": "ventas", "wait": 1500,
-     "before": ["[...document.querySelectorAll('#recentBody button')].find(b => b.textContent.trim() === 'Cargar').click(); await new Promise(r => setTimeout(r, 1200))",
-                "document.querySelector('#btnSave').closest('div.flex').parentElement.setAttribute('data-clip', 'top')"],
-     "clip": "[data-clip=top]",
-     "markers": [{"n": 1, "selector": "#quoteNumberPill"}, {"n": 2, "selector": "#btnSave"}, {"n": 3, "selector": "#btnDuplicate"},
-                 {"n": 4, "selector": "#btnNew"}]},
-
-    {"name": "clientes/embudo", "path": "/clientes", "as": "admin", "height": 1100,
-     "markers": [{"n": 1, "text": "Embudo ·", "exact": false, "tags": "h2"}, {"n": 2, "text": "Próximos pasos vencidos", "exact": false, "tags": "h2,h3"},
-                 {"n": 3, "selector": "input[name=\"q\"]"}, {"n": 4, "text": "Nueva cuenta", "tags": "a"}]},
-    {"name": "clientes/cuenta", "path": "/clientes/cuentas/3", "as": "ventas",
-     "markers": [{"n": 1, "text": "Registrar seguimiento", "tags": "button,a"}, {"n": 2, "text": "Contactos (1)", "exact": false, "tags": "button,a"},
-                 {"n": 3, "text": "Prospecto", "tags": "span"}]},
-    {"name": "clientes/oportunidad", "path": "/clientes/oportunidades/1", "as": "ventas", "height": 1000,
-     "markers": [{"n": 1, "text": "Cambiar etapa", "exact": false, "tags": "label,span"}, {"n": 2, "selector": "input[name=\"next_step\"]"},
-                 {"n": 3, "text": "Crear cotización", "tags": "a"}]},
-    {"name": "clientes/asignacion", "path": "/clientes/asignacion", "as": "admin"}
-  ]
+ "_comment": "Screenshots of the manual. Each shot: name (file under app/static/manual/), path, as (demo role, or omit for no session), viewport (desktop|mobile), height (optional), before (JS run before the capture), markers ({n, selector|text, exact, tags, index, badge}), clip (selector). See scripts/manual/README.md.",
+ "shots": [
+  {
+   "name": "primeros-pasos/login",
+   "path": "/",
+   "clip": "header",
+   "markers": [
+    {
+     "n": 1,
+     "selector": "header input[name=\"user\"]"
+    },
+    {
+     "n": 2,
+     "selector": "header input[name=\"pass\"]"
+    },
+    {
+     "n": 3,
+     "selector": "header form[action=\"/login\"] button"
+    }
+   ]
+  },
+  {
+   "name": "primeros-pasos/login-celular",
+   "path": "/",
+   "viewport": "mobile",
+   "before": [
+    "document.querySelector('#menuBtn').click()"
+   ],
+   "markers": [
+    {
+     "n": 1,
+     "selector": "#mobileMenu input[name=\"user\"]"
+    },
+    {
+     "n": 2,
+     "selector": "#mobileMenu input[name=\"pass\"]"
+    },
+    {
+     "n": 3,
+     "selector": "#mobileMenu form[action=\"/login\"] button"
+    }
+   ]
+  },
+  {
+   "name": "primeros-pasos/menu",
+   "path": "/dashboard",
+   "as": "admin",
+   "markers": [
+    {
+     "n": 1,
+     "selector": "aside nav",
+     "pad": 2
+    },
+    {
+     "n": 2,
+     "selector": "aside a[href=\"/manual\"]"
+    },
+    {
+     "n": 3,
+     "selector": "header [data-help-button]"
+    },
+    {
+     "n": 4,
+     "selector": "header a[href=\"/cotizador\"]"
+    },
+    {
+     "n": 5,
+     "selector": "aside a[href=\"/logout\"]",
+     "badge": "right"
+    }
+   ]
+  },
+  {
+   "name": "primeros-pasos/menu-celular",
+   "path": "/dashboard",
+   "as": "worker",
+   "viewport": "mobile",
+   "before": [
+    "[...document.querySelectorAll('button')].find(b => b.getAttribute('@click') === 'sidebarOpen = true').click()"
+   ]
+  },
+  {
+   "name": "dashboard/admin",
+   "path": "/dashboard",
+   "as": "admin",
+   "height": 1250,
+   "markers": [
+    {
+     "n": 1,
+     "text": "Filtros"
+    },
+    {
+     "n": 2,
+     "text": "Proyectos Activos"
+    },
+    {
+     "n": 3,
+     "text": "Total Adjudicado"
+    },
+    {
+     "n": 4,
+     "text": "Total Facturado"
+    },
+    {
+     "n": 5,
+     "text": "Actividad Reciente (Facturación)"
+    },
+    {
+     "n": 6,
+     "text": "Embudo comercial del equipo"
+    }
+   ]
+  },
+  {
+   "name": "dashboard/ventas",
+   "path": "/dashboard",
+   "as": "ventas",
+   "markers": [
+    {
+     "n": 1,
+     "text": "Vencidos",
+     "exact": false,
+     "tags": "h3,h4,h5,p,span,div"
+    },
+    {
+     "n": 2,
+     "text": "Para hoy",
+     "exact": false,
+     "tags": "h3,h4,h5,p,span,div"
+    },
+    {
+     "n": 3,
+     "text": "Próximos 7 días",
+     "exact": false,
+     "tags": "h3,h4,h5,p,span,div"
+    },
+    {
+     "n": 4,
+     "text": "Abrir Cotizador"
+    }
+   ]
+  },
+  {
+   "name": "dashboard/trabajador",
+   "path": "/dashboard",
+   "as": "worker",
+   "viewport": "mobile",
+   "height": 1000,
+   "before": [
+    "const b = [...document.querySelectorAll('button')].find(x => x.textContent.trim() === 'Gestionar'); let el = b.parentElement; while (el && el.scrollWidth <= el.clientWidth) el = el.parentElement; if (el) el.scrollLeft = el.scrollWidth"
+   ],
+   "markers": [
+    {
+     "n": 1,
+     "text": "Mis Asignaciones (Calendario)",
+     "exact": false,
+     "tags": "h2,h3"
+    },
+    {
+     "n": 2,
+     "text": "Gestionar",
+     "tags": "button,a"
+    }
+   ]
+  },
+  {
+   "name": "dashboard/cliente",
+   "path": "/dashboard",
+   "as": "client",
+   "width": 1500,
+   "markers": [
+    {
+     "n": 1,
+     "selector": "select[name=\"project_id\"]"
+    },
+    {
+     "n": 2,
+     "text": "Fecha",
+     "exact": false,
+     "tags": "th,a"
+    },
+    {
+     "n": 3,
+     "text": "Ver Detalle",
+     "tags": "button,a"
+    }
+   ]
+  },
+  {
+   "name": "proyectos/lista",
+   "path": "/projects",
+   "as": "admin",
+   "width": 1500,
+   "markers": [
+    {
+     "n": 1,
+     "text": "Mantenimiento Condominio Los Robles",
+     "tags": "a"
+    },
+    {
+     "n": 2,
+     "text": "Cliente",
+     "tags": "th"
+    },
+    {
+     "n": 3,
+     "text": "Nuevo Proyecto",
+     "exact": false,
+     "tags": "a"
+    },
+    {
+     "n": 3,
+     "text": "Editar",
+     "tags": "a"
+    }
+   ]
+  },
+  {
+   "name": "proyectos/ficha",
+   "path": "/projects/1",
+   "as": "admin",
+   "height": 1500,
+   "markers": [
+    {
+     "n": 1,
+     "text": "Nuevo Reporte",
+     "exact": false,
+     "tags": "a"
+    },
+    {
+     "n": 2,
+     "text": "Ubicación",
+     "tags": "h2,h3"
+    },
+    {
+     "n": 3,
+     "text": "Contactos en Sitio",
+     "tags": "h2,h3"
+    },
+    {
+     "n": 4,
+     "text": "Checklist de Tareas",
+     "tags": "h2,h3"
+    },
+    {
+     "n": 5,
+     "text": "Bitácora Reciente",
+     "tags": "h2,h3"
+    }
+   ]
+  },
+  {
+   "name": "proyectos/bitacora",
+   "path": "/logs/new?project_id=1",
+   "as": "worker",
+   "viewport": "mobile",
+   "height": 1400,
+   "markers": [
+    {
+     "n": 2,
+     "selector": "#location_id"
+    },
+    {
+     "n": 3,
+     "text": "Tareas Realizadas",
+     "tags": "label,h3,h4,p,span"
+    },
+    {
+     "n": 4,
+     "selector": "#notes"
+    },
+    {
+     "n": 5,
+     "text": "Seleccionar archivos",
+     "exact": false,
+     "tags": "label,span"
+    },
+    {
+     "n": 6,
+     "text": "Guardar Reporte",
+     "tags": "button"
+    }
+   ]
+  },
+  {
+   "name": "proyectos/reporte-detalle",
+   "path": "/projects/1",
+   "as": "client",
+   "wait": 900,
+   "before": [
+    "[...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Ver Detalle').click(); await new Promise(r => setTimeout(r, 1200))"
+   ]
+  },
+  {
+   "name": "proyectos/enviar-correo",
+   "path": "/projects/1",
+   "as": "admin",
+   "height": 1000,
+   "before": [
+    "[...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Ver Detalle').click(); await new Promise(r => setTimeout(r, 1200))",
+    "document.querySelector('#btn-email').click(); await new Promise(r => setTimeout(r, 600))"
+   ],
+   "markers": [
+    {
+     "n": 2,
+     "selector": "#email-recipients-container"
+    },
+    {
+     "n": 3,
+     "selector": "#email-full-notes"
+    },
+    {
+     "n": 4,
+     "selector": "#btn-send-email-confirm"
+    }
+   ]
+  },
+  {
+   "name": "proyectos/formulario",
+   "path": "/projects/1/edit",
+   "as": "admin",
+   "height": 1150,
+   "markers": [
+    {
+     "n": 1,
+     "selector": "#name"
+    },
+    {
+     "n": 2,
+     "text": "Cliente (cuenta)",
+     "exact": false,
+     "tags": "label,span"
+    },
+    {
+     "n": 3,
+     "text": "Clientes (Usuarios)",
+     "exact": false,
+     "tags": "label,span"
+    },
+    {
+     "n": 4,
+     "text": "Ubicación",
+     "tags": "h2,h3,h4"
+    }
+   ]
+  },
+  {
+   "name": "cotizador/cliente",
+   "path": "/cotizador?opportunity_id=1",
+   "as": "ventas",
+   "wait": 1500,
+   "markers": [
+    {
+     "n": 1,
+     "selector": "#accountChosen"
+    },
+    {
+     "n": 2,
+     "selector": "#contactSelect"
+    },
+    {
+     "n": 3,
+     "selector": "#serviceType"
+    },
+    {
+     "n": 4,
+     "selector": "#qualityPanel"
+    }
+   ]
+  },
+  {
+   "name": "cotizador/items",
+   "path": "/cotizador",
+   "as": "ventas",
+   "wait": 1500,
+   "before": [
+    "[...document.querySelectorAll('#recentBody button')].find(b => b.textContent.trim() === 'Cargar').click(); await new Promise(r => setTimeout(r, 1200))",
+    "document.querySelector('#itemsBody').closest('.card, section, div.rounded-2xl, div.p-4, div.p-5').setAttribute('data-clip', 'items')"
+   ],
+   "clip": "[data-clip=items]",
+   "markers": [
+    {
+     "n": 1,
+     "selector": "#btnAddService"
+    },
+    {
+     "n": 1,
+     "selector": "#btnAddMaterial"
+    },
+    {
+     "n": 2,
+     "selector": "#itemsBody textarea"
+    },
+    {
+     "n": 3,
+     "selector": "button[title=\"Duplicar ítem\"]"
+    },
+    {
+     "n": 3,
+     "selector": "button[title=\"Quitar ítem\"]"
+    }
+   ]
+  },
+  {
+   "name": "cotizador/revision",
+   "path": "/cotizador",
+   "as": "ventas",
+   "wait": 1500,
+   "height": 1000,
+   "before": [
+    "[...document.querySelectorAll('#recentBody button')].find(b => b.textContent.trim() === 'Cargar').click(); await new Promise(r => setTimeout(r, 1200))",
+    "document.querySelector('#qualityPanel').closest('.card, aside, section, div.rounded-2xl').setAttribute('data-clip', 'summary')"
+   ],
+   "clip": "[data-clip=summary]",
+   "markers": [
+    {
+     "n": 1,
+     "selector": "#taxEnabled"
+    },
+    {
+     "n": 2,
+     "selector": "#discount"
+    },
+    {
+     "n": 3,
+     "selector": "#qualityPanel"
+    },
+    {
+     "n": 4,
+     "selector": "#btnPDF"
+    }
+   ]
+  },
+  {
+   "name": "cotizador/guardar",
+   "path": "/cotizador",
+   "as": "ventas",
+   "wait": 1500,
+   "before": [
+    "[...document.querySelectorAll('#recentBody button')].find(b => b.textContent.trim() === 'Cargar').click(); await new Promise(r => setTimeout(r, 1200))",
+    "document.querySelector('#btnSave').closest('div.flex').parentElement.setAttribute('data-clip', 'top')"
+   ],
+   "clip": "[data-clip=top]",
+   "markers": [
+    {
+     "n": 1,
+     "selector": "#quoteNumberPill"
+    },
+    {
+     "n": 2,
+     "selector": "#btnSave"
+    },
+    {
+     "n": 3,
+     "selector": "#btnDuplicate"
+    },
+    {
+     "n": 4,
+     "selector": "#btnNew"
+    }
+   ]
+  },
+  {
+   "name": "clientes/embudo",
+   "path": "/clientes",
+   "as": "admin",
+   "height": 1100,
+   "markers": [
+    {
+     "n": 1,
+     "text": "Embudo ·",
+     "exact": false,
+     "tags": "h2"
+    },
+    {
+     "n": 2,
+     "text": "Próximos pasos vencidos",
+     "exact": false,
+     "tags": "h2,h3"
+    },
+    {
+     "n": 3,
+     "selector": "input[name=\"q\"]"
+    },
+    {
+     "n": 4,
+     "text": "Nueva cuenta",
+     "tags": "a"
+    }
+   ]
+  },
+  {
+   "name": "clientes/cuenta",
+   "path": "/clientes/cuentas/3",
+   "as": "ventas",
+   "markers": [
+    {
+     "n": 1,
+     "text": "Registrar seguimiento",
+     "tags": "button,a"
+    },
+    {
+     "n": 2,
+     "text": "Contactos (1)",
+     "exact": false,
+     "tags": "button,a"
+    },
+    {
+     "n": 3,
+     "text": "Prospecto",
+     "tags": "span"
+    }
+   ]
+  },
+  {
+   "name": "clientes/oportunidad",
+   "path": "/clientes/oportunidades/1",
+   "as": "ventas",
+   "height": 1000,
+   "markers": [
+    {
+     "n": 1,
+     "text": "Cambiar etapa",
+     "exact": false,
+     "tags": "label,span"
+    },
+    {
+     "n": 2,
+     "selector": "input[name=\"next_step\"]"
+    },
+    {
+     "n": 3,
+     "text": "Crear cotización",
+     "tags": "a"
+    }
+   ]
+  },
+  {
+   "name": "clientes/asignacion",
+   "path": "/clientes/asignacion",
+   "as": "admin"
+  },
+  {
+   "name": "presupuestos/lista",
+   "path": "/finance",
+   "as": "admin",
+   "width": 1500,
+   "markers": [
+    {
+     "n": 1,
+     "text": "Total Adjudicado",
+     "tags": "th"
+    },
+    {
+     "n": 2,
+     "text": "Ver",
+     "exact": false,
+     "tags": "a"
+    }
+   ]
+  },
+  {
+   "name": "presupuestos/detalle",
+   "path": "/finance/1",
+   "as": "admin",
+   "width": 1500,
+   "height": 1400,
+   "markers": [
+    {
+     "n": 1,
+     "text": "Total Adjudicado",
+     "tags": "dt,p,span,div",
+     "exact": false
+    },
+    {
+     "n": 2,
+     "text": "Presupuesto Base",
+     "tags": "h3,h2"
+    },
+    {
+     "n": 3,
+     "text": "Facturación",
+     "tags": "h3,h2"
+    },
+    {
+     "n": 4,
+     "text": "Gastos Registrados",
+     "tags": "h3,h2"
+    }
+   ]
+  },
+  {
+   "name": "presupuestos/factura",
+   "path": "/finance/1",
+   "as": "admin",
+   "width": 1500,
+   "before": [
+    "[...document.querySelectorAll('button')].find(b => b.textContent.replace(/\\s+/g, ' ').trim() === 'Nueva Factura').click(); await new Promise(r => setTimeout(r, 800))"
+   ],
+   "markers": [
+    {
+     "n": 1,
+     "selector": "input[name=invoice_number]"
+    },
+    {
+     "n": 2,
+     "selector": "select[name=budget_line_id]"
+    },
+    {
+     "n": 3,
+     "selector": "input[name=amount]"
+    }
+   ]
+  },
+  {
+   "name": "presupuestos/pago",
+   "path": "/finance/1",
+   "as": "admin",
+   "width": 1500,
+   "height": 1000,
+   "before": [
+    "[...document.querySelectorAll('button,a')].find(b => b.textContent.trim() === 'Reporte').click(); await new Promise(r => setTimeout(r, 700))"
+   ],
+   "markers": [
+    {
+     "n": 1,
+     "selector": "input[name=payment_date]"
+    },
+    {
+     "n": 1,
+     "selector": "input[name=deposit_number]"
+    },
+    {
+     "n": 2,
+     "selector": "#apply_retention"
+    },
+    {
+     "n": 3,
+     "selector": "#pay_full"
+    }
+   ]
+  },
+  {
+   "name": "planilla/periodos",
+   "path": "/payroll",
+   "as": "admin",
+   "markers": [
+    {
+     "n": 1,
+     "text": "Generar Planilla",
+     "tags": "button"
+    },
+    {
+     "n": 2,
+     "selector": "#payroll-periods-list"
+    },
+    {
+     "n": 3,
+     "text": "Historial de Pagos",
+     "exact": false,
+     "tags": "h3,h4,p,span,a"
+    },
+    {
+     "n": 3,
+     "text": "Liquidaciones",
+     "exact": false,
+     "tags": "h3,h4,p,span,a"
+    }
+   ]
+  },
+  {
+   "name": "planilla/detalle",
+   "path": "/payroll/detail/2",
+   "as": "admin",
+   "width": 1700,
+   "wait": 1500,
+   "markers": [
+    {
+     "n": 1,
+     "text": "Total Salarios (Neto)",
+     "exact": false,
+     "tags": "dt,p,span,div,h3"
+    },
+    {
+     "n": 2,
+     "selector": "#payroll-entries-body"
+    },
+    {
+     "n": 3,
+     "text": "Imprimir Reporte",
+     "exact": false,
+     "tags": "a,button"
+    },
+    {
+     "n": 4,
+     "text": "Finalizar Planilla",
+     "exact": false,
+     "tags": "a,button"
+    }
+   ]
+  },
+  {
+   "name": "planilla/aprobar",
+   "path": "/payroll/approval",
+   "as": "supervisor",
+   "wait": 1500,
+   "before": [
+    "document.querySelector('#projects-grid > *').click(); await new Promise(r => setTimeout(r, 1500))"
+   ],
+   "markers": [
+    {
+     "n": 1,
+     "selector": "#start_date"
+    },
+    {
+     "n": 1,
+     "selector": "#end_date"
+    },
+    {
+     "n": 2,
+     "selector": "input[id^=\"hours-\"]"
+    },
+    {
+     "n": 2,
+     "selector": "input[id^=\"overtime-\"]"
+    },
+    {
+     "n": 3,
+     "text": "Confirmar Todo",
+     "tags": "button"
+    }
+   ]
+  },
+  {
+   "name": "planilla/trabajador",
+   "path": "/payroll",
+   "as": "worker",
+   "viewport": "mobile"
+  },
+  {
+   "name": "calendario/mes",
+   "path": "/calendar",
+   "as": "admin",
+   "wait": 1800,
+   "markers": [
+    {
+     "n": 1,
+     "selector": ".fc-prev-button"
+    },
+    {
+     "n": 1,
+     "selector": ".fc-today-button"
+    },
+    {
+     "n": 2,
+     "selector": ".fc-dayGridMonth-button"
+    },
+    {
+     "n": 2,
+     "selector": ".fc-listWeek-button"
+    },
+    {
+     "n": 3,
+     "selector": ".fc-event"
+    }
+   ]
+  },
+  {
+   "name": "calendario/celular",
+   "path": "/calendar",
+   "as": "worker",
+   "viewport": "mobile",
+   "wait": 1800
+  },
+  {
+   "name": "calendario/asignar",
+   "path": "/calendar",
+   "as": "admin",
+   "wait": 1800,
+   "height": 1000,
+   "before": [
+    "openModal(); await new Promise(r => setTimeout(r, 600))"
+   ],
+   "markers": [
+    {
+     "n": 2,
+     "selector": "#date"
+    },
+    {
+     "n": 2,
+     "selector": "#end_date"
+    },
+    {
+     "n": 3,
+     "selector": "#project_id"
+    },
+    {
+     "n": 3,
+     "selector": "#user_id"
+    },
+    {
+     "n": 4,
+     "selector": "#tasks-list"
+    },
+    {
+     "n": 5,
+     "text": "Guardar",
+     "tags": "button"
+    }
+   ]
+  },
+  {
+   "name": "calendario/tareas",
+   "path": "/calendar",
+   "as": "worker",
+   "viewport": "mobile",
+   "wait": 1800,
+   "before": [
+    "document.querySelector('.fc-list-event, .fc-event').click(); await new Promise(r => setTimeout(r, 900))"
+   ]
+  },
+  {
+   "name": "empleados/lista",
+   "path": "/users",
+   "as": "admin",
+   "width": 1500,
+   "markers": [
+    {
+     "n": 1,
+     "text": "Nuevo Empleado",
+     "exact": false,
+     "tags": "a"
+    },
+    {
+     "n": 2,
+     "text": "Andrés Solano",
+     "tags": "a,button,span,td"
+    },
+    {
+     "n": 3,
+     "text": "Estado",
+     "tags": "th"
+    }
+   ]
+  },
+  {
+   "name": "empleados/formulario",
+   "path": "/users/4/edit",
+   "as": "admin",
+   "height": 1500,
+   "markers": [
+    {
+     "n": 1,
+     "selector": "#username"
+    },
+    {
+     "n": 1,
+     "selector": "#password"
+    },
+    {
+     "n": 2,
+     "selector": "#role"
+    },
+    {
+     "n": 3,
+     "selector": "#hourly_rate"
+    },
+    {
+     "n": 3,
+     "selector": "#payment_method"
+    },
+    {
+     "n": 4,
+     "selector": "#is_active"
+    },
+    {
+     "n": 4,
+     "selector": "#apply_deductions"
+    }
+   ]
+  },
+  {
+   "name": "actividad/registro",
+   "path": "/dashboard/activity",
+   "as": "admin",
+   "width": 1500,
+   "markers": [
+    {
+     "n": 1,
+     "selector": "#search-input"
+    },
+    {
+     "n": 2,
+     "text": "Timestamp",
+     "tags": "th"
+    },
+    {
+     "n": 3,
+     "text": "Acción / Entidad",
+     "tags": "th"
+    },
+    {
+     "n": 4,
+     "text": "Detalle Auditado",
+     "tags": "th"
+    }
+   ]
+  },
+  {
+   "name": "reforestacion/panel",
+   "path": "/dashboard/reforestacion",
+   "as": "admin",
+   "width": 1500,
+   "height": 1300,
+   "markers": [
+    {
+     "n": 1,
+     "text": "Supervivencia por proyecto",
+     "tags": "h2,h3"
+    },
+    {
+     "n": 2,
+     "text": "Importar CSV",
+     "tags": "button"
+    },
+    {
+     "n": 3,
+     "text": "Descargar CSV",
+     "tags": "a"
+    },
+    {
+     "n": 3,
+     "text": "Importar CSV actualizado",
+     "tags": "button"
+    },
+    {
+     "n": 4,
+     "selector": "form[action$=\"/settings\"]"
+    }
+   ]
+  },
+  {
+   "name": "reforestacion/importar",
+   "path": "/dashboard/reforestacion",
+   "as": "admin",
+   "width": 1500,
+   "before": [
+    "[...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Importar CSV').click(); await new Promise(r => setTimeout(r, 700))"
+   ],
+   "markers": [
+    {
+     "n": 1,
+     "text": "Nombre del Cliente (Proyecto)",
+     "exact": false,
+     "tags": "label"
+    },
+    {
+     "n": 2,
+     "selector": "input[type=file]"
+    },
+    {
+     "n": 3,
+     "text": "Subir e Importar",
+     "tags": "button"
+    }
+   ]
+  },
+  {
+   "name": "reforestacion/monitoreo",
+   "path": "/projects/3/monitoreo",
+   "as": "worker",
+   "viewport": "mobile",
+   "height": 1180,
+   "markers": [
+    {
+     "n": 1,
+     "selector": "input[name=checked_at]"
+    },
+    {
+     "n": 2,
+     "selector": "input[name=tree_numbers]"
+    },
+    {
+     "n": 3,
+     "text": "Vivo",
+     "tags": "label,span,button"
+    },
+    {
+     "n": 4,
+     "selector": "input[name=height_cm]"
+    },
+    {
+     "n": 5,
+     "text": "Guardar monitoreo",
+     "tags": "button"
+    }
+   ]
+  }
+ ]
 }

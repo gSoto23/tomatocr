@@ -1,0 +1,94 @@
+{% extends "manual/_layout.html" %}
+
+{% block manual %}
+{% call m.section("que-es", "Qué es") %}
+<p>El <strong>Calendario</strong> organiza quién trabaja en qué proyecto cada día y con qué tareas. Cada día asignado a una
+    persona es una <strong>asignación</strong>. Las asignaciones aparecen en el Dashboard de cada trabajador y, cuando se
+    confirman sus horas en Planilla, se pagan y cuentan como costo del proyecto.</p>
+<p>Quién lo usa: {{ m.roles(["admin", "supervisor", "worker"]) }}. El admin y el supervisor ven y organizan las
+    asignaciones de todo el equipo; cada trabajador ve solo las suyas.</p>
+{% endcall %}
+
+{% call m.section("vistas", "Ver el calendario") %}
+{{ m.shot("calendario/mes.webp", "Calendario en vista de mes", "El calendario del equipo, vista de mes.") }}
+{{ m.steps([
+    (1, "Flechas para ir al mes anterior o siguiente, y <strong>Hoy</strong> para volver."),
+    (2, "<strong>Mes</strong> o <strong>Lista</strong> (la semana en forma de lista)."),
+    (3, "Cada asignación dice <em>Proyecto (usuario)</em>. Tocala para abrirla."),
+]) }}
+<p>En el celular el calendario se abre directo en la <strong>lista de la semana</strong>, que se lee mejor en pantalla chica.</p>
+{{ m.shot("calendario/celular.webp", "Calendario en el celular", "La semana en el celular de un trabajador.", mobile=True) }}
+{% endcall %}
+
+{% call m.section("asignar", "Asignar un proyecto") %}
+{% if user.role in ['admin', 'supervisor'] %}
+{{ m.shot("calendario/asignar.webp", "Ventana para asignar un proyecto", "La ventana Asignar Proyecto.") }}
+{{ m.steps([
+    (1, "Tocá <strong>Asignar Proyecto</strong>, o tocá un día vacío del calendario (la fecha ya viene puesta)."),
+    (2, "<strong>Fecha Inicio</strong>. Si ponés también <strong>Fecha Fin</strong>, se crea una asignación <em>por cada día</em> del rango, fines de semana incluidos."),
+    (3, "<strong>Proyecto</strong> (solo los activos) y <strong>Trabajador</strong>."),
+    (4, "<strong>Tareas Asignadas</strong>: título y descripción de cada una. <em>Agregar Tarea</em> suma otra; las vacías no se guardan."),
+    (5, "Tocá <strong>Guardar</strong>."),
+]) }}
+{% call m.warn("Revisá antes de guardar") %}
+<ul class="list-disc space-y-1 pl-5">
+    <li>Un rango de fechas crea asignaciones separadas: después se editan o borran <strong>una por una</strong>. Si no
+        trabajan fines de semana, asigná por semana laboral o borrá esos días.</li>
+    <li>El sistema no avisa si la persona ya tiene otra asignación ese día.</li>
+    <li>Después de las 6 p. m., el botón puede traer puesta la fecha de <strong>mañana</strong>: revisala.</li>
+    <li>La lista de trabajadores también muestra personas inactivas: fijate a quién elegís.</li>
+</ul>
+{% endcall %}
+{% else %}
+<p>Las asignaciones las hace el supervisor o el admin. Si falta la tuya o está en otro día, avisales.</p>
+{% endif %}
+{% endcall %}
+
+{% call m.section("editar", "Cambiar o borrar una asignación") %}
+{% if user.role in ['admin', 'supervisor'] %}
+<p>Tocá la asignación en el calendario. Podés cambiar la fecha, el proyecto, el trabajador o las tareas y tocar
+    <strong>Guardar</strong>. <strong>Eliminar</strong> pide confirmación (<em>Sí, Eliminar</em>).</p>
+{% call m.warn("Al editar se desmarcan las tareas") %}
+<p>Guardar una asignación vuelve a crear sus tareas: las que el trabajador ya había marcado como hechas
+    <strong>quedan sin marcar</strong>. Si ya las marcó, evitá editarla. Y si borrás una asignación con horas ya
+    confirmadas, esas horas se van de la planilla.</p>
+{% endcall %}
+{% else %}
+<p>No podés cambiar tus asignaciones; pedíselo al supervisor.</p>
+{% endif %}
+{% endcall %}
+
+{% call m.section("tareas", "Marcar las tareas hechas") %}
+{% if user.role == 'worker' or user.role == 'admin' %}
+{{ m.shot("calendario/tareas.webp", "Tareas de una asignación", "Las tareas de una asignación, desde el trabajador.", mobile=True) }}
+{% endif %}
+<p>El trabajador toca su asignación (en el Calendario o en <em>Gestionar</em> del Dashboard) y marca cada tarea al
+    terminarla: se guarda sola y aparece tachada. <strong>Ir al Proyecto</strong> abre la ficha del proyecto para
+    registrar la bitácora del día.</p>
+{% endcall %}
+
+{% call m.section("horas", "Las horas") %}
+<p>El Calendario no pide horas: cada asignación empieza con <strong>8 horas y 0 extra, sin confirmar</strong>. Las horas
+    reales y las extra se revisan y confirman en <strong>Planilla → Aprobar Horas</strong>
+    {%- if user.role != 'client' %} (ver el capítulo <a href="/manual/planilla" class="text-indigo-600 hover:underline">Planilla</a>){% endif %}.
+    Solo las horas confirmadas se pagan.</p>
+{% endcall %}
+
+{% call m.section("preguntas", "Preguntas frecuentes") %}
+<div class="space-y-2">
+{% call m.faq("¿Se puede arrastrar una asignación a otro día?") %}
+<p>No. Abrila, cambiá la <em>Fecha Inicio</em> y guardá.</p>
+{% endcall %}
+{% call m.faq("¿Dónde elijo la sede?") %}
+<p>El Calendario no tiene sede. Escribila en el título o la descripción de la tarea si hace falta; la sede se elige al
+    registrar la bitácora.</p>
+{% endcall %}
+{% call m.faq("Asigné un rango y me creó también sábado y domingo") %}
+<p>Así funciona el rango. Borrá esos días uno por uno, o la próxima vez asigná de lunes a viernes.</p>
+{% endcall %}
+{% call m.faq("El calendario muestra el usuario y no el nombre") %}
+<p>Es así: cada asignación dice el proyecto y, entre paréntesis, el usuario con el que la persona entra al sistema.</p>
+{% endcall %}
+</div>
+{% endcall %}
+{% endblock %}

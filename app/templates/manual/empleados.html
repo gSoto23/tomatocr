@@ -1,0 +1,72 @@
+{% extends "manual/_layout.html" %}
+
+{% block manual %}
+{% call m.section("que-es", "Qué es") %}
+<p><strong>Empleados</strong> es donde el admin crea y administra a <strong>todas las personas que entran al sistema</strong>:
+    trabajadores, supervisores, vendedores, admins y también los usuarios de los clientes. Cada persona tiene su usuario,
+    su rol y, si trabaja para TOMATO, sus datos de planilla y su expediente.</p>
+<p>Quién lo usa: {{ m.roles(["admin"]) }}.</p>
+{% endcall %}
+
+{% call m.section("lista", "La lista") %}
+{{ m.shot("empleados/lista.webp", "Lista de empleados", "Empleados, con datos de ejemplo.") }}
+{{ m.steps([
+    (1, "<strong>Nuevo Empleado</strong>."),
+    (2, "Tocá el <strong>nombre</strong> para ver el expediente: contacto, fecha de ingreso, cargas sociales y documentos."),
+    (3, "<strong>Estado</strong>: Activo o Inactivo, y <em>Editar</em>."),
+]) }}
+{% endcall %}
+
+{% call m.section("crear", "Crear o editar una persona") %}
+{{ m.shot("empleados/formulario.webp", "Formulario de empleado", "El formulario de una persona.") }}
+{{ m.steps([
+    (1, "<strong>Usuario</strong> (con el que entra; no se puede repetir), <strong>Nombre Completo</strong> y <strong>Contraseña</strong>. Al editar, dejá la contraseña en blanco para no cambiarla."),
+    (2, "<strong>Rol</strong>: Trabajador, Supervisor, Cliente, Ventas o Administrador. Define qué ve en el sistema (ver el capítulo Primeros pasos)."),
+    (3, "<strong>Información de Planilla</strong>: correo, teléfono, fecha de ingreso, tarifa por hora, salario mensual y método de pago (con número de cuenta o Sinpe)."),
+    (4, "<strong>Empleado Activo</strong> y <strong>Aplicar Deducciones</strong> (rebaja de CCSS del 9,17 %)."),
+]) }}
+<ul class="list-disc space-y-1 pl-5">
+    <li>Al escribir el <strong>Salario Mensual</strong>, la tarifa por hora se calcula sola (salario ÷ 192, redondeado) y
+        reemplaza la que hubiera. Si la tarifa es otra, escribila después.</li>
+    <li><strong>Expediente y Documentos</strong>: contratos y otros papeles. Se aceptan <strong>PDF, JPG, PNG o WebP</strong>
+        de hasta 10 MB (la pantalla menciona Word, pero no se acepta: convertilo a PDF).</li>
+    <li>Tocá <strong>Crear Empleado</strong> o <strong>Guardar Cambios</strong>.</li>
+</ul>
+{% call m.tip("Usuarios de clientes") %}
+<p>Para que alguien de un cliente vea su proyecto: creale un usuario con rol <strong>Cliente</strong>, asignalo en el
+    proyecto (<em>Clientes (Usuarios)</em>) y ligalo como contacto de su cuenta en Clientes para que vea sus cotizaciones.</p>
+{% endcall %}
+{% endcall %}
+
+{% call m.section("contrasenas", "Contraseñas") %}
+<p>Las personas no pueden cambiar ni recuperar su contraseña solas. Para cambiarla: <em>Editar</em>, escribí la nueva en
+    <strong>Contraseña</strong> y guardá. Entregala en persona o por un medio privado, y pedile que no la comparta.</p>
+{% endcall %}
+
+{% call m.section("desactivar", "Desactivar o eliminar") %}
+<ul class="list-disc space-y-1 pl-5">
+    <li><strong>Desactivar</strong> (desmarcar <em>Empleado Activo</em>): la persona ya no puede entrar y, si tenía la
+        sesión abierta, la pierde en la siguiente pantalla. Su historial se conserva. <strong>Es lo recomendado</strong>
+        cuando alguien deja de trabajar.</li>
+    <li><strong>Eliminar Empleado</strong> borra a la persona para siempre y no se puede deshacer. Usalo solo para usuarios
+        creados por error.</li>
+    <li>Cuando alguien sale de la empresa con liquidación, hacelo desde Planilla → Liquidaciones: queda desactivado y marcado como liquidado.</li>
+    <li>No podés desactivarte, quitarte el rol de admin ni eliminarte a vos mismo.</li>
+</ul>
+{% endcall %}
+
+{% call m.section("preguntas", "Preguntas frecuentes") %}
+<div class="space-y-2">
+{% call m.faq("Subí un documento y apareció una página de error") %}
+<p>El archivo no es PDF, JPG, PNG o WebP, o pesa más de 10 MB. Si estabas creando a la persona, ya quedó creada: abrí
+    <em>Editar</em> y subí el archivo correcto.</p>
+{% endcall %}
+{% call m.faq("La lista dice Activo pero la persona fue liquidada") %}
+<p>La columna Estado solo muestra si está activa o no; la liquidación se ve en Planilla → Liquidaciones.</p>
+{% endcall %}
+{% call m.faq("¿Por qué la columna Rol dice «worker»?") %}
+<p>Muestra el nombre interno del rol: worker = Trabajador, client = Cliente, ventas = Ventas.</p>
+{% endcall %}
+</div>
+{% endcall %}
+{% endblock %}

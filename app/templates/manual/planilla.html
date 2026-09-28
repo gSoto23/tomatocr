@@ -1,0 +1,137 @@
+{% extends "manual/_layout.html" %}
+
+{% block manual %}
+{% call m.section("que-es", "Qué es") %}
+<p><strong>Planilla</strong> calcula lo que se le paga a cada persona a partir de las horas <strong>confirmadas</strong> de sus
+    asignaciones del Calendario. También lleva el historial de pagos y las liquidaciones.</p>
+<p>Quién lo usa: {{ m.roles(["admin", "supervisor", "worker"]) }}. El admin genera y cierra las planillas; el supervisor
+    confirma las horas de su equipo; cada trabajador ve lo suyo.</p>
+{% if user.role == 'admin' %}
+<p>El cálculo usa del perfil de cada persona (en <a href="/manual/empleados" class="text-indigo-600 hover:underline">Empleados</a>):
+    la <strong>Tarifa por Hora</strong>, <strong>Aplicar Deducciones</strong> (CCSS del trabajador, 9,17 %), el
+    <strong>Método de Pago</strong> y la <strong>Fecha de Ingreso</strong>.</p>
+{% endif %}
+{% endcall %}
+
+{% call m.section("ciclo", "El ciclo de cada planilla") %}
+<ol class="list-decimal space-y-1 pl-5">
+    <li>El supervisor o el admin arma las <strong>asignaciones</strong> en el Calendario (cada una empieza con 8 h y 0 extra).</li>
+    <li>Se revisan y <strong>confirman las horas</strong> reales en <em>Aprobar Horas</em>.</li>
+    <li>El admin <strong>genera la planilla</strong> de un periodo: toma solo las horas confirmadas.</li>
+    <li>El admin la revisa, la <strong>finaliza</strong> e imprime el reporte para pagar.</li>
+</ol>
+{% call m.warn("Confirmá las horas antes de generar") %}
+<p>Las horas que se confirman <em>después</em> de generar la planilla no entran en ella. Si pasa, hay que eliminar ese
+    periodo y generarlo de nuevo. Y nada impide generar dos planillas sobre las mismas fechas: no lo hagas, se pagaría doble.</p>
+{% endcall %}
+{% endcall %}
+
+{% call m.section("aprobar", "Confirmar las horas") %}
+{% if user.role in ['admin', 'supervisor'] %}
+{{ m.shot("planilla/aprobar.webp", "Aprobación de horas", "Aprobar Horas de un proyecto.") }}
+{{ m.steps([
+    (None, "En Planilla tocá <strong>Aprobar Horas</strong> y elegí el proyecto."),
+    (1, "Elegí las fechas con <strong>Desde</strong> y <strong>Hasta</strong>, o <em>Hoy</em> / <em>Semana</em>, y tocá <em>Refrescar</em>."),
+    (2, "Corregí las <strong>Horas</strong> y las horas <strong>Extra (1.5x)</strong> de cada persona si no fueron las 8 de siempre."),
+    (3, "Tocá <strong>Confirmar Todo</strong>. Las filas pasan a <em>Confirmado</em>."),
+]) }}
+<p><em>Confirmar Todo</em> confirma todas las filas cargadas, también las que ya estaban confirmadas, con lo que diga cada
+    casilla: revisá antes. El supervisor no ve sus propias horas; las confirma el admin.
+    {% if user.role == 'supervisor' %}Ves solo los proyectos que tenés asignados.{% endif %}</p>
+{% else %}
+<p>Tus horas las confirma el supervisor o el admin. Si trabajaste más de 8 horas o hiciste horas extra, avisales para que
+    las registren antes de que se genere la planilla.</p>
+{% endif %}
+{% endcall %}
+
+{% call m.section("generar", "Generar y cerrar la planilla") %}
+{% if user.role == 'admin' %}
+{{ m.shot("planilla/periodos.webp", "Lista de planillas", "Planilla: periodos y accesos.") }}
+{{ m.steps([
+    (1, "<strong>Generar Planilla</strong>: elegí <em>Fecha Inicio</em> y <em>Fecha Fin</em> y tocá <em>Generar</em>. Queda como borrador (<em>draft</em>)."),
+    (2, "Tocá el periodo para abrirlo y revisar."),
+    (3, "<strong>Historial de Pagos</strong> y <strong>Liquidaciones</strong>."),
+]) }}
+{{ m.shot("planilla/detalle.webp", "Detalle de una planilla", "El detalle de un periodo.") }}
+{{ m.steps([
+    (1, "Totales: salarios netos, cargas patronales (26,67 %), previsiones (18 %) y costo total para la empresa."),
+    (2, "Por persona: horas, extras, bruto, CCSS (9,17 %), <strong>Neto Pagar</strong> y método de pago. <em>Ver desglose</em> muestra día por día y proyecto."),
+    (3, "<strong>Imprimir Reporte</strong> abre el listado de pago para imprimir o guardar en PDF."),
+    (4, "<strong>Finalizar Planilla</strong> la marca como <em>final</em>. Solo las planillas finales cuentan como costo de los proyectos en Presupuestos."),
+]) }}
+<p><strong>Cómo se calcula</strong>: bruto = horas × tarifa + horas extra × tarifa × 1,5 (redondeado a centenas); CCSS del
+    trabajador = 9,17 % del bruto si tiene <em>Aplicar Deducciones</em>; neto = bruto − CCSS.</p>
+{% call m.warn("Deducciones") %}
+<p>Si una persona no debe llevar la rebaja de CCSS, desmarcá <em>Aplicar Deducciones</em> en su perfil <strong>antes</strong>
+    de generar. La casilla <em>Apl. Ded?</em> del detalle hoy no funciona.</p>
+{% endcall %}
+{% else %}
+<p>El admin genera la planilla de cada periodo. En <strong>Planilla</strong> ves los periodos donde tenés horas; al abrir uno
+    ves tu fila: horas, extras, rebajas, <strong>Total a Pagar</strong> y <em>Ver desglose</em> día por día.
+    <em>Imprimir Reporte</em> te da tu comprobante. Arriba ves tu <strong>Fecha de Inicio</strong> y tus
+    <strong>Vacaciones Disponibles</strong> (1 día por mes trabajado; no descuenta las ya tomadas).</p>
+{{ m.shot("planilla/trabajador.webp", "Planilla vista por un trabajador", "Planilla, vista de un trabajador.", mobile=True) }}
+{% endif %}
+{% endcall %}
+
+{% call m.section("pagos", "Historial de pagos") %}
+{% if user.role == 'admin' %}
+<p>Registro de lo que se le pagó a cada persona (no está ligado a una planilla).</p>
+{{ m.steps([
+    (None, "Planilla → <strong>Historial de Pagos</strong> → <em>Ver Historial</em> de la persona."),
+    (None, "<strong>Registrar Nuevo Pago</strong>: fecha, monto, horas regulares, horas extra y notas. <strong>Guardar Pago</strong>."),
+    (None, "<em>Notificar Whatsapp</em> abre WhatsApp con un mensaje listo; no guarda nada por sí solo."),
+]) }}
+{% else %}
+<p>El admin registra cada pago que te hace. Si querés ver tu historial, pedíselo.</p>
+{% endif %}
+{% endcall %}
+
+{% call m.section("liquidacion", "Liquidaciones") %}
+{% if user.role == 'admin' %}
+{{ m.steps([
+    (None, "Planilla → <strong>Liquidaciones</strong> → <em>Gestionar Liquidación</em> de la persona."),
+    (None, "<strong>Calcular Liquidación</strong>: revisá la fecha de inicio y la de liquidación; el sistema calcula vacaciones, aguinaldo proporcional y salario pendiente. El salario pendiente se puede corregir."),
+    (None, "<strong>Generar Carta</strong> abre la carta para imprimir o guardar en PDF."),
+    (None, "<strong>Confirmar Liquidación</strong> guarda los montos y <strong>desactiva</strong> a la persona (ya no puede entrar)."),
+]) }}
+{% call m.warn("Revisá el cálculo y la carta con el contador") %}
+<ul class="list-disc space-y-1 pl-5">
+    <li>El cálculo es una referencia: toma vacaciones y aguinaldo sobre <strong>toda la antigüedad</strong> y <strong>no
+        incluye cesantía ni preaviso</strong>. Confirmalo con el contador antes de pagar.</li>
+    <li>La carta vuelve a calcular el salario pendiente y no toma la corrección hecha en la ventana. Revisá también los datos
+        de la empresa y la fecha antes de imprimirla.</li>
+    <li>Necesita el <strong>Salario Mensual</strong> en el perfil; si falta, el cálculo da error.</li>
+</ul>
+{% endcall %}
+<p><strong>Reactivar Contrato</strong> vuelve a activar a una persona liquidada, con fecha de inicio hoy.</p>
+{% else %}
+<p>Las liquidaciones las calcula y registra el admin.</p>
+{% endif %}
+{% endcall %}
+
+{% call m.section("preguntas", "Preguntas frecuentes") %}
+<div class="space-y-2">
+{% call m.faq("Trabajé y no aparece en la planilla") %}
+<p>Las horas tienen que estar <strong>confirmadas</strong> en Aprobar Horas antes de generar la planilla. Avisale al supervisor.</p>
+{% endcall %}
+{% call m.faq("¿Cuánto vale la hora extra?") %}
+<p>1,5 veces la tarifa por hora.</p>
+{% endcall %}
+{% if user.role in ['admin', 'supervisor'] %}
+{% call m.faq("«Hoy» en Aprobar Horas muestra el día siguiente") %}
+<p>Después de las 6 p. m. los botones <em>Hoy</em> y <em>Semana</em> pueden correrse un día. Poné las fechas a mano.</p>
+{% endcall %}
+{% endif %}
+{% if user.role == 'admin' %}
+{% call m.faq("Finalicé una planilla y necesito cambiarla") %}
+<p>Se puede eliminar y volver a generar. Hacelo solo si todavía no se pagó.</p>
+{% endcall %}
+{% call m.faq("El monto extra del reporte no cuadra con el detalle") %}
+<p>El reporte no redondea la hora extra y el detalle sí; y ambos usan la tarifa actual. Si cambiaste una tarifa después de
+    generar, regenerá el periodo.</p>
+{% endcall %}
+{% endif %}
+</div>
+{% endcall %}
+{% endblock %}

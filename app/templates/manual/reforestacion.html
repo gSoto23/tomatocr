@@ -1,0 +1,103 @@
+{% extends "manual/_layout.html" %}
+
+{% block manual %}
+{% call m.section("que-es", "Qué es") %}
+<p><strong>Reforestación</strong> lleva el inventario de cada árbol de los proyectos institucionales (número, especie, sector,
+    ubicación GPS y fecha de siembra), sus <strong>monitoreos</strong> en campo (vivo, muerto o reemplazado) y el
+    <strong>indicador de supervivencia</strong>. Con eso se alimenta el mapa público de tomatocr.com.</p>
+<p>Quién lo usa: {{ m.roles(["admin"]) }} administra los proyectos y el inventario;
+    {{ m.roles(["supervisor", "worker"]) }} registran los monitoreos en campo (el trabajador, en los proyectos a los que
+    está asignado).</p>
+{% endcall %}
+
+{% if user.role == 'admin' %}
+{% call m.section("panel", "El panel de reforestación") %}
+{{ m.shot("reforestacion/panel.webp", "Panel de reforestación", "Reforestación, con datos de ejemplo.") }}
+{{ m.steps([
+    (1, "<strong>Supervivencia por proyecto</strong>: plantados, verificados, vivos, muertos, reemplazados, supervivencia a 6 y 12 meses y último monitoreo."),
+    (2, "<strong>Importar CSV</strong> para cargar un inventario nuevo."),
+    (3, "Por proyecto: <strong>Importar CSV actualizado</strong>, <strong>Descargar CSV</strong> y <strong>Monitoreo en campo</strong>."),
+    (4, "La configuración del proyecto: a qué proyecto de operaciones está ligado y qué nombre muestra el mapa público."),
+]) }}
+<h3 class="font-semibold text-gray-900">Cómo se calcula la supervivencia</h3>
+<p>Supervivencia = <strong>vivos ÷ (vivos + muertos + reemplazados)</strong>, entre los árboles <em>verificados</em>
+    sembrados hace al menos 6 o 12 meses. Un reemplazado cuenta como pérdida, y los árboles sembrados como reposición se
+    cuentan aparte. Leé siempre el <strong>% verificado</strong> que aparece abajo: una supervivencia alta con pocos
+    árboles verificados todavía no dice mucho. Los árboles sin fecha de siembra no entran en el cálculo.</p>
+{% endcall %}
+
+{% call m.section("importar", "Cargar y actualizar el inventario (CSV)") %}
+{{ m.shot("reforestacion/importar.webp", "Importar inventario", "La ventana Importar inventario.") }}
+{{ m.steps([
+    (1, "<strong>Nombre del Cliente (Proyecto)</strong>. Un nombre nuevo crea un proyecto nuevo; uno que ya existe actualiza sus árboles."),
+    (2, "El <strong>Archivo CSV</strong>. <em>Descargar plantilla vacía</em> da el formato."),
+    (3, "Tocá <strong>Subir e Importar</strong>. El mensaje dice cuántos árboles y monitoreos se agregaron o corrigieron."),
+]) }}
+<p>Columnas: <code>TreeNumber, Species, Sector, Lat, Lng, Date, Status, CheckDate, HeightCm, Notes, ReplacedBy</code>.
+    Solo <strong>TreeNumber</strong> es obligatorio. <em>Date</em> es la fecha de siembra; <em>Status</em> (vivo, muerto o
+    reemplazado) con su <em>CheckDate</em> registra un monitoreo. Las fechas van como AAAA-MM-DD o DD/MM/AAAA.</p>
+<p><strong>Para actualizar</strong>: <em>Descargar CSV</em> → completá o corregí en Excel → <em>Importar CSV actualizado</em>
+    (este botón ya pone el nombre exacto del proyecto).</p>
+{% call m.warn("Cómo trata los datos la importación") %}
+<ul class="list-disc space-y-1 pl-5">
+    <li><strong>Nunca borra</strong>: una casilla vacía no borra lo que había, y los árboles que no vienen en el archivo se conservan.</li>
+    <li><strong>Todo o nada</strong>: si una fila tiene un error, no se importa nada. El mensaje dice qué línea corregir.</li>
+    <li>El nombre del proyecto no se puede cambiar después, y un nombre mal escrito crea otro proyecto: usá <em>Importar CSV actualizado</em>.</li>
+</ul>
+{% endcall %}
+{% endcall %}
+
+{% call m.section("mapa", "El mapa público y la autorización del cliente") %}
+<p>En <a href="/proyectos-reforestacion" target="_blank" class="text-indigo-600 hover:underline">tomatocr.com/proyectos-reforestacion</a>
+    aparecen <strong>todos los árboles con coordenadas</strong> de los proyectos institucionales, con su especie, sector,
+    estado y fecha de siembra, y la supervivencia a 12 meses. Nunca se publican notas, fotos, alturas ni personas.</p>
+<p>El <strong>nombre</strong> del proyecto solo se muestra si el cliente lo autorizó. Sin autorización, el mapa dice
+    <em>Proyecto institucional</em>.</p>
+{{ m.steps([
+    (None, "En la tarjeta del proyecto escribí el <strong>Nombre público en el mapa</strong> y la <strong>Fecha de la autorización</strong>."),
+    (None, "Marcá <em>El cliente autorizó mostrar su nombre en el mapa público</em>."),
+    (None, "Tocá <strong>Guardar configuración</strong>."),
+]) }}
+<p>En la misma tarjeta, <strong>Proyecto de operaciones</strong> liga el inventario con un proyecto: eso habilita el
+    monitoreo en campo desde ese proyecto.</p>
+{% endcall %}
+{% endif %}
+
+{% call m.section("monitoreo", "Registrar un monitoreo en campo") %}
+{{ m.shot("reforestacion/monitoreo.webp", "Monitoreo de árboles en el celular", "El monitoreo de árboles, en el celular.", mobile=True) }}
+<p>Se abre desde la ficha del proyecto con <strong>Monitoreo de árboles</strong>, o desde la bitácora con
+    <em>Registrar monitoreo de árboles de este proyecto</em>. Aparece solo si el proyecto tiene árboles ligados.</p>
+{{ m.steps([
+    (1, "<strong>Fecha del monitoreo</strong> (hoy, o un día anterior; no se aceptan fechas futuras)."),
+    (2, "<strong>¿Qué árboles?</strong> <em>Por número</em> (ej. <code>1-20, 35, 40</code>) o <em>Todo un sector</em>."),
+    (3, "<strong>Estado</strong>: Vivo, Muerto o Reemplazado. Si reemplazaste <em>un</em> árbol, escribí el número del árbol nuevo (tiene que estar en el inventario)."),
+    (4, "Opcional: altura, notas y una foto (de uso interno; no se publica)."),
+    (5, "Tocá <strong>Guardar monitoreo</strong>. Si ya registraste la bitácora de ese proyecto ese día, el monitoreo queda ligado a ella."),
+]) }}
+<p>El estado de cada árbol es el de su monitoreo <strong>más reciente</strong>; registrar uno de una fecha anterior solo
+    se agrega al historial. La altura, las notas y la foto se aplican a todos los árboles marcados en ese registro.</p>
+{% endcall %}
+
+{% call m.section("preguntas", "Preguntas frecuentes") %}
+<div class="space-y-2">
+{% call m.faq("No veo el botón «Monitoreo de árboles»") %}
+<p>El inventario tiene que estar ligado al proyecto (lo hace el admin en Reforestación), y el trabajador tiene que estar asignado al proyecto.</p>
+{% endcall %}
+{% call m.faq("Marqué un árbol por error") %}
+<p>Registrá un monitoreo nuevo con el estado correcto y la misma fecha o una posterior: el estado actual es el del
+    monitoreo más reciente. Para borrar un registro hace falta soporte técnico.</p>
+{% endcall %}
+{% call m.faq("Puse una altura y dio un error en inglés") %}
+<p>La altura tiene que ser un número (por ejemplo, 120). Volvé atrás y corregila.</p>
+{% endcall %}
+{% if user.role == 'admin' %}
+{% call m.faq("Un árbol no aparece en el mapa") %}
+<p>Le faltan las coordenadas (Lat y Lng). Completalas en el CSV y volvé a importarlo.</p>
+{% endcall %}
+{% call m.faq("¿Hay monitoreo a los 3 meses?") %}
+<p>El indicador se calcula a 6 y 12 meses. Los monitoreos se registran cuando el equipo va al sitio; el sistema no manda recordatorios.</p>
+{% endcall %}
+{% endif %}
+</div>
+{% endcall %}
+{% endblock %}

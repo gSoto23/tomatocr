@@ -6,6 +6,18 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-27
 
+### Manual del usuario, parte 2 (esta rama)
+- Capítulos nuevos: Calendario, Planilla (horas, planilla, pagos y
+  liquidaciones), Presupuestos, Reforestación (inventario, monitoreo y mapa
+  público), Empleados, Actividad y Recorridos de punta a punta (de prospecto a
+  proyecto, del día de trabajo al reporte del cliente, renovar un contrato).
+- El "?" del monitoreo de árboles abre Reforestación.
+- Datos de ejemplo con planillas, pagos, gastos e inventario de árboles; 18
+  capturas nuevas.
+- `docs/PUNTOS_DIFICILES_UX.md` suma lo encontrado en esos módulos, con varios
+  puntos de prioridad A.
+- Despliegue: sin migraciones; reiniciar.
+
 ### Manual del usuario, parte 1 (#63)
 - Menú **Manual** (`/manual`) para todos los roles: índice con buscador y capítulos
   Primeros pasos, Dashboard, Proyectos y bitácora, Clientes y Cotizador, con

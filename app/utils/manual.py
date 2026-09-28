@@ -2,7 +2,8 @@
 Each page's "?" button opens the chapter of its module (chapter_for_path).
 Screenshots live in app/static/manual/<slug>/ and are regenerated with
 scripts/manual/capturas.mjs from fictitious local data (never production)."""
-from dataclasses import dataclass, field
+import re
+from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
 from app.core.roles import ADMIN, CLIENT, SUPERVISOR, VENTAS, WORKER
@@ -21,6 +22,8 @@ class Chapter:
     # (anchor, title) of the sections, for the index and the search.
     sections: Tuple[Tuple[str, str], ...] = ()
     keywords: str = ""
+    # Full-path regular expressions that win over prefixes (e.g. /projects/5/monitoreo).
+    patterns: Tuple[str, ...] = ()
 
     def allowed(self, role: Optional[str]) -> bool:
         return role in self.roles
@@ -52,6 +55,24 @@ CHAPTERS: List[Chapter] = [
         "proyecto bitácora registro diario fotos tareas horas reporte correo cliente contactos ubicación",
     ),
     Chapter(
+        "calendario", "Calendario",
+        "Quién trabaja en qué proyecto cada día y con qué tareas.",
+        (ADMIN, SUPERVISOR, WORKER), ("/calendar",),
+        (("que-es", "Qué es"), ("vistas", "Ver el calendario"), ("asignar", "Asignar un proyecto"),
+         ("editar", "Cambiar o borrar una asignación"), ("tareas", "Marcar las tareas hechas"), ("horas", "Las horas"),
+         ("preguntas", "Preguntas frecuentes")),
+        "calendario asignación asignar trabajador tareas día semana horas",
+    ),
+    Chapter(
+        "planilla", "Planilla",
+        "De las horas confirmadas al pago: aprobar horas, generar la planilla, pagos y liquidaciones.",
+        (ADMIN, SUPERVISOR, WORKER), ("/payroll", "/payments", "/liquidation"),
+        (("que-es", "Qué es"), ("ciclo", "El ciclo de cada planilla"), ("aprobar", "Confirmar las horas"),
+         ("generar", "Generar y cerrar la planilla"), ("pagos", "Historial de pagos"), ("liquidacion", "Liquidaciones"),
+         ("preguntas", "Preguntas frecuentes")),
+        "planilla salario pago horas extra ccss deducciones vacaciones aguinaldo liquidación aprobar",
+    ),
+    Chapter(
         "clientes", "Clientes",
         "Cuentas, prospectos y oportunidades: cómo trabajar un prospecto hasta ganarlo.",
         (ADMIN, VENTAS), ("/clientes",),
@@ -71,6 +92,51 @@ CHAPTERS: List[Chapter] = [
     ),
 ]
 
+CHAPTERS += [
+    Chapter(
+        "presupuestos", "Presupuestos",
+        "Lo adjudicado, las facturas, los pagos que entran y los costos de cada proyecto.",
+        (ADMIN, CLIENT), ("/finance",),
+        (("que-es", "Qué es"), ("lista", "La lista de proyectos"),
+         ("detalle", "El detalle financiero y qué significa cada número"), ("facturas", "Registrar una factura"),
+         ("pagos", "Registrar un pago"), ("gastos", "Gastos del proyecto"), ("preguntas", "Preguntas frecuentes")),
+        "presupuesto finanzas factura pago retención gasto costo saldo adjudicado facturado vencida",
+    ),
+    Chapter(
+        "reforestacion", "Reforestación",
+        "Inventario de árboles, monitoreos en campo, supervivencia y el mapa público.",
+        (ADMIN, SUPERVISOR, WORKER), ("/dashboard/reforestacion",),
+        (("que-es", "Qué es"), ("panel", "El panel de reforestación"), ("importar", "Cargar y actualizar el inventario (CSV)"),
+         ("mapa", "El mapa público y la autorización del cliente"), ("monitoreo", "Registrar un monitoreo en campo"),
+         ("preguntas", "Preguntas frecuentes")),
+        "reforestación árboles inventario csv monitoreo supervivencia mapa vivo muerto reemplazado",
+        patterns=(r"/projects/\d+/monitoreo",),
+    ),
+    Chapter(
+        "empleados", "Empleados",
+        "Crear y administrar a las personas que entran al sistema, sus datos de planilla y su expediente.",
+        (ADMIN,), ("/users",),
+        (("que-es", "Qué es"), ("lista", "La lista"), ("crear", "Crear o editar una persona"),
+         ("contrasenas", "Contraseñas"), ("desactivar", "Desactivar o eliminar"), ("preguntas", "Preguntas frecuentes")),
+        "empleados usuarios contraseña rol expediente documentos tarifa salario desactivar",
+    ),
+    Chapter(
+        "actividad", "Actividad",
+        "El registro de auditoría: quién hizo qué y cuándo.",
+        (ADMIN,), ("/dashboard/activity",),
+        (("que-es", "Qué es"), ("leer", "Leer el registro"), ("preguntas", "Preguntas frecuentes")),
+        "actividad auditoría registro historial cambios login",
+    ),
+    Chapter(
+        "recorridos", "Recorridos de punta a punta",
+        "Cómo se conectan las partes del sistema en el trabajo de todos los días.",
+        ALL_ROLES, (),
+        (("prospecto-a-proyecto", "De un prospecto a un proyecto ganado"),
+         ("dia-de-trabajo", "Del día de trabajo al reporte del cliente"), ("renovacion", "Renovar un contrato")),
+        "flujo proceso paso a paso de principio a fin",
+    ),
+]
+
 BY_SLUG = {c.slug: c for c in CHAPTERS}
 
 
@@ -82,6 +148,8 @@ def chapter_for_path(path: str, role: Optional[str]) -> Optional[Chapter]:
     """Chapter that the "?" of this page opens, if the user can read it."""
     best, best_len = None, -1
     for chapter in chapters_for(role):
+        if any(re.fullmatch(pattern, path) for pattern in chapter.patterns):
+            return chapter
         for prefix in chapter.paths:
             if (path == prefix or path.startswith(prefix.rstrip("/") + "/")) and len(prefix) > best_len:
                 best, best_len = chapter, len(prefix)
