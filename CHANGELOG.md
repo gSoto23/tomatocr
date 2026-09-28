@@ -6,7 +6,7 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-27
 
-### Manual del usuario, parte 1 (esta rama)
+### Manual del usuario, parte 1 (#63)
 - Menú **Manual** (`/manual`) para todos los roles: índice con buscador y capítulos
   Primeros pasos, Dashboard, Proyectos y bitácora, Clientes y Cotizador, con
   capturas de pantalla y marcas numeradas. Cada rol ve solo sus capítulos.
@@ -17,6 +17,14 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
   `scripts/manual/datos_demo.py` y `scripts/manual/capturas.mjs`.
 - `docs/PUNTOS_DIFICILES_UX.md`: lo que cuesta usar, para el trabajo de UI/UX.
 - Despliegue: sin migraciones; reiniciar.
+
+### Integración con darboles.com activada (#62, solo documentación)
+- darboles.com ya envía al CRM las solicitudes de su formulario de empresas
+  (darboles.com PR #8). Se configuró `DARBOLES_API_KEY` en producción y el QA
+  dejó una prueba con origen "darboles.com", ya descartada.
+- `docs/INTEGRACION_DARBOLES.md`: estado actualizado y cómo diagnosticar un
+  `401` comparando la huella de la clave en los dos servidores.
+- Sin migración ni pasos de despliegue.
 
 ### Arreglo: editar proyectos con trabajo registrado (#61)
 - Desde el cambio a PostgreSQL, guardar un proyecto fallaba ("Error al
@@ -43,7 +51,7 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 - Guía "Cómo trabajar un prospecto" en `/clientes/ayuda`.
 - Despliegue: `alembic upgrade head` (0006 → 0007) y reiniciar.
 
-### Documentación: estado final de la Fase 2 (esta rama)
+### Documentación: estado final de la Fase 2 (#60)
 - Plan y diseño del CRM marcan la Fase 2 completa; correo de /privacidad
   confirmado; lista de pendientes después de la Fase 2.
 - El piloto (15/10–15/12/2026) se lleva en el sistema, no en el tablero.

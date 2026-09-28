@@ -17,12 +17,19 @@ origen "darboles.com".
 Las compras individuales de la tienda **no** se envían: solo el formulario de
 contacto para empresas.
 
-## Estado al 27/09/2026
+## Estado al 27/09/2026 (activo)
 
-- darboles.com no tiene formulario de contacto: `/contacto` solo enlaza a
-  WhatsApp y a darbolescr@gmail.com, y `/empresas` enlaza a `/contacto`.
-- En tomatocr.com la API está apagada (responde 503) hasta que se configure la
-  clave.
+- **En producción en los dos lados.** darboles.com tiene el formulario de
+  empresas en `/empresas` y `/contacto` (darboles.com PR #8); su backend llama a
+  esta API de servidor a servidor. Implementación y diagnóstico del lado
+  darboles.com: `docs/INTEGRACION_TOMATOCR.md` y `DEPLOYMENT.md` de ese repo.
+- `DARBOLES_API_KEY` está configurada en el `.env` de producción de
+  tomatocr.com y coincide con `TOMATO_CRM_API_KEY` de darboles.com.
+- QA del 27/09/2026: el primer envío de prueba recibió `401` (las claves no
+  coincidían; la de este lado tenía 44 caracteres) y darboles.com lo mandó por
+  el correo de respaldo. Con las claves igualadas y `tomato` reiniciado, el
+  segundo envío entró como prospecto con origen "darboles.com" y se descartó
+  en Clientes.
 
 ## Endpoint
 
@@ -110,3 +117,13 @@ final lo decide Gerardo.
 5. En producción: un envío de prueba desde darboles.com, revisar en Clientes
    que llegó con origen darboles.com y borrarlo (como el QA de la Fase 2D).
 6. Si la clave se filtra: generar otra y cambiarla en los dos `.env`.
+7. Si darboles.com registra `401`: comparar la clave que ve cada lado sin
+   mostrarla (largo y huella). Aquí, en el servidor (el entorno está en
+   `.venv`):
+   ```bash
+   cd /home/ubuntu/tomatocr && .venv/bin/python -c "from app.core.config import settings;import hashlib;k=settings.DARBOLES_API_KEY;print(len(k), hashlib.sha256(k.encode()).hexdigest()[:12], repr(k[:1]), repr(k[-1:]))"
+   ```
+   El comando equivalente del lado darboles.com está en su `DEPLOYMENT.md`.
+   Las dos salidas deben ser idénticas. Después de corregir el `.env`,
+   `sudo systemctl restart tomato`: el comando lee el archivo, no el servicio
+   en marcha.
