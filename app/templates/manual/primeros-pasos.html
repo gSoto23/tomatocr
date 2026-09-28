@@ -10,20 +10,38 @@
 {{ m.shot("primeros-pasos/login.webp", "Formulario de acceso en la página de inicio", "En la computadora, el acceso está en la barra de arriba.") }}
 {{ m.steps([(1, "Escribí tu <strong>Usuario</strong>."), (2, "Escribí tu <strong>Contraseña</strong>."), (3, "Tocá <strong>Ingresar</strong>. Entrás al Dashboard.")]) }}
 <p>En el celular o la tablet, el acceso está dentro del menú: tocá el botón de tres rayas arriba a la derecha y
-    aparece <strong>Acceso al sistema interno</strong>.</p>
+    aparece <strong>Acceso al sistema interno</strong> (1 a 3). Debajo está <strong>¿Olvidaste tu contraseña?</strong> (4).</p>
 {{ m.shot("primeros-pasos/login-celular.webp", "Acceso desde el menú en el celular", "En el celular, el acceso está en el menú ☰.", mobile=True) }}
 <p><strong>Para salir</strong>, tocá el ícono de la puerta abajo en el menú, al lado de tu nombre. Hacelo siempre si
     usás una computadora compartida.</p>
 {% call m.tip("¿Cuánto dura la sesión?") %}
-<p>Hasta que cerrás el navegador, o 24 horas como máximo. Después el sistema te devuelve a la página de inicio y
-    tenés que volver a entrar.</p>
+<p>Hasta que cerrás el navegador, o 24 horas como máximo. Después el sistema te devuelve a la página de inicio con el
+    aviso <em>Tu sesión venció</em> y tenés que volver a entrar.</p>
+{% endcall %}
+{% endcall %}
+
+{% call m.section("contrasena", "Cambiar o recuperar la contraseña") %}
+<h3 class="font-semibold text-gray-900">Cambiarla</h3>
+<p>Con la sesión abierta, tocá el ícono de la <strong>llave</strong> abajo en el menú, al lado de tu nombre. Escribí tu
+    contraseña actual y la nueva dos veces (al menos 8 caracteres) y tocá <strong>Guardar contraseña</strong>.</p>
+<h3 class="font-semibold text-gray-900">Recuperarla si la olvidaste</h3>
+{{ m.shot("primeros-pasos/recuperar.webp", "Pantalla para recuperar la contraseña", "Recuperar la contraseña, en el celular.", mobile=True) }}
+{{ m.steps([
+    (1, "En la página de inicio tocá <strong>¿Olvidaste tu contraseña?</strong> y escribí tu <strong>usuario o tu correo</strong>."),
+    (2, "Tocá <strong>Enviar enlace</strong>. Te llega un correo con un enlace (revisá también el correo no deseado)."),
+]) }}
+<p>Abrí el enlace, elegí la contraseña nueva y tocá <strong>Guardar y entrar</strong>. El enlace dura una hora y sirve
+    una sola vez; si venció, pedí otro. Se pueden pedir hasta 3 enlaces por hora.</p>
+{% call m.tip("¿No te llega el correo?") %}
+<p>Llega al correo de tu perfil. Si no tenés correo registrado o cambiaste de correo, pedile al admin que lo actualice
+    en <strong>Empleados</strong>.</p>
 {% endcall %}
 {% endcall %}
 
 {% call m.section("menu", "El menú") %}
 <p>A la izquierda está el menú con las partes del sistema que usás. Cada persona ve solo lo que le toca según su rol.</p>
 {{ m.shot("primeros-pasos/menu.webp", "Menú lateral y barra superior", "El menú de un admin. Otros roles ven menos opciones.") }}
-{{ m.steps([(1, "<strong>El menú</strong>: tocá una opción para ir a esa parte. La que tenés abierta aparece resaltada."), (2, "<strong>Manual</strong>: este manual, al final del menú."), (3, "<strong>?</strong>: abre el capítulo del manual de la pantalla donde estás."), (4, "<strong>Cotizador</strong>: para admin, ventas y clientes, arriba a la derecha (en el celular dice <em>Cotizar</em>)."), (5, "Tu nombre y rol, y el botón para <strong>salir</strong>.")]) }}
+{{ m.steps([(1, "<strong>El menú</strong>: tocá una opción para ir a esa parte. La que tenés abierta aparece resaltada."), (2, "<strong>Manual</strong>: este manual, al final del menú."), (3, "<strong>?</strong>: abre el capítulo del manual de la pantalla donde estás."), (4, "<strong>Cotizador</strong>: para admin, ventas y clientes, arriba a la derecha (en el celular dice <em>Cotizar</em>)."), (5, "Tu nombre y rol, y el botón para <strong>salir</strong>."), (6, "La <strong>llave</strong>: cambiar tu contraseña.")]) }}
 <div class="overflow-x-auto">
 <table class="mt-2 w-full text-left text-xs">
     <thead class="text-gray-500"><tr><th class="py-1 pr-3">Opción</th><th class="px-2">Admin</th><th class="px-2">Supervisor</th><th class="px-2">Trabajador</th><th class="px-2">Cliente</th><th class="px-2">Ventas</th></tr></thead>
@@ -61,7 +79,8 @@
     pongas la contraseña correcta. Esperá y volvé a intentar con calma.</p>
 {% endcall %}
 {% call m.faq("Olvidé mi contraseña o quiero cambiarla") %}
-<p>Por ahora no se puede desde tu usuario. Pedíselo al admin: la cambia desde <strong>Empleados</strong> y te la pasa en persona.</p>
+<p>Tocá <strong>¿Olvidaste tu contraseña?</strong> en la página de inicio y te llega un enlace al correo. Para
+    cambiarla con la sesión abierta, usá la llave del menú. Ver <a href="#contrasena" class="text-indigo-600 hover:underline">Cambiar o recuperar la contraseña</a>.</p>
 {% endcall %}
 {% call m.faq("Estaba trabajando y de pronto volví a la página de inicio") %}
 <p>La sesión se venció (cerraste el navegador o pasaron 24 horas). Entrá de nuevo. Si te pasa apenas entrás, tu

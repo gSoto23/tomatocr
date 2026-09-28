@@ -27,6 +27,17 @@ node scripts/manual/capturas.mjs proyectos
 correr si `MANUAL_BASE_URL` no es un servidor local. Si Chrome tarda en arrancar o no
 puede escribir su perfil, `MANUAL_CHROME_PROFILE=<carpeta>` indica dónde crearlo.
 
+En macOS, si el proyecto está en el Escritorio y node o Chrome no tienen permiso para esa
+carpeta, el sistema puede bloquear el acceso a toda la sesión. Para evitarlo, corré una copia
+del script fuera del proyecto y copiá las capturas después:
+
+```bash
+T=$(mktemp -d) && cp scripts/manual/capturas.{mjs,json} "$T"
+PYTHONPATH=. .venv/bin/python scripts/manual/tokens.py > "$T/tokens.json"
+(cd "$T" && MANUAL_OUT_DIR="$T/out" MANUAL_TOKENS_FILE="$T/tokens.json" node capturas.mjs proyectos)
+cp -R "$T/out/." app/static/manual/
+```
+
 ## Agregar o cambiar una captura
 
 Cada captura es una entrada en `capturas.json`:

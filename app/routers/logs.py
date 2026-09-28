@@ -2,7 +2,7 @@
 import uuid
 import json
 from pathlib import Path
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Form, File, UploadFile, status, Request, HTTPException
@@ -20,7 +20,11 @@ from app.db.models.reforestation import ReforestationProject
 from app.utils.crm import report_recipients
 from app.core.roles import ADMIN, CLIENT, OPERATIONS_ROLES
 from app.utils.activity import log_activity
-from app.utils.uploads import IMAGE_TYPES, MAX_IMAGE_SIZE_BYTES
+from app.core.config import settings
+from app.utils.timecr import today_cr
+from app.utils.uploads import PHOTO_RULES, process_photo
+
+MAX_DAYS_BACK = 7  # a report can be for a forgotten day, up to a week back
 
 router = APIRouter(
     prefix="/logs",
@@ -264,7 +268,7 @@ def new_log_form(request: Request, project_id: Optional[int] = None, db: Session
             for loc in p.locations
         ]
 
-    today = date.today()
+    today = today_cr()
     project_tasks_json = json.dumps(project_tasks_map)
     project_locations_json = json.dumps(project_locations_map)
     
@@ -273,6 +277,8 @@ def new_log_form(request: Request, project_id: Optional[int] = None, db: Session
         "user": user, 
         "projects": projects,
         "today": today,
+        "earliest": today - timedelta(days=MAX_DAYS_BACK),
+        "photo_rules": PHOTO_RULES,
         "project_tasks_json": project_tasks_json,
         "project_locations_json": project_locations_json,
         "selected_project_id": project_id,
@@ -306,8 +312,23 @@ def create_log(
              response.set_cookie(key="toast_type", value="error")
              return response
 
+    # The day can be up to MAX_DAYS_BACK in the past (a forgotten day), never in the future.
+    try:
+        log_date = datetime.strptime(date_val, "%Y-%m-%d").date()
+    except ValueError:
+        raise HTTPException(status_code=400, detail="La fecha del reporte no es válida")
+    today = today_cr()
+    if not (today - timedelta(days=MAX_DAYS_BACK) <= log_date <= today):
+        raise HTTPException(status_code=400, detail=f"La fecha tiene que ser de hoy o de los últimos {MAX_DAYS_BACK} días")
+
+    # Every photo is checked and processed before anything is saved, so one bad photo
+    # doesn't lose the report: the page shows which file failed and keeps what was typed.
+    processed = []
+    for photo in photos or []:
+        if photo.filename:
+            processed.append(process_photo(photo.file.read(), photo.content_type, photo.filename))
+
     # Create Log
-    log_date = datetime.strptime(date_val, "%Y-%m-%d").date()
     new_log = DailyLog(
         project_id=project_id,
         location_id=location_id if location_id else None,
@@ -329,34 +350,17 @@ def create_log(
         for t_id in task_ids:
             db.add(DailyLogTask(log_id=new_log.id, task_id=t_id, completed=True))
 
-    # Handle Photos
-    if photos:
-        upload_dir = Path("app/static/uploads")
+    # Save the processed photos (JPEG).
+    if processed:
         year_month = log_date.strftime("%Y/%m")
-        target_dir = upload_dir / year_month
+        target_dir = Path("app/static/uploads") / year_month
         target_dir.mkdir(parents=True, exist_ok=True)
+        for contents in processed:
+            unique_name = f"{uuid.uuid4()}.jpg"
+            with open(target_dir / unique_name, "wb") as buffer:
+                buffer.write(contents)
+            db.add(Photo(log_id=new_log.id, file_path=f"/static/uploads/{year_month}/{unique_name}"))
 
-        for photo in photos:
-            if photo.filename:
-                if photo.content_type not in IMAGE_TYPES:
-                    raise HTTPException(status_code=400, detail="Solo se permiten fotos en JPEG, PNG o WebP")
-
-                contents = photo.file.read()
-                if len(contents) > MAX_IMAGE_SIZE_BYTES:
-                    raise HTTPException(status_code=400, detail="Cada foto debe pesar menos de 5 MB")
-
-                ext = IMAGE_TYPES[photo.content_type]
-                unique_name = f"{uuid.uuid4()}{ext}"
-                file_path = target_dir / unique_name
-
-                with open(file_path, "wb") as buffer:
-                    buffer.write(contents)
-
-                relative_path = f"/static/uploads/{year_month}/{unique_name}"
-                db_photo = Photo(log_id=new_log.id, file_path=relative_path)
-                db.add(db_photo)
-
-    db.commit()
     db.commit()
     
     # Audit Log
@@ -380,10 +384,9 @@ class EmailSchema(BaseModel):
 from fastapi import BackgroundTasks
 
 @router.post("/{id}/send-email")
-def send_email(
-    id: int, 
+async def send_email(
+    id: int,
     email_data: EmailSchema,
-    background_tasks: BackgroundTasks,
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
@@ -394,18 +397,27 @@ def send_email(
     if not log:
         raise HTTPException(status_code=404, detail="Log not found")
 
-    # Send in background to avoid blocking
-    background_tasks.add_task(send_log_email, log.id, email_data.recipients, email_data.additional_text, email_data.custom_notes)
-    
+    # Sent now (not in the background) so the screen tells the truth; the company copy
+    # goes as a real blind copy, added here and never shown to the client.
+    bcc = settings.REPORT_BCC_EMAIL
+    recipients = [r for r in email_data.recipients if r.lower() != (bcc or "").lower()]
+    if not recipients:
+        raise HTTPException(status_code=400, detail="Elegí al menos un destinatario")
+    sent = await send_log_email(log.id, recipients, email_data.additional_text, email_data.custom_notes,
+                                bcc=[bcc] if bcc else [])
+    if not sent:
+        raise HTTPException(status_code=502, detail="No se pudo enviar el correo. Revisá las direcciones y probá de "
+                                                    "nuevo; si sigue fallando, avisale al admin del sistema.")
+
     # Audit Log
     try:
         details = {
             "mensaje": f"Reporte #{log.id} enviado por correo.",
-            "destinatarios": email_data.recipients,
+            "destinatarios": recipients,
             "notas_adicionales": email_data.additional_text or "Ninguna"
         }
         log_activity(db, user=user, action="EMAIL", entity_type="REPORT", entity_id=log.id, details=details)
     except Exception as e:
         print(f"Audit Log Error: {e}")
     
-    return JSONResponse({"status": "success", "message": "Correo programado para envío"})
+    return JSONResponse({"status": "success", "message": "Correo enviado"})

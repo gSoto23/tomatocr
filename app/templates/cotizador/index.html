@@ -43,13 +43,20 @@
         <button class="btn" id="btnDuplicate">Duplicar</button>
         <button class="btn" id="btnSave">Guardar</button>
         <button class="btn btn-danger" id="btnClearDraft" title="Borrar datos actuales">
-          <span class="danger">Borrar Borrador</span>
+          <span class="danger">Descartar cambios</span>
         </button>
       </div>
     </div>
   </header>
 
   <main class="max-w-6xl mx-auto px-5 pb-10">
+    <div id="draftBanner" class="hidden card mb-5 flex flex-col gap-3 border-l-4 border-amber-500 p-4 sm:flex-row sm:items-center sm:justify-between no-print" role="status">
+      <p id="draftText" class="text-sm"></p>
+      <div class="flex gap-2">
+        <button class="btn" id="btnDraftRestore">Recuperar</button>
+        <button class="btn" id="btnDraftDiscard">Descartar</button>
+      </div>
+    </div>
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
       <!-- Left: Header / Client -->
       <section class="card p-5 lg:col-span-2">

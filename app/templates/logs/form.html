@@ -9,15 +9,27 @@
             <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
                 Bitácora Diaria
             </h2>
-            <p class="mt-2 text-sm text-gray-500">
-                Fecha: {{ today | format_date }}
-            </p>
+            <p class="mt-2 text-sm text-gray-500">Lo que se hizo hoy, o un día de la última semana que quedó sin registrar.</p>
         </div>
     </div>
 
     <form @submit.prevent="submitForm" class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl md:col-span-2">
         <div class="px-4 py-6 sm:p-8">
+            <div x-show="error" x-cloak id="log-error" role="alert"
+                class="mb-6 rounded-lg border-l-4 border-red-600 bg-red-50 p-4 text-sm text-red-800">
+                <p class="font-semibold">No se guardó el reporte</p>
+                <p class="mt-1" x-text="error"></p>
+                <p class="mt-1 text-xs text-red-700">Lo que escribiste sigue aquí: corregilo y volvé a tocar Guardar Reporte.</p>
+            </div>
             <div class="grid max-w-2xl grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+
+                <!-- Date: today or up to a week back -->
+                <div class="col-span-full sm:col-span-3">
+                    <label for="report_date" class="block text-sm font-medium leading-6 text-gray-900">Fecha del trabajo</label>
+                    <input type="date" id="report_date" x-model="reportDate" min="{{ earliest.isoformat() }}" max="{{ today.isoformat() }}" required
+                        class="mt-2 block w-full rounded-md border-0 px-3 py-3 text-base text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-black sm:py-1.5 sm:text-sm">
+                    <p class="mt-1 text-xs text-gray-500" x-show="reportDate !== '{{ today.isoformat() }}'">Estás registrando un día anterior.</p>
+                </div>
 
                 <!-- Project Selection -->
                 <div class="col-span-full">
@@ -92,7 +104,8 @@
                             <div
                                 class="relative group block w-full aspect-w-10 aspect-h-7 rounded-lg bg-gray-100 overflow-hidden">
                                 <img :src="URL.createObjectURL(file)" class="object-cover pointer-events-none"
-                                    :alt="file.name">
+                                    :alt="file.name" @error="$el.style.display = 'none'">
+                                <div class="absolute inset-0 -z-0 flex items-center justify-center text-3xl text-gray-400" aria-hidden="true">🖼</div>
                                 <button type="button" @click="removeFile(index)"
                                     class="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 shadow-sm hover:bg-red-600 focus:outline-none">
                                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -122,12 +135,13 @@
                                 <label for="file-upload"
                                     class="relative cursor-pointer rounded-md bg-white font-semibold text-black focus-within:outline-none focus-within:ring-2 focus-within:ring-black focus-within:ring-offset-2 hover:text-gray-500">
                                     <span>Seleccionar archivos</span>
-                                    <input id="file-upload" type="file" class="sr-only" multiple accept="image/*"
+                                    <input id="file-upload" type="file" class="sr-only" multiple accept="image/*,.heic,.heif"
                                         @change="handleFiles($event.target.files)">
                                 </label>
                                 <p class="pl-1">o arrastrar y soltar</p>
                             </div>
-                            <p class="text-xs leading-5 text-gray-600">PNG, JPG, GIF hasta 10MB</p>
+                            <p class="text-xs leading-5 text-gray-600">{{ photo_rules }}. Se achican solas al guardar.</p>
+                            <p class="mt-2 text-xs text-amber-700" x-show="skipped.length" x-text="'No se agregaron: ' + skipped.join(', ')"></p>
                         </div>
                     </div>
                 </div>
@@ -169,6 +183,9 @@
             formNotes: '',
             selectedTasks: [],
             files: [],
+            skipped: [],
+            error: '',
+            reportDate: '{{ today.isoformat() }}',
             isSubmitting: false,
 
             get currentTasks() {
@@ -187,10 +204,24 @@
             },
 
             handleFiles(fileList) {
-                for (let i = 0; i < fileList.length; i++) {
-                    this.files.push(fileList[i]);
+                // Checked here so a wrong file never costs the whole report.
+                const photo = /\.(jpe?g|png|webp|heic|heif)$/i;
+                this.skipped = [];
+                for (const file of fileList) {
+                    if (!(file.type.startsWith('image/') || photo.test(file.name))) {
+                        this.skipped.push(`${file.name} (no es una foto)`);
+                    } else if (file.size > 20 * 1024 * 1024) {
+                        this.skipped.push(`${file.name} (pesa más de 20 MB)`);
+                    } else {
+                        this.files.push(file);
+                    }
                 }
                 document.getElementById('file-upload').value = '';
+            },
+
+            fail(message) {
+                this.error = message;
+                this.$nextTick(() => document.getElementById('log-error').scrollIntoView({ behavior: 'smooth', block: 'center' }));
             },
 
             handleDrop(event) {
@@ -205,20 +236,15 @@
             async submitForm() {
                 if (this.isSubmitting) return;
 
-                if (!this.selectedProjectId) {
-                    alert('Seleccione un proyecto');
-                    return;
-                }
+                this.error = '';
+                if (!this.selectedProjectId) return this.fail('Elegí el proyecto.');
 
                 // Required Tasks Validation
                 const requiredTasks = this.currentTasks.filter(t => t.is_required);
                 for (let task of requiredTasks) {
                     // Check mixed types (String/Number)
                     const isChecked = this.selectedTasks.some(id => String(id) === String(task.id));
-                    if (!isChecked) {
-                        alert(`La tarea "${task.description}" es requerida.`);
-                        return;
-                    }
+                    if (!isChecked) return this.fail(`Marcá la tarea obligatoria «${task.description}».`);
                 }
 
                 this.isSubmitting = true;
@@ -227,7 +253,7 @@
                 if (this.selectedLocationId) {
                     formData.append('location_id', this.selectedLocationId);
                 }
-                formData.append('date', '{{ today.strftime("%Y-%m-%d") }}');
+                formData.append('date', this.reportDate);
                 formData.append('notes', this.formNotes);
 
                 this.selectedTasks.forEach(taskId => {
@@ -249,13 +275,14 @@
                     } else if (response.ok) {
                         window.location.href = '/projects/' + this.selectedProjectId;
                     } else {
-                        const errorData = await response.json();
-                        alert('Error al guardar: ' + (errorData.detail || 'Error desconocido'));
+                        const errorData = await response.json().catch(() => ({}));
+                        const detail = Array.isArray(errorData.detail) ? 'Revisá los datos del formulario.' : errorData.detail;
+                        this.fail(detail || 'Error desconocido. Probá de nuevo.');
                         this.isSubmitting = false;
                     }
                 } catch (error) {
                     console.error('Error:', error);
-                    alert('Error de conexión');
+                    this.fail('No hay conexión. Revisá la señal y volvé a tocar Guardar Reporte: lo que escribiste no se perdió.');
                     this.isSubmitting = false;
                 }
             }

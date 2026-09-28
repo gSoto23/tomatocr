@@ -11,8 +11,6 @@ Prioridad sugerida: **A** confunde o hace perder trabajo; **B** molesta; **C** d
 
 | | Punto | Dónde |
 | --- | --- | --- |
-| A | No se puede cambiar ni recuperar la contraseña: solo el admin, desde Empleados. | `app/routers/users.py` |
-| A | Sesión vencida, usuario desactivado o token inválido devuelven a la portada sin ningún mensaje (`?error=login_required`, `invalid_token`). | `app/templates/index.html` |
 | B | Usuario desactivado ve "Usuario o contraseña incorrectos", igual que una contraseña mala. | `app/routers/auth.py` |
 | B | Entre 768 y 1023 px (tablet) el acceso no está en la barra: hay que abrir el menú ☰. | `app/templates/index.html` |
 | B | El título de la barra dice "Dashboard" en Proyectos, la ficha y el formulario de proyecto (no definen `header_title`). | `app/templates/projects/*.html` |
@@ -25,7 +23,6 @@ Prioridad sugerida: **A** confunde o hace perder trabajo; **B** molesta; **C** d
 
 | | Punto | Dónde |
 | --- | --- | --- |
-| A | En el celular, "Mis Asignaciones" del trabajador esconde el botón **Gestionar** a la derecha: hay que deslizar la tabla. | `app/templates/dashboard.html` |
 | B | A 1280 px, la Bitácora del cliente corta **Ver Detalle** y la lista de Proyectos corta Estado y **Editar**. El detalle de Planilla corta **Ver desglose** incluso a 1700 px. | `dashboard.html`, `projects/list.html`, `payroll/detail.html` |
 
 ## Dashboard
@@ -36,18 +33,12 @@ Prioridad sugerida: **A** confunde o hace perder trabajo; **B** molesta; **C** d
 | B | "Vencida" solo se actualiza al abrir el presupuesto del proyecto; el Dashboard puede mostrarla como Pendiente. | `app/routers/finance.py` |
 | B | Sin filtros oculta las pagadas; con Estado "Todos" las muestra. El mensaje vacío dice "pendientes" aunque se filtre por Pagada. | `dashboard.html` |
 | C | Montos sin símbolo de moneda. | `dashboard.html` |
-| C | Marcar una tarea en "Gestionar" no refresca la tabla. | `dashboard.html` |
-| C | "Mis Asignaciones" muestra las últimas 20 empezando por la fecha más lejana, no las de hoy. | `dashboard.py` |
 | C | Al cambiar de página se pierde el orden por fecha (Dashboard del cliente y Bitácora Global). | `dashboard.html`, `logs/list.html` |
 
 ## Proyectos y bitácora
 
 | | Punto | Dónde |
 | --- | --- | --- |
-| A | La caja de fotos dice "PNG, JPG, GIF hasta 10MB"; el servidor acepta JPEG, PNG o WebP de hasta 5 MB. GIF y HEIC (iPhone) se rechazan, y si una foto falla no se guarda nada del reporte. | `app/templates/logs/form.html`, `app/utils/uploads.py` |
-| A | El reporte siempre queda con la fecha de hoy: no se puede registrar un día olvidado. | `app/routers/logs.py` |
-| A | "Siempre se enviará una copia oculta a tomatocostarica@gmail.com", pero se envía como destinatario visible. | `app/templates/components/log_modal.html` |
-| A | "Correo enviado exitosamente" sale al ponerlo en cola; si el envío falla después, nadie se entera. | `app/utils/email.py` |
 | B | "Nuevo Proyecto" aparece a supervisores y trabajadores, pero solo el admin puede crear. | `projects/list.html` |
 | B | El supervisor abre la ficha de proyectos no asignados, pero no puede reportar ni abrir sus reportes ("Error al cargar el reporte"). | `app/routers/projects.py`, `logs.py` |
 | B | El filtro de Bitácora Global lista todos los proyectos; elegir uno no asignado da un 403 crudo. | `logs.py` |
@@ -67,12 +58,19 @@ desmarcaba sus tareas; la carta de liquidación tenía la cédula, el nombre, el
 y la ciudad equivocados; la liquidación no seguía el Código de Trabajo (aguinaldo
 desde el 1 de diciembre, vacaciones disfrutadas, preaviso, cesantía, CCSS).
 
+Corregido en la ronda 1 de UI/UX (prioridad A): cada persona cambia su contraseña y la
+recupera por correo (el correo pasó a ser obligatorio en el perfil); la portada explica
+por qué te devolvió (sesión vencida, enlace inválido, usuario inexistente); el trabajador
+ve sus asignaciones de hoy primero, como tarjetas en el celular, y las tareas marcadas se
+tachan al instante; la bitácora acepta fotos JPEG, PNG, WebP y HEIC de hasta 20 MB (se
+achican solas) y días de hasta 7 días atrás; el correo del reporte lleva a TOMATO en copia
+oculta de verdad y avisa si no se pudo enviar; el cotizador recupera el borrador sin
+guardar y dos cotizaciones nuevas con el mismo número ya no se pisan.
+
 ## Cotizador
 
 | | Punto | Dónde |
 | --- | --- | --- |
-| A | Lo no guardado se pierde al recargar: el borrador se escribe en el navegador pero nunca se recupera. "Borrar Borrador" hace lo mismo que "Nueva". | `app/static/cotizador/app.js` |
-| A | Dos personas que abren el cotizador a la vez reciben el mismo número y la segunda en guardar reemplaza a la primera. Guardar una cotización cargada la reemplaza sin historial. | `app.js`, `app/routers/quotes.py` |
 | B | "Cambiar" la cuenta quita el vínculo con la oportunidad sin avisar. | `app.js` |
 | B | Cambiar la moneda no convierte precios; cambiar la validez no actualiza el texto de Términos. | `app.js` |
 | B | El descuento es un monto, no un porcentaje, y no lo dice. | `cotizador/index.html` |
@@ -80,7 +78,8 @@ desde el 1 de diciembre, vacaciones disfrutadas, preaviso, cesantía, CCSS).
 | C | Una cotización guardada con IVA 0 se recarga con la casilla de IVA desmarcada. | `app.js` |
 | C | La insignia de una cotización cargada dice "Oportunidad: #ID" en vez del título. | `app.js` |
 | C | Un usuario cliente que no es contacto de ninguna cuenta puede guardar, pero no ve su cotización en el Historial. | `quotes.py` |
-| C | En el celular el botón "Volver" es solo una flecha. | `index.html` |
+| B | La fecha de emisión usa UTC: después de las 6 p. m. una cotización nueva sale con la fecha de mañana. | `app.js` |
+| C | En el celular el botón "Volver" es solo una flecha y queda encima del título "Cotizador Cloud". | `index.html` |
 | C | Los textos del cotizador tratan de "usted" ("Elija el cliente…") y el resto del sistema de "vos". | `index.html`, `app.js` |
 
 ## Presupuestos

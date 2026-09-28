@@ -17,7 +17,8 @@ const root = join(here, "..", "..");
 const BASE = process.env.MANUAL_BASE_URL || "http://127.0.0.1:8124";
 const CHROME = process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const PORT = 9333;
-const OUT = join(root, "app", "static", "manual");
+// MANUAL_OUT_DIR and MANUAL_TOKENS_FILE let it run from a copy outside the project (see README).
+const OUT = process.env.MANUAL_OUT_DIR || join(root, "app", "static", "manual");
 const VIEWPORTS = {
   desktop: { width: 1280, height: 800, deviceScaleFactor: 1.5, mobile: false },
   mobile: { width: 390, height: 844, deviceScaleFactor: 2, mobile: true },
@@ -31,8 +32,10 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(BASE)) {
 const config = JSON.parse(readFileSync(join(here, "capturas.json"), "utf8"));
 const filter = process.argv[2] || "";
 const shots = config.shots.filter((s) => s.name.startsWith(filter));
-const tokens = JSON.parse(execFileSync(join(root, ".venv", "bin", "python"), [join(here, "tokens.py")],
-  { cwd: root, env: { ...process.env, PYTHONPATH: root } }).toString());
+const tokens = JSON.parse(process.env.MANUAL_TOKENS_FILE
+  ? readFileSync(process.env.MANUAL_TOKENS_FILE, "utf8")
+  : execFileSync(join(root, ".venv", "bin", "python"), [join(here, "tokens.py")],
+    { cwd: root, env: { ...process.env, PYTHONPATH: root } }).toString());
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 

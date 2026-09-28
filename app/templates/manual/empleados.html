@@ -22,7 +22,7 @@
 {{ m.steps([
     (1, "<strong>Usuario</strong> (con el que entra; no se puede repetir), <strong>Nombre Completo</strong> y <strong>Contraseña</strong>. Al editar, dejá la contraseña en blanco para no cambiarla."),
     (2, "<strong>Rol</strong>: Trabajador, Supervisor, Cliente, Ventas o Administrador. Define qué ve en el sistema (ver el capítulo Primeros pasos)."),
-    (3, "<strong>Información de Planilla</strong>: correo, teléfono, fecha de ingreso, tarifa por hora, salario mensual y método de pago (con número de cuenta o Sinpe)."),
+    (3, "<strong>Información de Planilla</strong>: <strong>correo (obligatorio</strong>: ahí le llega el enlace para recuperar la contraseña), teléfono, fecha de ingreso, tarifa por hora, salario mensual y método de pago (con número de cuenta o Sinpe)."),
     (4, "<strong>Empleado Activo</strong> y <strong>Aplicar Deducciones</strong> (rebaja de CCSS del 9,17 %)."),
 ]) }}
 <ul class="list-disc space-y-1 pl-5">
@@ -39,8 +39,12 @@
 {% endcall %}
 
 {% call m.section("contrasenas", "Contraseñas") %}
-<p>Las personas no pueden cambiar ni recuperar su contraseña solas. Para cambiarla: <em>Editar</em>, escribí la nueva en
-    <strong>Contraseña</strong> y guardá. Entregala en persona o por un medio privado, y pedile que no la comparta.</p>
+<p>Cada persona cambia su contraseña con la llave del menú y, si la olvida, la recupera sola con
+    <em>¿Olvidaste tu contraseña?</em> en la página de inicio: le llega un enlace al <strong>correo de su perfil</strong>.
+    Por eso el correo es obligatorio. Si en la lista aparece el aviso <em>Personas activas sin correo</em>, tocá cada
+    nombre y agregáselo.</p>
+<p>Si igual necesitás ponerle una contraseña: <em>Editar</em>, escribí la nueva en <strong>Contraseña</strong> y guardá.
+    Entregala en persona o por un medio privado y pedile que la cambie al entrar.</p>
 {% endcall %}
 
 {% call m.section("desactivar", "Desactivar o eliminar") %}
@@ -60,6 +64,10 @@
 {% call m.faq("Subí un documento y apareció una página de error") %}
 <p>El archivo no es PDF, JPG, PNG o WebP, o pesa más de 10 MB. Si estabas creando a la persona, ya quedó creada: abrí
     <em>Editar</em> y subí el archivo correcto.</p>
+{% endcall %}
+{% call m.faq("No me deja guardar: «El correo es obligatorio»") %}
+<p>Toda persona necesita un correo válido para poder recuperar su contraseña. Si alguien no tiene, usá uno que revise
+    (personal o de la empresa).</p>
 {% endcall %}
 {% call m.faq("La lista dice Activo pero la persona fue liquidada") %}
 <p>La columna Estado solo muestra si está activa o no; la liquidación se ve en Planilla → Liquidaciones.</p>

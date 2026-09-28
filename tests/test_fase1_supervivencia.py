@@ -326,6 +326,13 @@ def test_future_date_is_rejected(db, login_as, linked, users):
     assert db.query(TreeCheck).count() == 0
 
 
+def jpeg_bytes():
+    from PIL import Image
+    buffer = BytesIO()
+    Image.new("RGB", (40, 30), (30, 120, 60)).save(buffer, "JPEG")
+    return buffer.getvalue()
+
+
 def test_photo_is_validated_and_stored(db, login_as, linked, users, monkeypatch):
     from app.routers import reforestation
     monkeypatch.setattr(reforestation.s3_service, "upload_file", lambda f, name, ct: f"https://s3/{name}")
@@ -336,7 +343,7 @@ def test_photo_is_validated_and_stored(db, login_as, linked, users, monkeypatch)
     assert db.query(TreeCheck).count() == 0
 
     post_monitoring(admin, users["project_id"], tree_numbers="1",
-                    files={"photo": ("foto.jpg", BytesIO(b"\xff\xd8\xff"), "image/jpeg")})
+                    files={"photo": ("foto.jpg", BytesIO(jpeg_bytes()), "image/jpeg")})
     assert db.query(TreeCheck).one().photo_path == "https://s3/monitoreo.jpg"
 
 

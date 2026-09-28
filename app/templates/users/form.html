@@ -82,12 +82,13 @@
                     <!-- Email -->
                     <div>
                         <label for="email" class="block text-sm font-medium leading-6 text-gray-900">Correo
-                            Electrónico</label>
+                            Electrónico <span class="text-red-500">*</span></label>
                         <div class="mt-2">
-                            <input type="email" name="email" id="email"
+                            <input type="email" name="email" id="email" required autocomplete="off" autocapitalize="none"
                                 value="{{ edit_user.email if edit_user and edit_user.email else '' }}"
                                 class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
                         </div>
+                        <p class="mt-1 text-xs text-gray-500">Obligatorio: ahí le llega el enlace para recuperar la contraseña.</p>
                     </div>
 
                     <!-- Phone -->

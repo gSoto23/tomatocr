@@ -28,9 +28,11 @@ conf = ConnectionConfig(
 
 from app.db.session import SessionLocal
 
-async def send_log_email(log_id: int, recipients: List[EmailStr], additional_text: str = None, custom_notes: str = None):
+async def send_log_email(log_id: int, recipients: List[EmailStr], additional_text: str = None, custom_notes: str = None,
+                         bcc: List[str] = None) -> bool:
     """
-    Send an email with the log details to the specified recipients.
+    Send an email with the log details to the specified recipients (and a blind copy).
+    Returns True only when the mail server accepted it, so the screen can say so.
     """
     temp_files = [] # Track for cleanup initialize early
     db = SessionLocal()
@@ -38,7 +40,7 @@ async def send_log_email(log_id: int, recipients: List[EmailStr], additional_tex
         log = db.query(DailyLog).filter(DailyLog.id == log_id).first()
         if not log:
             logger.error(f"Cannot send email: Log ID {log_id} not found.")
-            return
+            return False
 
         # Tasks marked done, from the report's own entries, so a task later archived still appears.
         done_tasks = [entry.task.description for entry in sorted(log.task_entries, key=lambda e: e.task_id)
@@ -119,6 +121,7 @@ async def send_log_email(log_id: int, recipients: List[EmailStr], additional_tex
         message = MessageSchema(
             subject=subject,
             recipients=recipients,
+            bcc=list(bcc or []),
             template_body={
                 "project_name": log.project.name,
                 "location_name": log.location.name if log.location else None,
@@ -136,6 +139,7 @@ async def send_log_email(log_id: int, recipients: List[EmailStr], additional_tex
 
         fm = FastMail(conf)
         await fm.send_message(message, template_name="emails/log_report.html")
+        return True
     except Exception as e:
         import traceback
         import sys
@@ -147,6 +151,7 @@ async def send_log_email(log_id: int, recipients: List[EmailStr], additional_tex
         print(f"CRITICAL EMAIL ERROR: {e}", file=sys.stderr)
         traceback.print_exc(file=sys.stderr)
         logger.error(f"Error sending email: {e}")
+        return False
     finally:
         # Cleanup temp files
         for tmp_path in temp_files:

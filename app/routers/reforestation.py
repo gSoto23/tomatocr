@@ -17,7 +17,7 @@ from app.utils.reforestation import (
     CSV_COLUMNS, CsvRejected, decode_csv, import_inventory_csv, inventory_rows, parse_date, parse_tree_numbers,
     record_check, survival_summary,
 )
-from app.utils.uploads import IMAGE_TYPES, MAX_IMAGE_SIZE_BYTES, read_validated_upload
+from app.utils.uploads import PHOTO_RULES, process_photo
 from datetime import date
 from io import BytesIO
 import csv
@@ -261,8 +261,8 @@ async def save_monitoring(
 
     photo_path = None
     if photo is not None and photo.filename:
-        contents, ext = await read_validated_upload(photo, IMAGE_TYPES, MAX_IMAGE_SIZE_BYTES)
-        photo_path = s3_service.upload_file(BytesIO(contents), f"monitoreo{ext}", photo.content_type)
+        contents = process_photo(await photo.read(), photo.content_type, photo.filename)
+        photo_path = s3_service.upload_file(BytesIO(contents), "monitoreo.jpg", "image/jpeg")
         if not photo_path:
             return toast_redirect(url, "No se guardó: no se pudo subir la foto. Intente de nuevo.", error=True)
 

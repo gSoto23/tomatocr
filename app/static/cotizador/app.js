@@ -10,6 +10,7 @@ const DRAFT_KEY = "tomato_quote_draft_v1";
 const $ = (id) => document.getElementById(id);
 
 let state = {
+  quoteId: null,   // id of the saved quote being edited; null for a new one
   quoteNumber: "",
   issueDate: "",
   validDays: 15,
@@ -77,6 +78,7 @@ async function saveToSQL() {
 
   const { subtotal, tax, total } = calc();
   const record = {
+    id: state.quoteId,
     numero_cotizacion: state.quoteNumber,
     fecha_emision: state.issueDate,
     cliente_nombre: state.client.name,
@@ -106,7 +108,16 @@ async function saveToSQL() {
     try { detail = (await response.json()).detail || detail; } catch (e) {}
     showToast("Error guardando: " + detail, "error");
   } else {
-    showToast("Sincronizado en el servidor", "success");
+    const saved = await response.json();
+    state.quoteId = saved.id;
+    state.quoteNumber = saved.numero_cotizacion || state.quoteNumber;
+    $("quoteNumberPill").textContent = state.quoteNumber;
+    markSaved();
+    if (saved.renumbered_from) {
+      showToast(`El número ${saved.renumbered_from} ya lo había usado otra cotización: esta se guardó como ${state.quoteNumber}.`, "success");
+    } else {
+      showToast("Guardada: " + state.quoteNumber, "success");
+    }
     renderRecent();
   }
 }
@@ -136,6 +147,7 @@ window.loadFromSQL = async (id) => {
     accountContacts = [];
     const data = await response.json();
     state = {
+      quoteId: data.id,
       quoteNumber: data.numero_cotizacion,
       issueDate: data.fecha_emision,
       client: data.cliente_datos,
@@ -197,6 +209,7 @@ function renderItems() {
           it.description = e.target.value;
           e.target.rows = Math.min(6, Math.max(1, e.target.value.split("\n").length));
           renderQuality();
+          autoSaveDraft();
         };
       }
     });
@@ -272,15 +285,58 @@ function renderQuality() {
   $("btnPDF").classList.toggle("opacity-50", errors.length > 0);
 }
 
+// --- Borrador: lo no guardado se conserva en este navegador y se ofrece recuperarlo ---
+// "baseline" is the quote as it was opened or last saved; only changes from it count.
+let baseline = "";
 let autoSaveTimer;
+function isDirty() { return baseline !== "" && JSON.stringify(state) !== baseline; }
+function markSaved() {
+  baseline = JSON.stringify(state);
+  try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
+}
 function autoSaveDraft() {
   clearTimeout(autoSaveTimer);
   autoSaveTimer = setTimeout(() => {
-    localStorage.setItem(DRAFT_KEY, JSON.stringify(state));
-  }, 1000);
+    if (!isDirty()) return;
+    try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ state, savedAt: new Date().toISOString() })); } catch (e) {}
+  }, 800);
 }
+function readDraft() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(DRAFT_KEY) || "null");
+    if (!raw) return null;
+    const draft = raw.state ? raw : { state: raw, savedAt: null };  // older drafts stored the bare state
+    const s = draft.state || {};
+    const hasContent = s.accountId || Object.values(s.client || {}).some(v => v)
+      || (s.items || []).some(it => it.description || it.unitPrice);
+    return hasContent ? draft : null;
+  } catch (e) { return null; }
+}
+function offerDraft() {
+  const draft = readDraft();
+  const banner = $("draftBanner");
+  if (!draft || !banner) return;
+  const who = (draft.state.client && draft.state.client.name) || "sin cliente";
+  const when = draft.savedAt ? new Date(draft.savedAt).toLocaleString("es-CR", { dateStyle: "short", timeStyle: "short" }) : "";
+  $("draftText").textContent = `Tenés una cotización sin guardar (${draft.state.quoteNumber || "nueva"}, ${who}${when ? ", " + when : ""}).`;
+  banner.classList.remove("hidden");
+  $("btnDraftRestore").onclick = () => {
+    state = { quoteId: null, ...draft.state };
+    baseline = "{}";  // restored work counts as unsaved until it is saved
+    bindForm(false);
+    banner.classList.add("hidden");
+    showToast("Borrador recuperado. Tocá Guardar para no perderlo.", "success");
+  };
+  $("btnDraftDiscard").onclick = () => {
+    try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
+    banner.classList.add("hidden");
+  };
+}
+window.addEventListener("beforeunload", (e) => {
+  if (isDirty()) { e.preventDefault(); e.returnValue = ""; }
+});
 
-function bindForm() {
+function bindForm(resetBaseline = true) {
   $("quoteNumberPill").textContent = state.quoteNumber;
   $("issueDate").value = state.issueDate;
   $("validDays").value = state.validDays;
@@ -299,6 +355,7 @@ function bindForm() {
   $("discount").value = state.discount;
   renderAccount();
   renderItems(); renderTotals(); renderRecent();
+  if (resetBaseline) baseline = JSON.stringify(state);
 }
 
 async function init() {
@@ -315,6 +372,7 @@ async function init() {
   }
 
   state = {
+    quoteId: null,
     quoteNumber: `TCR-${new Date().getFullYear()}-${String(n).padStart(4, '0')}`,
     issueDate: new Date().toISOString().split('T')[0],
     validDays: 15, currency: "CRC", serviceType: "Jardinería", frequency: "Por demanda",
@@ -326,6 +384,7 @@ async function init() {
   };
   bindForm();
   await loadOpportunityFromUrl();
+  baseline = JSON.stringify(state);
 }
 
 // --- Cuenta del cliente (Clientes) ---
@@ -439,7 +498,7 @@ function wireListeners() {
   $("btnSave").onclick = saveToSQL;
   $("btnAddService").onclick = () => addItem("Servicio");
   $("btnAddMaterial").onclick = () => addItem("Material");
-  $("btnNew").onclick = () => confirm("¿Nueva cotización?") && init();
+  $("btnNew").onclick = () => (!isDirty() || confirm("Hay cambios sin guardar. ¿Empezar una nueva de todos modos?")) && init();
   $("btnDuplicate").onclick = async () => {
     let n = 1;
     try {
@@ -449,11 +508,18 @@ function wireListeners() {
         n = data.next_number || 1;
       }
     } catch (e) {}
+    state.quoteId = null;  // a copy is a new quote
     state.quoteNumber = `TCR-${new Date().getFullYear()}-${String(n).padStart(4, '0')}`;
     state.issueDate = new Date().toISOString().split('T')[0];
-    bindForm();
+    bindForm(false);
+    showToast("Copia lista con número nuevo. Tocá Guardar para crearla.", "success");
   };
-  $("btnClearDraft").onclick = () => confirm("¿Borrar borrador?") && (localStorage.removeItem(DRAFT_KEY) || init());
+  $("btnClearDraft").onclick = () => {
+    if (!confirm("¿Descartar lo que no guardaste y empezar de cero?")) return;
+    try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
+    baseline = "";
+    init();
+  };
   $("btnRefreshRecent").onclick = renderRecent;
   $("btnPDF").onclick = exportPDF;
 
@@ -486,6 +552,7 @@ function wireListeners() {
     $(id).addEventListener("input", (e) => {
       state.client[id.replace("client", "").toLowerCase()] = e.target.value;
       renderQuality();
+      autoSaveDraft();
     });
   });
 }
@@ -706,7 +773,8 @@ async function start() {
   const hasAccess = await checkAccess();
   if (hasAccess) {
     wireListeners();
-    init();
+    await init();
+    offerDraft();
   }
 }
 

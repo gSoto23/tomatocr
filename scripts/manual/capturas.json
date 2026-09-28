@@ -39,6 +39,28 @@
     {
      "n": 3,
      "selector": "#mobileMenu form[action=\"/login\"] button"
+    },
+    {
+     "n": 4,
+     "text": "¿Olvidaste tu contraseña?",
+     "tags": "a"
+    }
+   ]
+  },
+  {
+   "name": "primeros-pasos/recuperar",
+   "path": "/recuperar",
+   "viewport": "mobile",
+   "height": 700,
+   "markers": [
+    {
+     "n": 1,
+     "selector": "input[name=identifier]"
+    },
+    {
+     "n": 2,
+     "text": "Enviar enlace",
+     "tags": "button"
     }
    ]
   },
@@ -67,6 +89,11 @@
     {
      "n": 5,
      "selector": "aside a[href=\"/logout\"]",
+     "badge": "right"
+    },
+    {
+     "n": 6,
+     "selector": "aside a[href=\"/cuenta/contrasena\"]",
      "badge": "right"
     }
    ]
@@ -147,19 +174,22 @@
    "as": "worker",
    "viewport": "mobile",
    "height": 1000,
-   "before": [
-    "const b = [...document.querySelectorAll('button')].find(x => x.textContent.trim() === 'Gestionar'); let el = b.parentElement; while (el && el.scrollWidth <= el.clientWidth) el = el.parentElement; if (el) el.scrollLeft = el.scrollWidth"
-   ],
    "markers": [
     {
      "n": 1,
-     "text": "Mis Asignaciones (Calendario)",
+     "text": "Mis asignaciones: hoy y próximos días",
      "exact": false,
      "tags": "h2,h3"
     },
     {
      "n": 2,
-     "text": "Gestionar",
+     "text": "Hoy · ",
+     "exact": false,
+     "tags": "span,div,p"
+    },
+    {
+     "n": 3,
+     "text": "Gestionar tareas",
      "tags": "button,a"
     }
    ]
@@ -257,6 +287,10 @@
    "viewport": "mobile",
    "height": 1400,
    "markers": [
+    {
+     "n": 1,
+     "selector": "#report_date"
+    },
     {
      "n": 2,
      "selector": "#location_id"

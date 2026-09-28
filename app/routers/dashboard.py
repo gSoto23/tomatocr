@@ -6,6 +6,7 @@ from sqlalchemy import desc
 from app.routers import deps
 from app.core.roles import ADMIN, CLIENT, SUPERVISOR, VENTAS, WORKER
 from app.utils import crm
+from app.utils.timecr import today_cr
 from app.db.models.user import User
 from app.db.models.project import Project
 from app.db.models.finance import Invoice, InvoiceStatus
@@ -142,11 +143,15 @@ def dashboard(
         # 1. Recent Activity: Assignments (Schedule)
         # Order by date desc (future first? or past? typically recent means latest)
         # User said "lista de Asignación definidas en el calendario"
-        assignments = db.query(ProjectSchedule).filter(
-            ProjectSchedule.user_id == user.id
-        ).order_by(ProjectSchedule.date.desc()).limit(20).all()
-        
-        data["recent_activity"] = assignments
+        # Today and the next days first (nearest first), then the latest past ones.
+        today = today_cr()
+        data["upcoming"] = db.query(ProjectSchedule).filter(
+            ProjectSchedule.user_id == user.id, ProjectSchedule.date >= today
+        ).order_by(ProjectSchedule.date, ProjectSchedule.id).limit(15).all()
+        data["past"] = db.query(ProjectSchedule).filter(
+            ProjectSchedule.user_id == user.id, ProjectSchedule.date < today
+        ).order_by(ProjectSchedule.date.desc()).limit(5).all()
+        data["today"] = today
 
     elif user.role == VENTAS:
         data["next_steps"] = crm.next_steps(db, owner_id=user.id)
