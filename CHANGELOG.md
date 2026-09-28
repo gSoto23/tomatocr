@@ -6,7 +6,15 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-28
 
-### Calendario por proyecto (esta rama)
+### Arreglo: texto del calendario vacío (esta rama)
+- Una semana sin asignaciones dice "No hay asignaciones en estas fechas" en vez de
+  "No events to display".
+- Datos: se quitaron 5 asignaciones repetidas y vacías de Will Perez en Casa Guácima
+  (22 al 26/09, #130 a #134, sin tareas ni horas confirmadas); quedaron las que tienen
+  la tarea. Se hizo desde el calendario y está en Actividad.
+- Despliegue: sin migraciones; reiniciar.
+
+### Calendario por proyecto (#74)
 - El admin y el supervisor ven **un bloque por proyecto y día** (nombre y cuántas
   personas, un color fijo por proyecto, ✓ y borde verde cuando las horas del día están
   confirmadas) en vez de una barra por persona. Por dentro sigue una asignación por

@@ -92,3 +92,8 @@ def test_moving_onto_a_busy_day_asks_first(db, login_as, users, team):
     ok = client.post("/calendar/day/move", data={"project_id": users["project_id"], "from_date": "2026-09-21",
                                                  "to_date": "2026-09-24", "confirm_conflicts": "true"})
     assert ok.status_code == 200
+
+
+def test_calendar_texts_are_in_spanish(login_as):
+    html = login_as("admin").get("/calendar/").text
+    assert "No hay asignaciones en estas fechas" in html and "Todo el día" in html
