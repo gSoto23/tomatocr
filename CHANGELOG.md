@@ -6,7 +6,24 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-28
 
-### Dashboard del admin: lo que requiere atención primero (esta rama)
+### Dashboards de supervisor, trabajador, cliente y ventas (esta rama)
+- **Supervisor**: arriba *Requiere atención* del equipo (jornadas con horas sin confirmar,
+  sin contar las suyas, y días trabajados sin bitácora) y *Hoy en campo*; debajo sus
+  asignaciones.
+- **Trabajador**: aviso de sus días asignados de los últimos 7 sin bitácora, cada uno con
+  *Registrar bitácora* (abre el formulario con el proyecto y el día puestos: `/logs/new`
+  acepta `?date=` dentro de la ventana de 7 días); en la tarjeta de hoy, *Registrar
+  bitácora de hoy*.
+- **Cliente**: *Mis proyectos*, una tarjeta por proyecto con la última visita, la
+  **próxima visita (solo la fecha, sin nombres del personal)** y los reportes del mes,
+  con enlaces a su bitácora y su presupuesto.
+- **Ventas**: aviso de pasos atrasados y *Mi embudo* (sus oportunidades nuevas del
+  periodo; compacto fuera del piloto).
+- Todos los roles ven la fecha del día arriba.
+- Manual (Dashboard, con la sección nueva del supervisor) y capturas al día.
+- Despliegue: sin migraciones; reiniciar.
+
+### Dashboard del admin: lo que requiere atención primero (#77)
 - **Requiere atención** (lo más urgente primero, cada aviso con su enlace): facturas
   vencidas, días trabajados sin bitácora en los últimos 7 días, jornadas con horas sin
   confirmar, planillas en borrador, próximos pasos atrasados en Clientes y personas

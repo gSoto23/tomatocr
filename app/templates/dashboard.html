@@ -5,19 +5,16 @@
 {% block content %}
 <div class="mb-8">
     <h1 class="text-2xl font-bold text-gray-900">Bienvenido, {{ user.full_name or user.username }}</h1>
-    <p class="mt-1 text-sm text-gray-500">{% if user.role == 'admin' %}{{ long_date(data.overview.today) | capitalize }} · lo que requiere atención primero.{% else %}Resumen de operaciones.{% endif %}</p>
+    <p class="mt-1 text-sm text-gray-500">{{ long_date(today_cr()) | capitalize }}{{ ' · lo que requiere atención primero.' if user.role in ['admin', 'supervisor'] else '.' }}</p>
 </div>
 
-<!-- ADMIN VIEW -->
-{% if user.role == 'admin' %}
-{% set ov = data.overview %}
-
-<!-- Requiere atención -->
+{# Shared by the admin and the supervisor #}
+{% macro attention(alerts, empty) %}
 <section class="mb-6" aria-labelledby="atencion">
     <h2 id="atencion" class="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">Requiere atención</h2>
-    {% if ov.alerts %}
+    {% if alerts %}
     <ul class="grid gap-3 md:grid-cols-2">
-        {% for a in ov.alerts %}
+        {% for a in alerts %}
         <li class="flex flex-col gap-2 rounded-xl border bg-white p-4 shadow-sm sm:flex-row sm:items-start sm:justify-between sm:gap-3 {{ 'border-red-200' if a.level == 'red' else 'border-amber-200' }}">
             <div class="flex min-w-0 gap-3">
                 <span class="mt-1 h-2.5 w-2.5 shrink-0 rounded-full {{ 'bg-red-500' if a.level == 'red' else 'bg-amber-500' }}" aria-hidden="true"></span>
@@ -31,11 +28,12 @@
         {% endfor %}
     </ul>
     {% else %}
-    <p class="rounded-xl border border-green-200 bg-green-50 p-4 text-sm font-medium text-green-800">Todo al día: no hay facturas vencidas, bitácoras ni horas pendientes.</p>
+    <p class="rounded-xl border border-green-200 bg-green-50 p-4 text-sm font-medium text-green-800">{{ empty }}</p>
     {% endif %}
 </section>
+{% endmacro %}
 
-<!-- Hoy en campo -->
+{% macro field_today(ov) %}
 <section class="mb-6" aria-labelledby="hoy">
     <div class="mb-3 flex items-baseline justify-between gap-3">
         <h2 id="hoy" class="text-sm font-semibold uppercase tracking-wide text-gray-500">Hoy en campo</h2>
@@ -62,6 +60,14 @@
     <p class="rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-500">Hoy no hay nadie asignado en el Calendario.</p>
     {% endif %}
 </section>
+{% endmacro %}
+
+<!-- ADMIN VIEW -->
+{% if user.role == 'admin' %}
+{% set ov = data.overview %}
+
+{{ attention(ov.alerts, 'Todo al día: no hay facturas vencidas, bitácoras ni horas pendientes.') }}
+{{ field_today(ov) }}
 
 <!-- Dinero -->
 <section class="mb-6" aria-labelledby="dinero">
@@ -253,7 +259,28 @@
 
 <!-- CLIENT VIEW -->
 {% elif user.role == 'client' %}
-<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+{% if data.project_cards %}
+<section class="mb-8" aria-labelledby="mis-proyectos">
+    <h2 id="mis-proyectos" class="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">Mis proyectos</h2>
+    <ul class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {% for c in data.project_cards %}
+        <li class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm {{ 'opacity-70' if not c.project.is_active }}">
+            <a href="/projects/{{ c.project.id }}" class="font-semibold text-gray-900 hover:text-indigo-600">{{ c.project.name }}</a>
+            <dl class="mt-3 grid grid-cols-3 gap-2 text-sm">
+                <div><dt class="text-xs text-gray-500">Última visita</dt><dd class="font-semibold text-gray-900">{{ c.last_visit | format_date if c.last_visit else '—' }}</dd></div>
+                <div><dt class="text-xs text-gray-500">Próxima visita</dt><dd class="font-semibold {{ 'text-green-700' if c.next_visit == data.today else 'text-gray-900' }}">{% if c.next_visit %}{{ 'Hoy' if c.next_visit == data.today else c.next_visit | format_date }}{% else %}—{% endif %}</dd></div>
+                <div><dt class="text-xs text-gray-500">Reportes del mes</dt><dd class="font-semibold text-gray-900">{{ c.reports_month }}</dd></div>
+            </dl>
+            <div class="mt-3 flex gap-4 text-sm font-semibold">
+                <a href="/dashboard?project_id={{ c.project.id }}#bitacora" class="text-indigo-600 hover:underline">Ver bitácora</a>
+                <a href="/finance/{{ c.project.id }}" class="text-indigo-600 hover:underline">Presupuesto</a>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+</section>
+{% endif %}
+<div id="bitacora" class="scroll-mt-20 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
     <div>
         <h3 class="font-bold text-gray-900 text-lg">Bitácora Global</h3>
         <p class="text-sm text-gray-500">Reportes de tus proyectos asignados.</p>
@@ -404,6 +431,9 @@
             <div class="text-sm">{{ task_list(s) }}</div>
             <button type="button" onclick='openWorkerModal({{ payload(s) }})'
                 class="w-full rounded-lg bg-black px-4 py-3 text-sm font-semibold text-white">Gestionar tareas</button>
+            {% if s.date == data.today %}
+            <a href="/logs/new?project_id={{ s.project_id }}" class="block w-full rounded-lg border border-black px-4 py-3 text-center text-sm font-semibold text-black">Registrar bitácora de hoy</a>
+            {% endif %}
         </li>
         {% endfor %}
     </ul>
@@ -426,6 +456,7 @@
                 <td class="px-6 py-4 text-sm">{{ task_list(s) }}</td>
                 <td class="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
                     <button type="button" onclick='openWorkerModal({{ payload(s) }})' class="font-semibold text-indigo-600 hover:text-indigo-900">Gestionar</button>
+                    {% if s.date == data.today %}<a href="/logs/new?project_id={{ s.project_id }}" class="ml-3 font-semibold text-black hover:underline">Registrar bitácora</a>{% endif %}
                 </td>
             </tr>
             {% endfor %}
@@ -437,10 +468,28 @@
 </div>
 {% endmacro %}
 
+{% if user.role == 'supervisor' %}
+{{ attention(data.overview.alerts, 'Todo al día: no hay horas por confirmar ni días sin bitácora.') }}
+{{ field_today(data.overview) }}
+{% endif %}
 <div class="space-y-6">
     {% if user.role == 'supervisor' %}
     <div class="flex justify-end">
         <a href="/calendar" class="inline-flex w-full items-center justify-center rounded-lg bg-black px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 sm:w-auto sm:py-2">Gestionar Calendario</a>
+    </div>
+    {% endif %}
+    {% if data.missing %}
+    <div class="rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <p class="font-semibold text-amber-900">{{ 'Te quedó 1 día sin bitácora' if data.missing|length == 1 else 'Te quedaron ' ~ data.missing|length ~ ' días sin bitácora' }}</p>
+        <p class="text-sm text-amber-800">Días que tenías asignados en los últimos 7 y que nadie reportó. Registralos antes de que pase la semana.</p>
+        <ul class="mt-3 space-y-2">
+            {% for m in data.missing %}
+            <li class="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-white px-3 py-2 text-sm">
+                <span><strong>{{ m.date | format_date }}</strong> · {{ m.project }}</span>
+                <a href="/logs/new?project_id={{ m.project_id }}&date={{ m.date.isoformat() }}" class="rounded-md bg-black px-3 py-1.5 text-xs font-semibold text-white">Registrar bitácora</a>
+            </li>
+            {% endfor %}
+        </ul>
     </div>
     {% endif %}
     {{ assignments("Mis asignaciones: hoy y próximos días", data.upcoming, "No tenés asignaciones para hoy ni para los próximos días.") }}
@@ -449,6 +498,10 @@
 
 <!-- VENTAS VIEW -->
 {% elif user.role == 'ventas' %}
+{% set late = data.next_steps['vencidos'] | length %}
+{% if late %}
+<p class="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-800">{{ 'Tenés 1 próximo paso atrasado' if late == 1 else 'Tenés ' ~ late ~ ' próximos pasos atrasados' }}: atendelos primero (columna Vencidos).</p>
+{% endif %}
 <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
     <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
         <h3 class="font-bold text-gray-900">Mis próximos pasos</h3>
@@ -474,6 +527,22 @@
         {% endfor %}
     </div>
     <div class="border-t border-gray-100 px-6 py-3 text-sm"><a href="/clientes" class="font-semibold text-black hover:text-gray-600">Ir a Clientes &rarr;</a></div>
+</div>
+<div class="mt-6 rounded-xl border border-gray-100 bg-white {{ 'p-6' if data.crm_running else 'px-6 py-4' }} shadow-sm">
+    <h3 class="font-bold text-gray-900">Mi embudo</h3>
+    <p class="text-xs text-gray-500">{{ data.crm_period.label }} · tus oportunidades nuevas{% if not data.crm_running %} · el periodo no está en curso{% endif %}</p>
+    {% if data.crm_running %}
+    <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
+        {% for row in data.crm_funnel %}
+        <div class="rounded-lg border border-gray-200 p-3">
+            <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ crm_labels.stage[row.stage] }}</div>
+            <div class="mt-1 text-2xl font-bold text-gray-900">{{ row.reached }}</div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="mt-2 text-sm text-gray-600">{% for row in data.crm_funnel %}{{ crm_labels.stage[row.stage] }} {{ row.reached }}{{ ' · ' if not loop.last }}{% endfor %}</p>
+    {% endif %}
 </div>
 {% endif %}
 
