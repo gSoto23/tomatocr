@@ -48,11 +48,8 @@
 {% if user.role in ['admin', 'supervisor'] %}
 <p>Tocá la asignación en el calendario. Podés cambiar la fecha, el proyecto, el trabajador o las tareas y tocar
     <strong>Guardar</strong>. <strong>Eliminar</strong> pide confirmación (<em>Sí, Eliminar</em>).</p>
-{% call m.warn("Al editar se desmarcan las tareas") %}
-<p>Guardar una asignación vuelve a crear sus tareas: las que el trabajador ya había marcado como hechas
-    <strong>quedan sin marcar</strong>. Si ya las marcó, evitá editarla. Y si borrás una asignación con horas ya
-    confirmadas, esas horas se van de la planilla.</p>
-{% endcall %}
+<p>Las tareas que el trabajador ya marcó como hechas <strong>se conservan</strong> al editar. Si borrás una asignación
+    con horas ya confirmadas, esas horas se van de la planilla.</p>
 {% else %}
 <p>No podés cambiar tus asignaciones; pedíselo al supervisor.</p>
 {% endif %}

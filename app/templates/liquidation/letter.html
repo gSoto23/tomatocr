@@ -40,27 +40,25 @@
         <!-- Header -->
         <div class="text-center mb-12">
             <div class="flex justify-center mb-4">
-                <img src="/static/images/LogoTomatoB.png" alt="TOMATO COSTA RICA" class="h-20 object-contain">
+                <img src="/static/images/LogoTomatoB.png" alt="{{ company.name }}" class="h-20 object-contain">
             </div>
-            <h1 class="text-xl font-bold uppercase tracking-wide">TOMATO COSTA RICA SRL</h1>
-            <p class="text-sm text-gray-600">Cédula Jurídica: 3-101-876296</p>
-            <p class="text-sm text-gray-600">Teléfono: 80708316 | Web: www.tomatocr.com</p>
+            <h1 class="text-xl font-bold uppercase tracking-wide">{{ company.name }}</h1>
+            <p class="text-sm text-gray-600">Cédula jurídica: {{ company.tax_id }}</p>
+            <p class="text-sm text-gray-600">{{ company.address }}</p>
+            <p class="text-sm text-gray-600">Teléfono: {{ company.phone }} | Web: {{ company.web }}</p>
         </div>
 
         <div class="mb-8 text-right">
-            <p>San José, {{ data.calculation_date.strftime('%d de %B de %Y') }}</p>
+            <p>{{ company.city }}, {{ long_date }}</p>
         </div>
 
         <div class="mb-8">
             <p class="font-bold text-lg mb-2">Estimado(a) {{ data.name }}</p>
-            <!-- <p>Cédula: {{ data.identity_card or '________________' }}</p> -->
             <p class="mt-4 text-justify leading-relaxed">
                 Por medio de la presente, hacemos constar el detalle de su liquidación laboral, correspondiente al
-                periodo laborado desde el
-                <span class="font-semibold">{{ data.start_date.strftime('%d/%m/%Y') if data.start_date else 'INICIO'
-                    }}</span>
-                hasta el
-                <span class="font-semibold">{{ data.calculation_date.strftime('%d/%m/%Y') }}</span>.
+                periodo laborado desde el <span class="font-semibold">{{ data.start.strftime('%d/%m/%Y') }}</span>
+                hasta el <span class="font-semibold">{{ data.end.strftime('%d/%m/%Y') }}</span>
+                ({{ data.months_worked }} meses). Motivo de la terminación: {{ data.reason_label|lower }}.
             </p>
             <p class="mt-4 text-justify leading-relaxed">
                 Agradecemos profundamente el tiempo y esfuerzo dedicado a la empresa durante su periodo de labores.
@@ -68,31 +66,48 @@
         </div>
 
         <!-- Calculation Table -->
+        {% macro money(v) %}₡{{ "{:,.2f}".format(v or 0) }}{% endmacro %}
         <div class="mb-12">
             <h3 class="text-lg font-bold border-b-2 border-black pb-2 mb-4 uppercase">Detalle de Liquidación</h3>
             <table class="w-full text-left border-collapse">
                 <tbody>
                     <tr class="border-b border-gray-200">
-                        <td class="py-3 pr-4 font-semibold text-gray-700">Meses trabajados (Ref)</td>
-                        <td class="py-3 text-right">{{ data.months_worked }} meses</td>
+                        <td class="py-3 pr-4 text-gray-700">Salario promedio mensual (referencia)</td>
+                        <td class="py-3 text-right">{{ money(data.average_monthly_salary) }}</td>
                     </tr>
                     <tr class="border-b border-gray-200">
-                        <td class="py-3 pr-4 font-semibold text-gray-700">Vacaciones Pendientes ({{ data.vacation_days
-                            }} días)</td>
-                        <td class="py-3 text-right">₡{{ "{:,.2f}".format(data.vacation_amount) }}</td>
+                        <td class="py-3 pr-4 font-semibold text-gray-700">Salario pendiente</td>
+                        <td class="py-3 text-right">{{ money(data.salary_due) }}</td>
                     </tr>
                     <tr class="border-b border-gray-200">
-                        <td class="py-3 pr-4 font-semibold text-gray-700">Aguinaldo Proporcional</td>
-                        <td class="py-3 text-right">₡{{ "{:,.2f}".format(data.aguinaldo_amount) }}</td>
+                        <td class="py-3 pr-4 font-semibold text-gray-700">Vacaciones pendientes ({{ data.vacation_days }} días)</td>
+                        <td class="py-3 text-right">{{ money(data.vacation_amount) }}</td>
                     </tr>
+                    <tr class="border-b border-gray-200">
+                        <td class="py-3 pr-4 font-semibold text-gray-700">Aguinaldo proporcional (desde el {{ data.aguinaldo_start[8:10] }}/{{ data.aguinaldo_start[5:7] }}/{{ data.aguinaldo_start[0:4] }})</td>
+                        <td class="py-3 text-right">{{ money(data.aguinaldo_amount) }}</td>
+                    </tr>
+                    {% if data.preaviso_amount %}
+                    <tr class="border-b border-gray-200">
+                        <td class="py-3 pr-4 font-semibold text-gray-700">Preaviso (art. 28 del Código de Trabajo)</td>
+                        <td class="py-3 text-right">{{ money(data.preaviso_amount) }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if data.cesantia_amount %}
+                    <tr class="border-b border-gray-200">
+                        <td class="py-3 pr-4 font-semibold text-gray-700">Cesantía (art. 29 del Código de Trabajo)</td>
+                        <td class="py-3 text-right">{{ money(data.cesantia_amount) }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if data.ccss_deduction %}
                     <tr class="border-b border-black">
-                        <td class="py-3 pr-4 font-semibold text-gray-700">Salario Pendiente</td>
-                        <td class="py-3 text-right">₡{{ "{:,.2f}".format(data.salary_due) }}</td>
+                        <td class="py-3 pr-4 font-semibold text-gray-700">Rebajo CCSS del trabajador (9,17 % sobre salario y vacaciones)</td>
+                        <td class="py-3 text-right">−{{ money(data.ccss_deduction) }}</td>
                     </tr>
+                    {% endif %}
                     <tr class="bg-gray-100">
-                        <td class="py-4 pl-4 font-bold text-black uppercase">Total Neto a Pagar</td>
-                        <td class="py-4 pr-4 text-right font-bold text-black text-xl">₡{{ "{:,.2f}".format(data.total)
-                            }}</td>
+                        <td class="py-4 pl-4 font-bold text-black uppercase">Total a pagar</td>
+                        <td class="py-4 pr-4 text-right font-bold text-black text-xl">{{ money(data.total) }}</td>
                     </tr>
                 </tbody>
             </table>
@@ -102,7 +117,7 @@
         <div class="mt-24 grid grid-cols-2 gap-16">
             <div class="text-center">
                 <div class="border-t border-black pt-2">
-                    <p class="font-bold">TOMATO COSTA RICA SRL</p>
+                    <p class="font-bold">{{ company.name }}</p>
                     <p class="text-sm text-gray-500">Empleador</p>
                 </div>
             </div>

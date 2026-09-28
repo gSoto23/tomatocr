@@ -155,7 +155,7 @@
                     <td class="whitespace-nowrap px-3 py-4 text-center">
                         <input type="checkbox" onchange="toggleDeductions({{ entry.id }}, this.checked, this)"
                             class="h-4 w-4 rounded border-gray-300 text-black focus:ring-black" {% if
-                            entry.apply_deductions %}checked{% endif %}>
+                            entry.apply_deductions %}checked{% endif %} {% if period.status == 'final' %}disabled title="La planilla ya está finalizada"{% endif %}>
                     </td>
                     {% endif %}
                     <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
@@ -415,7 +415,7 @@
                 showGlobalToast("Actualizado", "Salario recalculado");
                 setTimeout(() => window.location.reload(), 500); // Reload to update totals
             } else {
-                showGlobalToast("Error", result.message || "Error al actualizar", "error");
+                showGlobalToast("Error", result.detail || result.message || "Error al actualizar", "error");
                 // Revert checkbox
                 checkboxElement.checked = !checked;
             }

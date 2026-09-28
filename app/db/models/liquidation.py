@@ -1,5 +1,5 @@
 
-from sqlalchemy import Column, Integer, Float, Date, DateTime, ForeignKey
+from sqlalchemy import Boolean, Column, Integer, Float, Date, DateTime, ForeignKey, String
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.db.base_class import Base
@@ -16,6 +16,13 @@ class Liquidation(Base):
     vacation_amount = Column(Float, default=0.0)
     aguinaldo_amount = Column(Float, default=0.0)
     salary_due = Column(Float, default=0.0)
+    # Código de Trabajo (app/utils/liquidacion.py, migration 0009).
+    reason = Column(String(40), nullable=True)
+    notice_given = Column(Boolean, nullable=False, default=False, server_default="false")
+    vacation_days_taken = Column(Float, nullable=False, default=0.0, server_default="0")
+    preaviso_amount = Column(Float, nullable=False, default=0.0, server_default="0")
+    cesantia_amount = Column(Float, nullable=False, default=0.0, server_default="0")
+    ccss_deduction = Column(Float, nullable=False, default=0.0, server_default="0")
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     created_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)

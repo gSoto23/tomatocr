@@ -502,31 +502,24 @@ def pay_invoice(
         "monto_abonado": 0.0 if not invoice.payment else invoice.payment.amount
     }
         
-    # Create Payment
-    # Note: If partial payments are allowed multiple times, unique=True on Invoice relationship will fail.
-    # Assuming for now 1 payment transaction per invoice based on current model.
-    # If the user wants multiple partial payments, we'd need a bigger refactor.
-    # Proceeding with current 1-to-1 constraint.
-    
-    # Check if payment already exists (if it's partial maybe we are updating? logic unclear from prompt but simplified model assumes new)
+    # One Payment row per invoice holds the running total: a later payment of a partially
+    # paid invoice adds to it (amounts, retention, receipt numbers) instead of replacing it.
+    paid_on = datetime.datetime.strptime(payment_date, "%Y-%m-%d").date()
+    retention_amount = retention_amount or 0.0
     if invoice.payment:
-        # If exists, we might need to delete old or update. Let's error for safety or update.
-        # Ideally we update the existing payment info.
         payment = invoice.payment
-        payment.payment_date = datetime.datetime.strptime(payment_date, "%Y-%m-%d").date()
-        payment.deposit_number = deposit_number
-        payment.amount = amount
-        payment.retention_amount = retention_amount
+        payment.amount = (payment.amount or 0.0) + amount
+        payment.retention_amount = (payment.retention_amount or 0.0) + retention_amount
+        payment.payment_date = paid_on
+        receipts = [r.strip() for r in (payment.deposit_number or "").split(",") if r.strip()]
+        if deposit_number.strip() and deposit_number.strip() not in receipts:
+            receipts.append(deposit_number.strip())
+        payment.deposit_number = ", ".join(receipts)
     else:
-        payment = Payment(
-            invoice_id=invoice.id,
-            payment_date=datetime.datetime.strptime(payment_date, "%Y-%m-%d").date(),
-            deposit_number=deposit_number,
-            amount=amount,
-            retention_amount=retention_amount
-        )
+        payment = Payment(invoice_id=invoice.id, payment_date=paid_on, deposit_number=deposit_number,
+                          amount=amount, retention_amount=retention_amount)
         db.add(payment)
-    
+
     # Update Invoice Status and Note
     if payment_type == "partial":
         invoice.status = InvoiceStatus.PARTIAL
@@ -537,7 +530,9 @@ def pay_invoice(
         invoice.status = InvoiceStatus.PAID
     
     if note:
-        invoice.note = note
+        # Each partial payment keeps its note, with the date.
+        entry = f"{paid_on:%d/%m/%Y}: {note.strip()}"
+        invoice.note = f"{invoice.note}\n{entry}" if invoice.note and old_data["fecha_pago"] != "Ninguna" else entry
     
     new_data = {
         "estado_factura": invoice.status.value,

@@ -60,6 +60,13 @@ Prioridad sugerida: **A** confunde o hace perder trabajo; **B** molesta; **C** d
 Corregido el 27/09/2026 (PR #61): editar un proyecto con reportes, calendario o
 facturas fallaba en PostgreSQL; editar un reporte le borraba la sede.
 
+Corregido el 28/09/2026: "+ Agregar Costo" sobrescribía un gasto; un segundo pago
+parcial reemplazaba al primero; "Apl. Ded?" no funcionaba y una planilla final se
+podía cambiar; se podían generar planillas con días en común; editar una asignación
+desmarcaba sus tareas; la carta de liquidación tenía la cédula, el nombre, el teléfono
+y la ciudad equivocados; la liquidación no seguía el Código de Trabajo (aguinaldo
+desde el 1 de diciembre, vacaciones disfrutadas, preaviso, cesantía, CCSS).
+
 ## Cotizador
 
 | | Punto | Dónde |
@@ -80,8 +87,7 @@ facturas fallaba en PostgreSQL; editar un reporte le borraba la sede.
 
 | | Punto | Dónde |
 | --- | --- | --- |
-| A | "+ Agregar Costo" después de abrir y cancelar "Editar" en un gasto abre ese gasto: guardar lo **sobrescribe** en vez de crear uno nuevo. | `app/templates/finance/detail.html` |
-| A | Cada factura guarda un solo pago: reportar otro pago de una factura en Pago Parcial **reemplaza** el anterior (hay que escribir el acumulado). | `app/routers/finance.py` |
+| C | Una planilla final se puede eliminar (a propósito, para regenerarla si no se pagó). | `payroll.py` |
 | B | Tres nombres para el mismo módulo: "Presupuestos" (menú), "Gestión Financiera" y "Finanzas". El botón de pago se llama "Reporte". | `finance/*.html` |
 | B | "Monto por Retención (2%)" no calcula el 2 %: es facturado − depositado. | `detail.html` |
 | B | "Saldo" es lo que queda por facturar, no lo pendiente de cobro; "Balance (Ganancia)" usa lo facturado. | `finance.py` |
@@ -95,14 +101,8 @@ facturas fallaba en PostgreSQL; editar un reporte le borraba la sede.
 
 | | Punto | Dónde |
 | --- | --- | --- |
-| A | La carta de liquidación dice **"Cédula Jurídica: 3-101-876296"** (la correcta es 3-102-876296), "TOMATO COSTA RICA SRL" en vez de "TOMATO COSTA RICA ANY S.R.L.", un teléfono distinto al del sitio y el mes en inglés. | `app/templates/liquidation/letter.html` |
-| A | La liquidación calcula vacaciones y aguinaldo sobre toda la antigüedad y no incluye cesantía ni preaviso. Revisar con el contador. Sin salario mensual, da error 500. | `app/routers/liquidation.py` |
-| A | La casilla "Apl. Ded?" del detalle no funciona (error de JavaScript: la fila no trae su id). | `payroll/detail.html`, `payroll.py` |
-| A | Se pueden generar varias planillas sobre las mismas horas; nada marca las horas como pagadas. | `payroll.py` |
-| B | "Finalizar Planilla" dice que no se podrá editar, pero una planilla final se puede eliminar. | `payroll.py` |
 | B | "Confirmar Todo" confirma también filas ya confirmadas y de otras páginas, con lo que diga cada casilla. | `payroll/approval.html` |
 | B | Monto Extra redondeado en el detalle y sin redondear en el reporte; ambos usan la tarifa actual. El total del reporte queda bajo la columna equivocada. | `payroll.py`, `report.html` |
-| B | La carta recalcula el salario pendiente e ignora la corrección hecha en la ventana. | `liquidation.py` |
 | B | Pagos: sin método ni referencia, no ligados a la planilla; el trabajador no tiene enlace para verlos. | `payments.py` |
 | C | "Hoy" y "Semana" en Aprobar Horas usan UTC (después de las 6 p. m. es mañana). Estado del periodo en inglés (draft/final). | `approval.html`, `payroll/index.html` |
 | C | "Vacaciones Disponibles" no descuenta días tomados. Reactivar un contrato pone la fecha de inicio en hoy. | `payroll.py`, `liquidation.py` |
@@ -111,7 +111,6 @@ facturas fallaba en PostgreSQL; editar un reporte le borraba la sede.
 
 | | Punto | Dónde |
 | --- | --- | --- |
-| A | Editar una asignación borra y recrea sus tareas: las ya marcadas por el trabajador quedan sin marcar. | `app/routers/calendar.py` |
 | B | Un rango de fechas crea una asignación por día, fines de semana incluidos, sin forma de editarlas juntas. | `calendar.py` |
 | B | No hay sede ni horas en la asignación (la sede existe en la base pero el formulario no la pide). | `calendar/index.html` |
 | B | No avisa si la persona ya tiene otra asignación ese día; lista trabajadores inactivos. | `calendar.py` |

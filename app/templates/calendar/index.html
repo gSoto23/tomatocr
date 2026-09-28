@@ -213,14 +213,14 @@
     // Handle Project Change (No longer needed for tasks, but kept if we need logic later)
     // document.getElementById('project_id').addEventListener('change', ...);
 
-    function addTaskInput(titleVal = '', descVal = '') {
+    function addTaskInput(titleVal = '', descVal = '', taskId = null) {
         const container = document.getElementById('tasks-list');
         const div = document.createElement('div');
         div.className = "flex flex-col gap-2 p-3 border rounded-md bg-gray-50 relative task-item";
         div.innerHTML = `
             <div class="flex justify-between">
                  <input type="text" class="task-title block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6 mr-2" 
-                        placeholder="Título de la tarea" value="${titleVal}">
+                        placeholder="Título de la tarea">
                  <button type="button" onclick="this.closest('.task-item').remove()" class="text-gray-400 hover:text-red-500">
                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -228,8 +228,12 @@
                 </button>
             </div>
             <textarea class="task-desc block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6"
-                      rows="2" placeholder="Descripción detallada">${descVal}</textarea>
+                      rows="2" placeholder="Descripción detallada"></textarea>
         `;
+        // Values set as properties, not inside the HTML, so quotes or tags in a task can't break the form.
+        div.querySelector('.task-title').value = titleVal;
+        div.querySelector('.task-desc').value = descVal;
+        if (taskId) div.dataset.taskId = taskId;
         container.appendChild(div);
     }
 
@@ -265,7 +269,7 @@
             document.getElementById('tasks-list').innerHTML = '';
             const tasks = schedule.extendedProps.tasks || [];
             if (tasks.length > 0) {
-                tasks.forEach(t => addTaskInput(t.title || '', t.description));
+                tasks.forEach(t => addTaskInput(t.title || '', t.description || '', t.id));
             } else {
                 addTaskInput(); // Add one empty by default
             }
@@ -305,7 +309,8 @@
             const title = item.querySelector('.task-title').value;
             const desc = item.querySelector('.task-desc').value;
             if (title.trim() || desc.trim()) {
-                tasks.push({ title: title, description: desc });
+                // The id lets the server keep the tasks the worker already ticked.
+                tasks.push({ id: item.dataset.taskId ? Number(item.dataset.taskId) : null, title: title, description: desc });
             }
         });
 

@@ -22,7 +22,7 @@
 </ol>
 {% call m.warn("Confirmá las horas antes de generar") %}
 <p>Las horas que se confirman <em>después</em> de generar la planilla no entran en ella. Si pasa, hay que eliminar ese
-    periodo y generarlo de nuevo. Y nada impide generar dos planillas sobre las mismas fechas: no lo hagas, se pagaría doble.</p>
+    periodo y generarlo de nuevo. El sistema no deja generar dos planillas con días en común, para que nada se pague doble.</p>
 {% endcall %}
 {% endcall %}
 
@@ -61,10 +61,9 @@
 ]) }}
 <p><strong>Cómo se calcula</strong>: bruto = horas × tarifa + horas extra × tarifa × 1,5 (redondeado a centenas); CCSS del
     trabajador = 9,17 % del bruto si tiene <em>Aplicar Deducciones</em>; neto = bruto − CCSS.</p>
-{% call m.warn("Deducciones") %}
-<p>Si una persona no debe llevar la rebaja de CCSS, desmarcá <em>Aplicar Deducciones</em> en su perfil <strong>antes</strong>
-    de generar. La casilla <em>Apl. Ded?</em> del detalle hoy no funciona.</p>
-{% endcall %}
+<p><strong>Deducciones</strong>: si a una persona no le corresponde la rebaja de CCSS, desmarcá <em>Apl. Ded?</em> en su fila
+    mientras la planilla está en borrador (o <em>Aplicar Deducciones</em> en su perfil, para las próximas). Una planilla
+    <em>final</em> ya no se puede cambiar.</p>
 {% else %}
 <p>El admin genera la planilla de cada periodo. En <strong>Planilla</strong> ves los periodos donde tenés horas; al abrir uno
     ves tu fila: horas, extras, rebajas, <strong>Total a Pagar</strong> y <em>Ver desglose</em> día por día.
@@ -91,18 +90,25 @@
 {% if user.role == 'admin' %}
 {{ m.steps([
     (None, "Planilla → <strong>Liquidaciones</strong> → <em>Gestionar Liquidación</em> de la persona."),
-    (None, "<strong>Calcular Liquidación</strong>: revisá la fecha de inicio y la de liquidación; el sistema calcula vacaciones, aguinaldo proporcional y salario pendiente. El salario pendiente se puede corregir."),
+    (None, "<strong>Calcular Liquidación</strong>: revisá las fechas, elegí el <strong>motivo de la salida</strong> y escribí los <strong>días de vacaciones ya disfrutados</strong>."),
+    (None, "El sistema propone cada concepto según el Código de Trabajo: salario pendiente, vacaciones, aguinaldo proporcional y, si fue despido con responsabilidad patronal, preaviso y cesantía; y rebaja la CCSS del trabajador del salario y las vacaciones. <strong>Cualquier monto se puede corregir.</strong>"),
     (None, "<strong>Generar Carta</strong> abre la carta para imprimir o guardar en PDF."),
     (None, "<strong>Confirmar Liquidación</strong> guarda los montos y <strong>desactiva</strong> a la persona (ya no puede entrar)."),
 ]) }}
-{% call m.warn("Revisá el cálculo y la carta con el contador") %}
+<h3 class="font-semibold text-gray-900">Cómo calcula cada concepto</h3>
 <ul class="list-disc space-y-1 pl-5">
-    <li>El cálculo es una referencia: toma vacaciones y aguinaldo sobre <strong>toda la antigüedad</strong> y <strong>no
-        incluye cesantía ni preaviso</strong>. Confirmalo con el contador antes de pagar.</li>
-    <li>La carta vuelve a calcular el salario pendiente y no toma la corrección hecha en la ventana. Revisá también los datos
-        de la empresa y la fecha antes de imprimirla.</li>
-    <li>Necesita el <strong>Salario Mensual</strong> en el perfil; si falta, el cálculo da error.</li>
+    <li><strong>Aguinaldo</strong>: la doceava parte de los salarios desde el 1 de diciembre: las planillas finales, y los
+        meses sin planilla al salario promedio.</li>
+    <li><strong>Vacaciones</strong>: 1 día por mes trabajado menos los ya disfrutados, al salario diario promedio.</li>
+    <li><strong>Preaviso</strong> (art. 28), solo en despido con responsabilidad patronal sin preaviso: 7 días (3 a 6 meses),
+        15 días (6 a 12 meses) o 30 días (1 año o más).</li>
+    <li><strong>Cesantía</strong> (art. 29), solo en despido con responsabilidad patronal: 7 días (3 a 6 meses), 14 días (6 a 12
+        meses) o los días por año de la tabla del artículo, hasta 8 años.</li>
+    <li><strong>Salario promedio</strong>: el de las planillas finales de los últimos 6 meses, o el salario mensual del perfil.</li>
 </ul>
+{% call m.warn("Antes de pagar") %}
+<p>Es un cálculo de referencia: revisalo con el contador. La carta y el registro usan los montos que diga la pantalla,
+    incluidas tus correcciones. Hace falta la <strong>Fecha de Inicio</strong> en el perfil de la persona.</p>
 {% endcall %}
 <p><strong>Reactivar Contrato</strong> vuelve a activar a una persona liquidada, con fecha de inicio hoy.</p>
 {% else %}

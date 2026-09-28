@@ -145,6 +145,7 @@ def payroll_detail(
         totals["overtime_amount"] += overtime_amt
         
         entry_dict = {
+            "id": entry.id,
             "user": entry.user,
             "total_hours": entry.total_hours,
             "gross_salary": gross,
@@ -449,6 +450,15 @@ def generate_payroll(
 
     s_date = datetime.strptime(start_date, "%Y-%m-%d").date()
     e_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+    if e_date < s_date:
+        raise HTTPException(status_code=400, detail="La fecha final es anterior a la inicial")
+    # The same hours must never be paid twice: no two payrolls may share a day.
+    overlap = db.query(PayrollPeriod).filter(PayrollPeriod.start_date <= e_date,
+                                             PayrollPeriod.end_date >= s_date).order_by(PayrollPeriod.id).first()
+    if overlap:
+        raise HTTPException(status_code=400, detail=(
+            f"Ya existe la planilla #{overlap.id} ({overlap.start_date:%d/%m/%Y} – {overlap.end_date:%d/%m/%Y}) "
+            "con fechas de este periodo. Elimínela primero o elija otras fechas."))
 
     # Create Draft Period
     period = PayrollPeriod(
@@ -537,6 +547,8 @@ def update_payroll_entry_deductions(
     entry = db.query(PayrollEntry).get(entry_id)
     if not entry:
         raise HTTPException(status_code=404, detail="Entry not found")
+    if entry.period and entry.period.status == "final":
+        raise HTTPException(status_code=400, detail="La planilla ya está finalizada: no se puede cambiar")
 
     log_activity(db, user, "Actualizar Deducciones", "PAYROLL_ENTRY", entry_id, f"Planilla cambio deducciones a: {apply_deductions}")
 
