@@ -6,7 +6,7 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-28
 
-### UI/UX ronda 3: detalles y rangos del Calendario (esta rama)
+### UI/UX ronda 3: detalles y rangos del Calendario (#72)
 - **Errores**: una página abierta en el navegador que da 403, 404 o 400 muestra una
   pantalla en español con "Volver" e "Ir al Dashboard" (`errors/page.html`); fetch y
   `/api/` siguen recibiendo JSON.
