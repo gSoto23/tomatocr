@@ -21,6 +21,8 @@ class User(Base):
     start_date = Column(Date, nullable=True)
     hourly_rate = Column(Float, default=0.0)
     monthly_salary = Column(Float, default=0.0) # Informative
+    # Vacation days already taken in the current contract (recorded by the admin).
+    vacation_days_taken = Column(Float, nullable=False, default=0.0, server_default="0")
     status = Column(Enum("active", "inactive", "liquidated", name="worker_status"), default="active")
     
     # Payment Info

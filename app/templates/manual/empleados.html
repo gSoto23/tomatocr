@@ -13,8 +13,10 @@
 {{ m.steps([
     (1, "<strong>Nuevo Empleado</strong>."),
     (2, "Tocá el <strong>nombre</strong> para ver el expediente: contacto, fecha de ingreso, cargas sociales y documentos."),
-    (3, "<strong>Estado</strong>: Activo o Inactivo, y <em>Editar</em>."),
+    (3, "<strong>Estado</strong>: Activo, Inactivo o Liquidado, y <em>Editar</em>."),
 ]) }}
+<p>Arriba de la tabla podés <strong>buscar</strong> por nombre, usuario o correo y <strong>ordenar</strong> por nombre, rol,
+    activos primero o más recientes.</p>
 {% endcall %}
 
 {% call m.section("crear", "Crear o editar una persona") %}
@@ -69,11 +71,9 @@
 <p>Toda persona necesita un correo válido para poder recuperar su contraseña. Si alguien no tiene, usá uno que revise
     (personal o de la empresa).</p>
 {% endcall %}
-{% call m.faq("La lista dice Activo pero la persona fue liquidada") %}
-<p>La columna Estado solo muestra si está activa o no; la liquidación se ve en Planilla → Liquidaciones.</p>
-{% endcall %}
-{% call m.faq("¿Por qué la columna Rol dice «worker»?") %}
-<p>Muestra el nombre interno del rol: worker = Trabajador, client = Cliente, ventas = Ventas.</p>
+{% call m.faq("¿Dónde anoto las vacaciones que tomó alguien?") %}
+<p>En <em>Editar</em>, campo <strong>Días de vacaciones ya tomados</strong> (del contrato actual). Se restan de lo que la
+    persona ve en Planilla y la liquidación los propone.</p>
 {% endcall %}
 </div>
 {% endcall %}

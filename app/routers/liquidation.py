@@ -3,6 +3,7 @@ from datetime import date, timedelta
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status, Form, Request
+from app.utils.timecr import today_cr
 from fastapi.responses import JSONResponse, RedirectResponse, HTMLResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
@@ -74,6 +75,7 @@ def liquidation_history(
         "target_user": target_user,
         "liquidations": liquidations,
         "reasons": liquidacion.REASONS,
+        "today_iso": today_cr().isoformat(),
     })
 
 
@@ -242,6 +244,7 @@ def create_liquidation(
 @router.post("/reactivate/{target_user_id}")
 def reactivate_user(
     target_user_id: int,
+    start_date: Optional[str] = Form(None),
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
@@ -258,11 +261,14 @@ def reactivate_user(
     # Reactivate
     target_user.status = "active"
     target_user.is_active = True
-    target_user.start_date = date.today() # Reset start date to today (Re-hire)
+    # A new contract: its start date (chosen by the admin, today by default) and no vacation taken yet.
+    target_user.start_date = parse_day(start_date, date.today())
+    target_user.vacation_days_taken = 0.0
     
     db.commit()
     
-    log_activity(db, user, "UPDATE", "USER", target_user.id, f"Reactivated user {target_user.full_name}")
+    log_activity(db, user, "UPDATE", "USER", target_user.id,
+                 f"Reactivó el contrato de {target_user.full_name} desde el {target_user.start_date:%d/%m/%Y}")
     
     response = RedirectResponse(url=f"/liquidation/history/{target_user_id}", status_code=status.HTTP_303_SEE_OTHER)
     response.set_cookie(key="toast_message", value="Usuario reactivado correctamente.")

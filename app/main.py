@@ -73,6 +73,36 @@ async def sitemap_xml():
     )
     return Response(content=xml, media_type="application/xml")
 
+# Pages opened in the browser get a Spanish error page instead of raw JSON; fetch/API
+# calls (and anything that isn't a GET for HTML) keep the JSON they expect.
+from fastapi.exception_handlers import http_exception_handler  # noqa: E402
+from starlette.exceptions import HTTPException as StarletteHTTPException  # noqa: E402
+
+ERROR_TITLES = {403: "No tenés acceso a esta página", 404: "No encontramos lo que buscás",
+                400: "No se pudo completar", 405: "Esa acción no está disponible"}
+ENGLISH_DETAILS = ("not authorized", "forbidden", "not found", "method not allowed", "invalid")
+
+
+def wants_html(request: Request) -> bool:
+    return (request.method in ("GET", "HEAD") and not request.url.path.startswith("/api/")
+            and "text/html" in request.headers.get("accept", ""))
+
+
+@app.exception_handler(StarletteHTTPException)
+async def friendly_http_errors(request: Request, exc: StarletteHTTPException):
+    if not wants_html(request) or exc.status_code < 400 or exc.status_code == 401:
+        return await http_exception_handler(request, exc)
+    detail = str(exc.detail or "")
+    if not detail or any(word in detail.lower() for word in ENGLISH_DETAILS):
+        detail = {403: "Tu usuario no tiene permiso para ver esto. Si lo necesitás, pedíselo al admin.",
+                  404: "La página o el registro no existe, o fue borrado."}.get(
+            exc.status_code, "Algo no salió bien. Volvé atrás e intentá de nuevo.")
+    return templates.TemplateResponse("errors/page.html", {
+        "request": request, "status_code": exc.status_code, "message": detail,
+        "title": ERROR_TITLES.get(exc.status_code, "Algo no salió bien"),
+    }, status_code=exc.status_code)
+
+
 app.include_router(auth.router)
 app.include_router(dashboard.router)
 app.include_router(projects.router)

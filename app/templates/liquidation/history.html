@@ -28,8 +28,10 @@
             Usuario Liquidado
         </span>
         {% if user.role == 'admin' %}
-        <form action="/liquidation/reactivate/{{ target_user.id }}" method="post"
-            onsubmit="return confirm('¿Desea reactivar este usuario? Esto establecerá su Fecha de Inicio al día de hoy para futuros cálculos.');">
+        <form action="/liquidation/reactivate/{{ target_user.id }}" method="post" class="flex flex-wrap items-center gap-2"
+            onsubmit="return confirm('¿Reactivar el contrato desde el ' + this.start_date.value.split('-').reverse().join('/') + '? Las vacaciones tomadas vuelven a 0.');">
+            <label class="text-sm text-gray-700">Nuevo contrato desde
+                <input type="date" name="start_date" required value="{{ today_iso }}" class="ml-1 rounded-md border border-gray-300 px-2 py-1 text-sm"></label>
             <button type="submit"
                 class="inline-flex items-center justify-center rounded-md bg-white border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50">
                 Reactivar Contrato
@@ -165,7 +167,7 @@
         return {
             open: false, loading: false, error: '', data: null, amounts: {},
             start: "{{ target_user.start_date.isoformat() if target_user.start_date else '' }}",
-            end: iso(today), reason: 'renuncia', notice: false, taken: 0,
+            end: iso(today), reason: 'renuncia', notice: false, taken: {{ (target_user.vacation_days_taken or 0) | tojson }},
             get rows() {
                 const d = this.data || {};
                 const rows = [

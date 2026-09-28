@@ -1,39 +1,14 @@
-# Puntos difíciles de usar (insumo para el trabajo de UI/UX)
+# Puntos difíciles de usar (registro del trabajo de UI/UX)
 
 Lo que se encontró al escribir el manual (27/09/2026, partes 1 y 2): comportamientos poco claros,
-textos que no coinciden con lo que hace el sistema y pantallas que se cortan. El manual
-los explica mientras tanto. Cuando se corrija uno, sacarlo de aquí y ajustar su
-capítulo del manual.
+textos que no coinciden con lo que hace el sistema y pantallas que se cortan. Se priorizó así:
+**A** confunde o hace perder trabajo; **B** molesta; **C** detalle.
 
-Prioridad sugerida: **A** confunde o hace perder trabajo; **B** molesta; **C** detalle.
+**Estado al 28/09/2026: todos los puntos están resueltos** (rondas 1, 2a, 2b y 3). Si aparece
+uno nuevo, agregalo en una sección "Pendientes" con su prioridad y el archivo donde está, y
+sacalo de ahí cuando se corrija (ajustando también su capítulo del manual).
 
-## Acceso y navegación
-
-| | Punto | Dónde |
-| --- | --- | --- |
-| C | En el menú del celular la X de cerrar queda encima de la palabra "SISTEMA". | `app/templates/base_dashboard.html` |
-| C | El menú del celular no se cierra al tocar una opción (la página recarga). | `base_dashboard.html` |
-| C | El rol aparece con la palabra interna ("worker", "client", "ventas"). | `base_dashboard.html` |
-| C | Supervisor y trabajador que abren /cotizador reciben un JSON crudo de error. | `app/routers/quotes.py` |
-
-## Tablas que se cortan
-
-| | Punto | Dónde |
-| --- | --- | --- |
-
-## Dashboard
-
-| | Punto | Dónde |
-| --- | --- | --- |
-| C | Montos sin símbolo de moneda. | `dashboard.html` |
-| C | Al cambiar de página se pierde el orden por fecha (Dashboard del cliente y Bitácora Global). | `dashboard.html`, `logs/list.html` |
-
-## Proyectos y bitácora
-
-| | Punto | Dónde |
-| --- | --- | --- |
-| C | Trabajadores y clientes ven "Costo Total del Proyecto" en la ficha. | `projects/detail.html` |
-| C | Formatos de fecha distintos: dd/mm/aaaa, dd-mm-aaaa y AAAA-MM-DD según la pantalla. | varias |
+## Lo que se corrigió
 
 Corregido el 27/09/2026 (PR #61): editar un proyecto con reportes, calendario o
 facturas fallaba en PostgreSQL; editar un reporte le borraba la sede.
@@ -70,38 +45,6 @@ tiene PDF y Borrar (admin) en el Historial; Empleados acepta Word, valida los do
 antes de guardar y el salario solo sugiere la tarifa; Actividad busca en todo el
 historial, muestra la hora de Costa Rica y registra el Calendario.
 
-## Cotizador
-
-| | Punto | Dónde |
-| --- | --- | --- |
-| C | Una cotización guardada con IVA 0 se recarga con la casilla de IVA desmarcada. | `app.js` |
-| C | La insignia de una cotización cargada dice "Oportunidad: #ID" en vez del título. | `app.js` |
-| C | Un usuario cliente que no es contacto de ninguna cuenta puede guardar, pero no ve su cotización en el Historial. | `quotes.py` |
-| C | En el celular el botón "Volver" es solo una flecha y queda encima del título "Cotizador Cloud". | `index.html` |
-| C | Los textos del cotizador tratan de "usted" ("Elija el cliente…") y el resto del sistema de "vos". | `index.html`, `app.js` |
-
-## Presupuestos
-
-| | Punto | Dónde |
-| --- | --- | --- |
-| C | Una planilla final se puede eliminar (a propósito, para regenerarla si no se pagó). | `payroll.py` |
-| C | El supervisor no tiene el menú pero entra por el enlace de la ficha y ve cualquier proyecto. | `finance.py` |
-| C | Errores del módulo en inglés y como JSON crudo. | `finance.py` |
-
-## Planilla y liquidaciones
-
-| | Punto | Dónde |
-| --- | --- | --- |
-| C | "Hoy" y "Semana" en Aprobar Horas usan UTC (después de las 6 p. m. es mañana). Estado del periodo en inglés (draft/final). | `approval.html`, `payroll/index.html` |
-| C | "Vacaciones Disponibles" no descuenta días tomados. Reactivar un contrato pone la fecha de inicio en hoy. | `payroll.py`, `liquidation.py` |
-
-## Calendario
-
-| | Punto | Dónde |
-| --- | --- | --- |
-| B | Un rango crea una asignación por día (ya salta el domingo por defecto), pero después se editan o borran una por una. | `calendar.py` |
-| C | "Asignar Proyecto" pone la fecha en UTC (después de las 6 p. m. trae mañana). Las asignaciones muestran el usuario, no el nombre. Sin arrastrar y soltar. | `calendar/index.html` |
-
 Corregido en la ronda 2b de UI/UX (prioridad B, números): Presupuestos con un solo nombre,
 tarjetas Cobrado / Por cobrar / Por facturar / Ganancia explicadas y el botón "Registrar
 pago"; el cliente ve solo facturas y pagos; la retención muestra el 2 % esperado y la
@@ -118,14 +61,17 @@ proyecto elegido o nombre equivalente, y errores de altura y foto en español. T
 menú del celular ya no se ve abierto al cargar y "Enviar por Correo" se esconde al editar
 un reporte.
 
-## Empleados y Actividad
-
-| | Punto | Dónde |
-| --- | --- | --- |
-| C | La lista no muestra quién está liquidado; el rol aparece con el nombre interno. Sin búsqueda ni orden. | `users/list.html` |
-
-## Reforestación
-
-| | Punto | Dónde |
-| --- | --- | --- |
-| C | El mapa usa coma decimal y el panel punto. El monitoreo de 3 meses del plan no existe en el sistema (solo 6 y 12). | `reforestacion.html`, `app/utils/reforestation.py` |
+Corregido en la ronda 3 de UI/UX (prioridad C, detalles, y los rangos del Calendario):
+las páginas que se abren en el navegador muestran un error en español en vez de JSON
+(las llamadas internas siguen recibiendo JSON); el menú del celular se cierra al elegir
+una opción y la X ya no tapa el título; el rol se muestra en español; los montos llevan
+₡ y las fechas son dd/mm/aaaa en todas las pantallas; al pasar de página se conserva el
+orden; el costo del proyecto solo lo ve el admin y el supervisor ya no entra a
+Presupuestos; el cotizador recarga bien el IVA, muestra el título de la oportunidad, no
+deja guardar a un cliente sin cuenta, tiene "Volver" visible en el celular y habla de
+"vos"; una planilla final solo se elimina si no tiene pagos y escribiendo ELIMINAR; los
+estados dicen Borrador y Final; el perfil registra los días de vacaciones tomados
+(migración 0011), el trabajador ve el saldo real y la liquidación los propone; reactivar
+un contrato pide la fecha; un rango del Calendario se edita o borra entero y las
+asignaciones se mueven arrastrándolas; Empleados busca, ordena y muestra quién está
+liquidado; Reforestación calcula la supervivencia a 3, 6 y 12 meses con coma decimal.

@@ -79,7 +79,7 @@ def test_client_quote_tool_has_no_account_picker(login_as, world):
 @pytest.mark.parametrize("role", ["admin", "ventas"])
 def test_admin_and_ventas_must_pick_an_account(role, login_as, world):
     response = login_as(role).post("/api/quotes/", json=quote_payload("Q-SIN-CUENTA"))
-    assert response.status_code == 400 and "Elija la cuenta" in response.json()["detail"]
+    assert response.status_code == 400 and "Elegí la cuenta" in response.json()["detail"]
 
 
 def test_quote_from_an_opportunity_moves_it_to_proposal(db, login_as, world):
@@ -135,7 +135,7 @@ def project_payload(name, **extra):
 
 def test_project_needs_an_account(login_as, world):
     response = login_as("admin").post("/projects/new", json=project_payload("Sin cuenta"))
-    assert response.status_code == 400 and "Elija la cuenta" in response.json()["detail"]
+    assert response.status_code == 400 and "Elegí la cuenta" in response.json()["detail"]
 
 
 def test_project_takes_contacts_from_its_account(db, login_as, world):

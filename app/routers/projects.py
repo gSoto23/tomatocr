@@ -147,7 +147,7 @@ def apply_account(db: Session, project: Project, project_in: "ProjectCreate"):
     """Every project belongs to a client account; its contacts come from that account."""
     account = db.get(Account, project_in.account_id) if project_in.account_id else None
     if account is None or account.merged_into_id:
-        raise HTTPException(status_code=400, detail="Elija la cuenta del cliente (o créela) antes de guardar.")
+        raise HTTPException(status_code=400, detail="Elegí la cuenta del cliente (o creala) antes de guardar.")
     project.account_id = account.id
     project.client_display_name = account.name  # kept in sync for screens and reports that show it
     set_project_contacts(db, project, account, [r.dict() for r in project_in.contact_roles])

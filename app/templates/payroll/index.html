@@ -47,6 +47,7 @@
             <dt class="truncate text-sm font-medium text-gray-500">Vacaciones Disponibles</dt>
             <dd class="mt-1 text-3xl font-semibold tracking-tight text-gray-900">{{ worker_stats.vacation_days }} días
             </dd>
+            <p class="mt-1 text-xs text-gray-500">{{ worker_stats.earned }} acumulados − {{ worker_stats.taken }} tomados</p>
         </div>
     </dl>
 </div>
@@ -84,8 +85,8 @@
                     </p>
                     <p class="mt-1 flex text-xs leading-5 text-gray-500">
                         Estado: <span
-                            class="capitalize ml-1 font-medium {{ 'text-green-600' if period.status == 'final' else 'text-yellow-600' }}">{{
-                            period.status }}</span>
+                            class="ml-1 font-medium {{ 'text-green-600' if period.status == 'final' else 'text-yellow-600' }}">{{
+                            'Final' if period.status == 'final' else 'Borrador' }}</span>
                     </p>
                 </div>
             </div>
@@ -94,7 +95,7 @@
                     <p class="text-sm leading-6 text-gray-900">Generado el {{ period.created_at | format_date }}
                     </p>
                     {% if user.role == 'admin' %}
-                    <button onclick="event.preventDefault(); deletePayroll({{ period.id }})"
+                    <button onclick="event.preventDefault(); deletePayroll({{ period.id }}, {{ (period.status == 'final') | tojson }})"
                         class="mt-1 text-xs text-red-600 hover:text-red-900 font-semibold relative z-10">Eliminar</button>
                     {% endif %}
                 </div>
@@ -242,11 +243,16 @@
         document.getElementById('generateModal').classList.add('hidden');
     }
 
-    async function deletePayroll(id) {
-        if (!confirm("¿Estás seguro de eliminar esta planilla? Esta acción no se puede deshacer.")) return;
+    async function deletePayroll(id, isFinal = false) {
+        let word = '';
+        if (isFinal) {
+            // A final payroll: only if nobody was paid for it, and typing the word.
+            word = prompt("Esta planilla ya está FINAL. Solo se elimina para regenerarla si todavía no se pagó.\nEscribí ELIMINAR para confirmar:") || '';
+            if (!word) return;
+        } else if (!confirm("¿Estás seguro de eliminar esta planilla? Esta acción no se puede deshacer.")) return;
 
         try {
-            const response = await fetch(`/payroll/${id}`, {
+            const response = await fetch(`/payroll/${id}?confirm=${encodeURIComponent(word)}`, {
                 method: 'DELETE'
             });
             const result = await response.json();
@@ -255,7 +261,7 @@
                 // Remove row or reload
                 window.location.reload();
             } else {
-                alert("Error: " + result.detail);
+                showGlobalToast("Error", result.detail || "No se pudo eliminar", "error");
             }
         } catch (e) {
             console.error(e);

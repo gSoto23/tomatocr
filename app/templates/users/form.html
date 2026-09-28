@@ -137,6 +137,17 @@
                         </div>
                     </div>
 
+                    <!-- Vacation days taken -->
+                    <div>
+                        <label for="vacation_days_taken" class="block text-sm font-medium leading-6 text-gray-900">Días de vacaciones ya tomados</label>
+                        <div class="mt-2">
+                            <input type="number" step="0.5" min="0" name="vacation_days_taken" id="vacation_days_taken"
+                                value="{{ (edit_user.vacation_days_taken or 0) | round(1) if edit_user else 0 }}"
+                                class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
+                        </div>
+                        <p class="mt-1 text-xs text-gray-500">En este contrato. Se restan de las vacaciones acumuladas (1 día por mes trabajado).</p>
+                    </div>
+
                     <!-- Payment Method -->
                     <div>
                         <label for="payment_method" class="block text-sm font-medium leading-6 text-gray-900">Método de

@@ -12,6 +12,7 @@ from app.db.models.payroll import PayrollPeriod, PayrollEntry
 import pydantic
 from app.db.models.project import Project
 from app.utils.activity import log_activity
+from app.utils.timecr import today_cr
 from app.core.templates import templates
 
 router = APIRouter(
@@ -19,6 +20,16 @@ router = APIRouter(
     tags=["payroll"],
     dependencies=[Depends(deps.require_roles(*OPERATIONS_ROLES))]
 )
+
+def vacation_balance(user: User) -> dict:
+    """1 day per month worked since the start date, minus the days already taken."""
+    earned = 0.0
+    if user.start_date:
+        days = (today_cr() - user.start_date).days
+        earned = max(0.0, days / 30.44)
+    taken = user.vacation_days_taken or 0.0
+    return {"earned": round(earned, 2), "taken": round(taken, 2), "vacation_days": round(max(0.0, earned - taken), 2)}
+
 
 def entry_rate(entry: PayrollEntry) -> float:
     """The rate frozen when the payroll was generated (older entries: the person's rate)."""
@@ -58,13 +69,7 @@ def payroll_dashboard(
     # Calculate stats for Worker/Supervisor
     worker_stats = {}
     if user.role in [WORKER, SUPERVISOR]:
-        vacation_days = 0
-        if user.start_date:
-            delta = date.today() - user.start_date
-            if delta.days > 0:
-                months_worked = delta.days / 30.44
-                vacation_days = months_worked 
-        worker_stats["vacation_days"] = round(vacation_days, 2)
+        worker_stats = vacation_balance(user)
     
     return templates.TemplateResponse("payroll/index.html", {
         "request": request,
@@ -177,13 +182,7 @@ def payroll_detail(
     worker_stats = {}
     if user.role in [WORKER, SUPERVISOR]:
         # Logic from liquidation: 1 day per month worked
-        vacation_days = 0
-        if user.start_date:
-            delta = date.today() - user.start_date
-            if delta.days > 0:
-                months_worked = delta.days / 30.44
-                vacation_days = months_worked # 1 day per month
-        worker_stats["vacation_days"] = round(vacation_days, 2)
+        worker_stats = vacation_balance(user)
 
     return templates.TemplateResponse("payroll/detail.html", {
         "request": request,
@@ -265,6 +264,7 @@ def confirm_payroll(
 @router.delete("/{period_id}")
 def delete_payroll(
     period_id: int,
+    confirm: Optional[str] = None,
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
@@ -274,7 +274,16 @@ def delete_payroll(
     period = db.query(PayrollPeriod).get(period_id)
     if not period:
         raise HTTPException(status_code=404, detail="Payroll period not found")
-        
+    if period.status == "final":
+        # A final payroll may be regenerated only while nobody has been paid for it.
+        from app.db.models.payment import PayrollPayment
+        paid = db.query(PayrollPayment).filter(PayrollPayment.payroll_period_id == period.id).count()
+        if paid:
+            raise HTTPException(status_code=400, detail=(
+                f"Esta planilla final ya tiene {paid} pago(s) registrados y no se puede eliminar."))
+        if (confirm or "").strip().upper() != "ELIMINAR":
+            raise HTTPException(status_code=400, detail="Para eliminar una planilla final, escribí ELIMINAR.")
+
     db.delete(period)
     db.commit()
 

@@ -239,7 +239,7 @@
                 </div>
 
                 <div class="col-span-full space-y-2" x-show="!formData.account">
-                    <p class="text-sm text-gray-500 italic">Elija primero la cuenta del cliente.</p>
+                    <p class="text-sm text-gray-500 italic">Elegí primero la cuenta del cliente.</p>
                 </div>
                 <div class="col-span-full space-y-2" x-show="formData.account">
                     <template x-for="c in (formData.account ? formData.account.contacts : [])" :key="c.id">
@@ -706,7 +706,7 @@
                 {% endif %}
                 const url = isEdit ? '/projects/{{ (project.id if project else "") | safe }}/edit' : '/projects/new';
 
-                if (!this.formData.account) { alert('Elija la cuenta del cliente (o créela) antes de guardar.'); return; }
+                if (!this.formData.account) { alert('Elegí la cuenta del cliente (o creala) antes de guardar.'); return; }
 
                 // Prepare payload and sanitize empty strings for numeric/optional fields
                 let payload = JSON.parse(JSON.stringify(this.formData));

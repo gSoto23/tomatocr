@@ -7,7 +7,7 @@ import uuid
 from app.db.models.user_document import UserDocument
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func
+from sqlalchemy import or_, func
 
 from app.db.models.user import User
 from app.routers import deps
@@ -80,17 +80,28 @@ def list_users(
     request: Request, 
     page: int = 1,
     limit: int = 10,
+    q: str = "",
+    sort: str = "name",
     db: Session = Depends(deps.get_db), 
     user: User = Depends(deps.get_current_user)
 ):
     check_admin(user)
-    
-    count_query = db.query(func.count(User.id))
-    total_records = count_query.scalar()
-    
+
+    query = db.query(User)
+    q = q.strip()
+    if q:
+        like = f"%{q}%"
+        query = query.filter(or_(User.full_name.ilike(like), User.username.ilike(like), User.email.ilike(like)))
+    total_records = query.count()
+    order = {"name": [User.full_name.asc()], "role": [User.role.asc(), User.full_name.asc()],
+             "status": [User.is_active.desc(), User.full_name.asc()], "new": [User.id.desc()]}.get(sort)
+    if order is None:
+        sort, order = "name", [User.full_name.asc()]
+
     offset = (page - 1) * limit
-    users = db.query(User)\
+    users = query\
         .options(joinedload(User.documents))\
+        .order_by(*order)\
         .offset(offset)\
         .limit(limit)\
         .all()
@@ -105,6 +116,8 @@ def list_users(
         "page": page,
         "total_pages": total_pages,
         "total_records": total_records,
+        "q": q,
+        "sort": sort,
         "without_email": db.query(User).filter((User.email.is_(None)) | (User.email == ""),
                                                User.is_active == True).order_by(User.full_name).all(),  # noqa: E712
     })
@@ -125,6 +138,7 @@ def create_user(
     start_date: Optional[str] = Form(None),
     hourly_rate: Optional[float] = Form(None),
     monthly_salary: Optional[float] = Form(None),
+    vacation_days_taken: Optional[float] = Form(None),
     is_active: bool = Form(False),
     apply_deductions: bool = Form(False),
     payment_method: str = Form("Efectivo"),
@@ -172,6 +186,7 @@ def create_user(
         start_date=s_date,
         hourly_rate=hourly_rate,
         monthly_salary=monthly_salary,
+        vacation_days_taken=max(0.0, vacation_days_taken or 0.0),
         is_active=is_active,
         apply_deductions=apply_deductions,
         payment_method=payment_method,
@@ -211,6 +226,7 @@ def update_user(
     start_date: Optional[str] = Form(None),
     hourly_rate: Optional[float] = Form(None),
     monthly_salary: Optional[float] = Form(None),
+    vacation_days_taken: Optional[float] = Form(None),
     is_active: bool = Form(False),
     apply_deductions: bool = Form(False),
     payment_method: str = Form("Efectivo"),
@@ -261,6 +277,8 @@ def update_user(
         edit_user.start_date = s_date
         edit_user.hourly_rate = hourly_rate
         edit_user.monthly_salary = monthly_salary
+        if vacation_days_taken is not None:
+            edit_user.vacation_days_taken = max(0.0, vacation_days_taken)
         edit_user.is_active = is_active
         edit_user.apply_deductions = apply_deductions
         

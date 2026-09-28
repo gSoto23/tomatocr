@@ -37,6 +37,14 @@ def visible_quotes(db: Session, user: User):
     return query
 
 
+def opportunity_title(q: Quote):
+    from sqlalchemy.orm import object_session
+    if not q.opportunity_id or object_session(q) is None:
+        return None
+    opp = object_session(q).get(Opportunity, q.opportunity_id)
+    return opp.title if opp else None
+
+
 def serialize(q: Quote, account_names: dict) -> dict:
     return {
         "id": q.id,
@@ -59,6 +67,7 @@ def serialize(q: Quote, account_names: dict) -> dict:
         "account_id": q.account_id,
         "account_name": account_names.get(q.account_id),
         "opportunity_id": q.opportunity_id,
+        "opportunity_title": opportunity_title(q),
     }
 
 
@@ -159,12 +168,16 @@ async def upsert_quote(request: Request, db: Session = Depends(deps.get_db), use
     opportunity = None
     if user.role == CLIENT:
         own = account_of_client_user(db, user)
-        account_id = own.id if own else None
+        if own is None:
+            # Without an account the quote would be saved but invisible to its own author.
+            raise HTTPException(status_code=400, detail="Tu usuario todavía no está ligado a la cuenta de tu empresa. "
+                                "Pedíselo a TOMATO para poder guardar cotizaciones.")
+        account_id = own.id
     else:
         account_id = data.get("account_id")
         account = db.get(Account, account_id) if isinstance(account_id, int) else None
         if account is None or account.merged_into_id:
-            raise HTTPException(status_code=400, detail="Elija la cuenta del cliente (o créela) antes de guardar.")
+            raise HTTPException(status_code=400, detail="Elegí la cuenta del cliente (o creala) antes de guardar.")
         if data.get("opportunity_id"):
             opportunity = db.get(Opportunity, data.get("opportunity_id"))
             if opportunity is None or opportunity.account_id != account.id:

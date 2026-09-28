@@ -102,10 +102,12 @@
     </table>
     {% from "components/pagination.html" import render_pagination %}
     <!-- Construct endpoint with existing query params -->
-    {% set base_url = '/logs' %}
-    {% if selected_project_id %}
-    {% set base_url = base_url ~ '?project_id=' ~ selected_project_id %}
-    {% endif %}
+    {# Keep the project filter and the sort order when changing page #}
+    {% set params = [] %}
+    {% if selected_project_id %}{% set _ = params.append('project_id=' ~ selected_project_id) %}{% endif %}
+    {% if request.query_params.get('sort') %}{% set _ = params.append('sort=' ~ (request.query_params.get('sort') | urlencode)) %}{% endif %}
+    {% if request.query_params.get('order') %}{% set _ = params.append('order=' ~ (request.query_params.get('order') | urlencode)) %}{% endif %}
+    {% set base_url = '/logs/' ~ ('?' ~ params | join('&') if params else '') %}
 
     {{ render_pagination(page, total_pages, base_url) }}
 </div>
