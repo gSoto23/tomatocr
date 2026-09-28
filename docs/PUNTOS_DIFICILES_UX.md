@@ -85,12 +85,6 @@ historial, muestra la hora de Costa Rica y registra el Calendario.
 | | Punto | Dónde |
 | --- | --- | --- |
 | C | Una planilla final se puede eliminar (a propósito, para regenerarla si no se pagó). | `payroll.py` |
-| B | Tres nombres para el mismo módulo: "Presupuestos" (menú), "Gestión Financiera" y "Finanzas". El botón de pago se llama "Reporte". | `finance/*.html` |
-| B | "Monto por Retención (2%)" no calcula el 2 %: es facturado − depositado. | `detail.html` |
-| B | "Saldo" es lo que queda por facturar, no lo pendiente de cobro; "Balance (Ganancia)" usa lo facturado. | `finance.py` |
-| B | "Disp:" en la línea a facturar muestra el total de la línea; no impide facturar de más. | `detail.html` |
-| B | Eliminar factura o gasto no pide confirmación; borrar una factura con pago da un JSON en inglés. | `detail.html`, `finance.py` |
-| B | El cliente ve costos internos, planillas y el balance del proyecto. | `detail.html` |
 | C | El supervisor no tiene el menú pero entra por el enlace de la ficha y ve cualquier proyecto. | `finance.py` |
 | C | Errores del módulo en inglés y como JSON crudo. | `finance.py` |
 
@@ -98,9 +92,6 @@ historial, muestra la hora de Costa Rica y registra el Calendario.
 
 | | Punto | Dónde |
 | --- | --- | --- |
-| B | "Confirmar Todo" confirma también filas ya confirmadas y de otras páginas, con lo que diga cada casilla. | `payroll/approval.html` |
-| B | Monto Extra redondeado en el detalle y sin redondear en el reporte; ambos usan la tarifa actual. El total del reporte queda bajo la columna equivocada. | `payroll.py`, `report.html` |
-| B | Pagos: sin método ni referencia, no ligados a la planilla; el trabajador no tiene enlace para verlos. | `payments.py` |
 | C | "Hoy" y "Semana" en Aprobar Horas usan UTC (después de las 6 p. m. es mañana). Estado del periodo en inglés (draft/final). | `approval.html`, `payroll/index.html` |
 | C | "Vacaciones Disponibles" no descuenta días tomados. Reactivar un contrato pone la fecha de inicio en hoy. | `payroll.py`, `liquidation.py` |
 
@@ -108,10 +99,24 @@ historial, muestra la hora de Costa Rica y registra el Calendario.
 
 | | Punto | Dónde |
 | --- | --- | --- |
-| B | Un rango de fechas crea una asignación por día, fines de semana incluidos, sin forma de editarlas juntas. | `calendar.py` |
-| B | No hay sede ni horas en la asignación (la sede existe en la base pero el formulario no la pide). | `calendar/index.html` |
-| B | No avisa si la persona ya tiene otra asignación ese día; lista trabajadores inactivos. | `calendar.py` |
+| B | Un rango crea una asignación por día (ya salta el domingo por defecto), pero después se editan o borran una por una. | `calendar.py` |
 | C | "Asignar Proyecto" pone la fecha en UTC (después de las 6 p. m. trae mañana). Las asignaciones muestran el usuario, no el nombre. Sin arrastrar y soltar. | `calendar/index.html` |
+
+Corregido en la ronda 2b de UI/UX (prioridad B, números): Presupuestos con un solo nombre,
+tarjetas Cobrado / Por cobrar / Por facturar / Ganancia explicadas y el botón "Registrar
+pago"; el cliente ve solo facturas y pagos; la retención muestra el 2 % esperado y la
+diferencia real; la línea dice cuánto queda por facturar y pide confirmar si se pasa;
+borrar factura o gasto pide confirmación y una factura con pagos no se borra (mensaje en
+español). Planilla: "Confirmar pendientes" solo toca lo pendiente o cambiado de la página;
+la tarifa queda congelada al generar (migración 0010) y el detalle, el reporte y los costos
+usan la misma; el total del reporte está en su columna; "Ver desglose" y el método de pago
+van bajo el nombre. Pagos con método, referencia y planilla, y "Mis pagos" para trabajador y
+supervisor. Calendario: lunes a sábado por defecto (domingo opcional), sede y horas
+previstas, aviso de doble asignación y solo personas activas. Reforestación: renombrar y
+borrar proyecto o árbol (admin), borrar monitoreos (admin y supervisor), importar por
+proyecto elegido o nombre equivalente, y errores de altura y foto en español. También: el
+menú del celular ya no se ve abierto al cargar y "Enviar por Correo" se esconde al editar
+un reporte.
 
 ## Empleados y Actividad
 
@@ -123,7 +128,4 @@ historial, muestra la hora de Costa Rica y registra el Calendario.
 
 | | Punto | Dónde |
 | --- | --- | --- |
-| B | El nombre del proyecto es la llave: un nombre mal escrito al importar crea otro proyecto, y no se puede renombrar ni borrar. | `app/routers/reforestation.py` |
-| B | No hay forma de borrar un árbol ni un monitoreo equivocado desde la pantalla. | `reforestation.py` |
-| B | Una altura no numérica en el monitoreo da un error en inglés; los errores de la foto salen como página cruda. | `reforestation.py`, `app/utils/uploads.py` |
 | C | El mapa usa coma decimal y el panel punto. El monitoreo de 3 meses del plan no existe en el sistema (solo 6 y 12). | `reforestacion.html`, `app/utils/reforestation.py` |

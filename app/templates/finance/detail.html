@@ -1,6 +1,6 @@
 {% extends "base_dashboard.html" %}
 
-{% block title %}Finanzas: {{ project.name }} | TOMATO{% endblock %}
+{% block title %}Presupuesto: {{ project.name }} | TOMATO{% endblock %}
 {% block header_title %}Presupuestos{% endblock %}
 
 {% block content %}
@@ -13,7 +13,7 @@
                     <li>
                         <div class="flex">
                             <a href="/finance"
-                                class="text-sm font-medium text-gray-500 hover:text-gray-700">Finanzas</a>
+                                class="text-sm font-medium text-gray-500 hover:text-gray-700">Presupuestos</a>
                         </div>
                     </li>
                     <li>
@@ -28,7 +28,7 @@
                 </ol>
             </nav>
             <h2 class="mt-2 text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
-                Detalle Financiero
+                Presupuesto del proyecto
             </h2>
             <div class="mt-1 flex flex-col sm:mt-0 sm:flex-row sm:flex-wrap sm:space-x-6">
                 <div class="mt-2 flex items-center text-sm text-gray-500">
@@ -40,39 +40,24 @@
     </div>
 
     <!-- Indicators -->
-    <div class="grid grid-cols-1 gap-5 sm:grid-cols-6 mb-8">
-        <div class="overflow-hidden rounded-lg bg-white px-3 py-4 shadow sm:p-4 border border-gray-200">
-            <dt class="truncate text-xs font-medium text-gray-500 uppercase">Total Adjudicado</dt>
-            <dd class="mt-1 text-lg lg:text-base xl:text-lg font-semibold tracking-tight text-gray-900" title="{{ '{:,.2f}'.format(summary.total_adjudicated) }}">{{
-                "{:,.2f}".format(summary.total_adjudicated) }}</dd>
-        </div>
-        <div class="overflow-hidden rounded-lg bg-white px-3 py-4 shadow sm:p-4 border border-gray-200">
-            <dt class="truncate text-xs font-medium text-gray-500 uppercase">Total Facturado</dt>
-            <dd class="mt-1 text-lg lg:text-base xl:text-lg font-semibold tracking-tight text-gray-900" title="{{ '{:,.2f}'.format(summary.total_invoiced) }}">{{
-                "{:,.2f}".format(summary.total_invoiced) }}</dd>
-        </div>
-        <div class="overflow-hidden rounded-lg bg-white px-3 py-4 shadow sm:p-4 border border-gray-200">
-            <dt class="truncate text-xs font-medium text-gray-500 uppercase">Total Pagado</dt>
-            <dd class="mt-1 text-lg lg:text-base xl:text-lg font-semibold tracking-tight text-indigo-600" title="{{ '{:,.2f}'.format(summary.total_paid) }}">{{
-                "{:,.2f}".format(summary.total_paid) }}</dd>
-        </div>
-        <div class="overflow-hidden rounded-lg bg-white px-3 py-4 shadow sm:p-4 border border-gray-200">
-            <dt class="truncate text-xs font-medium text-gray-500 uppercase">Total Costos</dt>
-            <dd class="mt-1 text-lg lg:text-base xl:text-lg font-semibold tracking-tight text-red-600" title="{{ '{:,.2f}'.format(summary.total_costs) }}">{{
-                "{:,.2f}".format(summary.total_costs) }}</dd>
-        </div>
-        <div class="overflow-hidden rounded-lg bg-white px-3 py-4 shadow sm:p-4 border border-gray-200">
-            <dt class="truncate text-xs font-medium text-gray-500 uppercase">Saldo Actual</dt>
-            <dd
-                class="mt-1 text-lg lg:text-base xl:text-lg font-semibold tracking-tight {{ 'text-green-600' if summary.balance >= 0 else 'text-red-600' }}" title="{{ '{:,.2f}'.format(summary.balance) }}">
-                {{ "{:,.2f}".format(summary.balance) }}</dd>
-        </div>
-        <div class="overflow-hidden rounded-lg bg-white px-3 py-4 shadow sm:p-4 border border-gray-200">
-            <dt class="truncate text-xs font-medium text-gray-500 uppercase">Balance (Ganancia)</dt>
-            <dd
-                class="mt-1 text-lg lg:text-base xl:text-lg font-semibold tracking-tight {{ 'text-green-600' if (summary.total_invoiced - summary.total_costs) >= 0 else 'text-red-600' }}" title="{{ '{:,.2f}'.format(summary.total_invoiced - summary.total_costs) }}">
-                {{ "{:,.2f}".format(summary.total_invoiced - summary.total_costs) }}</dd>
-        </div>
+    {% macro card(label, value, hint, color='text-gray-900') %}
+    <div class="overflow-hidden rounded-lg bg-white px-3 py-4 shadow sm:p-4 border border-gray-200">
+        <dt class="text-xs font-medium text-gray-500 uppercase">{{ label }}</dt>
+        <dd class="mt-1 text-lg lg:text-base xl:text-lg font-semibold tracking-tight {{ color }}" title="{{ '{:,.2f}'.format(value) }}">{{ "{:,.2f}".format(value) }}</dd>
+        <p class="mt-1 text-xs text-gray-500">{{ hint }}</p>
+    </div>
+    {% endmacro %}
+    <div class="grid grid-cols-2 gap-4 {{ 'sm:grid-cols-4' if internal else 'sm:grid-cols-3 xl:grid-cols-5' }} mb-8">
+        {{ card("Total Adjudicado", summary.total_adjudicated, "Lo contratado, con IVA y prórroga") }}
+        {{ card("Facturado", summary.total_invoiced, "Suma de las facturas") }}
+        {{ card("Cobrado", summary.total_paid, "Pagos recibidos más retenciones", "text-indigo-600") }}
+        {{ card("Por cobrar", summary.receivable, "Facturado que falta pagar", "text-amber-700" if summary.receivable > 0 else "text-gray-900") }}
+        {{ card("Por facturar", summary.balance, "Adjudicado que falta facturar", "text-gray-900" if summary.balance >= 0 else "text-red-600") }}
+        {% if internal %}
+        {{ card("Costos", summary.total_costs, "Gastos más planillas finales", "text-red-600") }}
+        {% set margin = summary.total_invoiced - summary.total_costs %}
+        {{ card("Ganancia", margin, "Facturado menos costos", "text-green-600" if margin >= 0 else "text-red-600") }}
+        {% endif %}
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -161,6 +146,7 @@
                 </ul>
             </div>
             
+            {% if internal %}
             <!-- Payroll Grouped Mini Table (Moved) -->
             <div class="bg-white shadow sm:rounded-lg overflow-hidden border border-gray-200 mt-6"
                  x-data="{ page: 1, itemsPerPage: 10, totalItems: {{ payroll_details|length }} }">
@@ -228,6 +214,7 @@
                 </div>
             </div>
             
+            {% endif %}
         </div>
 
         <!-- Invoices Pane (Main) -->
@@ -391,9 +378,8 @@
                                     inv.issue_date | format_date }}</td>
                                 <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{
                                     inv.due_date | format_date }}</td>
-                                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500 truncate max-w-xs"
-                                    title="{{ inv.line.name if inv.line else '?' }}">
-                                    {{ inv.line.name if inv.line else '?' }}
+                                <td class="px-3 py-4 text-sm text-gray-500" title="{{ inv.line.name if inv.line else '?' }}">
+                                    <span class="line-clamp-2 min-w-[8rem] max-w-[12rem]">{{ inv.line.name if inv.line else '?' }}</span>
                                 </td>
                                 <td class="whitespace-nowrap px-3 py-4 text-sm text-right font-medium text-gray-900">{{
                                     "{:,.2f}".format(inv.amount) }}</td>
@@ -423,7 +409,7 @@
                                     {% if inv.status != 'pagada' %}
                                     <button
                                         @click='openPayModal({{ inv.id | tojson }}, {{ inv.invoice_number | tojson }}, {{ inv.amount | tojson }}, {{ ((inv.payment.amount or 0) + (inv.payment.retention_amount or 0)) if inv.payment else 0 }})'
-                                        class="text-indigo-600 hover:text-indigo-900">Reporte</button>
+                                        class="text-indigo-600 hover:text-indigo-900">Registrar pago</button>
                                     <span class="text-gray-300 mx-2">|</span>
                                     <button @click='openEditInvoiceModal({{ inv.id | tojson }}, {{ inv.invoice_number | tojson }}, {{ inv.issue_date | string | tojson }}, {{ inv.due_date | string | tojson }}, {{ inv.budget_line_id | tojson }}, {{ inv.amount | tojson }})' class="text-indigo-600 hover:text-indigo-900">Editar</button>
                                     {% else %}
@@ -450,6 +436,7 @@
                 </div>
             </div>
 
+            {% if internal %}
             <!-- Project Costs Mini Table (Grouped and Paginated) -->
             <div class="bg-white shadow sm:rounded-lg overflow-hidden border border-gray-200 mt-6"
                  x-data="{ page: 1, itemsPerPage: 10, totalItems: {{ costs|length }} }">
@@ -589,6 +576,7 @@
                 </div>
             </div>
 
+            {% endif %}
         </div>
     </div>
 
@@ -634,9 +622,9 @@
                                     <select name="budget_line_id" x-model="invLine" required
                                         class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
                                         <option value="">Seleccione una línea...</option>
-                                        {% for line in lines %}
-                                        <option value="{{ line.id }}">{{ line.name }} ( Disp: {{
-                                            "{:,.2f}".format(line.total) }} )</option>
+                                        {% for item in lines_data %}
+                                        <option value="{{ item.line.id }}">{{ item.line.name }} (queda por facturar: {{
+                                            "{:,.2f}".format(item.available) }})</option>
                                         {% endfor %}
                                     </select>
                                 </div>
@@ -644,6 +632,10 @@
                                     <label class="block text-sm font-medium leading-6 text-gray-900">Monto</label>
                                     <input type="number" step="0.01" name="amount" x-model="invAmt" required
                                         class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+                                    <p x-show="overLine()" class="mt-2 rounded-md bg-amber-50 p-2 text-xs text-amber-900">
+                                        Supera lo que queda por facturar en esta línea (<span x-text="lineLeft().toLocaleString('es-CR', {minimumFractionDigits: 2})"></span>).
+                                        <label class="mt-1 flex items-center gap-2 font-semibold"><input type="checkbox" name="confirm_over" value="true" x-model="confirmOver"> Es correcto (por ejemplo, una prórroga)</label>
+                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -655,7 +647,7 @@
                             
                             <!-- Delete Button when Editing -->
                             <template x-if="editInvoiceId">
-                                <button type="button" @click="$refs.deleteInvoiceForm.submit()" class="inline-flex w-full sm:mr-auto justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:w-auto">
+                                <button type="button" @click="confirm('¿Eliminar la factura #' + invNum + '? No se puede deshacer.') && $refs.deleteInvoiceForm.submit()" class="inline-flex w-full sm:mr-auto justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:w-auto">
                                     Eliminar Factura
                                 </button>
                             </template>
@@ -714,10 +706,16 @@
                                             class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
                                     </div>
                                     <div>
-                                        <label class="block text-sm font-medium leading-6 text-gray-900">Monto por Retención (2%)</label>
+                                        <label class="block text-sm font-medium leading-6 text-gray-900">Retención (no depositado)</label>
                                         <input type="number" step="0.01" name="retention_amount" x-model.number="payRetention" readonly
                                             class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-600 bg-gray-50 shadow-sm ring-1 ring-inset ring-gray-300 sm:text-sm sm:leading-6">
                                     </div>
+                                </div>
+                                <div x-show="applyRetention" class="rounded-md bg-gray-50 p-3 text-xs text-gray-700">
+                                    <p>2 % esperado de la factura: <strong x-text="money(payInvoiceAmount * 0.02)"></strong>.
+                                        Diferencia real (facturado − depositado): <strong x-text="money(Number(payRetention))"></strong>.</p>
+                                    <p x-show="Math.abs(payInvoiceAmount * 0.02 - Number(payRetention)) > 1" class="mt-1 font-semibold text-amber-800">
+                                        No coinciden: revisá el monto depositado antes de confirmar.</p>
                                 </div>
 
                                 <!-- Payment Type -->
@@ -798,7 +796,7 @@
                             
                             <!-- Delete Button when Editing -->
                             <template x-if="editCostId">
-                                <button type="button" @click="$refs.deleteCostForm.submit()" class="inline-flex w-full sm:mr-auto justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:w-auto">
+                                <button type="button" @click="confirm('¿Eliminar este gasto? No se puede deshacer.') && $refs.deleteCostForm.submit()" class="inline-flex w-full sm:mr-auto justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:w-auto">
                                     Eliminar Gasto
                                 </button>
                             </template>
@@ -835,11 +833,24 @@
             invDue: '',
             invLine: '',
             invAmt: '',
+            confirmOver: false,
+            lineLeftMap: {{ lines_data | map(attribute='line.id') | list | tojson }}.reduce((m, id, i) => (m[id] = {{ lines_data | map(attribute='available') | list | tojson }}[i], m), {}),
+            editOriginalAmt: 0,
+            editOriginalLine: null,
+            lineLeft() {
+                // What the line has left, counting back this invoice's own amount when editing it.
+                let left = this.lineLeftMap[this.invLine] ?? 0;
+                if (this.editInvoiceId && String(this.editOriginalLine) === String(this.invLine)) left += Number(this.editOriginalAmt);
+                return Math.round(left * 100) / 100;
+            },
+            overLine() { return this.invLine && Number(this.invAmt) > this.lineLeft() + 0.005; },
+            money(v) { return Number(v || 0).toLocaleString('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); },
 
             // Pay Modal Data
             payInvoiceId: null,
             payInvoiceNumber: '',
             payInvoiceTotal: 0,
+            payInvoiceAmount: 0,
             payAmount: 0,
             payAlreadyPaid: 0,
             payRetention: 0,
@@ -854,6 +865,7 @@
                 this.invDue = '';
                 this.invLine = '';
                 this.invAmt = '';
+                this.confirmOver = false;
                 this.showInvoiceModal = true;
             },
             
@@ -872,6 +884,9 @@
                  this.invDue = due;
                  this.invLine = line;
                  this.invAmt = amt;
+                 this.editOriginalAmt = amt;
+                 this.editOriginalLine = line;
+                 this.confirmOver = false;
                  this.showInvoiceModal = true;
             },
 
@@ -888,6 +903,7 @@
                 this.payInvoiceId = id;
                 this.payInvoiceNumber = number;
                 this.payAlreadyPaid = alreadyPaid;
+                this.payInvoiceAmount = amount;
                 this.payInvoiceTotal = Math.max(0, Math.round((amount - alreadyPaid) * 100) / 100);
                 this.payAmount = this.payInvoiceTotal;
                 this.payRetention = 0;

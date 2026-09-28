@@ -71,7 +71,7 @@
             </button>
             <button onclick="confirmAll()"
                 class="w-full lg:w-auto inline-flex items-center justify-center rounded-md bg-black px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800">
-                Confirmar Todo
+                Confirmar pendientes
             </button>
         </div>
     </div>
@@ -111,7 +111,9 @@
     let currentProjectName = "";
 
     // Initialize with today
-    const today = new Date().toISOString().split('T')[0];
+    // Dates in Costa Rica time: after 6 p. m. UTC is already tomorrow.
+    const isoCR = (d) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Costa_Rica' }).format(d);
+    const today = isoCR(new Date());
     document.getElementById('start_date').value = today;
     document.getElementById('end_date').value = today;
 
@@ -125,14 +127,16 @@
     }
 
     function setRange(type) {
-        const today = new Date();
-        const end = today.toISOString().split('T')[0];
+        const now = new Date();
+        const end = isoCR(now);
         let start = end;
 
         if (type === 'week') {
-            const first = today.getDate() - today.getDay(); // First day is the day of the month - the day of the week
-            const firstDay = new Date(today.setDate(first));
-            start = firstDay.toISOString().split('T')[0];
+            // From Sunday of this week (Costa Rica time) to today
+            const [y, m, d] = end.split('-').map(Number);
+            const local = new Date(y, m - 1, d);
+            local.setDate(local.getDate() - local.getDay());
+            start = `${local.getFullYear()}-${String(local.getMonth() + 1).padStart(2, '0')}-${String(local.getDate()).padStart(2, '0')}`;
         }
 
         document.getElementById('start_date').value = start;
@@ -232,7 +236,7 @@
                 <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">${s.worker_name}</td>
                 <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">${formatDate(s.date)}</td>
                 <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                    <input type="number" id="hours-${s.id}" data-id="${s.id}" value="${s.hours_worked}" step="0.5" class="block w-24 rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+                    <input type="number" id="hours-${s.id}" data-id="${s.id}" data-confirmed="${s.is_confirmed ? 1 : 0}" data-orig="${s.hours_worked}" data-orig-ot="${s.overtime_hours || 0}" value="${s.hours_worked}" step="0.5" class="block w-24 rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
                 </td>
                 <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                     <input type="number" id="overtime-${s.id}" value="${s.overtime_hours || 0}" step="0.5" class="block w-20 rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
@@ -327,7 +331,9 @@
     }
 
     async function confirmAll() {
-        const inputs = document.querySelectorAll('input[id^="hours-"]');
+        // Only the rows on screen that are pending, or already confirmed but changed here.
+        const inputs = [...document.querySelectorAll('input[id^="hours-"]')]
+            .filter(input => input.closest('tr').style.display !== 'none');
         if (inputs.length === 0) return;
 
         const updates = [];
@@ -338,6 +344,9 @@
             // Get Overtime
             const overtimeInput = document.getElementById(`overtime-${id}`);
             const overtimeVal = overtimeInput ? parseFloat(overtimeInput.value) : 0;
+            const changed = hoursVal !== parseFloat(input.dataset.orig)
+                || (isNaN(overtimeVal) ? 0 : overtimeVal) !== parseFloat(input.dataset.origOt);
+            if (input.dataset.confirmed === '1' && !changed) return;
 
             if (id && !isNaN(hoursVal)) {
                 updates.push({
@@ -348,7 +357,8 @@
             }
         });
 
-        if (updates.length === 0) return;
+        if (updates.length === 0) return showGlobalToast("Éxito", "No hay horas pendientes en esta página.");
+        if (!confirm(`¿Confirmar ${updates.length} registro(s) con las horas que dice cada fila?`)) return;
 
         try {
             const response = await fetch('/payroll/hours/confirm-batch-update', {

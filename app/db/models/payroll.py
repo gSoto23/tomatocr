@@ -28,6 +28,8 @@ class PayrollEntry(Base):
     social_charges = Column(Float, default=0.0)
     net_salary = Column(Float, default=0.0)
     apply_deductions = Column(Boolean, default=True)
+    # Rate used when the payroll was generated (later rate changes do not touch it).
+    hourly_rate = Column(Float, nullable=True)
     details = Column(JSON, nullable=True) # Breakdown
 
     period = relationship("PayrollPeriod", back_populates="entries")

@@ -108,8 +108,8 @@ CHAPTERS += [
         (ADMIN, SUPERVISOR, WORKER), ("/dashboard/reforestacion",),
         (("que-es", "Qué es"), ("panel", "El panel de reforestación"), ("importar", "Cargar y actualizar el inventario (CSV)"),
          ("mapa", "El mapa público y la autorización del cliente"), ("monitoreo", "Registrar un monitoreo en campo"),
-         ("preguntas", "Preguntas frecuentes")),
-        "reforestación árboles inventario csv monitoreo supervivencia mapa vivo muerto reemplazado",
+         ("corregir", "Corregir errores"), ("preguntas", "Preguntas frecuentes")),
+        "reforestación árboles inventario csv monitoreo supervivencia mapa vivo muerto reemplazado borrar renombrar",
         patterns=(r"/projects/\d+/monitoreo",),
     ),
     Chapter(

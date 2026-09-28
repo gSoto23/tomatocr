@@ -68,6 +68,10 @@
                                             <input type="date" name="end_date" id="end_date"
                                                 class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
                                             <p class="text-xs text-gray-500 mt-1">Dejar vacío para un solo día</p>
+                                            <div class="mt-2 flex flex-wrap gap-4 text-sm text-gray-700">
+                                                <label class="flex items-center gap-2"><input type="checkbox" name="include_saturday" value="true" checked class="h-4 w-4 rounded border-gray-300"> Incluir sábados</label>
+                                                <label class="flex items-center gap-2"><input type="checkbox" name="include_sunday" value="true" class="h-4 w-4 rounded border-gray-300"> Incluir domingos</label>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -81,6 +85,20 @@
                                             <option value="{{ p.id }}">{{ p.name }}</option>
                                             {% endfor %}
                                         </select>
+                                    </div>
+
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <label for="location_id" class="block text-sm font-medium leading-6 text-gray-900">Sede</label>
+                                            <select name="location_id" id="location_id"
+                                                class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6"></select>
+                                        </div>
+                                        <div>
+                                            <label for="hours" class="block text-sm font-medium leading-6 text-gray-900">Horas previstas</label>
+                                            <input type="number" name="hours" id="hours" min="0.5" max="24" step="0.5" value="8"
+                                                class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
+                                            <p class="text-xs text-gray-500 mt-1">Se ajustan después en Aprobar Horas.</p>
+                                        </div>
                                     </div>
 
                                     <div>
@@ -238,6 +256,26 @@
         container.appendChild(div);
     }
 
+    const PROJECT_LOCATIONS = {{ locations | tojson }};
+    const todayCR = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Costa_Rica' }).format(new Date());
+
+    function fillLocations(selected = null) {
+        const select = document.getElementById('location_id');
+        const list = PROJECT_LOCATIONS[document.getElementById('project_id').value] || [];
+        select.innerHTML = '';
+        const general = document.createElement('option');
+        general.value = ''; general.textContent = list.length ? 'General / sin sede' : 'Este proyecto no tiene sedes';
+        select.appendChild(general);
+        list.forEach(l => {
+            const o = document.createElement('option');
+            o.value = l.id; o.textContent = l.name;
+            select.appendChild(o);
+        });
+        select.value = selected ? String(selected) : '';
+        select.disabled = !list.length;
+    }
+    document.getElementById('project_id')?.addEventListener('change', () => fillLocations());
+
     function openModal(dateStr = '', schedule = null) {
         const modal = document.getElementById('scheduleModal');
         const form = document.getElementById('scheduleForm');
@@ -265,6 +303,8 @@
             document.getElementById('end_date').value = ''; // Clear it
             document.getElementById('project_id').value = schedule.extendedProps.project_id;
             document.getElementById('user_id').value = schedule.extendedProps.worker_id;
+            fillLocations(schedule.extendedProps.location_id);
+            document.getElementById('hours').value = schedule.extendedProps.hours || 8;
 
             // Load manual tasks
             document.getElementById('tasks-list').innerHTML = '';
@@ -284,10 +324,12 @@
             // Show End Date for Create
             if (endDateContainer) endDateContainer.classList.remove('hidden');
 
-            document.getElementById('date').value = dateStr || new Date().toISOString().split('T')[0];
+            document.getElementById('date').value = dateStr || todayCR();
             document.getElementById('end_date').value = ''; // Default to empty (single day)
             document.getElementById('project_id').selectedIndex = 0;
             document.getElementById('user_id').selectedIndex = 0;
+            fillLocations();
+            document.getElementById('hours').value = 8;
 
             // Reset tasks list
             document.getElementById('tasks-list').innerHTML = '';
@@ -323,11 +365,18 @@
         const action = this.action;
 
         try {
-            const response = await fetch(action, {
+            let response = await fetch(action, {
                 method: 'POST',
                 body: formData
             });
-            const result = await response.json();
+            let result = await response.json();
+            // The person already has something those days: ask before assigning twice.
+            if (response.status === 409) {
+                if (!confirm(result.message)) return;
+                formData.append('confirm_conflicts', 'true');
+                response = await fetch(action, { method: 'POST', body: formData });
+                result = await response.json();
+            }
 
             if (response.ok) {
                 closeModal();
@@ -387,7 +436,9 @@
         if (parts.length === 3) {
             dateDisplay = `${parts[2]}-${parts[1]}-${parts[0]}`;
         }
-        document.getElementById('worker-date').innerText = dateDisplay;
+        document.getElementById('worker-date').innerText = dateDisplay
+            + (event.extendedProps.location_name ? ` · Sede: ${event.extendedProps.location_name}` : '')
+            + (event.extendedProps.hours ? ` · ${event.extendedProps.hours} h` : '');
         document.getElementById('worker-project-link').href = `/projects/${event.extendedProps.project_id}`;
 
         const container = document.getElementById('worker-tasks-list');

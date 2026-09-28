@@ -8,14 +8,14 @@ from app.core.storage import s3_service
 from app.db.models.log import DailyLog
 from app.db.models.project import Project
 from app.db.models.reforestation import (
-    CHECK_STATUSES, KIND_INSTITUCIONAL, STATUS_REPLACED, ReforestationProject, ReforestationTree,
+    CHECK_STATUSES, KIND_INSTITUCIONAL, STATUS_REPLACED, ReforestationProject, ReforestationTree, TreeCheck,
 )
 from app.db.models.user import User
 from app.core.templates import templates
 from app.utils.activity import log_activity
 from app.utils.reforestation import (
-    CSV_COLUMNS, CsvRejected, decode_csv, import_inventory_csv, inventory_rows, parse_date, parse_tree_numbers,
-    record_check, survival_summary,
+    CSV_COLUMNS, CsvRejected, decode_csv, import_inventory_csv, inventory_rows, name_key, parse_date,
+    parse_tree_numbers, record_check, refresh_tree_status, survival_summary,
 )
 from app.utils.uploads import PHOTO_RULES, process_photo
 from datetime import date
@@ -31,6 +31,8 @@ router = APIRouter(
 )
 
 MONITORING_ROLES = (ADMIN, SUPERVISOR, WORKER)
+# Who can remove a wrong monitoring entry (trees and whole projects: admin only).
+CHECK_DELETE_ROLES = (ADMIN, SUPERVISOR)
 
 
 def require_admin(current_user: User = Depends(deps.get_current_user)) -> User:
@@ -74,16 +76,27 @@ def get_admin_dashboard(request: Request, db: Session = Depends(deps.get_db), cu
 
 @router.post("/dashboard/reforestacion/upload-csv")
 async def upload_csv(
-    client_name: str = Form(...),
+    client_name: str = Form(""),
     file: UploadFile = File(...),
+    reforestation_id: Optional[int] = Form(None),
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(require_admin)
 ):
     """Full inventory CSV (same columns as the download). Adds and updates trees and
     their monitoring; never deletes, and empty cells never erase stored data."""
     reader = read_csv_upload(file, await file.read())
-    client_name = client_name.strip()
-    project = db.query(ReforestationProject).filter(ReforestationProject.client_name == client_name).first()
+    client_name = " ".join(client_name.split())
+    if reforestation_id:
+        project = get_reforestation_project(db, reforestation_id)
+        client_name = project.client_name
+    else:
+        if not client_name:
+            raise HTTPException(status_code=400, detail="Elegí el proyecto o escribí el nombre del nuevo.")
+        # "municipalidad  de alajuela" is the same client as "Municipalidad de Alajuela".
+        key = name_key(client_name)
+        project = next((p for p in db.query(ReforestationProject) if name_key(p.client_name) == key), None)
+        if project:
+            client_name = project.client_name
     if not project:
         project = ReforestationProject(client_name=client_name)
         db.add(project)
@@ -182,6 +195,63 @@ def content_disposition(filename: str) -> str:
 
 # --- Field monitoring (from an operations project linked to a reforestation project)
 
+@router.post("/dashboard/reforestacion/{project_id}/rename")
+def rename_project(project_id: int, client_name: str = Form(...), db: Session = Depends(deps.get_db),
+                   current_user: User = Depends(require_admin)):
+    project = get_reforestation_project(db, project_id)
+    url = "/dashboard/reforestacion"
+    new_name = " ".join(client_name.split())
+    if not new_name:
+        return toast_redirect(url, "El nombre no puede quedar vacío", error=True)
+    clash = next((p for p in db.query(ReforestationProject)
+                  if p.id != project.id and name_key(p.client_name) == name_key(new_name)), None)
+    if clash:
+        return toast_redirect(url, f"Ya existe el proyecto «{clash.client_name}»", error=True)
+    old = project.client_name
+    project.client_name = new_name
+    db.commit()
+    log_activity(db, current_user, "UPDATE", "REFORESTATION", project.id, f"Renombró «{old}» a «{new_name}»")
+    return toast_redirect(url, f"Proyecto renombrado a «{new_name}»")
+
+
+@router.post("/dashboard/reforestacion/{project_id}/delete")
+def delete_project(project_id: int, confirm_name: str = Form(""), db: Session = Depends(deps.get_db),
+                   current_user: User = Depends(require_admin)):
+    """Deletes a project with all its trees and monitoring (for one imported by mistake).
+    The name must be typed again, so it can't happen by accident."""
+    project = get_reforestation_project(db, project_id)
+    url = "/dashboard/reforestacion"
+    if name_key(confirm_name) != name_key(project.client_name):
+        return toast_redirect(url, "Para borrar, escribí el nombre exacto del proyecto", error=True)
+    name, trees = project.client_name, len(project.trees)
+    for tree in project.trees:  # replacements point between trees of the same project
+        tree.replaced_by = None
+    db.flush()
+    db.delete(project)
+    db.commit()
+    log_activity(db, current_user, "DELETE", "REFORESTATION", project_id, f"Borró «{name}» con {trees} árboles")
+    return toast_redirect(url, f"Proyecto «{name}» borrado")
+
+
+@router.post("/dashboard/reforestacion/{project_id}/trees/delete")
+def delete_tree(project_id: int, tree_number: str = Form(...), db: Session = Depends(deps.get_db),
+                current_user: User = Depends(require_admin)):
+    project = get_reforestation_project(db, project_id)
+    url = "/dashboard/reforestacion"
+    number = int(tree_number) if tree_number.strip().isdigit() else None
+    tree = next((t for t in project.trees if t.tree_number == number), None)
+    if tree is None:
+        return toast_redirect(url, f"«{project.client_name}» no tiene el árbol N° {tree_number}", error=True)
+    for other in project.trees:
+        if other.replaced_by_id == tree.id:
+            other.replaced_by = None
+    project.trees.remove(tree)
+    db.commit()
+    log_activity(db, current_user, "DELETE", "REFORESTATION", project.id,
+                 f"Borró el árbol N° {number} de «{project.client_name}» y sus monitoreos")
+    return toast_redirect(url, f"Árbol N° {number} borrado")
+
+
 def get_monitoring_context(db: Session, project_id: int, user: User):
     """Admin and supervisors monitor any linked project; workers only assigned ones."""
     if user.role not in MONITORING_ROLES:
@@ -206,11 +276,37 @@ def monitoring_form(
 ):
     project, reforestation = get_monitoring_context(db, project_id, user)
     sectors = sorted({t.sector_name for t in reforestation.trees if t.sector_name})
+    recent = []
+    if user.role in CHECK_DELETE_ROLES:
+        recent = db.query(TreeCheck).join(ReforestationTree).filter(
+            ReforestationTree.project_id == reforestation.id
+        ).order_by(TreeCheck.created_at.desc(), TreeCheck.id.desc()).limit(20).all()
     return templates.TemplateResponse("reforestation/monitoring.html", {
         "request": request, "user": user, "project": project, "reforestation": reforestation,
         "sectors": sectors, "statuses": CHECK_STATUSES, "today": date.today(),
-        "summary": survival_summary(reforestation.trees),
+        "summary": survival_summary(reforestation.trees), "recent": recent,
     })
+
+
+@router.post("/projects/{project_id}/monitoreo/{check_id}/delete")
+def delete_check(project_id: int, check_id: int, db: Session = Depends(deps.get_db),
+                 user: User = Depends(deps.get_current_user)):
+    """Removes a wrong monitoring entry; the tree goes back to its previous status."""
+    if user.role not in CHECK_DELETE_ROLES:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    project, reforestation = get_monitoring_context(db, project_id, user)
+    url = f"/projects/{project_id}/monitoreo"
+    check = db.query(TreeCheck).join(ReforestationTree).filter(
+        TreeCheck.id == check_id, ReforestationTree.project_id == reforestation.id).first()
+    if not check:
+        return toast_redirect(url, "Ese monitoreo no existe", error=True)
+    tree = check.tree
+    details = f"Borró el monitoreo del árbol N° {tree.tree_number} ({check.status}, {check.checked_at:%d/%m/%Y})"
+    tree.checks.remove(check)
+    refresh_tree_status(tree)
+    db.commit()
+    log_activity(db, user, "DELETE", "TREE_CHECKS", reforestation.id, details)
+    return toast_redirect(url, f"Monitoreo del árbol N° {tree.tree_number} borrado")
 
 
 @router.post("/projects/{project_id}/monitoreo")
@@ -248,7 +344,14 @@ async def save_monitoring(
             if unknown:
                 raise ValueError(f"no existen en este proyecto: {', '.join(map(str, unknown[:15]))}")
             selected = [trees_by_number[n] for n in numbers]
-        height = float(height_cm.replace(",", ".")) if (height_cm or "").strip() else None
+        height = None
+        if (height_cm or "").strip():
+            try:
+                height = float(height_cm.strip().replace(",", "."))
+            except ValueError:
+                raise ValueError("la altura tiene que ser un número en centímetros (ej. 45 o 45,5)")
+            if height < 0:
+                raise ValueError("la altura no puede ser negativa")
         replacement = None
         if (replaced_by or "").strip():
             if check_status != STATUS_REPLACED or len(selected) != 1:
@@ -261,7 +364,10 @@ async def save_monitoring(
 
     photo_path = None
     if photo is not None and photo.filename:
-        contents = process_photo(await photo.read(), photo.content_type, photo.filename)
+        try:
+            contents = process_photo(await photo.read(), photo.content_type, photo.filename)
+        except HTTPException as e:
+            return toast_redirect(url, f"No se guardó: {e.detail}", error=True)
         photo_path = s3_service.upload_file(BytesIO(contents), "monitoreo.jpg", "image/jpeg")
         if not photo_path:
             return toast_redirect(url, "No se guardó: no se pudo subir la foto. Intente de nuevo.", error=True)

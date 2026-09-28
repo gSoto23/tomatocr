@@ -654,7 +654,7 @@
    "width": 1500,
    "height": 1000,
    "before": [
-    "[...document.querySelectorAll('button,a')].find(b => b.textContent.trim() === 'Reporte').click(); await new Promise(r => setTimeout(r, 700))"
+    "[...document.querySelectorAll('button,a')].find(b => b.textContent.trim() === 'Registrar pago').click(); await new Promise(r => setTimeout(r, 700))"
    ],
    "markers": [
     {
@@ -761,7 +761,7 @@
     },
     {
      "n": 3,
-     "text": "Confirmar Todo",
+     "text": "Confirmar pendientes",
      "tags": "button"
     }
    ]
@@ -828,6 +828,14 @@
     {
      "n": 3,
      "selector": "#project_id"
+    },
+    {
+     "n": 3,
+     "selector": "#location_id"
+    },
+    {
+     "n": 3,
+     "selector": "#hours"
     },
     {
      "n": 3,
@@ -985,9 +993,7 @@
    "markers": [
     {
      "n": 1,
-     "text": "Nombre del Cliente (Proyecto)",
-     "exact": false,
-     "tags": "label"
+     "selector": "select[x-model=\"projectId\"]"
     },
     {
      "n": 2,

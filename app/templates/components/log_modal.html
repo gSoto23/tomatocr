@@ -347,6 +347,7 @@
             // Hide View Tasks container in edit mode?
             document.getElementById('log-tasks-container').classList.add('hidden');
             document.getElementById('log-photos').classList.add('hidden');
+            document.getElementById('btn-email').classList.add('hidden');
         }
 
         function disableEditMode() {
@@ -355,6 +356,7 @@
             document.getElementById('btn-save').classList.add('hidden');
             document.getElementById('btn-delete').classList.add('hidden');
             document.getElementById('log-photos').classList.remove('hidden');
+            if (currentLogData && currentLogData.is_admin) document.getElementById('btn-email').classList.remove('hidden');
             // Show View Tasks container in view mode
             // Only if not empty? It will be handled in openLogModal or need simple logic
             // Easier: openLogModal sets it correctly based on data. 

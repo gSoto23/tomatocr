@@ -85,7 +85,7 @@
                 </div>
             </div>
             <div class="flex flex-wrap items-center gap-3 text-sm">
-                <button @click='openPlanting({{ p.client_name|tojson }})' class="font-semibold text-black hover:text-gray-600">Importar CSV actualizado</button>
+                <button @click='openPlanting({{ p.id|tojson }})' class="font-semibold text-black hover:text-gray-600">Importar CSV actualizado</button>
                 <a href="/dashboard/reforestacion/download-csv/{{ p.id }}" download class="font-semibold text-black hover:text-gray-600">Descargar CSV</a>
                 {% if p.project_id %}
                 <a href="/projects/{{ p.project_id }}/monitoreo" class="font-semibold text-green-700 hover:text-green-900">Monitoreo en campo</a>
@@ -118,6 +118,28 @@
                 <button type="submit" class="rounded-md bg-black px-4 py-2 font-semibold text-white hover:bg-gray-800">Guardar configuración</button>
             </div>
         </form>
+        <details class="border-t border-gray-200 px-6 py-4 text-sm">
+            <summary class="cursor-pointer font-semibold text-gray-700">Corregir: renombrar, borrar un árbol o el proyecto</summary>
+            <div class="mt-4 grid gap-4 sm:grid-cols-3">
+                <form method="post" action="/dashboard/reforestacion/{{ p.id }}/rename" class="space-y-2">
+                    <label class="block font-medium text-gray-700">Nuevo nombre
+                        <input type="text" name="client_name" value="{{ p.client_name }}" required class="mt-1 block w-full rounded-md border border-gray-300 p-2"></label>
+                    <button class="rounded-md border border-gray-300 px-3 py-2 font-semibold hover:bg-gray-50">Renombrar</button>
+                </form>
+                <form method="post" action="/dashboard/reforestacion/{{ p.id }}/trees/delete" class="space-y-2"
+                    onsubmit="return confirm('¿Borrar el árbol N° ' + this.tree_number.value + ' y todos sus monitoreos? No se puede deshacer.')">
+                    <label class="block font-medium text-gray-700">Borrar el árbol N°
+                        <input type="text" name="tree_number" inputmode="numeric" required class="mt-1 block w-full rounded-md border border-gray-300 p-2"></label>
+                    <button class="rounded-md border border-red-300 px-3 py-2 font-semibold text-red-700 hover:bg-red-50">Borrar árbol</button>
+                </form>
+                <form method="post" action="/dashboard/reforestacion/{{ p.id }}/delete" class="space-y-2"
+                    onsubmit="return confirm('Se borran el proyecto, sus {{ p.trees|length }} árboles y todos sus monitoreos. No se puede deshacer. ¿Seguir?')">
+                    <label class="block font-medium text-gray-700">Para borrar el proyecto, escribí su nombre
+                        <input type="text" name="confirm_name" required autocomplete="off" class="mt-1 block w-full rounded-md border border-gray-300 p-2"></label>
+                    <button class="rounded-md bg-red-600 px-3 py-2 font-semibold text-white hover:bg-red-500">Borrar proyecto</button>
+                </form>
+            </div>
+        </details>
     </div>
     {% endfor %}
 
@@ -133,9 +155,13 @@
                                 >Importar inventario (CSV)</h3>
                             <div class="mt-4 space-y-4">
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700">Nombre del Cliente (Proyecto)</label>
-                                    <input type="text" x-model="clientName" required placeholder="Ej. Municipalidad Alajuela" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm border p-2">
-                                    <p class="mt-1 text-xs text-gray-500">Si el nombre ya existe, se actualizan sus árboles. Nunca se borran árboles ni monitoreos, y una casilla vacía no borra lo que ya estaba.</p>
+                                    <label class="block text-sm font-medium text-gray-700">Proyecto</label>
+                                    <select x-model="projectId" class="mt-1 block w-full rounded-md border border-gray-300 p-2 sm:text-sm">
+                                        <option value="">Nuevo proyecto…</option>
+                                        {% for row in rows %}<option value="{{ row.project.id }}">{{ row.project.client_name }}</option>{% endfor %}
+                                    </select>
+                                    <input type="text" x-show="!projectId" x-model="clientName" :required="!projectId" placeholder="Nombre del cliente, ej. Municipalidad de Alajuela" class="mt-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm border p-2">
+                                    <p class="mt-1 text-xs text-gray-500">Elegí el proyecto para actualizar sus árboles. Si escribís un nombre que ya existe (aunque cambien mayúsculas o tildes), se usa ese proyecto. Nunca se borran árboles ni monitoreos, y una casilla vacía no borra lo que ya estaba.</p>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700">Archivo CSV</label>
@@ -170,11 +196,13 @@ document.addEventListener('alpine:init', () => {
         modal: null,
         isLoading: false,
         clientName: '',
+        projectId: '',
         errorText: '',
 
-        openPlanting(name = '') {
+        openPlanting(id = '') {
             this.modal = 'planting';
-            this.clientName = name;
+            this.projectId = id ? String(id) : '';
+            this.clientName = '';
             this.errorText = '';
         },
 
@@ -184,6 +212,7 @@ document.addEventListener('alpine:init', () => {
             const formData = new FormData();
             formData.append('file', this.$refs.fileInput.files[0]);
             formData.append('client_name', this.clientName);
+            if (this.projectId) formData.append('reforestation_id', this.projectId);
             const url = '/dashboard/reforestacion/upload-csv';
 
             try {
