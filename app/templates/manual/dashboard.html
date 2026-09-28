@@ -12,12 +12,12 @@
 <h3 class="font-semibold text-gray-900">Admin</h3>
 {{ m.shot("dashboard/admin.webp", "Dashboard del admin", "Dashboard del admin con datos de ejemplo.") }}
 {{ m.steps([
-    (1, "<strong>Filtros</strong>: tocá el título para abrirlos. Filtran la facturación por fecha de emisión y estado (Pendiente, Pago parcial, Vencida, Pagada). Con un filtro puesto se quedan abiertos y dicen <em>activos</em>."),
-    (2, "<strong>Proyectos Activos</strong>: cuántos proyectos están marcados como activos."),
-    (3, "<strong>Total Adjudicado</strong>: lo contratado en los proyectos activos, con IVA y prórrogas."),
-    (4, "<strong>Total Facturado</strong>: lo facturado en los proyectos activos. Es la única tarjeta que cambia con los filtros."),
-    (5, "<strong>Facturas por cobrar</strong>: sin filtros muestra las pendientes, con pago parcial y vencidas, de la que vence primero a la última. Para ver las pagadas, filtrá por Estado. <em>Ver</em> abre el presupuesto del proyecto."),
-    (6, "<strong>Embudo comercial del equipo</strong>: cuántas cuentas llegaron a cada etapa en el periodo del piloto, contra la meta. Ver el capítulo Clientes."),
+    (1, "<strong>Requiere atención</strong>: lo que hay que resolver, lo más urgente primero. En rojo, las facturas vencidas; en amarillo, los días trabajados sin bitácora (últimos 7 días), las jornadas con horas sin confirmar, las planillas en borrador, los próximos pasos atrasados en Clientes y las personas sin correo. Cada aviso tiene su enlace para resolverlo. Si no hay nada, dice <em>Todo al día</em>."),
+    (2, "<strong>Hoy en campo</strong>: cada proyecto con gente asignada hoy en el Calendario, quiénes van y si ya tiene la bitácora del día."),
+    (3, "<strong>Dinero</strong>: <em>Por cobrar</em> (facturado que falta pagar), <em>Vencido</em>, <em>Facturado este mes</em> y <em>Por facturar</em> (adjudicado que falta facturar). Debajo, los proyectos activos y los totales adjudicado y facturado."),
+    (4, "<strong>Filtros</strong>: filtran la lista de facturas por fecha de emisión y estado (Pendiente, Pago parcial, Vencida, Pagada). Con un filtro puesto se quedan abiertos y dicen <em>activos</em>."),
+    (5, "<strong>Facturas por cobrar</strong>: sin filtros muestra las pendientes, con pago parcial y vencidas, de la que vence primero a la última. En el celular se ven como tarjetas. Tocá una para abrir el presupuesto del proyecto."),
+    (6, "<strong>Embudo comercial del equipo</strong>: cuántas cuentas llegaron a cada etapa en el periodo del piloto, contra la meta. Fuera del periodo se muestra en una sola línea. Ver el capítulo Clientes."),
 ]) }}
 {% endif %}
 
@@ -60,6 +60,11 @@
 {% call m.section("preguntas", "Preguntas frecuentes") %}
 <div class="space-y-2">
 {% if user.role == 'admin' %}
+{% call m.faq("¿De dónde sale «días trabajados sin bitácora»?") %}
+<p>Son los días de los últimos 7 en que un proyecto tenía gente asignada en el Calendario y nadie registró la bitácora de
+    ese proyecto ese día. Si el trabajo no se hizo, quitá la asignación; si se hizo, registrá la bitácora (se puede hasta
+    7 días atrás).</p>
+{% endcall %}
 {% call m.faq("Filtré por fecha y el Total Adjudicado no cambió") %}
 <p>Es así: los filtros solo cambian <strong>Total Facturado</strong> y la tabla de facturación. Proyectos activos y
     total adjudicado siempre muestran todo.</p>

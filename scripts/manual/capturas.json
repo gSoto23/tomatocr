@@ -111,23 +111,26 @@
    "name": "dashboard/admin",
    "path": "/dashboard",
    "as": "admin",
-   "height": 1250,
+   "height": 2100,
    "markers": [
     {
      "n": 1,
-     "text": "Filtros"
+     "text": "Requiere atención",
+     "tags": "h2"
     },
     {
      "n": 2,
-     "text": "Proyectos Activos"
+     "text": "Hoy en campo",
+     "tags": "h2"
     },
     {
      "n": 3,
-     "text": "Total Adjudicado"
+     "text": "Dinero",
+     "tags": "h2"
     },
     {
      "n": 4,
-     "text": "Total Facturado"
+     "text": "Filtros"
     },
     {
      "n": 5,

@@ -13,6 +13,7 @@ from app.db.models.finance import Invoice, InvoiceStatus
 from app.db.models.log import DailyLog
 from app.db.models.schedule import ProjectSchedule
 from app.db.models.associations import project_users
+from app.utils.admin_overview import admin_overview
 from app.routers.finance import check_update_overdue_invoices, get_project_budget_status
 
 router = APIRouter(
@@ -87,6 +88,10 @@ def dashboard(
         data["filtered"] = bool(start_date or end_date or invoice_status)
         data["crm_period"] = crm.funnel_period(db)
         data["crm_funnel"] = crm.funnel(db, period=data["crm_period"])
+        today = today_cr()
+        period = data["crm_period"]
+        data["crm_running"] = period.start <= today <= period.end
+        data["overview"] = admin_overview(db, today, crm.next_steps(db, today=today))
 
     elif user.role == CLIENT:
         # 1. Get Client Projects for Dropdown & Filter

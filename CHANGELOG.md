@@ -6,7 +6,20 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-28
 
-### Arreglo: eliminar empleado y usuarios de clientes aparte (esta rama)
+### Dashboard del admin: lo que requiere atención primero (esta rama)
+- **Requiere atención** (lo más urgente primero, cada aviso con su enlace): facturas
+  vencidas, días trabajados sin bitácora en los últimos 7 días, jornadas con horas sin
+  confirmar, planillas en borrador, próximos pasos atrasados en Clientes y personas
+  activas sin correo. Si no hay nada, "Todo al día" (`app/utils/admin_overview.py`).
+- **Hoy en campo**: cada proyecto con gente hoy, quiénes van y si ya tiene bitácora.
+- **Dinero**: Por cobrar, Vencido, Facturado este mes y Por facturar (antes: proyectos
+  activos, adjudicado y facturado, que quedan como una línea de referencia).
+- El embudo comercial se muestra compacto fuera del periodo del piloto; en el celular
+  las facturas por cobrar se ven como tarjetas. La fecha del día va con el día de la semana.
+- Manual (Dashboard) y captura al día.
+- Despliegue: sin migraciones; reiniciar.
+
+### Arreglo: eliminar empleado y usuarios de clientes aparte (#76)
 - Eliminar a una persona con historial (bitácoras, asignaciones, planillas, pagos,
   liquidaciones, monitoreos, Clientes o Actividad) daba "Internal Server Error". Ahora
   dice qué historial tiene y que hay que desactivarla; solo se elimina a quien no tiene
