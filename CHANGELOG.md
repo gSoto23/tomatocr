@@ -6,7 +6,14 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-27
 
-### Manual del usuario, parte 2 (esta rama)
+### Arreglo: botón "?" del manual (esta rama)
+- El botón "?" de las pantallas internas llevaba a una dirección rota (la
+  plantilla perdió las llaves de Jinja al armar el botón). Ahora abre el
+  capítulo de la pantalla. El "?" del Cotizador ya funcionaba.
+- Prueba nueva: cada "?" apunta al capítulo correcto y el capítulo abre.
+- Despliegue: sin migraciones; reiniciar.
+
+### Manual del usuario, parte 2 (#64)
 - Capítulos nuevos: Calendario, Planilla (horas, planilla, pagos y
   liquidaciones), Presupuestos, Reforestación (inventario, monitoreo y mapa
   público), Empleados, Actividad y Recorridos de punta a punta (de prospecto a
