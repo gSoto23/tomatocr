@@ -6,7 +6,15 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-28
 
-### Home: hero nuevo con cifras en vivo
+### Arreglo: el hero entra completo en la pantalla de una laptop
+- En la computadora, el alto de la foto se ajusta a la ventana (entre 16 y 30 rem) y la
+  tarjeta de cifras pasa a una sola fila compacta (árboles, % con GPS, especies y *Ver
+  mapa*). El titular baja un tamaño hasta los 1280 px de ancho. Probado en 1000×530,
+  1280×720, 1440×800 y 1920×1000: titular, botones, foto y cifras se ven sin bajar.
+- Celular sin cambios de fondo; la tarjeta usa la misma fila compacta.
+- Despliegue: sin migraciones; reiniciar.
+
+### Home: hero nuevo con cifras en vivo (#81)
 - Titular centrado en lo que nos diferencia: *Reforestación que podés comprobar, árbol
   por árbol*. El texto de apoyo nombra ingenieros forestales, vivero propio y GPS, y
   también mantenimiento, jardinería y paisajismo.
