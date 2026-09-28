@@ -123,6 +123,9 @@
         </button>
     </div>
 
+    <!-- Mobile overlay: outside the header, whose backdrop-blur would trap a fixed child inside it -->
+    <div id="mobileOverlay" class="hidden fixed inset-0 bg-black/50 z-40 lg:hidden"></div>
+
     <!-- HEADER -->
     <header
         class="sticky top-0 z-50 border-b border-black/10 bg-white/90 backdrop-blur dark:border-white/10 dark:bg-black/80">
@@ -138,7 +141,7 @@
                 </a>
 
                 <!-- Nav (desktop) -->
-                <nav class="hidden md:flex items-center gap-6 text-sm">
+                <nav class="hidden lg:flex items-center gap-6 text-sm" aria-label="Principal">
                     <a href="#about" class="hover:opacity-70">Empresa</a>
                     <a href="#services" class="hover:opacity-70">Servicios</a>
                     <a href="#process" class="hover:opacity-70">Proceso</a>
@@ -147,27 +150,42 @@
                 </nav>
 
                 <div class="hidden lg:flex items-center gap-2">
-
-                    <!-- Login (header) -->
-                    <form action="/login" method="post" class="flex items-center gap-2">
-                        <input name="user" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="Usuario" required
-                            class="w-36 rounded-md border border-black/20 bg-white px-3 py-2 text-sm outline-none focus:border-black dark:border-white/20 dark:bg-black dark:focus:border-white" />
-                        <input name="pass" type="password" autocomplete="current-password" placeholder="Contraseña"
-                            required
-                            class="w-36 rounded-md border border-black/20 bg-white px-3 py-2 text-sm outline-none focus:border-black dark:border-white/20 dark:bg-black dark:focus:border-white" />
-                        <button type="submit"
-                            class="rounded-md bg-black px-3 py-2 text-sm font-semibold text-white hover:opacity-90 dark:bg-white dark:text-black">
+                    <!-- Login (desktop): secondary, the form opens in a panel so it doesn't compete with the quote CTA -->
+                    <div class="relative" x-data="{ open: false }" x-init="open = showToast && !toastOk"
+                        @keydown.escape.window="open = false" @click.outside="open = false">
+                        <button type="button" @click="open = !open; if (open) $nextTick(() => $refs.user.focus())"
+                            :aria-expanded="open.toString()" aria-controls="loginPanel"
+                            class="rounded-md border border-black/20 px-3 py-2 text-sm font-semibold hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/10">
                             Ingresar
                         </button>
-                        <a href="/recuperar" class="whitespace-nowrap text-xs text-black/60 underline hover:text-black dark:text-white/60" title="Recuperar contraseña">¿Olvidaste?</a>
-                    </form>
+                        <div id="loginPanel" x-show="open" x-transition.opacity style="display: none;"
+                            class="absolute right-0 mt-2 w-72 rounded-xl border border-black/10 bg-white p-4 shadow-lg dark:border-white/10 dark:bg-black">
+                            <form action="/login" method="post" class="grid gap-2">
+                                <div class="text-sm font-semibold">Acceso al sistema interno</div>
+                                <input x-ref="user" name="user" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="Usuario" required
+                                    class="w-full rounded-md border border-black/20 bg-white px-3 py-2 text-sm outline-none focus:border-black dark:border-white/20 dark:bg-black dark:focus:border-white" />
+                                <input name="pass" type="password" autocomplete="current-password" placeholder="Contraseña" required
+                                    class="w-full rounded-md border border-black/20 bg-white px-3 py-2 text-sm outline-none focus:border-black dark:border-white/20 dark:bg-black dark:focus:border-white" />
+                                <button type="submit"
+                                    class="rounded-md bg-black px-3 py-2 text-sm font-semibold text-white hover:opacity-90 dark:bg-white dark:text-black">
+                                    Ingresar
+                                </button>
+                                <a href="/recuperar" class="text-center text-xs text-black/60 underline hover:text-black dark:text-white/60 dark:hover:text-white">¿Olvidaste tu contraseña?</a>
+                            </form>
+                        </div>
+                    </div>
+
+                    <a href="#contact"
+                        class="rounded-md bg-black px-4 py-2 text-sm font-semibold text-white hover:opacity-90 dark:bg-white dark:text-black">
+                        Cotizar
+                    </a>
                 </div>
 
                 <!-- Mobile controls -->
                 <div class="flex lg:hidden items-center gap-2">
                     <!-- Phone and tablet: the login lives in the menu; this opens it right there -->
                     <button id="loginMenuBtn" type="button"
-                        class="inline-flex items-center rounded-md bg-black px-3 py-2 text-sm font-semibold text-white hover:opacity-90 dark:bg-white dark:text-black">
+                        class="inline-flex items-center rounded-md border border-black/20 px-3 py-2 text-sm font-semibold hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/10">
                         Ingresar
                     </button>
 
@@ -184,23 +202,29 @@
             </div>
         </div>
 
-        <!-- Mobile overlay -->
-        <div id="mobileOverlay" class="hidden fixed inset-0 bg-black/50 z-40 lg:hidden"></div>
 
         <!-- Mobile menu panel -->
-        <div id="mobileMenu" class="hidden lg:hidden pb-4 relative z-50 dark:bg-black" style="
-    width: 90%;
-    margin: 0 auto;
-">
+        <div id="mobileMenu" class="hidden lg:hidden pb-4 relative z-50 max-h-[calc(100dvh-5rem)] overflow-y-auto bg-white px-4 dark:bg-black">
             <div class="grid gap-3 text-sm">
-                <form action="/login" method="post" class="grid gap-2 pt-2">
+                <nav class="grid text-base font-semibold" aria-label="Principal (móvil)">
+                    <a href="#about" class="js-mobile-link border-b border-black/10 py-3 dark:border-white/10">Empresa</a>
+                    <a href="#services" class="js-mobile-link border-b border-black/10 py-3 dark:border-white/10">Servicios</a>
+                    <a href="#process" class="js-mobile-link border-b border-black/10 py-3 dark:border-white/10">Proceso</a>
+                    <a href="/programas/darboles" class="js-mobile-link border-b border-black/10 py-3 dark:border-white/10">Dárboles</a>
+                    <a href="#contact" class="js-mobile-link border-b border-black/10 py-3 dark:border-white/10">Contacto</a>
+                </nav>
+                <a href="https://wa.me/50670808613" target="_blank" rel="noopener noreferrer"
+                    class="rounded-md bg-black px-3 py-3 text-center text-base font-semibold text-white hover:opacity-90 dark:bg-white dark:text-black">
+                    Cotizar por WhatsApp
+                </a>
+                <form action="/login" method="post" class="mt-2 grid gap-2 border-t border-black/10 pt-4 dark:border-white/10">
                     <div class="text-md text-center text-black/60 dark:text-white/60">Acceso al sistema interno</div>
                     <input name="user" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="Usuario" required
                         class="w-full rounded-md border border-black/20 bg-white px-3 py-3 text-base outline-none focus:border-black dark:border-white/20 dark:bg-black dark:focus:border-white" />
                     <input name="pass" type="password" autocomplete="current-password" placeholder="Contraseña" required
                         class="w-full rounded-md border border-black/20 bg-white px-3 py-3 text-base outline-none focus:border-black dark:border-white/20 dark:bg-black dark:focus:border-white" />
                     <button type="submit"
-                        class="rounded-md bg-black px-3 py-3 text-base font-semibold text-white hover:opacity-90 dark:bg-white dark:text-black">
+                        class="rounded-md border border-black/30 px-3 py-3 text-base font-semibold hover:bg-black hover:text-white dark:border-white/30 dark:hover:bg-white dark:hover:text-black">
                         Ingresar
                     </button>
                     <a href="/recuperar" class="py-2 text-center text-sm text-black/70 underline dark:text-white/70">¿Olvidaste tu contraseña?</a>

@@ -6,6 +6,19 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-28
 
+### Home: menú del celular con las secciones y acceso secundario
+- **Celular y tablet**: el menú ☰ ahora trae Empresa, Servicios, Proceso, Dárboles y
+  Contacto (antes solo tenía el acceso), *Cotizar por WhatsApp* y, al final, el acceso al
+  sistema. Tocar una sección cierra el menú. El botón *Ingresar* sigue arriba, con menos
+  peso visual, y abre el menú directo en el usuario.
+- **Computadora**: el formulario de usuario y contraseña sale de la barra. En su lugar,
+  *Ingresar* abre un panel con el acceso, y se suma el botón *Cotizar*, que lleva al
+  formulario de contacto. Si el login falla, el panel se abre solo junto al aviso.
+- Arreglado: el fondo oscuro del menú del celular no cubría la página (quedaba dentro del
+  encabezado) y el panel era transparente en modo claro.
+- Manual (Entrar y salir) y capturas del acceso al día.
+- Despliegue: sin migraciones; reiniciar.
+
 ### Dashboards de supervisor, trabajador, cliente y ventas (#78)
 - **Supervisor**: arriba *Requiere atención* del equipo (jornadas con horas sin confirmar,
   sin contar las suyas, y días trabajados sin bitácora) y *Hoy en campo*; debajo sus

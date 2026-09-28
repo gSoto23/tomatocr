@@ -4,19 +4,27 @@
   {
    "name": "primeros-pasos/login",
    "path": "/",
-   "clip": "header",
+   "height": 420,
+   "before": [
+    "document.querySelector('button[aria-controls=\"loginPanel\"]').click()",
+    "await new Promise((r) => setTimeout(r, 400))"
+   ],
    "markers": [
     {
      "n": 1,
-     "selector": "header input[name=\"user\"]"
+     "selector": "button[aria-controls=\"loginPanel\"]"
     },
     {
      "n": 2,
-     "selector": "header input[name=\"pass\"]"
+     "selector": "#loginPanel input[name=\"user\"]"
     },
     {
      "n": 3,
-     "selector": "header form[action=\"/login\"] button"
+     "selector": "#loginPanel input[name=\"pass\"]"
+    },
+    {
+     "n": 4,
+     "selector": "#loginPanel button[type=\"submit\"]"
     }
    ]
   },
