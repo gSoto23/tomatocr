@@ -6,7 +6,27 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-28
 
-### Home: fotos nuevas en Servicios
+### Formulario de contacto: más claro y con respuesta en 24 horas
+- **¿Qué te interesa?** muestra opciones en palabras del cliente ("Reforestación para mi
+  empresa (ESG)", "Mantenimiento, jardinería o paisajismo", etc.) en vez de los nombres
+  internos del CRM; los valores de motor no cambian, así que la asignación de prospectos
+  sigue igual. En la portada ya no viene nada preseleccionado; *Cotizar este servicio*
+  elige mantenimiento. En Dárboles sigue preseleccionado ESG.
+- En el celular los campos usan letra de 16 px (el iPhone ya no hace zoom al tocarlos) y
+  los bordes tienen contraste suficiente (3:1).
+- Errores en cada campo: borde rojo, mensaje debajo y el cursor va al primero. Detecta un
+  correo mal escrito.
+- Al enviar, el formulario cambia por "Recibimos tu solicitud. Te respondemos en menos de
+  24 horas", con WhatsApp y *Enviar otra solicitud*. La página sin JavaScript
+  (`/contacto/gracias`) dice lo mismo.
+- Portada: la sección pasa a **Cotizá tu proyecto**, con el formulario a la izquierda y a
+  la derecha WhatsApp, horario y *Qué pasa después* (respuesta en 24 horas, visita,
+  cotización). En el celular el enlace a WhatsApp aparece antes del formulario.
+- Casilla de privacidad más grande; controles nativos oscuros en modo oscuro.
+- Documentado en `docs/DISENO_CRM.md`.
+- Despliegue: sin migraciones; reiniciar.
+
+### Home: fotos nuevas en Servicios (#86)
 - Reforestación: el equipo de TOMATO abriendo el hoyo con barreno (con el logo en la
   camiseta). Mantenimiento: franja de césped cortado y bordeado junto a un parqueo, con
   las **placas de los carros difuminadas**. Jardinería: cama con bromelias y arbusto de

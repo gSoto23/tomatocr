@@ -9,7 +9,6 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.templates import templates
-from app.db.models.crm import LABELS, MOTORS
 from app.db.models.user import User
 from app.routers import deps
 from app.utils.email import send_plain_email
@@ -72,7 +71,7 @@ async def contact(request: Request, background: BackgroundTasks, db: Session = D
     record_submission(db, "web", ip)
     result = intake_lead(db, lead, "web")
     notify(background, db, result, lead, "web")
-    return answer(True, "¡Gracias! Recibimos tu solicitud y te contactamos pronto.")
+    return answer(True, "Recibimos tu solicitud. Te respondemos en menos de 24 horas.")
 
 
 @router.post("/api/crm/leads")
@@ -99,9 +98,20 @@ async def darboles_lead(request: Request, background: BackgroundTasks, db: Sessi
             "new_account": result.new_account, "new_opportunity": result.new_opportunity}
 
 
+# What visitors see in "¿Qué te interesa?". Same motor values as the CRM (so lead routing
+# doesn't change), but in the client's words instead of the internal names.
+PUBLIC_MOTOR_LABELS = {
+    "esg": "Reforestación para mi empresa (ESG)",
+    "sector_publico": "Reforestación para una institución pública",
+    "mantenimiento": "Mantenimiento, jardinería o paisajismo",
+    "regalo_corporativo": "Árboles como regalo corporativo",
+    "tienda": "Compra en la tienda Dárboles",
+}
+
+
 def contact_form_context(default_motor: Optional[str] = None):
     """Options for the form partial (templates/components/contact_form.html)."""
-    return {"motors": [(m, LABELS["motor"][m]) for m in MOTORS], "default_motor": default_motor}
+    return {"motors": list(PUBLIC_MOTOR_LABELS.items()), "default_motor": default_motor}
 
 
 templates.env.globals["contact_form_context"] = contact_form_context
