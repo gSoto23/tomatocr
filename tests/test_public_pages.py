@@ -84,3 +84,13 @@ def test_home_has_projects_gallery_in_the_menu():
     assert 'id="projects"' in html
     assert html.count('href="#projects"') == 2  # desktop bar and phone menu
     assert html.count('src="/static/images/proyectos/') == 4
+
+
+def test_sales_actions_use_the_brand_green():
+    html = new_client().get("/").text
+    for label in ("Cotizar\n", "Cotizar por WhatsApp", "Enviar solicitud"):
+        start = html.index(label)
+        tag = html[html.rindex("<", 0, start):start]
+        assert "bg-brand" in tag, label
+    css = open("app/static/css/tailwind.css").read()
+    assert ".bg-brand{" in css and "bg-brand-light" in css
