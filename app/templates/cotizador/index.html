@@ -180,7 +180,7 @@
           </div>
 
           <div class="flex items-center justify-between gap-3">
-            <span class="muted">Descuento</span>
+            <span class="muted">Descuento <span class="text-xs">(monto en la moneda, no %)</span></span>
             <input class="inp w-32 text-right" type="number" id="discount" min="0" step="1" value="0" />
           </div>
 
@@ -274,7 +274,7 @@
     </section>
   </main>
 
-  <script>window.COTIZADOR = { picksAccount: {{ picks_account | tojson }} };</script>
+  <script>window.COTIZADOR = { picksAccount: {{ picks_account | tojson }}, canDelete: {{ can_delete | tojson }} };</script>
   <script src="/static/cotizador/app.js?v={{ asset_version }}"></script>
 </body>
 

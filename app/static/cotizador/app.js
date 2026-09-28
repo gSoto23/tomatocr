@@ -4,6 +4,7 @@ const API_URL = "/api/quotes/";
 const CRM_API = "/clientes/api/";
 // Admin and ventas pick the client's account (Clientes); the client role types the name as before.
 const PICKS_ACCOUNT = !!(window.COTIZADOR && window.COTIZADOR.picksAccount);
+const CAN_DELETE = !!(window.COTIZADOR && window.COTIZADOR.canDelete);
 
 const COUNTER_KEY = "tomato_quote_counter_v1";
 const DRAFT_KEY = "tomato_quote_draft_v1";
@@ -61,15 +62,23 @@ async function checkAccess() {
 }
 
 // --- 2. Lógica de Negocio y Supabase SQL ---
-function calc() {
-  const subtotal = state.items.reduce((acc, it) => acc + (it.qty * it.unitPrice), 0);
-  const discount = Math.max(0, Number(state.discount || 0));
+function totalsOf(s) {
+  const subtotal = s.items.reduce((acc, it) => acc + (it.qty * it.unitPrice), 0);
+  const discount = Math.max(0, Number(s.discount || 0));
   const taxableBase = Math.max(0, subtotal - discount);
-  const tax = state.taxEnabled ? taxableBase * (state.taxRate / 100) : 0;
+  const tax = s.taxEnabled ? taxableBase * (s.taxRate / 100) : 0;
   const total = taxableBase + tax;
-
-  autoSaveDraft();
   return { subtotal, discount, tax, total };
+}
+
+function calc() {
+  autoSaveDraft();
+  return totalsOf(state);
+}
+
+// Today in Costa Rica (UTC-6), not in UTC: after 6 p. m. UTC is already tomorrow.
+function todayCR() {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Costa_Rica" }).format(new Date());
 }
 
 async function saveToSQL() {
@@ -135,18 +144,18 @@ async function renderRecent() {
       <td class="muted">${r.fecha_emision}</td>
       <td class="text-right font-bold">${formatMoney(r.total || 0, r.moneda)}</td>
       <td class="text-right">
-        <button class="btn py-1 px-3 text-xs" onclick="loadFromSQL('${r.id}')">Cargar</button>
+        <div class="flex justify-end gap-1 whitespace-nowrap">
+          <button class="btn py-1 px-3 text-xs" onclick="loadFromSQL('${r.id}')">Cargar</button>
+          <button class="btn py-1 px-3 text-xs" onclick="pdfFromHistory('${r.id}')" title="Abrir el PDF sin cargarla">PDF</button>
+          ${CAN_DELETE ? `<button class="btn btn-danger py-1 px-3 text-xs" onclick="deleteQuote('${r.id}', '${escapeHtml(r.numero_cotizacion)}')"><span class="danger">Borrar</span></button>` : ""}
+        </div>
       </td>
     </tr>
   `).join("") || `<tr><td colspan='${PICKS_ACCOUNT ? 6 : 5}' class='text-center muted'>No hay historial en la nube</td></tr>`;
 }
 
-window.loadFromSQL = async (id) => {
-  const response = await fetch(API_URL + id);
-  if (response.ok) {
-    accountContacts = [];
-    const data = await response.json();
-    state = {
+function quoteFromData(data) {
+  return {
       quoteId: data.id,
       quoteNumber: data.numero_cotizacion,
       issueDate: data.fecha_emision,
@@ -165,10 +174,38 @@ window.loadFromSQL = async (id) => {
       accountName: data.account_name || "",
       opportunityId: data.opportunity_id || null,
       opportunityTitle: ""
-    };
+  };
+}
+
+window.loadFromSQL = async (id) => {
+  if (isDirty() && !confirm("Tenés cambios sin guardar en la cotización abierta. ¿Cargar la otra igual?")) return;
+  const response = await fetch(API_URL + id);
+  if (response.ok) {
+    accountContacts = [];
+    state = quoteFromData(await response.json());
     bindForm();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
+};
+
+window.pdfFromHistory = async (id) => {
+  // The window opens right away (inside the click), or the browser blocks it.
+  const win = window.open("", "_blank");
+  if (!win) return showToast("El navegador bloqueó la ventana del PDF. Permita ventanas emergentes para este sitio.", "error");
+  win.document.write("<p style='font-family:sans-serif'>Preparando el PDF…</p>");
+  const response = await fetch(API_URL + id);
+  if (!response.ok) { win.close(); return showToast("No se pudo abrir esa cotización.", "error"); }
+  const quote = quoteFromData(await response.json());
+  printQuote(win, quote);
+};
+
+window.deleteQuote = async (id, number) => {
+  if (!confirm(`¿Borrar la cotización ${number} para siempre? No se puede deshacer.`)) return;
+  const response = await fetch(API_URL + id, { method: "DELETE" });
+  if (!response.ok) return showToast("No se pudo borrar la cotización.", "error");
+  if (String(state.quoteId) === String(id)) { state.quoteId = null; }
+  showToast(`Cotización ${number} borrada.`, "success");
+  renderRecent();
 };
 
 // --- 3. UI y Utilidades ---
@@ -374,7 +411,7 @@ async function init() {
   state = {
     quoteId: null,
     quoteNumber: `TCR-${new Date().getFullYear()}-${String(n).padStart(4, '0')}`,
-    issueDate: new Date().toISOString().split('T')[0],
+    issueDate: todayCR(),
     validDays: 15, currency: "CRC", serviceType: "Jardinería", frequency: "Por demanda",
     client: { name: "", id: "", email: "", phone: "", address: "" },
     accountId: null, accountName: "", opportunityId: null, opportunityTitle: "",
@@ -510,7 +547,7 @@ function wireListeners() {
     } catch (e) {}
     state.quoteId = null;  // a copy is a new quote
     state.quoteNumber = `TCR-${new Date().getFullYear()}-${String(n).padStart(4, '0')}`;
-    state.issueDate = new Date().toISOString().split('T')[0];
+    state.issueDate = todayCR();
     bindForm(false);
     showToast("Copia lista con número nuevo. Tocá Guardar para crearla.", "success");
   };
@@ -527,6 +564,14 @@ function wireListeners() {
   simpleInputs.forEach(id => {
     $(id).addEventListener("input", (e) => {
       state[id] = e.target.type === "checkbox" ? e.target.checked : e.target.value;
+      if (id === "currency" && state.items.some(it => Number(it.unitPrice) > 0)) {
+        showToast("Los precios no se convierten solos: revisalos en la nueva moneda.", "error");
+      }
+      if (id === "validDays") {
+        // Keep the "Validez: N días" line of the terms in step with the field.
+        const updated = String(state.terms || "").replace(/Validez:\s*\d+\s*días/i, `Validez: ${state.validDays} días`);
+        if (updated !== state.terms) { state.terms = updated; $("terms").value = updated; }
+      }
       renderTotals();
       if (id === "currency") renderItems();
     });
@@ -536,6 +581,7 @@ function wireListeners() {
     $("accountSearch").addEventListener("input", (e) => searchAccounts(e.target.value));
     $("accountSearch").addEventListener("focus", (e) => searchAccounts(e.target.value));
     $("btnChangeAccount").onclick = () => {
+      if (state.opportunityId && !confirm("Esta cotización está ligada a una oportunidad. Si cambiás la cuenta deja de estarlo. ¿Seguir?")) return;
       state.accountId = null; state.accountName = ""; state.opportunityId = null; state.opportunityTitle = "";
       accountContacts = [];
       renderAccount();
@@ -594,10 +640,14 @@ window.showToast = function(message, type = "success") {
 function exportPDF() {
   const { errors } = checkQuote();
   if (errors.length) return showToast("Complete antes de exportar: " + errors.slice(0, 3).join(", ") + (errors.length > 3 ? "…" : ""), "error");
-  const totals = calc();
   const win = window.open("", "_blank");
   if (!win) return showToast("El navegador bloqueó la ventana del PDF. Permita ventanas emergentes para este sitio.", "error");
-  win.document.write(buildPrintableHTML({ ...state, totals }));
+  printQuote(win, state);
+}
+
+function printQuote(win, quote) {
+  win.document.open();
+  win.document.write(buildPrintableHTML({ ...quote, totals: totalsOf(quote) }));
   win.document.close();
   // Print once the logo has loaded, so it is never missing from the PDF.
   const printWhenReady = () => { win.focus(); win.print(); };

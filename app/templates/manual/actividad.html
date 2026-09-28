@@ -11,8 +11,8 @@
 {% call m.section("leer", "Leer el registro") %}
 {{ m.shot("actividad/registro.webp", "Registro de actividad", "El registro de actividad.") }}
 {{ m.steps([
-    (1, "<strong>Buscar</strong> por persona, tipo de registro (ej. Factura) o acción. Busca solo en la página que estás viendo."),
-    (2, "<strong>Timestamp</strong>: fecha y hora, en hora UTC (6 horas más que en Costa Rica)."),
+    (1, "<strong>Buscar</strong> por persona, tipo de registro (ej. Factura), acción o una palabra del detalle, y tocá <em>Buscar</em>. Busca en todo el historial; <em>Limpiar</em> vuelve a la lista completa."),
+    (2, "<strong>Timestamp</strong>: fecha y hora, en hora de Costa Rica."),
     (3, "<strong>Autor</strong> y <strong>Acción / Entidad</strong>: CREACIÓN (azul), EDICIÓN (amarillo), BORRADO (rojo), CORREO, PAGO, LOGIN…"),
     (4, "<strong>Detalle Auditado</strong>: qué cambió, a quién se envió un correo o notas."),
 ]) }}
@@ -21,14 +21,13 @@
 
 {% call m.section("preguntas", "Preguntas frecuentes") %}
 <div class="space-y-2">
-{% call m.faq("Busco algo de hace semanas y no lo encuentro") %}
-<p>El buscador solo revisa la página abierta. Pasá de página con las flechas y buscá de nuevo.</p>
+{% call m.faq("Busco algo de hace semanas") %}
+<p>Escribí una palabra (el nombre de la persona, del proyecto o el número de factura) y tocá <em>Buscar</em>: revisa todo
+    el historial, no solo la página abierta. Los resultados también se pasan de página.</p>
 {% endcall %}
-{% call m.faq("No aparece un cambio del Calendario") %}
-<p>Crear, cambiar o borrar asignaciones no se registra. Sí queda cuando se aprueban sus horas en Planilla.</p>
-{% endcall %}
-{% call m.faq("La hora no coincide") %}
-<p>Está en hora UTC: restale 6 horas para la hora de Costa Rica.</p>
+{% call m.faq("¿Queda registrado el Calendario?") %}
+<p>Sí: crear, cambiar o quitar una asignación queda como <em>SCHEDULE</em>, con la persona, el proyecto y el día.
+    Marcar una tarea como hecha no se registra.</p>
 {% endcall %}
 {% call m.faq("¿Para qué sirve LOGIN_BLOCKED?") %}
 <p>Alguien falló 5 veces la contraseña y el acceso quedó bloqueado 15 minutos. Si se repite con un mismo usuario, revisalo.</p>

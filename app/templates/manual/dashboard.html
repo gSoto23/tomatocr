@@ -12,11 +12,11 @@
 <h3 class="font-semibold text-gray-900">Admin</h3>
 {{ m.shot("dashboard/admin.webp", "Dashboard del admin", "Dashboard del admin con datos de ejemplo.") }}
 {{ m.steps([
-    (1, "<strong>Filtros</strong>: tocá el título para abrirlos. Filtran la facturación por fecha de emisión y estado (Pendiente, Pago parcial, Vencida, Pagada)."),
+    (1, "<strong>Filtros</strong>: tocá el título para abrirlos. Filtran la facturación por fecha de emisión y estado (Pendiente, Pago parcial, Vencida, Pagada). Con un filtro puesto se quedan abiertos y dicen <em>activos</em>."),
     (2, "<strong>Proyectos Activos</strong>: cuántos proyectos están marcados como activos."),
     (3, "<strong>Total Adjudicado</strong>: lo contratado en los proyectos activos, con IVA y prórrogas."),
     (4, "<strong>Total Facturado</strong>: lo facturado en los proyectos activos. Es la única tarjeta que cambia con los filtros."),
-    (5, "<strong>Actividad Reciente (Facturación)</strong>: sin filtros muestra las facturas pendientes, parciales y vencidas, de la que vence primero a la última. <em>Ver</em> abre el presupuesto del proyecto."),
+    (5, "<strong>Facturas por cobrar</strong>: sin filtros muestra las pendientes, con pago parcial y vencidas, de la que vence primero a la última. Para ver las pagadas, filtrá por Estado. <em>Ver</em> abre el presupuesto del proyecto."),
     (6, "<strong>Embudo comercial del equipo</strong>: cuántas cuentas llegaron a cada etapa en el periodo del piloto, contra la meta. Ver el capítulo Clientes."),
 ]) }}
 {% endif %}
@@ -63,9 +63,6 @@
 {% call m.faq("Filtré por fecha y el Total Adjudicado no cambió") %}
 <p>Es así: los filtros solo cambian <strong>Total Facturado</strong> y la tabla de facturación. Proyectos activos y
     total adjudicado siempre muestran todo.</p>
-{% endcall %}
-{% call m.faq("Una factura vencida aparece como Pendiente") %}
-<p>El estado <em>Vencida</em> se actualiza al abrir el presupuesto de ese proyecto. Tocá <em>Ver</em> y se corrige.</p>
 {% endcall %}
 {% call m.faq("¿En qué moneda están los montos?") %}
 <p>En la moneda de cada presupuesto; el Dashboard no muestra el símbolo.</p>

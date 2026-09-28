@@ -75,6 +75,10 @@
     }
 
     btn?.addEventListener("click", toggleMenu);
+    document.getElementById("loginMenuBtn")?.addEventListener("click", () => {
+        openMenu();
+        menu?.querySelector('input[name="user"]')?.focus();
+    });
     overlay?.addEventListener("click", closeMenu);
     links.forEach((a) => a.addEventListener("click", closeMenu));
 

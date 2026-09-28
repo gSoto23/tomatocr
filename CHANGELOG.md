@@ -6,7 +6,41 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-28
 
-### UI/UX ronda 1: contraseñas, celular, bitácora y cotizador (esta rama)
+### UI/UX ronda 2a: el día a día (esta rama)
+- **Acceso**: un usuario desactivado ve "Tu usuario está desactivado" (solo si la
+  contraseña es correcta, así no se revela quién existe). En celular y tablet hay un
+  botón "Ingresar" que abre el acceso. El CSS y el JS de la portada llevan `?v=`
+  (`static_url`) para que el navegador tome la versión nueva.
+- **Barra superior**: cada pantalla muestra su módulo (Proyectos, Bitácora, Planilla,
+  Presupuestos, Calendario, Empleados) en vez de "Dashboard".
+- **Tablas**: la bitácora (Dashboard del cliente, ficha y Bitácora Global) y la lista
+  de proyectos ya no cortan columnas; en el celular Proyectos se ve en tarjetas.
+- **Dashboard del admin**: al abrirse marca como vencidas las facturas pendientes con
+  fecha pasada; con un filtro puesto el panel queda abierto y dice qué cambia; la lista
+  se llama "Facturas por cobrar" (o "según los filtros") y explica cómo ver las pagadas.
+- **Proyectos y bitácora**: "Nuevo Proyecto" solo para el admin. El supervisor ve y
+  reporta en todos los proyectos (`SEES_ALL_PROJECTS`). El filtro de la bitácora lista
+  solo los proyectos de cada persona y uno ajeno vuelve a la lista con aviso. Crear y
+  editar un reporte revisan las tareas obligatorias en el servidor; editar acepta notas
+  vacías y permite quitar y agregar fotos, con los errores dentro de la ventana.
+- **Formulario de proyecto**: "Acceso al portal (usuarios del cliente)" en vez de
+  "Clientes (Usuarios)"; avisa que crear cuenta y agregar contacto guardan al instante;
+  "Cambiar" la cuenta pide confirmar si hay contactos elegidos.
+- **Cotizador**: confirma antes de soltar la oportunidad al cambiar la cuenta y antes de
+  cargar otra con cambios sin guardar; avisa al cambiar la moneda; "Validez: N días" de
+  los términos sigue al campo; el descuento dice que es un monto; la fecha de emisión
+  es la de Costa Rica; el Historial tiene "PDF" y, para el admin, "Borrar"
+  (`DELETE /api/quotes/{id}`, queda en Actividad).
+- **Empleados**: se aceptan documentos Word; los archivos se validan antes de crear o
+  cambiar a la persona (antes quedaba creada sin el archivo y salía una página de
+  error); el salario mensual solo llena la tarifa si está vacía y si no la sugiere.
+- **Actividad**: el buscador revisa todo el historial (`?q=`), las horas salen en hora
+  de Costa Rica y el Calendario queda registrado (crear, editar y quitar asignaciones).
+- Manual al día (Primeros pasos, Dashboard, Proyectos, Cotizador, Empleados, Actividad,
+  Recorridos) con capturas nuevas.
+- Despliegue: sin migraciones ni dependencias nuevas; reiniciar.
+
+### UI/UX ronda 1: contraseñas, celular, bitácora y cotizador (#69)
 - **Contraseñas**: cada persona cambia la suya desde la llave del menú
   (`/cuenta/contrasena`) y la recupera con "¿Olvidaste tu contraseña?"
   (`/recuperar`): le llega un enlace al correo del perfil que dura una hora y sirve

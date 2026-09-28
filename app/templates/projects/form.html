@@ -3,6 +3,7 @@
 {% block title %}
 {% if project %}Editar Proyecto{% else %}Nuevo Proyecto{% endif %} | TOMATO
 {% endblock %}
+{% block header_title %}Proyectos{% endblock %}
 
 {% block content %}
 <div class="max-w-4xl mx-auto" x-data="projectForm()">
@@ -37,7 +38,7 @@
                     <div x-show="formData.account" class="mt-2 flex flex-wrap items-center gap-3 rounded-md border border-gray-300 px-3 py-2 text-sm">
                         <span class="font-semibold text-gray-900" x-text="formData.account && formData.account.name"></span>
                         <a :href="formData.account ? '/clientes/cuentas/' + formData.account.id : '#'" target="_blank" class="text-xs text-gray-500 hover:underline">Ver ficha</a>
-                        <button type="button" x-show="!formData.opportunity_id" @click="formData.account = null; formData.roles = {}" class="ml-auto text-xs font-semibold text-gray-600 hover:text-black">Cambiar</button>
+                        <button type="button" x-show="!formData.opportunity_id" @click="(!Object.keys(formData.roles || {}).length || confirm('Al cambiar la cuenta se quitan los contactos elegidos para este proyecto. ¿Seguir?')) && (formData.account = null, formData.roles = {})" class="ml-auto text-xs font-semibold text-gray-600 hover:text-black">Cambiar</button>
                     </div>
                     <div x-show="!formData.account" class="relative mt-2">
                         <input type="text" id="accountSearch" x-model="accountQuery" @input.debounce.250ms="searchAccounts()" @focus="searchAccounts()" autocomplete="off"
@@ -50,6 +51,7 @@
                             </template>
                             <button type="button" x-show="accountQuery.trim()" @click="createAccount(false)" class="block w-full px-3 py-2 text-left font-semibold hover:bg-gray-50">
                                 + Crear cuenta «<span x-text="accountQuery.trim()"></span>»
+                                <span class="block text-xs font-normal text-gray-500">Se crea ya en Clientes, aunque después no guardes el proyecto.</span>
                             </button>
                         </div>
                         <div x-show="similarAccounts.length" class="mt-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
@@ -66,7 +68,8 @@
 
                 <!-- Clients Dropdown -->
                 <div class="sm:col-span-3" x-data="{ open: false }">
-                    <label class="block text-sm font-medium leading-6 text-gray-900">Clientes (Usuarios)</label>
+                    <label class="block text-sm font-medium leading-6 text-gray-900">Acceso al portal (usuarios del cliente)</label>
+                    <p class="text-xs text-gray-500">Personas del cliente que entran al sistema a ver este proyecto. No es la cuenta.</p>
                     <div class="relative mt-2">
                         <button type="button" @click="open = !open" @click.outside="open = false"
                             class="relative w-full cursor-default rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
@@ -255,6 +258,7 @@
                     <div x-data="{ open: false }" class="pt-1">
                         <button type="button" @click="open = !open" class="text-sm text-indigo-600 hover:text-indigo-900 font-semibold">+ Agregar contacto a la cuenta</button>
                         <div x-show="open" class="mt-2 grid grid-cols-1 gap-2 rounded border p-3 sm:grid-cols-2">
+                            <p class="sm:col-span-2 text-xs text-gray-500">El contacto se guarda en la cuenta al tocar <strong>Agregar</strong>, aunque después no guardes el proyecto.</p>
                             <input type="text" x-model="newContact.name" placeholder="Nombre" class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
                             <input type="text" x-model="newContact.role_title" placeholder="Cargo" class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
                             <input type="email" x-model="newContact.email" placeholder="Correo" class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">

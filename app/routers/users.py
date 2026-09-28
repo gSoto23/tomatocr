@@ -15,7 +15,7 @@ from app.core.roles import ADMIN, ALL_ROLES, ROLE_LABELS
 from app.core.security import get_password_hash
 from sqlalchemy.exc import IntegrityError
 from app.utils.activity import log_activity
-from app.utils.uploads import DOCUMENT_TYPES, MAX_DOCUMENT_SIZE_BYTES
+from app.utils.uploads import DOCUMENT_RULES, DOCUMENT_TYPES, MAX_DOCUMENT_SIZE_BYTES
 import logging
 
 logger = logging.getLogger(__name__)
@@ -37,6 +37,34 @@ def error_redirect(url: str, message: str):
     response.set_cookie(key="toast_message", value=message)
     response.set_cookie(key="toast_type", value="error")
     return response
+
+def read_documents(files: Optional[List[UploadFile]]) -> List[tuple]:
+    """Checks every document before anything is saved. Returns (name, contents, ext);
+    raises ValueError with a message that names the file."""
+    documents = []
+    for f in files or []:
+        if not f.filename:
+            continue
+        if f.content_type not in DOCUMENT_TYPES:
+            raise ValueError(f"«{f.filename}» no se puede subir. Se aceptan {DOCUMENT_RULES}.")
+        contents = f.file.read()
+        if len(contents) > MAX_DOCUMENT_SIZE_BYTES:
+            raise ValueError(f"«{f.filename}» pesa más de 10 MB.")
+        documents.append((f.filename, contents, DOCUMENT_TYPES[f.content_type]))
+    return documents
+
+
+def store_documents(db: Session, person: User, documents: List[tuple]):
+    # The file on disk gets a server-made name (never the client's, to avoid path
+    # traversal); the original name is kept only as text for the screen.
+    upload_dir = "app/static/uploads/users"
+    os.makedirs(upload_dir, exist_ok=True)
+    for filename, contents, ext in documents:
+        unique_name = f"{uuid.uuid4().hex}{ext}"
+        with open(os.path.join(upload_dir, unique_name), "wb") as buffer:
+            buffer.write(contents)
+        db.add(UserDocument(user_id=person.id, filename=filename, file_path=f"/static/uploads/users/{unique_name}"))
+
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
@@ -113,6 +141,11 @@ def create_user(
     if not email:
         return error_redirect("/users/new", "El correo es obligatorio y tiene que ser válido: con él la persona recupera su contraseña")
     
+    try:
+        documents = read_documents(files)
+    except ValueError as e:
+        return error_redirect("/users/new", f"{e} La persona no se creó: corregí el archivo y probá de nuevo.")
+
     # Check if user exists
     existing = db.query(User).filter(User.username == username).first()
     if existing:
@@ -150,33 +183,8 @@ def create_user(
     # Audit Log
     log_activity(db, user, "CREATE", "USER", new_user.id, f"Created user {username} ({role})")
     
-    # Process files
-    if files:
-        upload_dir = "app/static/uploads/users"
-        os.makedirs(upload_dir, exist_ok=True)
-        for f in files:
-            if f.filename:
-                if f.content_type not in DOCUMENT_TYPES:
-                    raise HTTPException(status_code=400, detail=f"Tipo de archivo no permitido para '{f.filename}'. Se aceptan JPEG, PNG, WebP o PDF")
-                contents = f.file.read()
-                if len(contents) > MAX_DOCUMENT_SIZE_BYTES:
-                    raise HTTPException(status_code=400, detail=f"El archivo '{f.filename}' supera los 10 MB permitidos")
-
-                # Nombre físico generado en el servidor (nunca a partir del nombre
-                # que manda el cliente, para evitar path traversal); el nombre
-                # original se conserva solo como texto para mostrarlo en la UI.
-                ext = DOCUMENT_TYPES[f.content_type]
-                unique_name = f"{uuid.uuid4().hex}{ext}"
-                file_path = os.path.join(upload_dir, unique_name)
-                with open(file_path, "wb") as buffer:
-                    buffer.write(contents)
-
-                doc = UserDocument(
-                    user_id=new_user.id,
-                    filename=f.filename,
-                    file_path=f"/static/uploads/users/{unique_name}"
-                )
-                db.add(doc)
+    if documents:
+        store_documents(db, new_user, documents)
         db.commit()
 
     response = RedirectResponse(url="/users", status_code=status.HTTP_303_SEE_OTHER)
@@ -221,6 +229,11 @@ def update_user(
     # An inactive user can no longer log in, so an admin must not lock themselves out.
     if id == user.id and (not is_active or role != ADMIN):
         return error_redirect(f"/users/{id}/edit", "Error: No puedes desactivar tu propio usuario ni quitarte el rol de administrador.")
+
+    try:
+        documents = read_documents(files)
+    except ValueError as e:
+        return error_redirect(f"/users/{id}/edit", f"{e} No se guardó ningún cambio.")
 
     edit_user = db.query(User).filter(User.id == id).first()
     if edit_user:
@@ -276,30 +289,8 @@ def update_user(
             response.set_cookie(key="toast_type", value="error")
             return response
 
-        # Process files
-        if files:
-            upload_dir = "app/static/uploads/users"
-            os.makedirs(upload_dir, exist_ok=True)
-            for f in files:
-                if f.filename:
-                    if f.content_type not in DOCUMENT_TYPES:
-                        raise HTTPException(status_code=400, detail=f"Tipo de archivo no permitido para '{f.filename}'. Se aceptan JPEG, PNG, WebP o PDF")
-                    contents = f.file.read()
-                    if len(contents) > MAX_DOCUMENT_SIZE_BYTES:
-                        raise HTTPException(status_code=400, detail=f"El archivo '{f.filename}' supera los 10 MB permitidos")
-
-                    ext = DOCUMENT_TYPES[f.content_type]
-                    unique_name = f"{uuid.uuid4().hex}{ext}"
-                    file_path = os.path.join(upload_dir, unique_name)
-                    with open(file_path, "wb") as buffer:
-                        buffer.write(contents)
-
-                    doc = UserDocument(
-                        user_id=edit_user.id,
-                        filename=f.filename,
-                        file_path=f"/static/uploads/users/{unique_name}"
-                    )
-                    db.add(doc)
+        if documents:
+            store_documents(db, edit_user, documents)
             db.commit()
 
     response = RedirectResponse(url="/users", status_code=status.HTTP_303_SEE_OTHER)

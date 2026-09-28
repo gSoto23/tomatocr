@@ -11,9 +11,6 @@ Prioridad sugerida: **A** confunde o hace perder trabajo; **B** molesta; **C** d
 
 | | Punto | Dónde |
 | --- | --- | --- |
-| B | Usuario desactivado ve "Usuario o contraseña incorrectos", igual que una contraseña mala. | `app/routers/auth.py` |
-| B | Entre 768 y 1023 px (tablet) el acceso no está en la barra: hay que abrir el menú ☰. | `app/templates/index.html` |
-| B | El título de la barra dice "Dashboard" en Proyectos, la ficha y el formulario de proyecto (no definen `header_title`). | `app/templates/projects/*.html` |
 | C | En el menú del celular la X de cerrar queda encima de la palabra "SISTEMA". | `app/templates/base_dashboard.html` |
 | C | El menú del celular no se cierra al tocar una opción (la página recarga). | `base_dashboard.html` |
 | C | El rol aparece con la palabra interna ("worker", "client", "ventas"). | `base_dashboard.html` |
@@ -23,15 +20,11 @@ Prioridad sugerida: **A** confunde o hace perder trabajo; **B** molesta; **C** d
 
 | | Punto | Dónde |
 | --- | --- | --- |
-| B | A 1280 px, la Bitácora del cliente corta **Ver Detalle** y la lista de Proyectos corta Estado y **Editar**. El detalle de Planilla corta **Ver desglose** incluso a 1700 px. | `dashboard.html`, `projects/list.html`, `payroll/detail.html` |
 
 ## Dashboard
 
 | | Punto | Dónde |
 | --- | --- | --- |
-| B | Los filtros del admin solo cambian "Total Facturado" y la tabla; "Proyectos Activos" y "Total Adjudicado" no. El panel de filtros empieza cerrado aunque haya un filtro puesto. | `app/routers/dashboard.py` |
-| B | "Vencida" solo se actualiza al abrir el presupuesto del proyecto; el Dashboard puede mostrarla como Pendiente. | `app/routers/finance.py` |
-| B | Sin filtros oculta las pagadas; con Estado "Todos" las muestra. El mensaje vacío dice "pendientes" aunque se filtre por Pagada. | `dashboard.html` |
 | C | Montos sin símbolo de moneda. | `dashboard.html` |
 | C | Al cambiar de página se pierde el orden por fecha (Dashboard del cliente y Bitácora Global). | `dashboard.html`, `logs/list.html` |
 
@@ -39,12 +32,6 @@ Prioridad sugerida: **A** confunde o hace perder trabajo; **B** molesta; **C** d
 
 | | Punto | Dónde |
 | --- | --- | --- |
-| B | "Nuevo Proyecto" aparece a supervisores y trabajadores, pero solo el admin puede crear. | `projects/list.html` |
-| B | El supervisor abre la ficha de proyectos no asignados, pero no puede reportar ni abrir sus reportes ("Error al cargar el reporte"). | `app/routers/projects.py`, `logs.py` |
-| B | El filtro de Bitácora Global lista todos los proyectos; elegir uno no asignado da un 403 crudo. | `logs.py` |
-| B | Al editar un reporte no se revisan las tareas obligatorias ni se pueden cambiar fotos; vaciar las notas da error. | `log_modal.html`, `logs.py` |
-| B | En el formulario de proyecto, "+ Agregar contacto a la cuenta" y "Crear cuenta" guardan en ese momento, aunque luego se cancele el proyecto. "Cambiar" la cuenta borra las selecciones de contactos. | `app/templates/projects/form.html` |
-| B | "Clientes (Usuarios)" y "Cliente (cuenta)" en el mismo formulario se confunden. | `projects/form.html` |
 | C | Trabajadores y clientes ven "Costo Total del Proyecto" en la ficha. | `projects/detail.html` |
 | C | Formatos de fecha distintos: dd/mm/aaaa, dd-mm-aaaa y AAAA-MM-DD según la pantalla. | varias |
 
@@ -67,18 +54,29 @@ achican solas) y días de hasta 7 días atrás; el correo del reporte lleva a TO
 oculta de verdad y avisa si no se pudo enviar; el cotizador recupera el borrador sin
 guardar y dos cotizaciones nuevas con el mismo número ya no se pisan.
 
+Corregido en la ronda 2a de UI/UX (prioridad B, lo del día a día): usuario desactivado
+con mensaje propio (solo si la contraseña es correcta); botón "Ingresar" en celular y
+tablet; título de la barra según el módulo; tablas de bitácora y proyectos que ya no se
+cortan (tarjetas en el celular); el Dashboard marca las vencidas al abrirse, deja los
+filtros abiertos cuando hay uno y dice qué cambia; "Nuevo Proyecto" solo para el admin;
+el supervisor ve y reporta en todos los proyectos; el filtro de la bitácora solo lista
+los proyectos de cada persona; editar un reporte revisa las tareas obligatorias, acepta
+notas vacías y deja quitar y agregar fotos (crear un reporte también revisa las
+obligatorias en el servidor); el formulario de proyecto avisa qué se guarda al instante
+y pide confirmar antes de cambiar la cuenta; el cotizador confirma antes de soltar la
+oportunidad o de cargar otra con cambios, avisa al cambiar la moneda, sincroniza la
+validez de los términos, dice que el descuento es un monto, usa la fecha de Costa Rica y
+tiene PDF y Borrar (admin) en el Historial; Empleados acepta Word, valida los documentos
+antes de guardar y el salario solo sugiere la tarifa; Actividad busca en todo el
+historial, muestra la hora de Costa Rica y registra el Calendario.
+
 ## Cotizador
 
 | | Punto | Dónde |
 | --- | --- | --- |
-| B | "Cambiar" la cuenta quita el vínculo con la oportunidad sin avisar. | `app.js` |
-| B | Cambiar la moneda no convierte precios; cambiar la validez no actualiza el texto de Términos. | `app.js` |
-| B | El descuento es un monto, no un porcentaje, y no lo dice. | `cotizador/index.html` |
-| B | El Historial solo tiene "Cargar": no hay borrar ni PDF desde la lista. | `index.html` |
 | C | Una cotización guardada con IVA 0 se recarga con la casilla de IVA desmarcada. | `app.js` |
 | C | La insignia de una cotización cargada dice "Oportunidad: #ID" en vez del título. | `app.js` |
 | C | Un usuario cliente que no es contacto de ninguna cuenta puede guardar, pero no ve su cotización en el Historial. | `quotes.py` |
-| B | La fecha de emisión usa UTC: después de las 6 p. m. una cotización nueva sale con la fecha de mañana. | `app.js` |
 | C | En el celular el botón "Volver" es solo una flecha y queda encima del título "Cotizador Cloud". | `index.html` |
 | C | Los textos del cotizador tratan de "usted" ("Elija el cliente…") y el resto del sistema de "vos". | `index.html`, `app.js` |
 
@@ -119,10 +117,7 @@ guardar y dos cotizaciones nuevas con el mismo número ya no se pisan.
 
 | | Punto | Dónde |
 | --- | --- | --- |
-| B | La pantalla dice que se aceptan documentos Word, pero el servidor los rechaza con una página de error; si falla al crear, la persona queda creada sin el archivo. | `users/form.html`, `users.py` |
-| B | Escribir el salario mensual reemplaza la tarifa por hora. | `users/form.html` |
 | C | La lista no muestra quién está liquidado; el rol aparece con el nombre interno. Sin búsqueda ni orden. | `users/list.html` |
-| B | Actividad: el buscador solo revisa la página abierta; las horas están en UTC; el Calendario no queda registrado. | `admin/activity.html`, `dashboard.py` |
 
 ## Reforestación
 

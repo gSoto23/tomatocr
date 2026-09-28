@@ -12,7 +12,8 @@ from app.db.models.crm import Account, Opportunity
 from app.db.models.user import User
 from app.db.models.quote import Quote
 from app.routers import deps
-from app.core.roles import CLIENT, QUOTES_ROLES
+from app.core.roles import ADMIN, CLIENT, QUOTES_ROLES
+from app.utils.activity import log_activity
 from app.utils.crm import account_of_client_user, advance_to_proposal
 
 router = APIRouter(
@@ -78,6 +79,7 @@ def view_cotizador(request: Request, user: User = Depends(deps.get_current_user)
     # Render the template
     return templates.TemplateResponse("cotizador/index.html", {"request": request, "user": user,
                                                              "picks_account": user.role != CLIENT,
+                                                             "can_delete": user.role == ADMIN,
                                                              "asset_version": ASSET_VERSION})
 
 @router.get("/api/quotes/next-number")
@@ -121,6 +123,22 @@ def get_quote(id: int, db: Session = Depends(deps.get_db), user: User = Depends(
     if not q:
         raise HTTPException(status_code=404, detail="Cotización no encontrada")
     return serialize(q, account_names(db, [q]))
+
+@router.delete("/api/quotes/{id}")
+def delete_quote(id: int, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
+    """Only the admin deletes a quote (made by mistake); it is recorded in Actividad."""
+    if user.role != ADMIN:
+        raise HTTPException(status_code=403, detail="Solo el admin puede borrar cotizaciones")
+    q = db.query(Quote).filter(Quote.id == id).first()
+    if not q:
+        raise HTTPException(status_code=404, detail="Cotización no encontrada")
+    number, client = q.numero_cotizacion, q.cliente_nombre
+    db.delete(q)
+    db.commit()
+    log_activity(db, user=user, action="DELETE", entity_type="QUOTE", entity_id=id,
+                 details=f"Borró la cotización {number} ({client})")
+    return {"ok": True}
+
 
 @router.post("/api/quotes/")
 async def upsert_quote(request: Request, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):

@@ -49,7 +49,8 @@
                             <p id="log-notes" class="text-gray-700 whitespace-pre-wrap text-sm"></p>
                         </div>
 
-                        <form id="edit-log-form" method="post" class="hidden">
+                        <form id="edit-log-form" method="post" enctype="multipart/form-data" class="hidden">
+                            <p id="edit-error" class="hidden mb-3 rounded-md bg-red-50 p-3 text-sm text-red-700"></p>
                             <!-- Checklist Edit -->
                             <div class="mb-4">
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Checklist de Tareas</label>
@@ -63,6 +64,13 @@
                             <textarea name="notes" id="edit-notes" rows="6"
                                 class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6"></textarea>
                             <p class="mt-1 text-xs text-gray-400">Última edición: <span id="log-updated"></span></p>
+
+                            <label class="mt-4 block text-sm font-medium text-gray-700 mb-2">Fotos</label>
+                            <div id="edit-photos" class="grid grid-cols-3 gap-2"></div>
+                            <p class="mt-1 text-xs text-gray-500">Tocá <strong>Quitar</strong> en las que sobran.</p>
+                            <input type="file" name="photos" multiple accept="image/*,.heic,.heif"
+                                class="mt-3 block w-full text-sm text-gray-700 file:mr-3 file:rounded-md file:border-0 file:bg-black file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white">
+                            <p id="edit-photo-rules" class="mt-1 text-xs text-gray-500"></p>
                         </form>
 
                         <!-- Photos -->
@@ -115,7 +123,7 @@
                 </div>
 
                 <!-- Actions -->
-                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-2">
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 flex flex-col gap-2 sm:flex-row-reverse">
                     <!-- Edit Buttons -->
                     <button id="btn-save" type="button" onclick="submitEditLog()"
                         class="hidden inline-flex w-full justify-center rounded-md bg-black px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 sm:w-auto">Guardar
@@ -129,7 +137,7 @@
                         Enviar Correo
                     </button>
                     <button id="btn-cancel-email" type="button" onclick="disableEmailMode()"
-                        class="hidden mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">
+                        class="hidden inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">
                         Cancelar
                     </button>
 
@@ -147,7 +155,7 @@
                     <button id="btn-edit" type="button" onclick="enableEditMode()"
                         class="hidden inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:w-auto">Editar</button>
                     <button type="button" onclick="closeLogModal()"
-                        class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">Cerrar</button>
+                        class="inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:w-auto">Cerrar</button>
                 </div>
             </div>
         </div>
@@ -274,6 +282,31 @@
                     photosContainer.innerHTML = '<p class="text-sm text-gray-400 col-span-2 text-center">Sin fotos adjuntas.</p>';
                 }
 
+                // Photos (Edit Mode): each one with a "Quitar" toggle
+                const editPhotos = document.getElementById('edit-photos');
+                editPhotos.innerHTML = '';
+                (data.photos || []).forEach(p => {
+                    const label = document.createElement('label');
+                    label.className = 'relative block cursor-pointer';
+                    const img = document.createElement('img');
+                    img.src = p.file_path;
+                    img.className = 'h-20 w-full rounded-md border object-cover';
+                    const box = document.createElement('input');
+                    box.type = 'checkbox'; box.name = 'remove_photos'; box.value = p.id; box.className = 'sr-only';
+                    const tag = document.createElement('span');
+                    tag.className = 'absolute bottom-1 left-1 rounded bg-white/90 px-1.5 py-0.5 text-xs font-semibold text-gray-800';
+                    tag.textContent = 'Quitar';
+                    box.addEventListener('change', () => {
+                        img.classList.toggle('opacity-30', box.checked);
+                        tag.textContent = box.checked ? 'Se quita' : 'Quitar';
+                        tag.classList.toggle('text-red-700', box.checked);
+                    });
+                    label.append(img, box, tag);
+                    editPhotos.appendChild(label);
+                });
+                document.getElementById('edit-photo-rules').textContent = data.photo_rules ? `Agregar fotos: ${data.photo_rules}.` : '';
+                document.getElementById('edit-error').classList.add('hidden');
+
                 // Permissions
                 const btnEdit = document.getElementById('btn-edit');
                 if (data.can_edit) {
@@ -313,6 +346,7 @@
             document.getElementById('btn-delete').classList.remove('hidden');
             // Hide View Tasks container in edit mode?
             document.getElementById('log-tasks-container').classList.add('hidden');
+            document.getElementById('log-photos').classList.add('hidden');
         }
 
         function disableEditMode() {
@@ -320,6 +354,7 @@
             document.getElementById('edit-log-form').classList.add('hidden');
             document.getElementById('btn-save').classList.add('hidden');
             document.getElementById('btn-delete').classList.add('hidden');
+            document.getElementById('log-photos').classList.remove('hidden');
             // Show View Tasks container in view mode
             // Only if not empty? It will be handled in openLogModal or need simple logic
             // Easier: openLogModal sets it correctly based on data. 
@@ -330,31 +365,35 @@
             }
         }
 
-        function submitEditLog() {
+        async function submitEditLog() {
             if (!currentLogId) return;
             const form = document.getElementById('edit-log-form');
+            const error = document.getElementById('edit-error');
+            const fail = (message) => {
+                error.textContent = message;
+                error.classList.remove('hidden');
+                error.scrollIntoView({ block: 'nearest' });
+            };
+            error.classList.add('hidden');
 
-            // Validation for edit?
-            // User asked for validation on Reporte (Create). 
-            // Should we validate Edit too?
-            // "en el edit no se pueden modificar el check list" -> Implicitly means they want to.
-            // If I enforce required tasks on edit, I should add JS check here.
-            // Let's add basic JS check here to be safe/consistent.
+            // Same rule as a new report: the required tasks must stay checked.
+            const missing = (currentLogData.tasks || []).filter(t => t.is_required && !t.archived
+                && !form.querySelector(`#edit-task-${t.task_id}`)?.checked);
+            if (missing.length) return fail(`Marcá la tarea obligatoria «${missing[0].description}».`);
 
-            // Check required tasks
-            const container = document.getElementById('edit-tasks-container');
-            // Need to know which ones are required. 
-            // I rendered *Requerido* span.
-            // I can select inputs where sibling label has *Requerido ... or use data attributes.
-            // Let's iterate inputs and check properly.
-            // Actually, easier to let backend handle it? No, form submit.
-
-            // I'll skip complex validation on edit for now unless explicitly asked, 
-            // as "El reporte no tiene validacion" usually refers to creation flow.
-            // But for completeness, I should ensure required tasks are checked.
-
-            form.action = `/logs/${currentLogId}/edit`;
-            form.submit();
+            const button = document.getElementById('btn-save');
+            button.disabled = true;
+            try {
+                const response = await fetch(`/logs/${currentLogId}/edit`, { method: 'POST', body: new FormData(form) });
+                if (response.ok) { window.location.href = response.url; return; }
+                let detail = '';
+                try { detail = (await response.json()).detail; } catch (e) {}
+                fail(typeof detail === 'string' && detail ? detail : 'No se pudo guardar. Probá de nuevo.');
+            } catch (e) {
+                fail('No hay conexión. Probá de nuevo.');
+            } finally {
+                button.disabled = false;
+            }
         }
 
         function deleteLog() {

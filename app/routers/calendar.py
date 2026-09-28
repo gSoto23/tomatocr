@@ -18,6 +18,7 @@ router = APIRouter(
 )
 
 from app.core.templates import templates
+from app.utils.activity import log_activity
 
 @router.get("/")
 def calendar_view(request: Request, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
@@ -75,6 +76,16 @@ def get_events(start: str, end: str, db: Session = Depends(deps.get_db), user: U
         
     return JSONResponse(events)
 
+def person_name(db: Session, user_id: int) -> str:
+    person = db.get(User, user_id)
+    return (person.full_name or person.username) if person else f"usuario {user_id}"
+
+
+def project_name(db: Session, project_id: int) -> str:
+    project = db.get(Project, project_id)
+    return project.name if project else f"proyecto {project_id}"
+
+
 @router.post("/schedule")
 def create_schedule(
     project_id: int = Form(...),
@@ -129,7 +140,10 @@ def create_schedule(
                 ))
 
     db.commit()
-    
+    log_activity(db, user, "CREATE", "SCHEDULE", None,
+                 f"Asignó a {person_name(db, user_id)} en {project_name(db, project_id)}: {start_date:%d/%m/%Y}"
+                 + (f" al {final_date:%d/%m/%Y}" if final_date != start_date else ""))
+
     return JSONResponse({"status": "success", "message": "Asignación creada correctamente"})
 
 @router.post("/schedule/{id}/delete")
@@ -141,8 +155,11 @@ def delete_schedule(id: int, db: Session = Depends(deps.get_db), user: User = De
     if not schedule:
         return JSONResponse({"status": "error", "message": "Asignación no encontrada"}, status_code=404)
         
+    details = (f"Quitó la asignación de {person_name(db, schedule.user_id)} en "
+               f"{project_name(db, schedule.project_id)} del {schedule.date:%d/%m/%Y}")
     db.delete(schedule)
     db.commit()
+    log_activity(db, user, "DELETE", "SCHEDULE", id, details)
     return JSONResponse({"status": "success", "message": "Asignación eliminada correctamente"})
 
 @router.post("/schedule/{id}/edit")
@@ -193,6 +210,9 @@ def update_schedule(
             db.delete(row)
 
     db.commit()
+    log_activity(db, user, "UPDATE", "SCHEDULE", id,
+                 f"Editó la asignación de {person_name(db, schedule.user_id)} en "
+                 f"{project_name(db, schedule.project_id)} del {schedule.date:%d/%m/%Y}")
     return JSONResponse({"status": "success", "message": "Asignación actualizada correctamente"})
 
 @router.post("/task/{id}/toggle")

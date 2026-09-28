@@ -76,7 +76,9 @@
 ]) }}
 <p><strong>Descartar cambios</strong> borra lo que está en pantalla y empieza de cero.</p>
 <p>Abajo, en <strong>Historial</strong>, están las últimas 20 cotizaciones guardadas{% if user.role == 'client' %} de tu empresa{% endif %}.
-    <strong>Cargar</strong> abre una para verla, cambiarla o sacar su PDF.</p>
+    <strong>Cargar</strong> abre una para verla o cambiarla (si tenés cambios sin guardar, te pregunta antes).
+    <strong>PDF</strong> abre su PDF sin cargarla.{% if user.role == 'admin' %} <strong>Borrar</strong> la elimina para
+    siempre (solo el admin; queda en Actividad).{% endif %}</p>
 {% endcall %}
 
 {% call m.section("preguntas", "Preguntas frecuentes") %}
@@ -88,15 +90,17 @@
     <strong>Guardar</strong>. Si intentás cerrar la pestaña con cambios sin guardar, el navegador te avisa.</p>
 {% endcall %}
 {% call m.faq("Cambié la moneda y los precios no cambiaron") %}
-<p>El cotizador no convierte montos. Si cambiás de colones a dólares, escribí los precios de nuevo.</p>
+<p>El cotizador no convierte montos: al cambiar la moneda te avisa que revises los precios. Escribilos de nuevo en la
+    moneda nueva.</p>
 {% endcall %}
-{% call m.faq("Cambié la validez y los términos siguen diciendo 15 días") %}
-<p>Los términos son texto libre: corregí ahí también la validez.</p>
+{% call m.faq("Cambié la validez: ¿cambian los términos?") %}
+<p>Si los términos tienen la línea «Validez: N días», se actualiza sola al cambiar la validez. Si la escribiste de otra
+    forma, corregila a mano.</p>
 {% endcall %}
 {% if user.role in ['admin', 'ventas'] %}
 {% call m.faq("Toqué «Cambiar» la cuenta y se perdió la oportunidad") %}
-<p>Al cambiar de cuenta la cotización deja de estar ligada a la oportunidad. Si fue un error, abrí de nuevo desde la
-    oportunidad con <em>Crear cotización</em>.</p>
+<p>Al cambiar de cuenta la cotización deja de estar ligada a la oportunidad; el cotizador te pide confirmar antes. Si
+    fue un error, abrí de nuevo desde la oportunidad con <em>Crear cotización</em>.</p>
 {% endcall %}
 {% call m.faq("Dos personas cotizando al mismo tiempo") %}
 <p>No se pisan. Si a las dos les tocó el mismo número, la segunda en guardar recibe el siguiente número libre y ve
@@ -104,7 +108,7 @@
     le cambies el número.</p>
 {% endcall %}
 {% call m.faq("¿Puedo borrar una cotización?") %}
-<p>Desde el cotizador no. Si se hizo por error, avisale al admin.</p>
+<p>{% if user.role == 'admin' %}Sí: en el Historial tocá <strong>Borrar</strong>. No se puede deshacer y queda en Actividad.{% else %}Solo el admin, desde el Historial. Si se hizo por error, avisale.{% endif %}</p>
 {% endcall %}
 {% endif %}
 {% call m.faq("Sale «Complete antes de exportar»") %}

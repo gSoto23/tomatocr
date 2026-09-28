@@ -48,6 +48,7 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
   (`TCR-AAAA-NNNN`) sigue al más alto del año, así nunca se repite. Guardar una
   cotización cargada la actualiza por su id; una nueva con un número ya usado
   recibe el siguiente libre.
+- Historial: Cargar, PDF (sin cargarla) y Borrar (solo admin, queda en Actividad).
 - El borrador sin guardar queda en el navegador y se ofrece recuperarlo al
   volver a abrir el cotizador.
 - **PDF** (impresión del navegador → "Guardar como PDF", tamaño Carta):
@@ -330,13 +331,14 @@ públicas.
 
 - **Subida de archivos** (fotos de bitácora, documentos de empleado): se valida
   el `Content-Type` contra una whitelist (JPEG/PNG/WebP para fotos, +PDF para
-  documentos) y un límite de tamaño (10 MB documentos) en
+  documentos, que también aceptan Word) y un límite de tamaño (10 MB documentos) en
   `app/utils/uploads.py`. Las fotos (JPEG/PNG/WebP/HEIC, 20 MB) además se abren
   con Pillow y se vuelven a guardar en JPEG, así que lo que queda en disco es
   siempre una imagen válida. El nombre físico en disco siempre se genera con un
   UUID — nunca se usa el nombre de archivo que manda el cliente.
 - **Roles**: `admin`, `supervisor`, `worker`, `client` y `ventas`, definidos
-  en `app/core/roles.py`. Los routers de operaciones (proyectos, bitácora,
+  en `app/core/roles.py`. El admin y el supervisor ven y reportan en todos los
+  proyectos (`SEES_ALL_PROJECTS`); trabajador y cliente, solo en los asignados. Los routers de operaciones (proyectos, bitácora,
   calendario, finanzas, planilla, pagos, liquidación) exigen uno de los cuatro
   roles operativos con `deps.require_roles`; `ventas` solo ve el Dashboard,
   Clientes y el Cotizador. Al crear o editar usuarios solo se aceptan esos roles.

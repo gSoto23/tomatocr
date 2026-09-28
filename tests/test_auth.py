@@ -34,9 +34,11 @@ def test_wrong_password_is_rejected(db):
 def test_inactive_user_cannot_log_in(db, fields):
     make_user(db, "inactivo", "worker", **fields)
     response = login(new_client(), "inactivo")
-    # Same message as a wrong password: don't reveal that the account exists.
-    assert response.headers["location"] == "/?error=invalid_credentials"
+    # Only with the right password does it say the user is deactivated.
+    assert response.headers["location"] == "/?error=inactive"
     assert "access_token" not in response.cookies
+    wrong = login(new_client(), "inactivo", "incorrecta")
+    assert wrong.headers["location"] == "/?error=invalid_credentials"
 
 
 def test_null_status_is_treated_as_active(db):

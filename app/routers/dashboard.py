@@ -13,7 +13,7 @@ from app.db.models.finance import Invoice, InvoiceStatus
 from app.db.models.log import DailyLog
 from app.db.models.schedule import ProjectSchedule
 from app.db.models.associations import project_users
-from app.routers.finance import get_project_budget_status
+from app.routers.finance import check_update_overdue_invoices, get_project_budget_status
 
 router = APIRouter(
     prefix="/dashboard",
@@ -35,6 +35,8 @@ def dashboard(
     data = {}
     
     if user.role == ADMIN:
+        # Overdue is otherwise only refreshed when a budget is opened.
+        check_update_overdue_invoices(db)
         # 1. Stats
         active_projects = db.query(Project).filter(Project.is_active == True).all()
         active_count = len(active_projects)
@@ -82,6 +84,7 @@ def dashboard(
         recent_invoices = activity_query.order_by(Invoice.due_date.asc()).all()
         
         data["recent_activity"] = recent_invoices
+        data["filtered"] = bool(start_date or end_date or invoice_status)
         data["crm_period"] = crm.funnel_period(db)
         data["crm_funnel"] = crm.funnel(db, period=data["crm_period"])
 
@@ -167,6 +170,7 @@ def activity_log(
     request: Request,
     page: int = 1,
     limit: int = 50,
+    q: str = "",
     db: Session = Depends(deps.get_db), 
     user: User = Depends(deps.get_current_user)
 ):
@@ -177,10 +181,19 @@ def activity_log(
     from app.db.models.activity import ActivityLog
     from sqlalchemy.orm import joinedload
 
+    from sqlalchemy import or_
     offset = (page - 1) * limit
-    total_records = db.query(ActivityLog).count()
-    
-    logs = db.query(ActivityLog).options(joinedload(ActivityLog.user)).order_by(desc(ActivityLog.created_at)).offset(offset).limit(limit).all()
+    query = db.query(ActivityLog)
+    q = q.strip()
+    if q:
+        # The search looks through the whole history, not only the page on screen.
+        like = f"%{q}%"
+        query = query.outerjoin(User, ActivityLog.user_id == User.id).filter(or_(
+            User.username.ilike(like), User.full_name.ilike(like), ActivityLog.action.ilike(like),
+            ActivityLog.entity_type.ilike(like), ActivityLog.details.ilike(like)))
+    total_records = query.count()
+
+    logs = query.options(joinedload(ActivityLog.user)).order_by(desc(ActivityLog.created_at)).offset(offset).limit(limit).all()
     
     total_pages = ceil(total_records / limit)
 
@@ -190,5 +203,6 @@ def activity_log(
         "logs": logs,
         "page": page,
         "total_pages": total_pages,
-        "total_records": total_records
+        "total_records": total_records,
+        "q": q,
     })
