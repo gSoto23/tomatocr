@@ -11,7 +11,7 @@ from sqlalchemy import or_, func
 
 from app.db.models.user import User
 from app.routers import deps
-from app.core.roles import ADMIN, ALL_ROLES, ROLE_LABELS
+from app.core.roles import CLIENT, ADMIN, ALL_ROLES, ROLE_LABELS
 from app.core.security import get_password_hash
 from sqlalchemy.exc import IntegrityError
 from app.utils.activity import log_activity
@@ -82,12 +82,17 @@ def list_users(
     limit: int = 10,
     q: str = "",
     sort: str = "name",
+    tipo: str = "equipo",
     db: Session = Depends(deps.get_db), 
     user: User = Depends(deps.get_current_user)
 ):
     check_admin(user)
 
-    query = db.query(User)
+    # Two lists: the team (payroll, calendar) and the clients' portal users.
+    tipo = "clientes" if tipo == "clientes" else "equipo"
+    query = db.query(User).filter(User.role == CLIENT if tipo == "clientes" else User.role != CLIENT)
+    counts = {"equipo": db.query(User).filter(User.role != CLIENT).count(),
+              "clientes": db.query(User).filter(User.role == CLIENT).count()}
     q = q.strip()
     if q:
         like = f"%{q}%"
@@ -118,6 +123,8 @@ def list_users(
         "total_records": total_records,
         "q": q,
         "sort": sort,
+        "tipo": tipo,
+        "counts": counts,
         "without_email": db.query(User).filter((User.email.is_(None)) | (User.email == ""),
                                                User.is_active == True).order_by(User.full_name).all(),  # noqa: E712
     })
@@ -315,6 +322,49 @@ def update_user(
     response.set_cookie(key="toast_message", value="Empleado actualizado correctamente")
     return response
 
+# Records that are the person's history: while any exists, the person is deactivated, never deleted.
+HISTORY = (
+    ("daily_logs", "user_id", "bitácora(s)"),
+    ("project_schedules", "user_id", "asignación(es)"),
+    ("payroll_entries", "user_id", "planilla(s)"),
+    ("payroll_payments", "user_id", "pago(s)"),
+    ("payroll_payments", "created_by_id", "pago(s) registrados"),
+    ("liquidations", "user_id", "liquidación(es)"),
+    ("liquidations", "created_by_id", "liquidación(es) registradas"),
+    ("tree_checks", "user_id", "monitoreo(s)"),
+    ("accounts", "owner_id", "cuenta(s) a cargo"),
+    ("accounts", "created_by_id", "cuenta(s) creadas"),
+    ("opportunities", "owner_id", "oportunidad(es) a cargo"),
+    ("opportunities", "created_by_id", "oportunidad(es) creadas"),
+    ("crm_activities", "user_id", "actividad(es) de Clientes"),
+)
+
+
+def user_history(db: Session, user_id: int) -> List[str]:
+    from sqlalchemy import text
+    found = []
+    for table, column, label in HISTORY:
+        count = db.execute(text(f"SELECT COUNT(*) FROM {table} WHERE {column} = :id"), {"id": user_id}).scalar()
+        if count:
+            found.append(f"{count} {label}")
+    count = db.execute(text("SELECT COUNT(*) FROM activity_logs WHERE user_id = :id AND action != 'LOGIN'"),
+                       {"id": user_id}).scalar()
+    if count:
+        found.append(f"{count} registro(s) en Actividad")
+    return found
+
+
+def unlink_user(db: Session, user_id: int):
+    """Links that are not history: project membership, contact link, lead motor, their logins."""
+    from sqlalchemy import text
+    for sql in ("DELETE FROM project_users WHERE user_id = :id",
+                "DELETE FROM crm_assignments WHERE user_id = :id",
+                "UPDATE contacts SET user_id = NULL WHERE user_id = :id",
+                "UPDATE account_not_duplicates SET user_id = NULL WHERE user_id = :id",
+                "UPDATE activity_logs SET user_id = NULL WHERE user_id = :id AND action = 'LOGIN'"):
+        db.execute(text(sql), {"id": user_id})
+
+
 @router.post("/{id}/delete")
 def delete_user(
     id: int,
@@ -334,12 +384,22 @@ def delete_user(
     if not user_to_delete:
          raise HTTPException(status_code=404, detail="User not found")
          
-    deleted_username = user_to_delete.username    
+    # Only a person with no history can be deleted (someone created by mistake). With
+    # history, the database would refuse, and the right action is to deactivate them.
+    history = user_history(db, id)
+    if history:
+        name = user_to_delete.full_name or user_to_delete.username
+        return error_redirect(f"/users/{id}/edit", (
+            f"No se puede eliminar a {name}: tiene historial ({', '.join(history)}). "
+            "Para que ya no entre al sistema, desmarcá Empleado Activo y guardá."))
+
+    deleted_username = user_to_delete.username
+    unlink_user(db, id)
     db.delete(user_to_delete)
     db.commit()
-    
+
     # Audit Log
-    log_activity(db, user, "DELETE", "USER", id, f"Deleted user {deleted_username}")
+    log_activity(db, user, "DELETE", "USER", id, f"Eliminó al usuario {deleted_username}")
     
     response = RedirectResponse(url="/users", status_code=status.HTTP_303_SEE_OTHER)
     response.set_cookie(key="toast_message", value="Usuario eliminado correctamente")

@@ -8,7 +8,7 @@
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
         <div>
             <h1 class="text-2xl font-bold text-gray-900">Empleados</h1>
-            <p class="mt-1 text-sm text-gray-500">Gestión de expedientes, planillas y control de trabajadores.</p>
+            <p class="mt-1 text-sm text-gray-500">{{ 'Personas del equipo: expedientes, planilla y acceso.' if tipo == 'equipo' else 'Usuarios con los que cada cliente entra al portal a ver sus proyectos y cotizaciones.' }}</p>
         </div>
         <a href="/users/new"
             class="inline-flex items-center justify-center rounded-md bg-black px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black">
@@ -20,6 +20,15 @@
             Nuevo Empleado
         </a>
     </div>
+
+    <nav class="mb-6 flex gap-2 border-b border-gray-200 text-sm font-semibold" aria-label="Tipo de usuario">
+        {% for key, label in [('equipo', 'Equipo'), ('clientes', 'Usuarios de clientes')] %}
+        <a href="/users/?tipo={{ key }}" class="-mb-px border-b-2 px-3 py-2 {{ 'border-black text-gray-900' if tipo == key else 'border-transparent text-gray-500 hover:text-gray-800' }}">{{ label }} <span class="ml-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">{{ counts[key] }}</span></a>
+        {% endfor %}
+    </nav>
+    {% if tipo == 'clientes' %}
+    <p class="mb-4 rounded-md bg-gray-50 p-3 text-sm text-gray-700">Para que un cliente vea su proyecto, su usuario tiene que estar en <em>Acceso al portal</em> del proyecto y ligado como contacto de su cuenta en Clientes. <strong>Eliminarlo le quita el acceso</strong>: si ya no debe entrar, desactivalo.</p>
+    {% endif %}
 
     {% if without_email %}
     <div class="mb-6 rounded-lg border-l-4 border-amber-500 bg-amber-50 p-4 text-sm text-amber-900">
@@ -34,6 +43,7 @@
     {% endif %}
 
     <form method="get" action="/users/" class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
+        <input type="hidden" name="tipo" value="{{ tipo }}">
         <input type="search" name="q" value="{{ q }}" placeholder="Buscar por nombre, usuario o correo" aria-label="Buscar"
             class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm sm:max-w-sm">
         <select name="sort" aria-label="Ordenar" onchange="this.form.submit()" class="rounded-md border border-gray-300 px-3 py-2 text-sm">
@@ -42,7 +52,7 @@
             {% endfor %}
         </select>
         <button class="rounded-md bg-black px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800">Buscar</button>
-        {% if q %}<a href="/users/" class="text-sm text-gray-600 underline">Limpiar</a>{% endif %}
+        {% if q %}<a href="/users/?tipo={{ tipo }}" class="text-sm text-gray-600 underline">Limpiar</a>{% endif %}
     </form>
 
     <div class="bg-white shadow-sm rounded-lg border border-gray-200 overflow-x-auto">
@@ -98,7 +108,7 @@
             </tbody>
         </table>
         {% from "components/pagination.html" import render_pagination %}
-        {% set params = [] %}
+        {% set params = ['tipo=' ~ tipo] %}
         {% if q %}{% set _ = params.append('q=' ~ (q | urlencode)) %}{% endif %}
         {% if sort != 'name' %}{% set _ = params.append('sort=' ~ sort) %}{% endif %}
         {{ render_pagination(page, total_pages, '/users/' ~ ('?' ~ params | join('&') if params else '')) }}
