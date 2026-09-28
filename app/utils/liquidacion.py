@@ -16,7 +16,8 @@ before confirming. Rules:
   the monthly salary. Daily salary = monthly average / 30.
 - Pending salary: confirmed calendar hours after the last payment or the last final
   payroll (overtime × 1.5); without them, 8 h per weekday. With no payment and no final
-  payroll recorded it is left at 0 for the admin to type.
+  payroll recorded, or the last one older than a month, it is left at 0 for the admin
+  to type.
 - Worker CCSS (9.17 %) is withheld from pending salary and vacation pay only, when the
   person has "Aplicar Deducciones"; aguinaldo, preaviso and cesantía don't carry it.
 """
@@ -35,6 +36,9 @@ CESANTIA_DAYS_PER_YEAR = {1: 19.5, 2: 20, 3: 20.5, 4: 21, 5: 21.24, 6: 21.5, 7: 
                           11: 21, 12: 20.5}
 CESANTIA_MAX_YEARS = 8
 CCSS_WORKER_RATE = 0.0917
+# Salaries are paid every fortnight or month: a last recorded payment older than this
+# means payments are being made outside the system, so the pending salary is unknown.
+MAX_UNPAID_DAYS = 31
 DAYS_PER_MONTH = 365 / 12
 
 
@@ -142,6 +146,10 @@ def calculate(start: date, end: date, reason: str, monthly_salary: float, hourly
     if unpaid_from is None:
         salary_due = 0.0
         salary_due_basis = "no hay pagos ni planillas finales registrados: escribí el salario pendiente"
+    elif (end - unpaid_from).days + 1 > MAX_UNPAID_DAYS:
+        salary_due = 0.0
+        salary_due_basis = (f"el último pago o planilla registrado es del {unpaid_from - timedelta(days=1):%d/%m/%Y}; "
+                            "después se pagó fuera del sistema: escribí el salario pendiente")
     elif pending_hours is not None:
         hours, overtime = pending_hours
         salary_due = hours * rate + overtime * rate * 1.5

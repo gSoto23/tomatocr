@@ -6,7 +6,14 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-28
 
-### Arreglo: salario pendiente de la liquidación (esta rama)
+### Arreglo: salario pendiente con pagos antiguos (esta rama)
+- Si el último pago o planilla final registrado tiene más de un mes, el salario
+  pendiente queda en 0 con la fecha de ese registro y el aviso de escribirlo: los
+  pagos posteriores se hicieron fuera del sistema. Antes contaba todo desde ahí
+  (hasta 168 días hábiles en producción).
+- Despliegue: sin migraciones; reiniciar.
+
+### Arreglo: salario pendiente de la liquidación (#67)
 - El salario pendiente contaba todos los días hábiles desde la fecha de inicio
   cuando no había pagos en "Historial de Pagos" (en producción los pagos se hacen
   fuera del sistema): una persona con 8 meses mostraba ₡2,5 millones pendientes.

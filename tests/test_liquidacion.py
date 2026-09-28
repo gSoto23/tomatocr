@@ -85,6 +85,13 @@ def test_pending_salary_without_hours_counts_weekdays():
     assert r.salary_due == pytest.approx(5 * 8 * 2100)
 
 
+def test_pending_salary_is_left_to_type_when_the_last_record_is_old():
+    r = calc(date(2025, 1, 6), unpaid_from=date(2026, 2, 16))
+    assert r.salary_due == 0 and "15/02/2026" in r.salary_due_basis
+    recent = calc(date(2025, 1, 6), unpaid_from=date(2026, 8, 28))  # 31 days: still estimated
+    assert recent.salary_due > 0
+
+
 def test_pending_salary_is_left_to_type_when_nothing_was_ever_recorded():
     r = calc(date(2025, 1, 6), unpaid_from=None)
     assert r.salary_due == 0 and "escribí el salario pendiente" in r.salary_due_basis
