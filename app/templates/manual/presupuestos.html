@@ -3,10 +3,9 @@
 {% block manual %}
 {% call m.section("que-es", "Qué es") %}
 <p><strong>Presupuestos</strong> es el control financiero de cada proyecto: lo adjudicado en el contrato, las facturas, los
-    pagos que entran, los gastos del proyecto y lo que cuesta la planilla. En algunas pantallas aparece como
-    <em>Gestión Financiera</em> o <em>Finanzas</em>: es lo mismo.</p>
-<p>Quién lo usa: {{ m.roles(["admin", "client"]) }}. El admin registra todo; el cliente ve el estado de sus proyectos sin
-    poder cambiar nada.</p>
+    pagos que entran, los gastos del proyecto y lo que cuesta la planilla.</p>
+<p>Quién lo usa: {{ m.roles(["admin", "client"]) }}. El admin registra todo. El cliente ve lo adjudicado, sus facturas y
+    sus pagos, sin poder cambiar nada; no ve costos, planillas ni la ganancia de TOMATO.</p>
 <p>El presupuesto base (licitación, fechas, prórroga y <em>Líneas Adjudicadas</em>) se define en el formulario del
     proyecto{% if user.role == 'admin' %}: ver <a href="/manual/proyectos#crear" class="text-indigo-600 hover:underline">Crear o editar un proyecto</a>{% endif %}.</p>
 {% endcall %}
@@ -14,7 +13,7 @@
 {% call m.section("lista", "La lista de proyectos") %}
 {{ m.shot("presupuestos/lista.webp", "Lista de presupuestos", "Presupuestos, con datos de ejemplo.") }}
 {{ m.steps([
-    (1, "<strong>Total Adjudicado</strong>, <strong>Facturado</strong>, <strong>Costos</strong> y <strong>Saldo</strong> de cada proyecto (se explican abajo)."),
+    (1, "<strong>Total Adjudicado</strong>, <strong>Facturado</strong>, <strong>Por cobrar</strong>{% if user.role != 'client' %}, <strong>Costos</strong>{% endif %} y <strong>Por facturar</strong> de cada proyecto (se explican abajo)."),
     (2, "<strong>Ver</strong> abre el detalle financiero del proyecto."),
 ]) }}
 {% endcall %}
@@ -24,20 +23,24 @@
 <ul class="list-disc space-y-1 pl-5">
     <li>{{ m.n(1) }} <strong>Total Adjudicado</strong>: la suma de las líneas adjudicadas <strong>con su impuesto</strong>,
         más el monto de la prórroga si está <em>activa</em> (la prórroga se suma sin impuesto).</li>
-    <li><strong>Total Facturado</strong>: todas las facturas, en cualquier estado.</li>
-    <li><strong>Total Pagado</strong>: lo depositado más las retenciones de las facturas con pago registrado.</li>
-    <li><strong>Total Costos</strong>: los gastos registrados más el costo de la planilla (horas confirmadas en planillas
-        cerradas, con las cargas sociales).</li>
-    <li><strong>Saldo Actual</strong>: <em>lo que queda por facturar</em> = adjudicado − facturado. No es lo pendiente de cobro.</li>
-    <li><strong>Balance (Ganancia)</strong>: facturado − costos.</li>
+    <li><strong>Facturado</strong>: todas las facturas, en cualquier estado.</li>
+    <li><strong>Cobrado</strong>: lo depositado más las retenciones de las facturas con pago registrado.</li>
+    <li><strong>Por cobrar</strong>: facturado − cobrado. Es lo que el cliente todavía debe.</li>
+    <li><strong>Por facturar</strong>: adjudicado − facturado. Es lo que queda del contrato por facturar.</li>
+    {% if user.role != 'client' %}
+    <li><strong>Costos</strong>: los gastos registrados más el costo de la planilla (horas confirmadas en planillas
+        finales, con las cargas sociales y la tarifa de cada planilla).</li>
+    <li><strong>Ganancia</strong>: facturado − costos.</li>
+    {% endif %}
 </ul>
 {{ m.steps([
     (2, "<strong>Presupuesto Base</strong> y <strong>Líneas Adjudicadas</strong> del contrato."),
     (3, "<strong>Facturación</strong>: las facturas con su estado. <em>Filtros</em> filtra por estado y por fecha de <strong>emisión</strong>. Tocá un encabezado para ordenar."),
-    (4, "<strong>Gastos Registrados</strong> y <strong>Retenciones Institucionales</strong> (las retenciones de pagos de instituciones)."),
+    (4, "{% if user.role != 'client' %}<strong>Gastos Registrados</strong> y <strong>Retenciones Institucionales</strong> (las retenciones de pagos de instituciones).{% else %}Las facturas con su estado y la fecha de pago.{% endif %}"),
 ]) }}
 <p>Estados de una factura: <strong>Pendiente</strong>, <strong>Pago Parcial</strong>, <strong>Pagada</strong> y
-    <strong>Vencida</strong>. Una pendiente pasa a vencida el día después de su vencimiento, cuando alguien abre este detalle.</p>
+    <strong>Vencida</strong>. Una pendiente pasa a vencida el día después de su vencimiento (se actualiza al abrir el
+    Dashboard o este detalle).</p>
 {% endcall %}
 
 {% call m.section("facturas", "Registrar una factura") %}
@@ -46,11 +49,13 @@
 {{ m.steps([
     (None, "En el detalle del proyecto tocá <strong>Nueva Factura</strong>."),
     (1, "Escribí el <strong>Número de Factura</strong> y las fechas de <strong>emisión</strong> y <strong>vencimiento</strong>."),
-    (2, "Elegí la <strong>Línea a Facturar</strong> (el número entre paréntesis es el total de la línea, no lo que queda disponible)."),
+    (2, "Elegí la <strong>Línea a Facturar</strong>: entre paréntesis dice cuánto <em>queda por facturar</em> en esa línea."),
     (3, "Escribí el <strong>Monto</strong> y tocá <strong>Crear Factura</strong>. Queda <em>Pendiente</em>."),
 ]) }}
-<p><strong>Editar</strong> en la fila la corrige. <em>Eliminar Factura</em> la borra <strong>sin pedir confirmación</strong>, y solo
-    si todavía no tiene pago.</p>
+<p>Si el monto supera lo que queda en la línea, la ventana te avisa. Si es correcto (por ejemplo, una prórroga), marcá
+    <em>Es correcto</em> para poder guardarla.</p>
+<p><strong>Editar</strong> en la fila la corrige. <em>Eliminar Factura</em> pide confirmación y solo funciona si la factura
+    todavía no tiene pagos.</p>
 {% else %}
 <p>Las facturas las registra TOMATO. En el detalle ves cada factura con su estado y fechas.</p>
 {% endif %}
@@ -60,9 +65,9 @@
 {% if user.role == 'admin' %}
 {{ m.shot("presupuestos/pago.webp", "Registrar pago", "La ventana Registrar Pago.") }}
 {{ m.steps([
-    (None, "En la fila de la factura tocá <strong>Reporte</strong> (así se llama el botón de pago)."),
+    (None, "En la fila de la factura tocá <strong>Registrar pago</strong>."),
     (1, "<strong>Fecha de Pago</strong> y <strong>Comprobante / Depósito</strong> (obligatorios)."),
-    (2, "<strong>Monto Depositado</strong>: viene con el monto de la factura. Si una institución retuvo una parte, marcá <em>Aplicar Retención Institucional Automática</em> y escribí lo que realmente se depositó: la diferencia queda como retención."),
+    (2, "<strong>Monto Depositado</strong>: viene con el monto de la factura. Si una institución retuvo una parte, marcá <em>Aplicar Retención Institucional Automática</em> y escribí lo que realmente se depositó: la diferencia queda como retención. La ventana muestra al lado el <strong>2 % esperado</strong> y avisa si no coincide con la diferencia real."),
     (3, "<strong>Estado del Pago</strong>: <em>Pagado</em> o <em>Pago Parcial</em> (con una nota obligatoria). Tocá <strong>Confirmar Pago</strong>."),
 ]) }}
 <p><strong>Pagos parciales</strong>: si la factura ya tiene un abono, la ventana muestra lo ya pagado y propone el
@@ -78,7 +83,7 @@
 {{ m.steps([
     (None, "Tocá <strong>+ Agregar Costo</strong> en <em>Gastos Registrados</em>."),
     (None, "Fecha, <strong>Monto Invertido</strong> y <strong>Descripción</strong>, y <strong>Guardar Costo</strong>."),
-    (None, "<em>Editar</em> lo corrige; <em>Eliminar Gasto</em> lo borra sin pedir confirmación."),
+    (None, "<em>Editar</em> lo corrige; <em>Eliminar Gasto</em> pide confirmación y queda en Actividad."),
 ]) }}
 {% else %}
 <p>Los gastos del proyecto los registra TOMATO y se suman a los costos.</p>
@@ -87,26 +92,23 @@
 
 {% call m.section("preguntas", "Preguntas frecuentes") %}
 <div class="space-y-2">
-{% call m.faq("¿Por qué el saldo no baja cuando entra un pago?") %}
-<p>El <strong>Saldo</strong> es lo que queda por <em>facturar</em> del contrato. Lo cobrado se ve en <strong>Total Pagado</strong>
-    y en el estado de cada factura.</p>
-{% endcall %}
-{% call m.faq("Una factura vencida sigue diciendo Pendiente en el Dashboard") %}
-<p>El estado se actualiza al abrir el detalle del proyecto. Abrilo y se corrige.</p>
+{% call m.faq("¿Cuál es la diferencia entre «Por cobrar» y «Por facturar»?") %}
+<p><strong>Por cobrar</strong> son facturas ya emitidas que falta pagar. <strong>Por facturar</strong> es lo del contrato que
+    todavía no se ha facturado. Cuando entra un pago baja <em>Por cobrar</em>; cuando se emite una factura baja <em>Por facturar</em>.</p>
 {% endcall %}
 {% call m.faq("¿En qué moneda están los montos?") %}
 <p>En la del contrato (normalmente colones). Estas pantallas no muestran el símbolo.</p>
 {% endcall %}
 {% if user.role == 'admin' %}
-{% call m.faq("El sistema me dejó facturar más que la línea") %}
-<p>No lo controla: revisá el total de la línea antes de facturar.</p>
+{% call m.faq("Dice que la factura supera lo que queda por facturar") %}
+<p>Revisá el monto y la línea. Si es correcto (una prórroga o un ajuste del contrato), marcá <em>Es correcto</em> en la ventana.</p>
 {% endcall %}
-{% call m.faq("Aparece una página con un texto en inglés («Cannot delete invoice with payments»)") %}
-<p>Esa factura ya tiene un pago (parcial o total) y no se puede borrar. Volvé atrás con el navegador.</p>
+{% call m.faq("No me deja eliminar una factura") %}
+<p>Ya tiene un pago (parcial o total) y no se puede borrar, porque el pago quedaría sin su factura.</p>
 {% endcall %}
-{% call m.faq("¿Por qué el cliente ve los costos?") %}
-<p>Hoy el cliente ve el detalle completo, incluidos costos, planilla y balance, aunque no puede cambiar nada. Tenelo
-    presente antes de dar acceso al portal.</p>
+{% call m.faq("¿Qué ve el cliente?") %}
+<p>Lo adjudicado, lo facturado, lo cobrado, lo que falta cobrar y facturar, sus líneas y sus facturas. No ve gastos,
+    planillas, retenciones ni la ganancia.</p>
 {% endcall %}
 {% endif %}
 </div>

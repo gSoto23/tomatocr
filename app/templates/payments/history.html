@@ -7,14 +7,14 @@
 <div class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
     <div>
         <div class="flex items-center gap-2 mb-1">
-            <a href="/payments" class="text-gray-500 hover:text-gray-900">
+            <a href="{{ '/payments' if user.role == 'admin' else '/payroll' }}" class="text-gray-500 hover:text-gray-900">
                 <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                 </svg>
             </a>
             <h1 class="text-2xl font-bold text-gray-900">{{ target_user.full_name or target_user.username }}</h1>
         </div>
-        <p class="text-sm text-gray-500">Historial de pagos realizados.</p>
+        <p class="text-sm text-gray-500">{{ 'Tus pagos de planilla.' if user.id == target_user.id else 'Historial de pagos realizados.' }}</p>
     </div>
     {% if user.role == 'admin' %}
     <button onclick="document.getElementById('new-payment-modal').classList.remove('hidden')"
@@ -33,6 +33,8 @@
                 </th>
                 <th scope="col" class="px-3 py-3.5 text-right text-sm font-semibold text-gray-900">Monto</th>
                 <th scope="col" class="px-3 py-3.5 text-right text-sm font-semibold text-gray-900">Horas Pagadas</th>
+                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Cómo</th>
+                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Planilla</th>
                 <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Notas</th>
                 <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Registrado Por</th>
             </tr>
@@ -49,6 +51,13 @@
                 <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500 text-right">
                     {{ payment.hours_paid }}
                 </td>
+                <td class="px-3 py-4 text-sm text-gray-700">
+                    {{ payment.method or '-' }}
+                    {% if payment.reference %}<div class="text-xs text-gray-500">Ref. {{ payment.reference }}</div>{% endif %}
+                </td>
+                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                    {% if payment.period %}<a href="/payroll/detail/{{ payment.period.id }}" class="text-indigo-600 hover:underline">{{ payment.period.start_date | format_date }} – {{ payment.period.end_date | format_date }}</a>{% else %}-{% endif %}
+                </td>
                 <td class="px-3 py-4 text-sm text-gray-500">
                     {{ payment.notes or '-' }}
                 </td>
@@ -58,7 +67,7 @@
             </tr>
             {% else %}
             <tr>
-                <td colspan="5" class="px-4 py-8 text-center text-sm text-gray-500">
+                <td colspan="7" class="px-4 py-8 text-center text-sm text-gray-500">
                     No hay pagos registrados para este usuario.
                 </td>
             </tr>
@@ -83,6 +92,28 @@
                                 <h3 class="text-base font-semibold leading-6 text-gray-900" id="modal-title">Registrar
                                     Nuevo Pago</h3>
                                 <div class="mt-4 grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-6">
+                                    <div class="sm:col-span-full">
+                                        <label for="payroll_period_id" class="block text-sm font-medium leading-6 text-gray-900">Planilla que paga (opcional)</label>
+                                        <select name="payroll_period_id" id="payroll_period_id" onchange="fromPayroll(this)"
+                                            class="mt-2 block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
+                                            <option value="">Ninguna</option>
+                                            {% for p in periods %}
+                                            <option value="{{ p.id }}" data-net="{{ net_by_period.get(p.id, 0) }}">{{ p.start_date | format_date }} – {{ p.end_date | format_date }} (neto ₡{{ "{:,.2f}".format(net_by_period.get(p.id, 0)) }})</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="sm:col-span-3">
+                                        <label for="method" class="block text-sm font-medium leading-6 text-gray-900">Método</label>
+                                        <select name="method" id="method"
+                                            class="mt-2 block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
+                                            {% for m in methods %}<option value="{{ m }}" {% if target_user.payment_method == m %}selected{% endif %}>{{ m }}</option>{% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="sm:col-span-3">
+                                        <label for="reference" class="block text-sm font-medium leading-6 text-gray-900">Referencia / comprobante</label>
+                                        <input type="text" name="reference" id="reference" maxlength="100" placeholder="Número de Sinpe o transferencia"
+                                            class="mt-2 block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
+                                    </div>
                                     <div class="sm:col-span-3">
                                         <label for="date"
                                             class="block text-sm font-medium leading-6 text-gray-900">Fecha</label>
@@ -173,7 +204,15 @@
     </div>
 </div>
 <script>
-    document.getElementById('date').valueAsDate = new Date();
+    if (document.getElementById('date')) {
+        document.getElementById('date').value = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Costa_Rica' }).format(new Date());
+    }
+
+    // Choosing the payroll proposes its net amount.
+    function fromPayroll(select) {
+        const net = select.selectedOptions[0]?.dataset.net;
+        if (net && Number(net) > 0) document.getElementById('amount').value = Number(net).toFixed(2);
+    }
 
     function notifyWhatsapp() {
         const amount = document.getElementById('amount').value;
@@ -204,6 +243,9 @@
             message += `\n🔥 H. Extra: ${overtime}`;
         }
 
+        const method = document.getElementById('method').value;
+        const reference = document.getElementById('reference').value;
+        message += `\n💳 ${method}${reference ? ' · Ref. ' + reference : ''}`;
         message += `\n📝 Notas: ${notes || 'Sin notas adicionales'}\n\nGracias.`;
 
         const encodedMessage = encodeURIComponent(message);

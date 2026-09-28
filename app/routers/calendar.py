@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.db.models.schedule import ProjectSchedule, ScheduleTask
 from app.db.models.project import Project
+from app.db.models.project_details import ProjectLocation
 from app.db.models.user import User
 from app.routers import deps
 from app.core.roles import ADMIN, CLIENT, OPERATIONS_ROLES, SUPERVISOR, WORKER
@@ -30,15 +31,21 @@ def calendar_view(request: Request, db: Session = Depends(deps.get_db), user: Us
     projects = []
     workers = []
     # Admin and Supervisor get full list
+    locations = {}
     if user.role in [ADMIN, SUPERVISOR]:
-        projects = db.query(Project).filter(Project.is_active == True).all()
-        workers = db.query(User).filter(User.role.in_([WORKER, SUPERVISOR])).all()
+        projects = db.query(Project).filter(Project.is_active == True).order_by(Project.name).all()
+        # Only people who can still work (not deactivated or liquidated).
+        workers = [w for w in db.query(User).filter(User.role.in_([WORKER, SUPERVISOR])).order_by(User.full_name)
+                   if deps.can_log_in(w)]
+        locations = {p.id: [{"id": l.id, "name": l.name} for l in p.locations if l.archived_at is None]
+                     for p in projects}
 
     return templates.TemplateResponse("calendar/index.html", {
         "request": request, 
         "user": user,
         "projects": projects,
-        "workers": workers
+        "workers": workers,
+        "locations": locations,
     })
 
 @router.get("/events")
@@ -59,7 +66,7 @@ def get_events(start: str, end: str, db: Session = Depends(deps.get_db), user: U
         is_manager = user.role in [ADMIN, SUPERVISOR]
         evt = {
             "id": s.id,
-            "title": f"{s.project.name} ({s.user.username})",
+            "title": f"{s.project.name} ({s.user.full_name or s.user.username})",
             "start": s.date.isoformat(),
             # Workers click to go to project, Managers click to Edit (handled in JS)
             "url": f"/projects/{s.project.id}" if not is_manager else None, 
@@ -68,6 +75,9 @@ def get_events(start: str, end: str, db: Session = Depends(deps.get_db), user: U
                 "project_id": s.project_id,
                 "project_name": s.project.name,
                 "worker_name": s.user.full_name or s.user.username,
+                "location_id": s.location_id,
+                "location_name": s.location.name if s.location else None,
+                "hours": s.hours_worked,
                 "tasks": [{"id": t.id, "title": t.title, "description": t.description, "completed": t.completed} for t in s.tasks]
             },
             "color": "#000000" if is_manager else "#2563eb"
@@ -75,6 +85,30 @@ def get_events(start: str, end: str, db: Session = Depends(deps.get_db), user: U
         events.append(evt)
         
     return JSONResponse(events)
+
+def check_location(db: Session, project_id: int, location_id: Optional[int]) -> Optional[int]:
+    """The sede must belong to the project; anything else means "no sede"."""
+    if not location_id:
+        return None
+    ok = db.query(ProjectLocation.id).filter(ProjectLocation.id == location_id,
+                                             ProjectLocation.project_id == project_id).first()
+    return location_id if ok else None
+
+
+def conflicts(db: Session, user_id: int, days, exclude_id: Optional[int] = None) -> list:
+    """Other assignments of this person on those days (any project)."""
+    query = db.query(ProjectSchedule).filter(ProjectSchedule.user_id == user_id, ProjectSchedule.date.in_(list(days)))
+    if exclude_id:
+        query = query.filter(ProjectSchedule.id != exclude_id)
+    return query.order_by(ProjectSchedule.date).all()
+
+
+def conflict_response(found: list):
+    listed = ", ".join(f"{s.date:%d/%m} ({s.project.name if s.project else '?'})" for s in found[:5])
+    more = f" y {len(found) - 5} más" if len(found) > 5 else ""
+    return JSONResponse({"status": "conflict", "message": f"Esa persona ya tiene asignación el {listed}{more}. "
+                         "¿Asignarla igual?"}, status_code=409)
+
 
 def person_name(db: Session, user_id: int) -> str:
     person = db.get(User, user_id)
@@ -93,6 +127,11 @@ def create_schedule(
     date_val: str = Form(..., alias="date"),
     end_date: Optional[str] = Form(None),
     tasks_json: str = Form("[]"),
+    location_id: Optional[int] = Form(None),
+    hours: Optional[float] = Form(None),
+    include_saturday: bool = Form(True),
+    include_sunday: bool = Form(False),
+    confirm_conflicts: bool = Form(False),
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
@@ -117,12 +156,24 @@ def create_schedule(
     except json.JSONDecodeError:
         pass
 
-    for i in range(delta.days + 1):
-        current_day = start_date + timedelta(days=i)
-        
+    # A range skips the days not chosen (by default Sunday); a single day is always kept.
+    days = [start_date + timedelta(days=i) for i in range(delta.days + 1)]
+    if len(days) > 1:
+        days = [d for d in days if (d.weekday() != 5 or include_saturday) and (d.weekday() != 6 or include_sunday)]
+    if not days:
+        return JSONResponse({"status": "error", "message": "El rango no tiene días para asignar"}, status_code=400)
+    found = conflicts(db, user_id, days)
+    if found and not confirm_conflicts:
+        return conflict_response(found)
+    location_id = check_location(db, project_id, location_id)
+    planned = hours if hours and hours > 0 else 8.0
+
+    for current_day in days:
         new_schedule = ProjectSchedule(
             project_id=project_id,
             user_id=user_id,
+            location_id=location_id,
+            hours_worked=planned,
             date=current_day
         )
         db.add(new_schedule)
@@ -142,9 +193,10 @@ def create_schedule(
     db.commit()
     log_activity(db, user, "CREATE", "SCHEDULE", None,
                  f"Asignó a {person_name(db, user_id)} en {project_name(db, project_id)}: {start_date:%d/%m/%Y}"
-                 + (f" al {final_date:%d/%m/%Y}" if final_date != start_date else ""))
+                 + (f" al {final_date:%d/%m/%Y} ({len(days)} días)" if final_date != start_date else ""))
 
-    return JSONResponse({"status": "success", "message": "Asignación creada correctamente"})
+    message = "Asignación creada correctamente" if len(days) == 1 else f"{len(days)} asignaciones creadas"
+    return JSONResponse({"status": "success", "message": message})
 
 @router.post("/schedule/{id}/delete")
 def delete_schedule(id: int, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
@@ -169,6 +221,9 @@ def update_schedule(
     user_id: int = Form(...),
     date_val: str = Form(..., alias="date"),
     tasks_json: str = Form("[]"),
+    location_id: Optional[int] = Form(None),
+    hours: Optional[float] = Form(None),
+    confirm_conflicts: bool = Form(False),
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
@@ -178,10 +233,19 @@ def update_schedule(
     schedule = db.query(ProjectSchedule).filter(ProjectSchedule.id == id).first()
     if not schedule:
         return JSONResponse({"status": "error", "message": "Asignación no encontrada"}, status_code=404)
-    
+
+    new_date = datetime.strptime(date_val, "%Y-%m-%d").date()
+    found = conflicts(db, user_id, [new_date], exclude_id=id)
+    if found and not confirm_conflicts:
+        return conflict_response(found)
+
     schedule.project_id = project_id
     schedule.user_id = user_id
-    schedule.date = datetime.strptime(date_val, "%Y-%m-%d").date()
+    schedule.date = new_date
+    schedule.location_id = check_location(db, project_id, location_id)
+    # Planned hours only while they are not confirmed (after that, Aprobar Horas owns them).
+    if hours and hours > 0 and not schedule.is_confirmed:
+        schedule.hours_worked = hours
     
     # Update tasks in place: an edited or unchanged task keeps whether the worker ticked it.
     import json

@@ -6,7 +6,41 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-28
 
-### UI/UX ronda 2a: el día a día (esta rama)
+### UI/UX ronda 2b: presupuestos, planilla, calendario y reforestación (esta rama)
+- **Presupuestos**: un solo nombre (Presupuestos / Presupuesto del proyecto). Tarjetas
+  Total Adjudicado, Facturado, Cobrado, Por cobrar, Por facturar y, para el equipo,
+  Costos y Ganancia, cada una con su explicación. El **cliente** solo ve facturas y
+  pagos: sin gastos, planillas, retenciones ni ganancia (tampoco se envían al navegador).
+  "Reporte" pasó a "Registrar pago". La retención muestra el 2 % esperado junto a la
+  diferencia real y avisa si no coinciden. La línea a facturar dice cuánto queda y
+  facturar de más pide confirmar (`confirm_over`). Borrar factura o gasto pide
+  confirmación y queda en Actividad; una factura con pagos no se borra y lo dice en
+  español.
+- **Planilla**: "Confirmar pendientes" confirma solo las filas pendientes de la página (o
+  confirmadas con horas cambiadas) y pide confirmar; "Hoy" y "Semana" en hora de Costa
+  Rica. Al generar se guarda la **tarifa de cada persona** (`payroll_entries.hourly_rate`);
+  el detalle, el reporte y el costo de planilla en Presupuestos usan esa tarifa con el
+  mismo redondeo. El total del reporte queda en la columna Neto. En el detalle, la
+  tarifa, el método de pago y "Ver desglose" van bajo el nombre para que la tabla quepa.
+- **Pagos de planilla**: método (Sinpe, Transferencia, Efectivo), referencia y la planilla
+  que pagan (propone su neto); el mensaje de WhatsApp los incluye. Trabajador y
+  supervisor ven sus pagos en Planilla → "Mis pagos".
+- **Calendario**: un rango asigna de lunes a sábado (casillas para incluir domingo o
+  quitar sábado); sede y horas previstas en la asignación; avisa si la persona ya tiene
+  algo ese día y pide confirmar; solo lista personas activas y muestra su nombre.
+- **Reforestación**: el admin renombra un proyecto, borra un árbol o el proyecto
+  completo (escribiendo su nombre); admin y supervisor borran un monitoreo equivocado
+  desde "Últimos monitoreos" y el árbol vuelve a su estado anterior. Importar deja
+  elegir el proyecto, y un nombre con otras mayúsculas, tildes o espacios usa el mismo.
+  Altura no numérica y foto inválida dan un aviso en español.
+- **Detalles**: el menú del celular ya no se ve abierto al cargar la página; "Enviar por
+  Correo" se esconde mientras se edita un reporte.
+- Manual al día (Presupuestos, Planilla, Calendario y Reforestación, con la sección nueva
+  "Corregir errores") y capturas nuevas.
+- **Migración `0010`** (tarifa en la planilla; método, referencia y planilla en los
+  pagos). Despliegue: snapshot, `alembic upgrade head` y reiniciar.
+
+### UI/UX ronda 2a: el día a día (#70)
 - **Acceso**: un usuario desactivado ve "Tu usuario está desactivado" (solo si la
   contraseña es correcta, así no se revela quién existe). En celular y tablet hay un
   botón "Ingresar" que abre el acceso. El CSS y el JS de la portada llevan `?v=`

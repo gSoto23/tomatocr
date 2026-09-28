@@ -116,6 +116,24 @@ def latest_check(tree: ReforestationTree) -> Optional[TreeCheck]:
     return max(tree.checks, key=lambda c: (c.checked_at, c.id or 0), default=None)
 
 
+def refresh_tree_status(tree: ReforestationTree):
+    """After a check is removed, the tree takes the status of its latest remaining check."""
+    check = latest_check(tree)
+    if check is None:
+        tree.status, tree.last_checked_at = STATUS_UNVERIFIED, None
+    else:
+        tree.status, tree.last_checked_at = check.status, check.checked_at
+    if tree.status != STATUS_REPLACED:
+        tree.replaced_by = None
+
+
+def name_key(name: str) -> str:
+    """Name without case, accents or extra spaces, to spot the same client typed differently."""
+    import unicodedata
+    plain = unicodedata.normalize("NFD", name or "").encode("ascii", "ignore").decode()
+    return " ".join(plain.lower().split())
+
+
 def inventory_rows(project: ReforestationProject) -> List[List[str]]:
     """The project's trees in CSV_COLUMNS order, empty where there is no data."""
     rows = []

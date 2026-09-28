@@ -10,7 +10,7 @@ from app.db.models.finance import ProjectBudget, BudgetLine, Invoice, Payment, I
 from app.db.models.schedule import ProjectSchedule
 from app.db.models.user import User
 from app.db.models.associations import project_users
-from app.db.models.payroll import PayrollPeriod
+from app.db.models.payroll import PayrollEntry, PayrollPeriod
 from app.routers import deps
 from app.core.roles import ADMIN, CLIENT, FINANCE_ROLES, OPERATIONS_ROLES
 from app.utils.activity import log_activity, compute_diff
@@ -26,6 +26,45 @@ from app.core.templates import templates
 def check_finance_access(user: User):
     if user.role not in FINANCE_ROLES:
         raise HTTPException(status_code=403, detail="Forbidden")
+
+
+def error_redirect(url: str, message: str):
+    response = RedirectResponse(url=url, status_code=status.HTTP_303_SEE_OTHER)
+    response.set_cookie(key="toast_message", value=message)
+    response.set_cookie(key="toast_type", value="error")
+    return response
+
+
+def schedule_payroll_cost(db: Session, schedules, periods) -> dict:
+    """Company cost of confirmed schedules that fall in final payrolls, per period id, with the
+    hourly rate frozen in that payroll (the person's current rate for payrolls made before)."""
+    rates = {(e.payroll_period_id, e.user_id): e.hourly_rate
+             for e in db.query(PayrollEntry).filter(PayrollEntry.payroll_period_id.in_([p.id for p in periods]))}
+    costs = {}
+    for sched in schedules:
+        period = next((p for p in periods if p.start_date <= sched.date <= p.end_date), None)
+        if not period or not sched.user:
+            continue
+        rate = rates.get((period.id, sched.user_id))
+        if rate is None:
+            rate = sched.user.hourly_rate or 0.0
+        gross = (sched.hours_worked or 0.0) * rate + (sched.overtime_hours or 0.0) * rate * 1.5
+        # Gross + 26.67% CCSS + 18% previsiones = company cost
+        costs[period.id] = costs.get(period.id, 0.0) + gross * 1.4467
+    return costs
+
+
+def line_available(db: Session, line: BudgetLine, exclude_invoice_id: Optional[int] = None) -> float:
+    """What is still left to invoice on a budget line (its total minus its invoices)."""
+    query = db.query(func.coalesce(func.sum(Invoice.amount), 0.0)).filter(Invoice.budget_line_id == line.id)
+    if exclude_invoice_id:
+        query = query.filter(Invoice.id != exclude_invoice_id)
+    return line.total - (query.scalar() or 0.0)
+
+
+def over_line_message(line: BudgetLine, available: float) -> str:
+    return (f"La factura supera lo que queda por facturar en «{line.name}» ({available:,.2f}). "
+            "Si es correcto (por ejemplo, una prórroga), confirmalo en la ventana.")
 
 def get_project_budget_status(db: Session, project: Project):
     # Calculate totals
@@ -59,26 +98,12 @@ def get_project_budget_status(db: Session, project: Project):
     # Calculate payroll costs
     # Gross salary = hours * rate. Company cost assumed + 44.67% approx or standard 26.67% + 18%.
     # For simplicity of metric tracking, we calculate direct worker gross + 26.67% CCSS cost:
-    payroll_costs = 0.0
     confirmed_schedules = db.query(ProjectSchedule).filter(
         ProjectSchedule.project_id == project.id,
         ProjectSchedule.is_confirmed == True
     ).all()
-    
     final_periods = db.query(PayrollPeriod).filter(PayrollPeriod.status == "final").all()
-    final_ranges = [(p.start_date, p.end_date) for p in final_periods]
-
-    for sched in confirmed_schedules:
-        if any(start <= sched.date <= end for start, end in final_ranges):
-            if sched.user and getattr(sched.user, 'hourly_rate', None):
-                worker_rate = sched.user.hourly_rate
-                regular_pay = (sched.hours_worked or 0.0) * worker_rate
-                overtime_pay = (sched.overtime_hours or 0.0) * worker_rate * 1.5
-                gross = regular_pay + overtime_pay
-                
-                # Gross + 26.67% CCSS + 18% Previsiones = Total Company Cost
-                company_cost = gross * 1.4467
-                payroll_costs += company_cost
+    payroll_costs = sum(schedule_payroll_cost(db, confirmed_schedules, final_periods).values())
 
     total_costs = manual_costs + payroll_costs
 
@@ -87,7 +112,8 @@ def get_project_budget_status(db: Session, project: Project):
         "total_adjudicated": total_adjudicated,
         "total_invoiced": total_invoiced,
         "total_paid": total_paid,
-        "balance": total_adjudicated - total_invoiced,
+        "balance": total_adjudicated - total_invoiced,  # still to invoice
+        "receivable": total_invoiced - total_paid,       # invoiced, not yet collected
         "total_costs": total_costs
     }
 
@@ -128,6 +154,7 @@ def finance_dashboard(request: Request, db: Session = Depends(deps.get_db), user
             "total_adjudicated": status["total_adjudicated"],
             "total_invoiced": status["total_invoiced"],
             "balance": status["balance"],
+            "receivable": status["receivable"],
             "total_costs": status["total_costs"]
         })
 
@@ -215,8 +242,12 @@ def finance_detail(
         from math import ceil
         total_pages = ceil(total_records / limit)
 
+    # The client only sees invoices and payments: no costs, payroll or margin.
+    internal = user.role != CLIENT
+    lines_data = [{"line": l, "available": line_available(db, l)} for l in lines]
+
     # Fetch manuals project costs to display in Detail view
-    costs = db.query(ProjectCost).filter(ProjectCost.project_id == project.id).order_by(ProjectCost.date.desc()).all()
+    costs = [] if not internal else db.query(ProjectCost).filter(ProjectCost.project_id == project.id).order_by(ProjectCost.date.desc()).all()
 
     # Calculate detailed payroll to display Grouped by Period
     payroll_details = []
@@ -228,31 +259,20 @@ def finance_detail(
         ProjectSchedule.is_confirmed == True
     ).all()
     
-    for period in payroll_periods:
-        period_cost = 0.0
-        # Find schedules in this period
-        schedules_in_period = [s for s in confirmed_schedules if period.start_date <= s.date <= period.end_date]
-        
-        if schedules_in_period:
-            for sched in schedules_in_period:
-                if sched.user and getattr(sched.user, 'hourly_rate', None):
-                    worker_rate = sched.user.hourly_rate
-                    regular_pay = (sched.hours_worked or 0.0) * worker_rate
-                    overtime_pay = (sched.overtime_hours or 0.0) * worker_rate * 1.5
-                    gross = regular_pay + overtime_pay
-                    period_cost += gross * 1.4467
-            
+    period_costs = schedule_payroll_cost(db, confirmed_schedules, payroll_periods) if internal else {}
+    for period in payroll_periods if internal else []:
+        if period.id in period_costs:
             payroll_details.append({
                 "period_str": f"{period.start_date.strftime('%d/%m/%Y')} - {period.end_date.strftime('%d/%m/%Y')}",
                 "start_date": period.start_date,
                 "status": period.status,
-                "cost": period_cost
+                "cost": period_costs[period.id]
             })
-        
+
     payroll_details.sort(key=lambda x: x['start_date'], reverse=True)
 
     # Fetch Retentions associated with this project's invoices
-    retentions = db.query(Payment)\
+    retentions = [] if not internal else db.query(Payment)\
         .join(Invoice)\
         .join(ProjectBudget)\
         .filter(ProjectBudget.project_id == project.id, Payment.retention_amount > 0)\
@@ -265,6 +285,8 @@ def finance_detail(
         "project": project,
         "budget": budget,
         "lines": lines,
+        "lines_data": lines_data,
+        "internal": internal,
         "invoices": invoices,
         "costs": costs,
         "retentions": retentions,
@@ -289,6 +311,7 @@ def create_invoice(
     due_date: str = Form(...),
     amount: float = Form(...),
     budget_line_id: int = Form(...),
+    confirm_over: bool = Form(False),
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
@@ -303,7 +326,10 @@ def create_invoice(
     line = db.query(BudgetLine).filter(BudgetLine.id == budget_line_id, BudgetLine.budget_id == project.budget.id).first()
     if not line:
         raise HTTPException(status_code=400, detail="Invalid Budget Line")
-        
+    available = line_available(db, line)
+    if amount > available + 0.005 and not confirm_over:
+        return error_redirect(f"/finance/{project_id}", over_line_message(line, available))
+
     invoice = Invoice(
         budget_id=project.budget.id,
         budget_line_id=budget_line_id,
@@ -334,6 +360,7 @@ def edit_invoice(
     due_date: str = Form(...),
     amount: float = Form(...),
     budget_line_id: int = Form(...),
+    confirm_over: bool = Form(False),
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
@@ -348,6 +375,9 @@ def edit_invoice(
     line = db.query(BudgetLine).filter(BudgetLine.id == budget_line_id, BudgetLine.budget_id == invoice.budget_id).first()
     if not line:
         raise HTTPException(status_code=400, detail="Invalid Budget Line")
+    available = line_available(db, line, exclude_invoice_id=invoice.id)
+    if amount > available + 0.005 and not confirm_over:
+        return error_redirect(f"/finance/{invoice.budget.project_id}", over_line_message(line, available))
 
     old_data = {
         "monto": invoice.amount,
@@ -393,12 +423,15 @@ def delete_invoice(
 
     project_id = invoice.budget.project_id
     
-    # Optional: ensure we can delete it (e.g., if it has payments?)
-    if invoice.status != InvoiceStatus.PENDING and invoice.status != InvoiceStatus.OVERDUE:
-        raise HTTPException(status_code=400, detail="Cannot delete invoice with payments")
+    # An invoice with payments can't be deleted: the payment would be left without its invoice.
+    if invoice.payment or invoice.status not in (InvoiceStatus.PENDING, InvoiceStatus.OVERDUE):
+        return error_redirect(f"/finance/{project_id}",
+                              f"La factura #{invoice.invoice_number} ya tiene pagos registrados y no se puede eliminar.")
 
+    number = invoice.invoice_number
     db.delete(invoice)
     db.commit()
+    log_activity(db, user, "BORRAR", "Factura", invoice_id, f"Eliminó la factura #{number}")
     
     response = RedirectResponse(url=f"/finance/{project_id}", status_code=status.HTTP_303_SEE_OTHER)
     response.set_cookie(key="toast_message", value="Factura eliminada")
@@ -472,8 +505,10 @@ def delete_cost(
         raise HTTPException(status_code=404, detail="Cost not found")
 
     project_id = cost.project_id
+    details = f"Eliminó el gasto «{cost.description}» por {cost.amount:,.2f}"
     db.delete(cost)
     db.commit()
+    log_activity(db, user, "BORRAR", "Gasto", cost_id, details)
     
     response = RedirectResponse(url=f"/finance/{project_id}", status_code=status.HTTP_303_SEE_OTHER)
     response.set_cookie(key="toast_message", value="Costo eliminado")

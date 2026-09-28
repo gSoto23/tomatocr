@@ -29,7 +29,7 @@
 {% call m.section("importar", "Cargar y actualizar el inventario (CSV)") %}
 {{ m.shot("reforestacion/importar.webp", "Importar inventario", "La ventana Importar inventario.") }}
 {{ m.steps([
-    (1, "<strong>Nombre del Cliente (Proyecto)</strong>. Un nombre nuevo crea un proyecto nuevo; uno que ya existe actualiza sus árboles."),
+    (1, "<strong>Proyecto</strong>: elegí uno de la lista para actualizar sus árboles, o <em>Nuevo proyecto…</em> y escribí el nombre del cliente. Si escribís un nombre que ya existe (aunque cambien mayúsculas, tildes o espacios), se usa ese proyecto."),
     (2, "El <strong>Archivo CSV</strong>. <em>Descargar plantilla vacía</em> da el formato."),
     (3, "Tocá <strong>Subir e Importar</strong>. El mensaje dice cuántos árboles y monitoreos se agregaron o corrigieron."),
 ]) }}
@@ -37,12 +37,12 @@
     Solo <strong>TreeNumber</strong> es obligatorio. <em>Date</em> es la fecha de siembra; <em>Status</em> (vivo, muerto o
     reemplazado) con su <em>CheckDate</em> registra un monitoreo. Las fechas van como AAAA-MM-DD o DD/MM/AAAA.</p>
 <p><strong>Para actualizar</strong>: <em>Descargar CSV</em> → completá o corregí en Excel → <em>Importar CSV actualizado</em>
-    (este botón ya pone el nombre exacto del proyecto).</p>
+    (este botón ya deja elegido el proyecto).</p>
 {% call m.warn("Cómo trata los datos la importación") %}
 <ul class="list-disc space-y-1 pl-5">
     <li><strong>Nunca borra</strong>: una casilla vacía no borra lo que había, y los árboles que no vienen en el archivo se conservan.</li>
     <li><strong>Todo o nada</strong>: si una fila tiene un error, no se importa nada. El mensaje dice qué línea corregir.</li>
-    <li>El nombre del proyecto no se puede cambiar después, y un nombre mal escrito crea otro proyecto: usá <em>Importar CSV actualizado</em>.</li>
+    <li>Si el nombre quedó mal, se corrige con <em>Renombrar</em> (ver <a href="#corregir" class="text-indigo-600 hover:underline">Corregir errores</a>).</li>
 </ul>
 {% endcall %}
 {% endcall %}
@@ -78,17 +78,31 @@
     se agrega al historial. La altura, las notas y la foto se aplican a todos los árboles marcados en ese registro.</p>
 {% endcall %}
 
+{% call m.section("corregir", "Corregir errores") %}
+<ul class="list-disc space-y-1 pl-5">
+    <li><strong>Un monitoreo equivocado</strong> ({{ m.roles(["admin", "supervisor"]) }}): en la pantalla de monitoreo,
+        abajo, están los <em>Últimos monitoreos</em>. Tocá <strong>Borrar</strong> en el que quedó mal: el árbol vuelve al
+        estado de su monitoreo anterior (o a <em>sin verificar</em> si no tenía otro).</li>
+    <li><strong>Un árbol que no existe</strong> (solo el admin): en Reforestación, en el proyecto, abrí <em>Corregir</em>,
+        escribí el número y tocá <strong>Borrar árbol</strong>. Se borran también sus monitoreos.</li>
+    <li><strong>El nombre del proyecto</strong> (solo el admin): <em>Corregir</em> → <strong>Renombrar</strong>.</li>
+    <li><strong>Un proyecto importado por error</strong> (solo el admin): <em>Corregir</em> → escribí su nombre y tocá
+        <strong>Borrar proyecto</strong>. Se borran todos sus árboles y monitoreos; no se puede deshacer.</li>
+</ul>
+<p>Todo queda registrado en Actividad.</p>
+{% endcall %}
+
 {% call m.section("preguntas", "Preguntas frecuentes") %}
 <div class="space-y-2">
 {% call m.faq("No veo el botón «Monitoreo de árboles»") %}
 <p>El inventario tiene que estar ligado al proyecto (lo hace el admin en Reforestación), y el trabajador tiene que estar asignado al proyecto.</p>
 {% endcall %}
 {% call m.faq("Marqué un árbol por error") %}
-<p>Registrá un monitoreo nuevo con el estado correcto y la misma fecha o una posterior: el estado actual es el del
-    monitoreo más reciente. Para borrar un registro hace falta soporte técnico.</p>
+<p>{% if user.role in ['admin', 'supervisor'] %}Borralo en <em>Últimos monitoreos</em>, abajo en la pantalla de monitoreo.{% else %}Avisale al supervisor: él lo borra.{% endif %}
+    También podés registrar uno nuevo con el estado correcto y la misma fecha o una posterior.</p>
 {% endcall %}
-{% call m.faq("Puse una altura y dio un error en inglés") %}
-<p>La altura tiene que ser un número (por ejemplo, 120). Volvé atrás y corregila.</p>
+{% call m.faq("Dice «la altura tiene que ser un número»") %}
+<p>Escribí solo el número en centímetros, por ejemplo 120 o 45,5, sin «cm».</p>
 {% endcall %}
 {% if user.role == 'admin' %}
 {% call m.faq("Un árbol no aparece en el mapa") %}

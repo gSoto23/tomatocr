@@ -75,49 +75,42 @@
                         class="py-3.5 pl-4 pr-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider sm:pl-6">
                         Trabajador</th>
                     <th scope="col"
-                        class="px-3 py-3.5 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Horas
+                        class="px-2 py-3.5 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Horas
                     </th>
                     <th scope="col"
-                        class="px-3 py-3.5 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">H. Extra
+                        class="px-2 py-3.5 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">H. Extra
                     </th>
                     <th scope="col"
-                        class="px-3 py-3.5 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Monto
+                        class="px-2 py-3.5 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Monto
                         Salario
                     </th>
                     <th scope="col"
-                        class="px-3 py-3.5 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Monto
+                        class="px-2 py-3.5 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Monto
                         Extra
                     </th>
                     <th scope="col"
-                        class="px-3 py-3.5 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Total
+                        class="px-2 py-3.5 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Total
                         Bruto</th>
                     <th scope="col"
-                        class="px-3 py-3.5 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">C.C.S.S
+                        class="px-2 py-3.5 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">C.C.S.S
                         (9.17%)</th>
                     <th scope="col"
-                        class="px-3 py-3.5 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Neto
+                        class="px-2 py-3.5 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Neto
                         Pagar</th>
                     {% if user.role not in ['worker', 'supervisor'] %}
                     <th scope="col"
-                        class="px-3 py-3.5 text-right text-xs font-bold text-gray-500 uppercase tracking-wider bg-gray-100 text-gray-900">
+                        class="px-2 py-3.5 text-right text-xs font-bold text-gray-500 uppercase tracking-wider bg-gray-100 text-gray-900">
                         C.S. Empresa</th>
                     <th scope="col"
-                        class="px-3 py-3.5 text-right text-xs font-bold text-gray-500 uppercase tracking-wider bg-gray-50 text-gray-900">
+                        class="px-2 py-3.5 text-right text-xs font-bold text-gray-500 uppercase tracking-wider bg-gray-50 text-gray-900">
                         Previsiones</th>
                     {% endif %}
                     {% if user.role == 'admin' %}
                     <th scope="col"
-                        class="px-3 py-3.5 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">
+                        class="px-2 py-3.5 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">
                         Apl. Ded?
                     </th>
                     {% endif %}
-                    <th scope="col"
-                        class="px-3 py-3.5 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
-                        Pago
-                    </th>
-                    <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6">
-                        <span class="sr-only">Detalles</span>
-                    </th>
                 </tr>
             </thead>
             <tbody id="payroll-entries-body" class="divide-y divide-gray-200 bg-white">
@@ -129,52 +122,42 @@
                                 class="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 font-bold text-xs mr-3">
                                 {{ (entry.user.full_name or entry.user.username)[:2].upper() }}
                             </div>
-                            {{ entry.user.full_name or entry.user.username }}
+                            <div>
+                                {{ entry.user.full_name or entry.user.username }}
+                                <div class="text-xs font-normal text-gray-500">₡{{ "{:,.0f}".format(entry.hourly_rate) }}/h · {{ entry.user.payment_method or 'Sin método' }}{% if entry.user.payment_method in ['Transferencia', 'Sinpe'] and entry.user.account_number %} {{ entry.user.account_number }}{% endif %} ·
+                                    <button type="button"
+                                        onclick='showBreakdown({{ entry.details | tojson | safe }}, {{ (entry.user.full_name or entry.user.username) | tojson }})'
+                                        class="font-semibold text-blue-600 hover:text-blue-900">Ver desglose</button></div>
+                            </div>
                         </div>
                     </td>
-                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500 text-right font-medium">{{
+                    <td class="whitespace-nowrap px-2 py-4 text-sm text-gray-500 text-right font-medium">{{
                         entry.total_hours }}</td>
-                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500 text-right font-medium">{{
+                    <td class="whitespace-nowrap px-2 py-4 text-sm text-gray-500 text-right font-medium">{{
                         entry.overtime_hours }}</td>
-                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-900 text-right">₡{{
+                    <td class="whitespace-nowrap px-2 py-4 text-sm text-gray-900 text-right">₡{{
                         "{:,.2f}".format(entry.regular_amount) }}</td>
-                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-900 text-right">₡{{
+                    <td class="whitespace-nowrap px-2 py-4 text-sm text-gray-900 text-right">₡{{
                         "{:,.2f}".format(entry.overtime_amount) }}</td>
-                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-900 text-right font-bold">₡{{
+                    <td class="whitespace-nowrap px-2 py-4 text-sm text-gray-900 text-right font-bold">₡{{
                         "{:,.2f}".format(entry.gross_salary) }}</td>
-                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-900 text-right">-₡{{
+                    <td class="whitespace-nowrap px-2 py-4 text-sm text-gray-900 text-right">-₡{{
                         "{:,.2f}".format(entry.social_charges) }}</td>
-                    <td class="whitespace-nowrap px-3 py-4 text-sm font-bold text-gray-900 text-right bg-gray-50">₡{{
+                    <td class="whitespace-nowrap px-2 py-4 text-sm font-bold text-gray-900 text-right bg-gray-50">₡{{
                         "{:,.2f}".format(entry.net_salary) }}</td>
                     {% if user.role not in ['worker', 'supervisor'] %}
-                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-900 text-right bg-gray-100">₡{{
+                    <td class="whitespace-nowrap px-2 py-4 text-sm text-gray-900 text-right bg-gray-100">₡{{
                         "{:,.2f}".format(entry.cs_empresa) }}</td>
-                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-900 text-right bg-gray-50">₡{{
+                    <td class="whitespace-nowrap px-2 py-4 text-sm text-gray-900 text-right bg-gray-50">₡{{
                         "{:,.2f}".format(entry.previsiones) }}</td>
                     {% endif %}
                     {% if user.role == 'admin' %}
-                    <td class="whitespace-nowrap px-3 py-4 text-center">
+                    <td class="whitespace-nowrap px-2 py-4 text-center">
                         <input type="checkbox" onchange="toggleDeductions({{ entry.id }}, this.checked, this)"
                             class="h-4 w-4 rounded border-gray-300 text-black focus:ring-black" {% if
                             entry.apply_deductions %}checked{% endif %} {% if period.status == 'final' %}disabled title="La planilla ya está finalizada"{% endif %}>
                     </td>
                     {% endif %}
-                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        <div class="flex flex-col">
-                            <span class="font-medium text-gray-900">{{ entry.user.payment_method }}</span>
-                            {% if entry.user.payment_method in ['Transferencia', 'Sinpe'] and entry.user.account_number
-                            %}
-                            <span class="text-xs text-gray-400">{{ entry.user.account_number }}</span>
-                            {% endif %}
-                        </div>
-                    </td>
-                    <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                        <button
-                            onclick='showBreakdown({{ entry.details | tojson | safe }}, "{{ entry.user.full_name or entry.user.username }}")'
-                            class="text-xs text-blue-600 hover:text-blue-900 font-semibold cursor-pointer">
-                            Ver desglose
-                        </button>
-                    </td>
                 </tr>
                 {% else %}
                 <tr>
@@ -187,24 +170,23 @@
             <tfoot class="bg-gray-100 font-bold text-gray-900">
                 <tr>
                     <th scope="row" colspan="1" class="pl-4 pr-3 pt-4 pb-4 text-left text-sm sm:pl-6">Totales</th>
-                    <td class="px-3 pt-4 pb-4 text-right text-sm">{{ totals.hours }}</td>
-                    <td class="px-3 pt-4 pb-4 text-right text-sm">{{ totals.overtime_hours }}</td>
-                    <td class="px-3 pt-4 pb-4 text-right text-sm">₡{{ "{:,.2f}".format(totals.regular_amount) }}</td>
-                    <td class="px-3 pt-4 pb-4 text-right text-sm">₡{{ "{:,.2f}".format(totals.overtime_amount) }}</td>
-                    <td class="px-3 pt-4 pb-4 text-right text-sm font-bold">₡{{ "{:,.2f}".format(totals.gross) }}</td>
-                    <td class="px-3 pt-4 pb-4 text-right text-sm text-gray-900">-₡{{
+                    <td class="whitespace-nowrap px-2 pt-4 pb-4 text-right text-sm">{{ totals.hours }}</td>
+                    <td class="whitespace-nowrap px-2 pt-4 pb-4 text-right text-sm">{{ totals.overtime_hours }}</td>
+                    <td class="whitespace-nowrap px-2 pt-4 pb-4 text-right text-sm">₡{{ "{:,.2f}".format(totals.regular_amount) }}</td>
+                    <td class="whitespace-nowrap px-2 pt-4 pb-4 text-right text-sm">₡{{ "{:,.2f}".format(totals.overtime_amount) }}</td>
+                    <td class="whitespace-nowrap px-2 pt-4 pb-4 text-right text-sm font-bold">₡{{ "{:,.2f}".format(totals.gross) }}</td>
+                    <td class="whitespace-nowrap px-2 pt-4 pb-4 text-right text-sm text-gray-900">-₡{{
                         "{:,.2f}".format(totals.social_charges) }}</td>
-                    <td class="px-3 pt-4 pb-4 text-right text-sm bg-gray-200">₡{{ "{:,.2f}".format(totals.net) }}</td>
+                    <td class="whitespace-nowrap px-2 pt-4 pb-4 text-right text-sm bg-gray-200">₡{{ "{:,.2f}".format(totals.net) }}</td>
                     {% if user.role not in ['worker', 'supervisor'] %}
-                    <td class="px-3 pt-4 pb-4 text-right text-sm text-gray-900 bg-gray-300">₡{{
+                    <td class="whitespace-nowrap px-2 pt-4 pb-4 text-right text-sm text-gray-900 bg-gray-300">₡{{
                         "{:,.2f}".format(totals.cs_empresa) }}</td>
-                    <td class="px-3 pt-4 pb-4 text-right text-sm text-gray-900 bg-gray-200">₡{{
+                    <td class="whitespace-nowrap px-2 pt-4 pb-4 text-right text-sm text-gray-900 bg-gray-200">₡{{
                         "{:,.2f}".format(totals.previsiones) }}</td>
                     {% endif %}
                     {% if user.role == 'admin' %}
                     <td></td>
                     {% endif %}
-                    <td></td>
                 </tr>
             </tfoot>
             {% endif %}

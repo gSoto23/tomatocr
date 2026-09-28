@@ -33,10 +33,10 @@
     (None, "En Planilla tocá <strong>Aprobar Horas</strong> y elegí el proyecto."),
     (1, "Elegí las fechas con <strong>Desde</strong> y <strong>Hasta</strong>, o <em>Hoy</em> / <em>Semana</em>, y tocá <em>Refrescar</em>."),
     (2, "Corregí las <strong>Horas</strong> y las horas <strong>Extra (1.5x)</strong> de cada persona si no fueron las 8 de siempre."),
-    (3, "Tocá <strong>Confirmar Todo</strong>. Las filas pasan a <em>Confirmado</em>."),
+    (3, "Tocá <strong>Confirmar pendientes</strong> y aceptá el aviso. Las filas pasan a <em>Confirmado</em>."),
 ]) }}
-<p><em>Confirmar Todo</em> confirma todas las filas cargadas, también las que ya estaban confirmadas, con lo que diga cada
-    casilla: revisá antes. El supervisor no ve sus propias horas; las confirma el admin.
+<p><em>Confirmar pendientes</em> confirma solo las filas de la página que ves que están pendientes, y las ya confirmadas
+    a las que les cambiaste las horas; antes te dice cuántas son. El supervisor no ve sus propias horas; las confirma el admin.
     {% if user.role == 'supervisor' %}Ves solo los proyectos que tenés asignados.{% endif %}</p>
 {% else %}
 <p>Tus horas las confirma el supervisor o el admin. Si trabajaste más de 8 horas o hiciste horas extra, avisales para que
@@ -55,12 +55,14 @@
 {{ m.shot("planilla/detalle.webp", "Detalle de una planilla", "El detalle de un periodo.") }}
 {{ m.steps([
     (1, "Totales: salarios netos, cargas patronales (26,67 %), previsiones (18 %) y costo total para la empresa."),
-    (2, "Por persona: horas, extras, bruto, CCSS (9,17 %), <strong>Neto Pagar</strong> y método de pago. <em>Ver desglose</em> muestra día por día y proyecto."),
+    (2, "Por persona: debajo del nombre, la tarifa por hora de esta planilla, el método de pago y <em>Ver desglose</em> (día por día y proyecto); en las columnas, horas, extras, bruto, CCSS (9,17 %) y <strong>Neto Pagar</strong>."),
     (3, "<strong>Imprimir Reporte</strong> abre el listado de pago para imprimir o guardar en PDF."),
     (4, "<strong>Finalizar Planilla</strong> la marca como <em>final</em>. Solo las planillas finales cuentan como costo de los proyectos en Presupuestos."),
 ]) }}
 <p><strong>Cómo se calcula</strong>: bruto = horas × tarifa + horas extra × tarifa × 1,5 (redondeado a centenas); CCSS del
     trabajador = 9,17 % del bruto si tiene <em>Aplicar Deducciones</em>; neto = bruto − CCSS.</p>
+<p><strong>La tarifa queda fija</strong>: al generar la planilla se guarda la tarifa de cada persona. Si después le subís la
+    tarifa en Empleados, esta planilla no cambia (el detalle, el reporte y el costo en Presupuestos siguen usando la de ese momento).</p>
 <p><strong>Deducciones</strong>: si a una persona no le corresponde la rebaja de CCSS, desmarcá <em>Apl. Ded?</em> en su fila
     mientras la planilla está en borrador (o <em>Aplicar Deducciones</em> en su perfil, para las próximas). Una planilla
     <em>final</em> ya no se puede cambiar.</p>
@@ -75,14 +77,15 @@
 
 {% call m.section("pagos", "Historial de pagos") %}
 {% if user.role == 'admin' %}
-<p>Registro de lo que se le pagó a cada persona (no está ligado a una planilla).</p>
+<p>Registro de lo que se le pagó a cada persona.</p>
 {{ m.steps([
     (None, "Planilla → <strong>Historial de Pagos</strong> → <em>Ver Historial</em> de la persona."),
-    (None, "<strong>Registrar Nuevo Pago</strong>: fecha, monto, horas regulares, horas extra y notas. <strong>Guardar Pago</strong>."),
+    (None, "<strong>Registrar Nuevo Pago</strong>: si el pago es de una planilla final, elegila en <em>Planilla que paga</em> y el monto se llena con el neto. Después el <strong>método</strong> (Sinpe, transferencia o efectivo), la <strong>referencia</strong> del comprobante, fecha, horas y notas. <strong>Guardar Pago</strong>."),
     (None, "<em>Notificar Whatsapp</em> abre WhatsApp con un mensaje listo; no guarda nada por sí solo."),
 ]) }}
 {% else %}
-<p>El admin registra cada pago que te hace. Si querés ver tu historial, pedíselo.</p>
+<p>El admin registra cada pago que te hace. Lo ves en Planilla → <strong>Mis pagos</strong>: fecha, monto, cómo se pagó,
+    el número de referencia y la planilla que corresponde.</p>
 {% endif %}
 {% endcall %}
 
@@ -127,17 +130,17 @@
 <p>1,5 veces la tarifa por hora.</p>
 {% endcall %}
 {% if user.role in ['admin', 'supervisor'] %}
-{% call m.faq("«Hoy» en Aprobar Horas muestra el día siguiente") %}
-<p>Después de las 6 p. m. los botones <em>Hoy</em> y <em>Semana</em> pueden correrse un día. Poné las fechas a mano.</p>
+{% call m.faq("¿Confirmar pendientes cambia las horas que ya estaban confirmadas?") %}
+<p>Solo si les cambiaste el número en esa pantalla. Las que dejaste igual no se tocan.</p>
 {% endcall %}
 {% endif %}
 {% if user.role == 'admin' %}
 {% call m.faq("Finalicé una planilla y necesito cambiarla") %}
 <p>Se puede eliminar y volver a generar. Hacelo solo si todavía no se pagó.</p>
 {% endcall %}
-{% call m.faq("El monto extra del reporte no cuadra con el detalle") %}
-<p>El reporte no redondea la hora extra y el detalle sí; y ambos usan la tarifa actual. Si cambiaste una tarifa después de
-    generar, regenerá el periodo.</p>
+{% call m.faq("Le cambié la tarifa a alguien: ¿se corrige la planilla?") %}
+<p>No: cada planilla se queda con la tarifa con la que se generó. Si la tarifa estaba mal en una planilla en borrador,
+    eliminala y generala de nuevo.</p>
 {% endcall %}
 {% endif %}
 </div>

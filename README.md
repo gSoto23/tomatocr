@@ -24,8 +24,13 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
   siguen mostrando. Una línea del presupuesto con facturas no se puede quitar.
 
 ### 2. Módulo Financiero
-- **Facturación**: Control al momento de ingresos adjudicados vs facturados, y saldo pendiente real.
+- **Facturación**: Control al momento de ingresos adjudicados vs facturados, y saldo pendiente real
+  (Cobrado, Por cobrar = facturado − cobrado, Por facturar = adjudicado − facturado). Facturar más
+  de lo que queda en una línea pide confirmación.
 - **Pagos**: Contabilidad con pagos parciales o totales.
+- **Cliente**: ve lo adjudicado, sus facturas y sus pagos; nunca costos, planillas ni ganancia.
+- **Planilla**: cada planilla guarda la tarifa por hora de cada persona al generarse; los pagos de
+  planilla guardan método, referencia y la planilla que pagan, y cada trabajador ve los suyos.
 - **Dashboard Estadístico**: Análisis de KPI operativos (Facturación, vencimientos).
 
 ### 3. Bitácora Digital (Daily Logs)

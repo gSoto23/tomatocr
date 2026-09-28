@@ -20,6 +20,18 @@ router = APIRouter(
     dependencies=[Depends(deps.require_roles(*OPERATIONS_ROLES))]
 )
 
+def entry_rate(entry: PayrollEntry) -> float:
+    """The rate frozen when the payroll was generated (older entries: the person's rate)."""
+    if entry.hourly_rate is not None:
+        return entry.hourly_rate
+    return (entry.user.hourly_rate if entry.user else 0.0) or 0.0
+
+
+def overtime_amount(overtime_hours: float, rate: float) -> float:
+    """Overtime at 1.5x, rounded to hundreds like the gross salary."""
+    return round(((overtime_hours or 0.0) * rate * 1.5) / 100) * 100
+
+
 @router.get("/", response_class=HTMLResponse)
 def payroll_dashboard(
     request: Request,
@@ -120,12 +132,9 @@ def payroll_detail(
         net = entry.net_salary
         social = entry.social_charges
         
-        # Split Amounts (Recalculate approximate split, ensuring sum matches gross)
-        rate = entry.user.hourly_rate or 0.0
-        # Round overtime to hundreds to match generation logic
-        overtime_amt = 0.0
-        if entry.overtime_hours:
-            overtime_amt = round((entry.overtime_hours * rate * 1.5) / 100) * 100
+        # Split the gross into regular and overtime with the rate frozen in the payroll.
+        rate = entry_rate(entry)
+        overtime_amt = overtime_amount(entry.overtime_hours, rate)
         
         regular_amt = gross - overtime_amt
         
@@ -157,7 +166,8 @@ def payroll_detail(
             "apply_deductions": entry.apply_deductions,
             "regular_amount": regular_amt,
             "overtime_amount": overtime_amt,
-            "overtime_hours": entry.overtime_hours or 0.0
+            "overtime_hours": entry.overtime_hours or 0.0,
+            "hourly_rate": rate,
         }
         enhanced_entries.append(entry_dict)
         
@@ -208,18 +218,16 @@ def payroll_report(
         if user.role in [WORKER, SUPERVISOR] and entry.user_id != user.id:
             continue
         
-        # Calculate overtime amount approx (or use what we stored if we stored it? We didn't stored overtime_pay separately)
-        # Using current rate might be slightly off if rate changed, but best effort.
-        rate = entry.user.hourly_rate or 0.0
+        # Same rate and rounding as the payroll detail.
         overtime_hours = entry.overtime_hours or 0.0
-        overtime_amount = overtime_hours * rate * 1.5
+        extra = overtime_amount(overtime_hours, entry_rate(entry))
         
         report_data.append({
             "name": entry.user.full_name or entry.user.username,
             "phone": entry.user.phone or "N/A",
             "hours": entry.total_hours,
             "overtime_hours": overtime_hours,
-            "overtime_amount": overtime_amount,
+            "overtime_amount": extra,
             "net_pay": entry.net_salary,
             "payment_method": entry.user.payment_method,
             "account_number": entry.user.account_number
@@ -523,6 +531,7 @@ def generate_payroll(
             social_charges=charges,
             net_salary=net,
             apply_deductions=worker.apply_deductions,
+            hourly_rate=rate,
             details=data["details"] # JSON
         )
         db.add(entry)

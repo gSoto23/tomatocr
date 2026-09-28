@@ -34,6 +34,10 @@
 {% if user.role in ['worker', 'supervisor'] %}
 <div class="mb-8">
     <dl class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <a href="/payments/history/{{ user.id }}" class="block overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6 border border-gray-100 hover:border-gray-400">
+            <dt class="truncate text-sm font-medium text-gray-500">Mis pagos</dt>
+            <dd class="mt-1 text-base font-semibold text-indigo-600">Ver lo que me han pagado →</dd>
+        </a>
         <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6 border border-gray-100">
             <dt class="truncate text-sm font-medium text-gray-500">Fecha de Inicio</dt>
             <dd class="mt-1 text-2xl font-semibold tracking-tight text-gray-900">{{ user.start_date | format_date if
