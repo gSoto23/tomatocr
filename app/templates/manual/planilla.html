@@ -106,7 +106,7 @@
         meses) o los días por año de la tabla del artículo, hasta 8 años.</li>
     <li><strong>Salario promedio</strong>: el de las planillas finales de los últimos 6 meses, o el salario mensual del perfil.</li>
     <li><strong>Salario pendiente</strong>: las horas confirmadas desde el último pago registrado o la última planilla final.
-        Si no hay ninguno de los dos en el sistema, queda en 0 y lo escribís vos.</li>
+        Si no hay ninguno de los dos, o el último tiene más de un mes (se pagó fuera del sistema), queda en 0 y lo escribís vos.</li>
 </ul>
 {% call m.warn("Antes de pagar") %}
 <p>Es un cálculo de referencia: revisalo con el contador. La carta y el registro usan los montos que diga la pantalla,
