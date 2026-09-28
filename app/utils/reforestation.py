@@ -7,10 +7,11 @@ from datetime import date, datetime
 from io import StringIO
 from typing import Dict, Iterable, List, Optional
 
+from sqlalchemy import distinct, func
 from sqlalchemy.orm import Session
 
 from app.db.models.reforestation import (
-    CHECK_STATUSES, STATUS_ALIVE, STATUS_DEAD, STATUS_REPLACED, STATUS_UNVERIFIED,
+    CHECK_STATUSES, KIND_INSTITUCIONAL, STATUS_ALIVE, STATUS_DEAD, STATUS_REPLACED, STATUS_UNVERIFIED,
     ReforestationProject, ReforestationTree, TreeCheck,
 )
 
@@ -340,3 +341,32 @@ def survival_summary(trees: Iterable[ReforestationTree], today: Optional[date] =
                 cohort.dead += status == STATUS_DEAD
                 cohort.replaced += status == STATUS_REPLACED
     return summary
+
+
+@dataclass
+class PublicStats:
+    planted: int = 0
+    with_gps: int = 0
+    species: int = 0
+    projects: int = 0
+
+    @property
+    def gps_pct(self) -> int:
+        return round(100 * self.with_gps / self.planted) if self.planted else 0
+
+
+def public_stats(db: Session) -> PublicStats:
+    """Home page figures, institutional projects only (same scope as the public map).
+    Replacement trees are left out, as in survival_summary."""
+    replacements = db.query(ReforestationTree.replaced_by_id).filter(ReforestationTree.replaced_by_id.isnot(None))
+    trees = db.query(ReforestationTree).join(ReforestationProject).filter(
+        ReforestationProject.kind == KIND_INSTITUCIONAL,
+        ReforestationTree.id.notin_(replacements),
+    )
+    return PublicStats(
+        planted=trees.count(),
+        with_gps=trees.filter(ReforestationTree.lat.isnot(None), ReforestationTree.lng.isnot(None)).count(),
+        species=trees.filter(ReforestationTree.species.isnot(None), ReforestationTree.species != "")
+            .with_entities(func.count(distinct(func.lower(func.trim(ReforestationTree.species))))).scalar() or 0,
+        projects=trees.with_entities(func.count(distinct(ReforestationTree.project_id))).scalar() or 0,
+    )
