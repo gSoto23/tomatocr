@@ -6,7 +6,15 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-28
 
-### Liquidación según el Código de Trabajo y arreglos de prioridad A (esta rama)
+### Arreglo: salario pendiente de la liquidación (esta rama)
+- El salario pendiente contaba todos los días hábiles desde la fecha de inicio
+  cuando no había pagos en "Historial de Pagos" (en producción los pagos se hacen
+  fuera del sistema): una persona con 8 meses mostraba ₡2,5 millones pendientes.
+  Ahora cuenta desde el último pago registrado o el fin de la última planilla
+  final; si no hay ninguno, queda en 0 con el aviso de escribirlo a mano.
+- Despliegue: sin migraciones; reiniciar.
+
+### Liquidación según el Código de Trabajo y arreglos de prioridad A (#66)
 - **Liquidación** (`app/utils/liquidacion.py`): motivo de la salida, días de
   vacaciones ya disfrutados y preaviso dado. Aguinaldo desde el 1 de diciembre
   con las planillas finales (los meses sin planilla, al salario promedio); vacaciones acumuladas menos disfrutadas; preaviso
