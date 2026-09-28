@@ -14,8 +14,9 @@ before confirming. Rules:
   worked, at most 8 years.
 - Average salary (art. 30): the final payrolls of the last 6 months; without payrolls,
   the monthly salary. Daily salary = monthly average / 30.
-- Pending salary: confirmed calendar hours after the last payment (overtime × 1.5);
-  without them, 8 h per weekday.
+- Pending salary: confirmed calendar hours after the last payment or the last final
+  payroll (overtime × 1.5); without them, 8 h per weekday. With no payment and no final
+  payroll recorded it is left at 0 for the admin to type.
 - Worker CCSS (9.17 %) is withheld from pending salary and vacation pay only, when the
   person has "Aplicar Deducciones"; aguinaldo, preaviso and cesantía don't carry it.
 """
@@ -110,10 +111,13 @@ def weekdays(first: date, last: date) -> int:
 
 def calculate(start: date, end: date, reason: str, monthly_salary: float, hourly_rate: float,
               payrolls: List[Tuple[date, date, float]], pending_hours: Optional[Tuple[float, float]],
-              unpaid_from: date, vacation_days_taken: float = 0, notice_given: bool = False,
+              unpaid_from: Optional[date], vacation_days_taken: float = 0, notice_given: bool = False,
               apply_deductions: bool = True) -> Liquidacion:
     """payrolls: (period start, period end, gross) of the person's final payrolls.
-    pending_hours: (hours, overtime) confirmed after the last payment, or None if unknown."""
+    pending_hours: (hours, overtime) confirmed after the last payment, or None if unknown.
+    unpaid_from: first day not paid yet, or None when the system has no record of any
+    payment or final payroll (salaries paid outside it): then the pending salary is left
+    at 0 for the admin to type, instead of assuming nothing was ever paid."""
     if reason not in REASONS:
         raise ValueError("Motivo de salida no válido")
     if end < start:
@@ -135,7 +139,10 @@ def calculate(start: date, end: date, reason: str, monthly_salary: float, hourly
 
     # Pending salary.
     rate = hourly_rate or (monthly_salary / 30 / 8 if monthly_salary else 0.0)
-    if pending_hours is not None:
+    if unpaid_from is None:
+        salary_due = 0.0
+        salary_due_basis = "no hay pagos ni planillas finales registrados: escribí el salario pendiente"
+    elif pending_hours is not None:
         hours, overtime = pending_hours
         salary_due = hours * rate + overtime * rate * 1.5
         salary_due_basis = f"{hours:g} h y {overtime:g} h extra confirmadas sin pagar"

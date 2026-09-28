@@ -85,6 +85,27 @@ def test_pending_salary_without_hours_counts_weekdays():
     assert r.salary_due == pytest.approx(5 * 8 * 2100)
 
 
+def test_pending_salary_is_left_to_type_when_nothing_was_ever_recorded():
+    r = calc(date(2025, 1, 6), unpaid_from=None)
+    assert r.salary_due == 0 and "escribí el salario pendiente" in r.salary_due_basis
+
+
+def test_screen_counts_pending_salary_only_after_the_last_final_payroll(db, login_as, users):
+    w = db.get(User, users["worker"].id)
+    w.start_date, w.monthly_salary, w.hourly_rate = date(2025, 1, 6), 400000, 2100
+    db.commit()
+    client = login_as("admin")
+    nothing = client.get(f"/liquidation/preview/{w.id}", params={"calculation_date": "2026-09-27"}).json()
+    assert nothing["salary_due"] == 0 and "escribí" in nothing["salary_due_basis"]
+    period = PayrollPeriod(start_date=date(2026, 9, 1), end_date=date(2026, 9, 15), status="final")
+    db.add(period)
+    db.flush()
+    db.add(PayrollEntry(payroll_period_id=period.id, user_id=w.id, total_hours=80, gross_salary=168000))
+    db.commit()
+    after = client.get(f"/liquidation/preview/{w.id}", params={"calculation_date": "2026-09-27"}).json()
+    assert after["salary_due"] == 8 * 8 * 2100  # 16–27 Sep: 8 weekdays, no confirmed hours
+
+
 @pytest.mark.parametrize("reason,start", [("otra", date(2025, 1, 1)), ("renuncia", date(2027, 1, 1))])
 def test_invalid_input(reason, start):
     with pytest.raises(ValueError):

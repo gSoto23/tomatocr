@@ -100,14 +100,20 @@ def calculate_liquidation_data(target_user: User, ref_date: date, db: Session, c
                 for entry, period in db.query(PayrollEntry, PayrollPeriod)
                 .join(PayrollPeriod, PayrollEntry.payroll_period_id == PayrollPeriod.id)
                 .filter(PayrollEntry.user_id == target_user.id, PayrollPeriod.status == "final")]
+    # Paid through: the latest of the last recorded payment and the end of the last final
+    # payroll. With neither, the system doesn't know what was paid (salaries paid outside it).
     last_payment = db.query(PayrollPayment).filter(PayrollPayment.user_id == target_user.id)\
         .order_by(desc(PayrollPayment.date)).first()
-    unpaid_from = last_payment.date + timedelta(days=1) if last_payment else start
-    schedules = db.query(ProjectSchedule).filter(
-        ProjectSchedule.user_id == target_user.id, ProjectSchedule.is_confirmed == True,  # noqa: E712
-        ProjectSchedule.date >= unpaid_from, ProjectSchedule.date <= ref_date).all()
-    pending = (sum(s.hours_worked or 0 for s in schedules), sum(s.overtime_hours or 0 for s in schedules)) \
-        if schedules else None
+    paid_through = max([d for d in (last_payment.date if last_payment else None,
+                                    max((e for _, e, _ in payrolls), default=None)) if d], default=None)
+    unpaid_from = paid_through + timedelta(days=1) if paid_through else None
+    pending = None
+    if unpaid_from:
+        schedules = db.query(ProjectSchedule).filter(
+            ProjectSchedule.user_id == target_user.id, ProjectSchedule.is_confirmed == True,  # noqa: E712
+            ProjectSchedule.date >= unpaid_from, ProjectSchedule.date <= ref_date).all()
+        if schedules:
+            pending = (sum(s.hours_worked or 0 for s in schedules), sum(s.overtime_hours or 0 for s in schedules))
     try:
         result = liquidacion.calculate(
             start, ref_date, reason, target_user.monthly_salary, target_user.hourly_rate, payrolls, pending,
