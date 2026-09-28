@@ -108,3 +108,13 @@ def test_services_are_photo_cards_that_keep_the_full_scope():
     assert "hidrokeeper (polímeros retenedores de agua)" in services
     assert "Resultado esperado: un espacio más armónico" in services
     assert "services-toggle" not in html
+
+
+@pytest.mark.parametrize("path", ["/", "/programas/darboles", "/proyectos-reforestacion"])
+def test_share_image_and_click_tracking(path):
+    html = new_client().get(path).text
+    assert "https://tomatocr.com/static/images/og-tomato-2026-09.jpg" in html
+    assert "og-image.jpg" not in html
+    assert "js/analytics.js" in html
+    assert new_client().get("/static/images/og-tomato-2026-09.jpg").status_code == 200
+    assert new_client().get("/static/js/analytics.js").status_code == 200

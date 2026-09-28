@@ -272,6 +272,15 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
    verde (el formulario de contacto), el WhatsApp va en contorno verde. El
    acceso del equipo (*Ingresar*) queda en negro o contorno. Las tipografías no
    cambian.
+   **Google Analytics (GA4, `G-HL6PM4KVF3`)**: además de `generate_lead` (formulario),
+   `static/js/analytics.js` envía en las páginas públicas `whatsapp_click`, `map_click`
+   (mapa en vivo), `quote_click` (*Cotizar*, *Cotizar este servicio*), `darboles_click` y
+   `store_click` (darboles.com), cada uno con `location` (sección: `hero`, `services`,
+   `contact`, `encabezado`, `menu_celular`, `pie`…), `label` y `page`. Para verlos como
+   conversiones, marcá `whatsapp_click` y `generate_lead` como *eventos clave* en GA4 y
+   registrá `location` como dimensión personalizada.
+   **Imagen para compartir** (Open Graph): `static/images/og-tomato-2026-09.jpg`, 1200×628.
+   Si se cambia, usá un nombre nuevo: WhatsApp y Facebook guardan la anterior por URL.
 
 ---
 
