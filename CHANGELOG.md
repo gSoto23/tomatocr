@@ -6,7 +6,16 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-28
 
-### Home: servicios en tarjetas con foto
+### Home: fotos nuevas en Servicios
+- Reforestación: el equipo de TOMATO abriendo el hoyo con barreno (con el logo en la
+  camiseta). Mantenimiento: franja de césped cortado y bordeado junto a un parqueo, con
+  las **placas de los carros difuminadas**. Jardinería: cama con bromelias y arbusto de
+  flores. Paisajismo queda igual. Ya no se repite ninguna foto de la galería.
+- La tarjeta de reforestación ahora toma el alto del texto y la foto (vertical) lo llena,
+  enfocada en el logo y el barreno.
+- Despliegue: sin migraciones; reiniciar.
+
+### Home: servicios en tarjetas con foto (#85)
 - Los acordeones de Servicios pasan a tarjetas con foto real: **Proyectos de reforestación**
   como tarjeta destacada y ancha (*Especialidad insignia*, *Ver reporte en vivo* y el enlace
   a Dárboles), y debajo Mantenimiento de zonas verdes, Jardinería y Paisajismo.
