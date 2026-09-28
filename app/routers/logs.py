@@ -18,7 +18,7 @@ from app.db.models.associations import project_users
 from app.routers import deps
 from app.db.models.reforestation import ReforestationProject
 from app.utils.crm import report_recipients
-from app.core.roles import ADMIN, CLIENT, OPERATIONS_ROLES
+from app.core.roles import ADMIN, CLIENT, OPERATIONS_ROLES, SEES_ALL_PROJECTS
 from app.utils.activity import log_activity
 from app.core.config import settings
 from app.utils.timecr import today_cr
@@ -34,6 +34,35 @@ router = APIRouter(
 
 from app.core.templates import templates
 
+def missing_required_tasks(project: Project, task_ids: List[int]) -> List[str]:
+    """Descriptions of the project's current required tasks that were not checked."""
+    done = set(task_ids or [])
+    return [t.description for t in project.tasks
+            if t.is_required and t.archived_at is None and t.id not in done]
+
+
+def check_required_tasks(project: Project, task_ids: List[int]):
+    missing = missing_required_tasks(project, task_ids)
+    if missing:
+        raise HTTPException(status_code=400, detail="Falta marcar la tarea obligatoria: " + ", ".join(missing))
+
+
+def read_photos(photos: Optional[List[UploadFile]]) -> List[bytes]:
+    """Checks and processes every photo before anything is saved (see process_photo)."""
+    return [process_photo(p.file.read(), p.content_type, p.filename) for p in photos or [] if p.filename]
+
+
+def store_photos(db: Session, log: DailyLog, processed: List[bytes]):
+    year_month = log.date.strftime("%Y/%m")
+    target_dir = Path("app/static/uploads") / year_month
+    target_dir.mkdir(parents=True, exist_ok=True)
+    for contents in processed:
+        unique_name = f"{uuid.uuid4()}.jpg"
+        with open(target_dir / unique_name, "wb") as buffer:
+            buffer.write(contents)
+        db.add(Photo(log_id=log.id, file_path=f"/static/uploads/{year_month}/{unique_name}"))
+
+
 @router.get("/")
 def list_logs(
     request: Request, 
@@ -45,8 +74,8 @@ def list_logs(
     db: Session = Depends(deps.get_db), 
     user: User = Depends(deps.get_current_user)
 ):
-    # RBAC: Admin sees all, others see only assigned projects
-    if user.role == ADMIN:
+    # RBAC: admin and supervisor see all, others only their assigned projects
+    if user.role in SEES_ALL_PROJECTS:
         count_query = db.query(func.count(DailyLog.id)).join(Project)
         query = db.query(DailyLog).join(Project)
     else:
@@ -63,15 +92,17 @@ def list_logs(
 
     # Filter by Project if provided (and authorized)
     if project_id:
-        # Check authorization for specific project if not admin
-        if user.role != ADMIN:
-            # Verify user belongs to this project
+        # Others only filter by their own projects; anything else goes back to the full list.
+        if user.role not in SEES_ALL_PROJECTS:
             is_member = db.query(project_users).filter(
                 project_users.c.user_id == user.id,
                 project_users.c.project_id == project_id
             ).first()
             if not is_member:
-                raise HTTPException(status_code=403, detail="Not authorized for this project")
+                response = RedirectResponse(url="/logs", status_code=status.HTTP_303_SEE_OTHER)
+                response.set_cookie(key="toast_message", value="No estás asignado a ese proyecto")
+                response.set_cookie(key="toast_type", value="error")
+                return response
                 
         query = query.filter(DailyLog.project_id == project_id)
         count_query = count_query.filter(DailyLog.project_id == project_id)
@@ -94,8 +125,12 @@ def list_logs(
     offset = (page - 1) * limit
     logs = query.offset(offset).limit(limit).all()
     
-    # Get all projects for filter dropdown
-    projects = db.query(Project).all()
+    # Projects for the filter dropdown: only the ones this person can open
+    if user.role in SEES_ALL_PROJECTS:
+        projects = db.query(Project).order_by(Project.name).all()
+    else:
+        projects = db.query(Project).join(project_users).filter(
+            project_users.c.user_id == user.id).order_by(Project.name).all()
     
     from math import ceil
     total_pages = ceil(total_records / limit)
@@ -124,8 +159,8 @@ def get_log_detail(id: int, db: Session = Depends(deps.get_db), user: User = Dep
     if log.project and log.project.users:
         is_project_member = user.id in [u.id for u in log.project.users]
 
-    if user.role != ADMIN and log.user_id != user.id and not is_project_member:
-        raise HTTPException(status_code=403, detail="Not authorized")
+    if user.role not in SEES_ALL_PROJECTS and log.user_id != user.id and not is_project_member:
+        raise HTTPException(status_code=403, detail="No tenés acceso a este reporte")
 
     # The project's current tasks (to allow checking missed ones) plus any archived
     # task this report had completed, so old reports keep showing it.
@@ -140,7 +175,8 @@ def get_log_detail(id: int, db: Session = Depends(deps.get_db), user: User = Dep
             "task_id": task.id,
             "description": task.description,
             "completed": task.id in completed_task_ids,
-            "is_required": task.is_required
+            "is_required": task.is_required,
+            "archived": task.archived_at is not None
         })
     
     # Get Project Contacts for Email Dropdown
@@ -154,7 +190,8 @@ def get_log_detail(id: int, db: Session = Depends(deps.get_db), user: User = Dep
         "user_name": log.user.full_name or log.user.username,
         "date": log.date.strftime('%Y-%m-%d'),
         "notes": log.notes,
-        "photos": [{"file_path": p.file_path} for p in log.photos],
+        "photos": [{"id": p.id, "file_path": p.file_path} for p in log.photos],
+        "photo_rules": PHOTO_RULES,
         "created_at": log.created_at.isoformat() if log.created_at else None,
         "updated_at": log.updated_at.isoformat() if log.updated_at else None,
         "can_edit": (user.role == ADMIN or log.user_id == user.id),
@@ -198,9 +235,11 @@ def delete_log(id: int, db: Session = Depends(deps.get_db), user: User = Depends
 @router.post("/{id}/edit")
 def update_log(
     id: int,
-    notes: str = Form(...),
+    notes: str = Form(""),
     location_id: Optional[int] = Form(None),
     task_ids: List[int] = Form([], alias="tasks"),
+    remove_photo_ids: List[int] = Form([], alias="remove_photos"),
+    photos: List[UploadFile] = File(default=None),
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
@@ -211,6 +250,9 @@ def update_log(
     if user.role != ADMIN and log.user_id != user.id:
         raise HTTPException(status_code=403, detail="Not authorized")
     
+    check_required_tasks(log.project, task_ids)
+    processed = read_photos(photos)
+
     log.notes = notes
     # The edit window doesn't show the sede: keep it unless one is sent.
     if location_id:
@@ -224,7 +266,11 @@ def update_log(
     for t_id in task_ids:
         db.add(DailyLogTask(log_id=log.id, task_id=t_id, completed=True))
 
-    db.commit()
+    # Photos: remove the ones unchecked in the window (only this report's) and add the new ones.
+    for photo in [p for p in log.photos if p.id in set(remove_photo_ids)]:
+        db.delete(photo)
+    store_photos(db, log, processed)
+
     db.commit()
     
     # Audit Log
@@ -244,8 +290,8 @@ def new_log_form(request: Request, project_id: Optional[int] = None, db: Session
         return RedirectResponse(url="/projects", status_code=status.HTTP_303_SEE_OTHER)
 
     # Get available projects
-    if user.role == ADMIN:
-        projects = db.query(Project).filter(Project.is_active == True).all()
+    if user.role in SEES_ALL_PROJECTS:
+        projects = db.query(Project).filter(Project.is_active == True).order_by(Project.name).all()
     else:
         # Worker: only assigned active projects
         # Explicit query to avoid DetachedInstanceError with lazy loading
@@ -304,7 +350,7 @@ def create_log(
          return RedirectResponse(url="/projects", status_code=status.HTTP_303_SEE_OTHER)
     
     # Validation
-    if user.role != ADMIN:
+    if user.role not in SEES_ALL_PROJECTS:
         assigned = db.query(Project).filter(Project.id == project_id, Project.users.any(id=user.id)).first()
         if not assigned:
              response = RedirectResponse(url="/projects", status_code=status.HTTP_303_SEE_OTHER)
@@ -321,12 +367,14 @@ def create_log(
     if not (today - timedelta(days=MAX_DAYS_BACK) <= log_date <= today):
         raise HTTPException(status_code=400, detail=f"La fecha tiene que ser de hoy o de los últimos {MAX_DAYS_BACK} días")
 
+    project = db.get(Project, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="El proyecto no existe")
+    check_required_tasks(project, task_ids)
+
     # Every photo is checked and processed before anything is saved, so one bad photo
     # doesn't lose the report: the page shows which file failed and keeps what was typed.
-    processed = []
-    for photo in photos or []:
-        if photo.filename:
-            processed.append(process_photo(photo.file.read(), photo.content_type, photo.filename))
+    processed = read_photos(photos)
 
     # Create Log
     new_log = DailyLog(
@@ -351,15 +399,7 @@ def create_log(
             db.add(DailyLogTask(log_id=new_log.id, task_id=t_id, completed=True))
 
     # Save the processed photos (JPEG).
-    if processed:
-        year_month = log_date.strftime("%Y/%m")
-        target_dir = Path("app/static/uploads") / year_month
-        target_dir.mkdir(parents=True, exist_ok=True)
-        for contents in processed:
-            unique_name = f"{uuid.uuid4()}.jpg"
-            with open(target_dir / unique_name, "wb") as buffer:
-                buffer.write(contents)
-            db.add(Photo(log_id=new_log.id, file_path=f"/static/uploads/{year_month}/{unique_name}"))
+    store_photos(db, new_log, processed)
 
     db.commit()
     

@@ -9,8 +9,8 @@
 <p>El acceso está en la página de inicio de <strong>tomatocr.com</strong>, arriba a la derecha.</p>
 {{ m.shot("primeros-pasos/login.webp", "Formulario de acceso en la página de inicio", "En la computadora, el acceso está en la barra de arriba.") }}
 {{ m.steps([(1, "Escribí tu <strong>Usuario</strong>."), (2, "Escribí tu <strong>Contraseña</strong>."), (3, "Tocá <strong>Ingresar</strong>. Entrás al Dashboard.")]) }}
-<p>En el celular o la tablet, el acceso está dentro del menú: tocá el botón de tres rayas arriba a la derecha y
-    aparece <strong>Acceso al sistema interno</strong> (1 a 3). Debajo está <strong>¿Olvidaste tu contraseña?</strong> (4).</p>
+<p>En el celular o la tablet, tocá <strong>Ingresar</strong> arriba a la derecha (o el botón de tres rayas): se abre el
+    menú con <strong>Acceso al sistema interno</strong> (1 a 3). Debajo está <strong>¿Olvidaste tu contraseña?</strong> (4).</p>
 {{ m.shot("primeros-pasos/login-celular.webp", "Acceso desde el menú en el celular", "En el celular, el acceso está en el menú ☰.", mobile=True) }}
 <p><strong>Para salir</strong>, tocá el ícono de la puerta abajo en el menú, al lado de tu nombre. Hacelo siempre si
     usás una computadora compartida.</p>
@@ -71,8 +71,11 @@
 {% call m.section("problemas", "Si no podés entrar") %}
 <div class="space-y-2">
 {% call m.faq("Me sale «Usuario o contraseña incorrectos»") %}
-<p>Revisá mayúsculas y minúsculas, y que no haya un espacio al final. Si estás seguro de que están bien, puede que tu
-    usuario esté desactivado: el sistema muestra el mismo mensaje. Preguntale al admin.</p>
+<p>Revisá mayúsculas y minúsculas, y que no haya un espacio al final. Si no te acordás, usá
+    <em>¿Olvidaste tu contraseña?</em>.</p>
+{% endcall %}
+{% call m.faq("Me sale «Tu usuario está desactivado»") %}
+<p>La contraseña es correcta, pero el admin desactivó tu usuario (por ejemplo, al terminar un contrato). Preguntale al admin.</p>
 {% endcall %}
 {% call m.faq("Me sale «Demasiados intentos fallidos»") %}
 <p>Después de 5 intentos fallidos en 15 minutos, el acceso se bloquea por seguridad durante 15 minutos, aunque luego
@@ -86,8 +89,8 @@
 <p>La sesión se venció (cerraste el navegador o pasaron 24 horas). Entrá de nuevo. Si te pasa apenas entrás, tu
     usuario puede estar desactivado: avisale al admin.</p>
 {% endcall %}
-{% call m.faq("En la tablet no veo dónde poner el usuario") %}
-<p>En pantallas medianas el acceso no está en la barra: abrí el menú ☰ de arriba a la derecha.</p>
+{% call m.faq("En el celular o la tablet no veo dónde poner el usuario") %}
+<p>Tocá <strong>Ingresar</strong>, arriba a la derecha: se abre el menú con el usuario y la contraseña.</p>
 {% endcall %}
 </div>
 {% endcall %}

@@ -1,6 +1,7 @@
 {% extends "base_dashboard.html" %}
 
 {% block title %}Bitácora | TOMATO{% endblock %}
+{% block header_title %}Bitácora{% endblock %}
 
 {% block content %}
 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
@@ -72,8 +73,8 @@
                         </div>
                     </div>
                 </td>
-                <td class="px-6 py-4 text-sm text-gray-500 truncate max-w-xs block">
-                    {{ log.notes or '-' }}
+                <td class="px-6 py-4 text-sm text-gray-500">
+                    <span class="line-clamp-2 max-w-xs">{{ log.notes or '-' }}</span>
                     {% if log.photos %}
                     <span
                         class="inline-flex items-center rounded-md bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600 ml-1">

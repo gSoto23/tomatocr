@@ -38,7 +38,7 @@
 {% call m.section("dia-de-trabajo", "Del día de trabajo al reporte del cliente") %}
 {% call flow() %}
 {{ step("Supervisor o admin", "Asigna en el <strong>Calendario</strong> quién va, a qué proyecto, qué día y con qué tareas.", "/manual/calendario" if user.role != 'client' else None, "Calendario") }}
-{{ step("Trabajador", "Ve su asignación en el <strong>Dashboard</strong> (Mis Asignaciones) y marca las tareas con <em>Gestionar</em> al terminarlas.", "/manual/dashboard#por-rol") }}
+{{ step("Trabajador", "Ve su asignación de hoy en el <strong>Dashboard</strong> y marca las tareas con <em>Gestionar tareas</em> al terminarlas.", "/manual/dashboard#por-rol") }}
 {{ step("Trabajador", "Registra la <strong>bitácora</strong> del día desde el celular: tareas, notas y fotos.", "/manual/proyectos#bitacora") }}
 {{ step("Admin", "Revisa el reporte y lo manda por correo a los contactos del cliente que reciben reportes.", "/manual/proyectos#reporte") }}
 {{ step("Cliente", "Recibe el correo con las fotos, y también ve la bitácora en su Dashboard y en la ficha del proyecto.", "/manual/dashboard#por-rol") }}

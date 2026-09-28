@@ -25,5 +25,8 @@ ROLE_LABELS = {
 # checks; this set only keeps roles outside operations (ventas) out entirely.
 OPERATIONS_ROLES = (ADMIN, SUPERVISOR, WORKER, CLIENT)
 
+# Roles that see, and report on, every project, not only the ones they are assigned to.
+SEES_ALL_PROJECTS = (ADMIN, SUPERVISOR)
+
 FINANCE_ROLES = (ADMIN, SUPERVISOR, CLIENT)
 QUOTES_ROLES = (ADMIN, CLIENT, VENTAS)

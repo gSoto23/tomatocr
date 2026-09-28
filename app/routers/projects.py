@@ -18,7 +18,7 @@ from app.db.models.associations import project_users
 from sqlalchemy import desc, func
 from math import ceil
 from app.routers import deps
-from app.core.roles import ADMIN, CLIENT, OPERATIONS_ROLES, SUPERVISOR, WORKER
+from app.core.roles import ADMIN, CLIENT, OPERATIONS_ROLES, SEES_ALL_PROJECTS, SUPERVISOR, WORKER
 from app.utils.activity import log_activity
 from app.utils.project_sync import LineInUse, sync_budget_lines, sync_locations, sync_tasks
 import logging
@@ -107,7 +107,7 @@ def list_projects(
 ):
     offset = (page - 1) * limit
     
-    if user.role == ADMIN:
+    if user.role in SEES_ALL_PROJECTS:
         count_query = db.query(func.count(Project.id))
         total_records = count_query.scalar()
         
@@ -400,7 +400,7 @@ def get_project_detail(
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    if user.role not in [ADMIN, SUPERVISOR] and user.id not in [u.id for u in project.users]:
+    if user.role not in SEES_ALL_PROJECTS and user.id not in [u.id for u in project.users]:
         raise HTTPException(status_code=403, detail="Not authorized")
 
     # Financial Cost Integration

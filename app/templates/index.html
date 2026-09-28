@@ -62,7 +62,7 @@
     <meta name="msapplication-TileImage" content="/static/images/fav/ms-icon-144x144.png">
     <meta name="theme-color" content="#ffffff">
     <!-- Tailwind CSS (compiled, see package.json build:css) -->
-    <link rel="stylesheet" href="/static/css/tailwind.css">
+    <link rel="stylesheet" href="{{ static_url('css/tailwind.css') }}">
     <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
 </head>
@@ -74,7 +74,8 @@
         init() {
             const urlParams = new URLSearchParams(window.location.search);
             const messages = {
-                invalid_credentials: 'Usuario o contraseña incorrectos. Si tu usuario fue desactivado, pedile al admin que lo revise.',
+                invalid_credentials: 'Usuario o contraseña incorrectos. Revisá mayúsculas y que no quede un espacio al final.',
+                inactive: 'Tu usuario está desactivado. Pedile al admin que lo revise.',
                 too_many_attempts: 'Demasiados intentos fallidos. Esperá 15 minutos e intentá de nuevo.',
                 login_required: 'Tu sesión terminó. Volvé a entrar con tu usuario.',
                 invalid_token: 'Tu sesión venció. Volvé a entrar con tu usuario.',
@@ -164,6 +165,11 @@
 
                 <!-- Mobile controls -->
                 <div class="flex lg:hidden items-center gap-2">
+                    <!-- Phone and tablet: the login lives in the menu; this opens it right there -->
+                    <button id="loginMenuBtn" type="button"
+                        class="inline-flex items-center rounded-md bg-black px-3 py-2 text-sm font-semibold text-white hover:opacity-90 dark:bg-white dark:text-black">
+                        Ingresar
+                    </button>
 
                     <!-- Hamburger -->
                     <button id="menuBtn" type="button"
@@ -687,7 +693,7 @@
         </div>
     </section>
 
-    <script src="/static/js/script.js"></script>
+    <script src="{{ static_url('js/script.js') }}"></script>
 </body>
 
 </html>

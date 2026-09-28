@@ -7,8 +7,8 @@
     que se hacen en cada visita, los contactos del cliente y el presupuesto.</p>
 <p>La <strong>bitácora</strong> es el registro del trabajo de cada día: qué tareas se hicieron, notas y fotos. Con esa
     bitácora el cliente ve el avance y el admin le manda el reporte por correo.</p>
-<p>Quién lo usa: {{ m.roles(["admin", "supervisor", "worker", "client"]) }}. Cada persona ve solo los proyectos a los
-    que está asignada; el admin ve todos.</p>
+<p>Quién lo usa: {{ m.roles(["admin", "supervisor", "worker", "client"]) }}. El trabajador y el cliente ven solo los
+    proyectos a los que están asignados; el admin y el supervisor ven todos.</p>
 {% endcall %}
 
 {% call m.section("lista", "La lista de proyectos") %}
@@ -60,8 +60,9 @@
     7 días atrás no se puede: avisale al admin.</p>
 <h3 class="font-semibold text-gray-900">Corregir o borrar un reporte</h3>
 <p>Abrí el reporte con <strong>Ver Detalle</strong> y tocá <strong>Editar</strong>: podés cambiar las tareas marcadas y
-    las notas y tocar <em>Guardar Cambios</em>, o <em>Eliminar</em> el reporte. Cada persona corrige solo sus reportes;
-    el admin, cualquiera. Las fotos no se cambian al editar.</p>
+    las notas, tocar <strong>Quitar</strong> en las fotos que sobran y agregar fotos nuevas. Después tocá <em>Guardar
+    Cambios</em>, o <em>Eliminar</em> para borrar el reporte. Las tareas <em>*Requerido</em> tienen que seguir marcadas.
+    Cada persona corrige solo sus reportes; el admin, cualquiera.</p>
 {% endif %}
 {% endcall %}
 
@@ -94,7 +95,7 @@
 {{ m.steps([
     (1, "<strong>Nombre Interno del Proyecto</strong> (obligatorio)."),
     (2, "<strong>Cliente (cuenta)</strong>: buscá la cuenta por nombre o cédula, o creala. Si hay cuentas parecidas, el sistema te las muestra para no duplicar."),
-    (3, "<strong>Clientes (Usuarios)</strong>: las personas del cliente con acceso al portal. <strong>Trabajadores</strong>: supervisores y trabajadores asignados; solo ellos ven el proyecto."),
+    (3, "<strong>Acceso al portal (usuarios del cliente)</strong>: las personas del cliente que entran al sistema a ver el proyecto. <strong>Trabajadores</strong>: supervisores y trabajadores asignados; solo ellos ven el proyecto."),
     (4, "<strong>Ubicación</strong>: provincia, link de Waze y dirección. Con <em>Agregar Sede</em> sumás otros sitios del mismo contrato."),
 ]) }}
 <p>Más abajo en el mismo formulario:</p>
@@ -108,6 +109,8 @@
     <li><strong>Proyecto Activo</strong> (al editar): desmarcalo para archivar un proyecto terminado.</li>
 </ul>
 <p>Tocá <strong>Guardar</strong>. Si el proyecto viene de una oportunidad ganada en Clientes, la cuenta ya viene puesta.</p>
+<p><em>+ Crear cuenta</em> y <em>+ Agregar contacto a la cuenta</em> guardan en Clientes en ese momento, aunque después no
+    guardes el proyecto. <em>Cambiar</em> la cuenta te pide confirmar si ya elegiste contactos, porque se quitan.</p>
 {% call m.tip("Cambiar tareas y sedes sin perder la historia") %}
 <p>Podés cambiar el nombre de una tarea o sede: los reportes viejos siguen ligados a ella. Si quitás una tarea o sede
     que ya tiene reportes, queda archivada: ya no aparece en la bitácora nueva, pero los reportes viejos la siguen
@@ -129,18 +132,19 @@
 <p>En <strong>Fecha del trabajo</strong> elegí el día de ayer y registralo normal. Se puede hasta 7 días atrás.</p>
 {% endcall %}
 {% call m.faq("No aparece el proyecto al hacer un reporte") %}
-<p>Solo aparecen los proyectos activos a los que estás asignado. Pedile al admin que te asigne.</p>
+<p>Solo aparecen los proyectos activos{% if user.role == 'worker' %} a los que estás asignado. Pedile al admin que te asigne{% else %}. Si el proyecto está inactivo, el admin tiene que activarlo{% endif %}.</p>
 {% endcall %}
 {% endif %}
 {% call m.faq("No veo un proyecto") %}
-<p>Cada persona ve los proyectos a los que está asignada. Si falta uno, avisale al admin.</p>
+<p>El trabajador y el cliente ven los proyectos a los que están asignados; el admin y el supervisor ven todos. Si
+    falta uno, avisale al admin.</p>
 {% endcall %}
 {% if user.role == 'admin' %}
 {% call m.faq("Un contacto no aparece en los destinatarios del correo") %}
 <p>Tiene que estar marcado <em>Recibe reportes</em> en ese proyecto y tener correo. Si no tiene correo, la casilla
     está apagada: agregáselo en la cuenta, en Clientes.</p>
 {% endcall %}
-{% call m.faq("¿«Clientes (Usuarios)» y «Cliente (cuenta)» son lo mismo?") %}
+{% call m.faq("¿«Acceso al portal» y «Cliente (cuenta)» son lo mismo?") %}
 <p>No. La <strong>cuenta</strong> es la empresa (en Clientes), con sus contactos. Los <strong>usuarios</strong> son las
     personas de esa empresa que tienen acceso al portal para ver el proyecto.</p>
 {% endcall %}

@@ -1,7 +1,13 @@
 from fastapi import HTTPException, UploadFile
 
 IMAGE_TYPES = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}
-DOCUMENT_TYPES = {**IMAGE_TYPES, "application/pdf": ".pdf"}
+DOCUMENT_TYPES = {
+    **IMAGE_TYPES,
+    "application/pdf": ".pdf",
+    "application/msword": ".doc",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
+}
+DOCUMENT_RULES = "PDF, Word, JPG, PNG o WebP de hasta 10 MB"
 
 MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024   # 5 MB
 MAX_DOCUMENT_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB

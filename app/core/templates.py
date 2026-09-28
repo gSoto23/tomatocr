@@ -34,3 +34,25 @@ def format_datetime_cr_filter(value):
     return cr_time.strftime("%d-%m-%Y %I:%M %p")
 
 templates.env.filters["format_datetime_cr"] = format_datetime_cr_filter
+
+
+def to_cr_filter(value):
+    """A UTC datetime as Costa Rica time (UTC-6, no daylight saving)."""
+    from datetime import timedelta
+    return value - timedelta(hours=6) if value else value
+
+
+templates.env.filters["to_cr"] = to_cr_filter
+
+
+def static_url(path: str) -> str:
+    """/static/<path>?v=<mtime>, so browsers pick up a new version after a deploy."""
+    import os
+    try:
+        version = int(os.path.getmtime(os.path.join("app", "static", path)))
+    except OSError:
+        version = 0
+    return f"/static/{path}?v={version}"
+
+
+templates.env.globals["static_url"] = static_url

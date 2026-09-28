@@ -131,7 +131,7 @@
     },
     {
      "n": 5,
-     "text": "Actividad Reciente (Facturación)"
+     "text": "Facturas por cobrar"
     },
     {
      "n": 6,
@@ -368,7 +368,7 @@
     },
     {
      "n": 3,
-     "text": "Clientes (Usuarios)",
+     "text": "Acceso al portal (usuarios del cliente)",
      "exact": false,
      "tags": "label,span"
     },

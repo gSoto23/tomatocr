@@ -26,15 +26,15 @@
     (4, "<strong>Empleado Activo</strong> y <strong>Aplicar Deducciones</strong> (rebaja de CCSS del 9,17 %)."),
 ]) }}
 <ul class="list-disc space-y-1 pl-5">
-    <li>Al escribir el <strong>Salario Mensual</strong>, la tarifa por hora se calcula sola (salario ÷ 192, redondeado) y
-        reemplaza la que hubiera. Si la tarifa es otra, escribila después.</li>
-    <li><strong>Expediente y Documentos</strong>: contratos y otros papeles. Se aceptan <strong>PDF, JPG, PNG o WebP</strong>
-        de hasta 10 MB (la pantalla menciona Word, pero no se acepta: convertilo a PDF).</li>
+    <li>Al escribir el <strong>Salario Mensual</strong>, si la tarifa por hora está vacía se calcula sola (salario ÷ 192,
+        redondeado). Si ya tiene una, no se toca: abajo aparece la sugerida y <em>Usar esa tarifa</em>.</li>
+    <li><strong>Expediente y Documentos</strong>: contratos y otros papeles. Se aceptan <strong>PDF, Word, JPG, PNG o
+        WebP</strong> de hasta 10 MB. Si un archivo no sirve, no se guarda nada y la pantalla dice cuál fue.</li>
     <li>Tocá <strong>Crear Empleado</strong> o <strong>Guardar Cambios</strong>.</li>
 </ul>
 {% call m.tip("Usuarios de clientes") %}
 <p>Para que alguien de un cliente vea su proyecto: creale un usuario con rol <strong>Cliente</strong>, asignalo en el
-    proyecto (<em>Clientes (Usuarios)</em>) y ligalo como contacto de su cuenta en Clientes para que vea sus cotizaciones.</p>
+    proyecto (<em>Acceso al portal</em>) y ligalo como contacto de su cuenta en Clientes para que vea sus cotizaciones.</p>
 {% endcall %}
 {% endcall %}
 
@@ -61,9 +61,9 @@
 
 {% call m.section("preguntas", "Preguntas frecuentes") %}
 <div class="space-y-2">
-{% call m.faq("Subí un documento y apareció una página de error") %}
-<p>El archivo no es PDF, JPG, PNG o WebP, o pesa más de 10 MB. Si estabas creando a la persona, ya quedó creada: abrí
-    <em>Editar</em> y subí el archivo correcto.</p>
+{% call m.faq("Subí un documento y dice que no se puede subir") %}
+<p>El archivo no es PDF, Word, JPG, PNG o WebP, o pesa más de 10 MB. No se guardó nada (ni la persona nueva ni los
+    cambios): convertí o achicá el archivo y probá de nuevo.</p>
 {% endcall %}
 {% call m.faq("No me deja guardar: «El correo es obligatorio»") %}
 <p>Toda persona necesita un correo válido para poder recuperar su contraseña. Si alguien no tiene, usá uno que revise

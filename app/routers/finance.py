@@ -91,14 +91,16 @@ def get_project_budget_status(db: Session, project: Project):
         "total_costs": total_costs
     }
 
-def check_update_overdue_invoices(db: Session, project_id: int):
-    today = datetime.date.today()
-    # Find pending invoices past due
-    overdue = db.query(Invoice).join(ProjectBudget).filter(
-        ProjectBudget.project_id == project_id,
+def check_update_overdue_invoices(db: Session, project_id: Optional[int] = None):
+    """Pending invoices past their due date become overdue (all projects when project_id is None)."""
+    from app.utils.timecr import today_cr
+    query = db.query(Invoice).join(ProjectBudget).filter(
         Invoice.status == InvoiceStatus.PENDING,
-        Invoice.due_date < today
-    ).all()
+        Invoice.due_date < today_cr()
+    )
+    if project_id is not None:
+        query = query.filter(ProjectBudget.project_id == project_id)
+    overdue = query.all()
     
     if overdue:
         for inv in overdue:

@@ -3,6 +3,7 @@
 {% block title %}
 {% if edit_user %}Editar Empleado{% else %}Nuevo Empleado{% endif %} | TOMATO
 {% endblock %}
+{% block header_title %}Empleados{% endblock %}
 
 {% block content %}
 <div class="mb-8">
@@ -121,6 +122,8 @@
                                 value="{{ edit_user.hourly_rate if edit_user and edit_user.hourly_rate else '' }}"
                                 class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
                         </div>
+                        <p id="rate_hint" class="hidden mt-1 text-xs text-amber-700">Según el salario serían ₡<span></span> por hora.
+                            <button type="button" class="font-semibold underline">Usar esa tarifa</button></p>
                     </div>
 
                     <!-- Monthly Salary -->
@@ -177,16 +180,27 @@
                     }
                 }
 
-                // Auto-calculate Hourly Rate
-                document.getElementById('monthly_salary').addEventListener('input', function () {
-                    const monthly = parseFloat(this.value);
-                    if (!isNaN(monthly) && monthly > 0) {
-                        // Formula: Monthly / 192, rounded to nearest 100 (centenas)
-                        const rawHourly = monthly / 192;
-                        const roundedHourly = Math.round(rawHourly / 100) * 100;
-                        document.getElementById('hourly_rate').value = roundedHourly;
-                    }
-                });
+                // Hourly rate from the monthly salary (salary / 192, rounded to hundreds). It only
+                // fills the rate while nobody typed one; otherwise it suggests it.
+                (() => {
+                    const rate = document.getElementById('hourly_rate');
+                    const hint = document.getElementById('rate_hint');
+                    let manual = rate.value !== '';
+                    rate.addEventListener('input', () => { manual = rate.value !== ''; hint.classList.add('hidden'); });
+                    document.getElementById('monthly_salary').addEventListener('input', function () {
+                        const monthly = parseFloat(this.value);
+                        if (isNaN(monthly) || monthly <= 0) return hint.classList.add('hidden');
+                        const suggested = Math.round(monthly / 192 / 100) * 100;
+                        if (!manual) { rate.value = suggested; return; }
+                        if (Number(rate.value) === suggested) return hint.classList.add('hidden');
+                        hint.querySelector('span').textContent = suggested.toLocaleString('es-CR');
+                        hint.classList.remove('hidden');
+                    });
+                    hint.querySelector('button').addEventListener('click', () => {
+                        rate.value = hint.querySelector('span').textContent.replace(/\D/g, '');
+                        hint.classList.add('hidden');
+                    });
+                })();
             </script>
 
             <!-- Is Active -->
@@ -218,7 +232,7 @@
                 <!-- Expediente y Documentos -->
             <div class="border-t border-gray-200 pt-6 mt-6">
                 <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">Expediente y Documentos</h3>
-                <p class="text-sm text-gray-500 mb-4">Adjunta contratos, amonestaciones u otro documento relacionado al trabajador. Tipos permitidos: PDF, Word, JPG, PNG.</p>
+                <p class="text-sm text-gray-500 mb-4">Adjunta contratos, amonestaciones u otro documento relacionado al trabajador. Tipos permitidos: PDF, Word, JPG, PNG o WebP, de hasta 10 MB cada uno.</p>
                 
                 <!-- File Input -->
                 <div class="mt-2 flex justify-center rounded-lg border border-dashed border-gray-900/25 px-6 py-10">
@@ -229,7 +243,7 @@
                         <div class="mt-4 flex text-sm leading-6 text-gray-600 justify-center">
                             <label for="files" class="relative cursor-pointer rounded-md bg-white font-semibold text-indigo-600 focus-within:outline-none hover:text-indigo-500">
                                 <span>Subir archivos</span>
-                                <input id="files" name="files" type="file" multiple class="sr-only" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+                                <input id="files" name="files" type="file" multiple class="sr-only" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp">
                             </label>
                             <p class="pl-1">o arrastrar y soltar</p>
                         </div>

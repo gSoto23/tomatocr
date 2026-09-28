@@ -27,12 +27,15 @@ def login(
     if login_throttle.is_locked(db, user, client_ip):
         return RedirectResponse(url="/?error=too_many_attempts", status_code=status.HTTP_303_SEE_OTHER)
 
-    # Authenticate. Inactive or liquidated users get the same message as a
-    # wrong password, so the response doesn't reveal which accounts exist.
+    # Authenticate. A wrong password never reveals whether the account exists or is
+    # active; only someone who knows the password learns that the user is deactivated.
     db_user = db.query(User).filter(User.username == user).first()
-    if not db_user or not verify_password(pass_, db_user.hashed_password) or not deps.can_log_in(db_user):
+    if not db_user or not verify_password(pass_, db_user.hashed_password):
         login_throttle.record_attempt(db, user, client_ip, success=False)
         return RedirectResponse(url="/?error=invalid_credentials", status_code=status.HTTP_303_SEE_OTHER)
+    if not deps.can_log_in(db_user):
+        login_throttle.record_attempt(db, user, client_ip, success=False)
+        return RedirectResponse(url="/?error=inactive", status_code=status.HTTP_303_SEE_OTHER)
 
     login_throttle.record_attempt(db, user, client_ip, success=True)
 
