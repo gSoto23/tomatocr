@@ -159,7 +159,8 @@ def admin_client(db):
 
 
 def user_form(**overrides):
-    data = {"username": "nuevo", "password": PASSWORD, "full_name": "Nuevo", "role": "ventas", "is_active": "true"}
+    data = {"username": "nuevo", "password": PASSWORD, "full_name": "Nuevo", "role": "ventas", "is_active": "true",
+            "email": "nuevo@example.com"}
     data.update(overrides)
     return data
 
@@ -168,6 +169,20 @@ def test_admin_can_create_ventas_user(db, admin_client):
     client, _ = admin_client
     client.post("/users/new", data=user_form(), follow_redirects=False)
     assert db.query(User).filter(User.username == "nuevo").one().role == "ventas"
+
+
+@pytest.mark.parametrize("email", ["", "no-es-correo"])
+def test_email_is_required(db, admin_client, email):
+    client, _ = admin_client
+    response = client.post("/users/new", data=user_form(email=email), follow_redirects=False)
+    assert response.headers["location"] == "/users/new"
+    assert db.query(User).filter(User.username == "nuevo").first() is None
+
+
+def test_users_without_email_are_listed(db, admin_client):
+    client, _ = admin_client
+    make_user(db, "sin_correo", "worker", full_name="Sin Correo")
+    assert "Sin Correo" in client.get("/users").text and "sin correo" in client.get("/users").text
 
 
 def test_unknown_role_is_rejected(db, admin_client):

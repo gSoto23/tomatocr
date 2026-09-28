@@ -32,7 +32,9 @@ def test_discount_and_tax_rate_are_saved_and_returned(db, login_as, account):
     saved = client.get(f"/api/quotes/{response.json()['id']}").json()
     assert saved["discount"] == 5000 and saved["tax_rate"] == 13
 
-    client.post("/api/quotes/", json=payload(f"TCR-{YEAR}-0001", account.id, discount=0, tax_rate=0))
+    # Saving the loaded quote again (by its id) updates it.
+    client.post("/api/quotes/", json=payload(f"TCR-{YEAR}-0001", account.id, discount=0, tax_rate=0,
+                                             id=response.json()["id"]))
     db.expire_all()
     quote = db.query(Quote).filter_by(numero_cotizacion=f"TCR-{YEAR}-0001").one()
     assert (quote.discount, quote.tax_rate) == (0, 0)

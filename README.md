@@ -31,7 +31,10 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
 ### 3. Bitácora Digital (Daily Logs)
 - **Reportes Diarios Multilocación**: Reporte desde el campo con asignación exacta de la sede de operaciones.
 - **Evidencias Cloud**: Carga de notas operativas y material fotográfico en Alta Calidad conectado a repositorios persistentes.
-- **Notificaciones Dinámicas (Email)**: Reportería automática hacia partes interesadas vía SMTP.
+  Fotos JPEG, PNG, WebP o HEIC (iPhone) de hasta 20 MB: se giran según la cámara, se achican a 2048 px y se guardan en JPEG.
+- **Fecha del trabajo**: hoy o hasta 7 días atrás (hora de Costa Rica, `app/utils/timecr.py`).
+- **Notificaciones Dinámicas (Email)**: Reportería automática hacia partes interesadas vía SMTP. TOMATO
+  (`REPORT_BCC_EMAIL`) va en copia oculta; si el envío falla, la pantalla lo dice.
 
 ### 4. Cotizador (`/cotizador`)
 - Secciones: 1. Cliente y servicio, 2. Ítems (descripción de varias líneas,
@@ -42,7 +45,11 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
   ámbar lo recomendado (contacto, correo o teléfono, ubicación, alcance,
   términos). El PDF no se exporta si falta algo obligatorio.
 - El descuento y el % de IVA se guardan con la cotización. El número
-  (`TCR-AAAA-NNNN`) sigue al más alto del año, así nunca se repite.
+  (`TCR-AAAA-NNNN`) sigue al más alto del año, así nunca se repite. Guardar una
+  cotización cargada la actualiza por su id; una nueva con un número ya usado
+  recibe el siguiente libre.
+- El borrador sin guardar queda en el navegador y se ofrece recuperarlo al
+  volver a abrir el cotizador.
 - **PDF** (impresión del navegador → "Guardar como PDF", tamaño Carta):
   datos del emisor (TOMATO COSTA RICA ANY S.R.L., cédula 3-102-876296),
   cliente, condiciones, tabla con encabezado repetido en cada página y sin
@@ -323,14 +330,22 @@ públicas.
 
 - **Subida de archivos** (fotos de bitácora, documentos de empleado): se valida
   el `Content-Type` contra una whitelist (JPEG/PNG/WebP para fotos, +PDF para
-  documentos) y un límite de tamaño (5 MB fotos, 10 MB documentos) en
-  `app/utils/uploads.py`. El nombre físico en disco siempre se genera con un
+  documentos) y un límite de tamaño (10 MB documentos) en
+  `app/utils/uploads.py`. Las fotos (JPEG/PNG/WebP/HEIC, 20 MB) además se abren
+  con Pillow y se vuelven a guardar en JPEG, así que lo que queda en disco es
+  siempre una imagen válida. El nombre físico en disco siempre se genera con un
   UUID — nunca se usa el nombre de archivo que manda el cliente.
 - **Roles**: `admin`, `supervisor`, `worker`, `client` y `ventas`, definidos
   en `app/core/roles.py`. Los routers de operaciones (proyectos, bitácora,
   calendario, finanzas, planilla, pagos, liquidación) exigen uno de los cuatro
   roles operativos con `deps.require_roles`; `ventas` solo ve el Dashboard,
   Clientes y el Cotizador. Al crear o editar usuarios solo se aceptan esos roles.
+- **Contraseñas**: cada persona la cambia en `/cuenta/contrasena` (pide la
+  actual) y la recupera en `/recuperar` con un enlace al correo del perfil
+  (`app/utils/password_reset.py`): JWT de propósito `reset`, 60 minutos, ligado
+  al hash de la contraseña para que sirva una sola vez; máximo 3 pedidos por hora
+  por persona; la respuesta es la misma exista o no el usuario. Por eso el correo
+  es obligatorio en el perfil. Mínimo 8 caracteres.
 - **Usuarios inactivos**: si `is_active` es falso o `status` es `inactive` o
   `liquidated`, no pueden entrar y su sesión abierta deja de servir.
 - **Límite de intentos en `/login`**: 5 fallos en 15 minutos bloquean ese

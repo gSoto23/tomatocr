@@ -152,9 +152,22 @@ async def upsert_quote(request: Request, db: Session = Depends(deps.get_db), use
             if opportunity is None or opportunity.account_id != account.id:
                 raise HTTPException(status_code=400, detail="La oportunidad no es de esa cuenta.")
 
-    quote = db.query(Quote).filter(Quote.numero_cotizacion == numero_cotizacion).first()
-    if quote and user.role == CLIENT and (quote.account_id is None or quote.account_id != account_id):
-        raise HTTPException(status_code=403, detail="Ese número de cotización ya existe.")
+    # The quote being edited is identified by its id, never by its number: two people who
+    # open the tool at once get the same proposed number, and the second save must not
+    # replace the first one's quote. A new quote whose number is taken gets the next free one.
+    quote = None
+    renumbered_from = None
+    if data.get("id") is not None:
+        quote = visible_quotes(db, user).filter(Quote.id == data.get("id")).first()
+        if quote is None:
+            raise HTTPException(status_code=404, detail="La cotización ya no existe o no es tuya")
+        taken = db.query(Quote.id).filter(Quote.numero_cotizacion == numero_cotizacion, Quote.id != quote.id).first()
+        if taken:
+            raise HTTPException(status_code=400, detail=f"El número {numero_cotizacion} ya lo usa otra cotización")
+        quote.numero_cotizacion = numero_cotizacion
+    elif db.query(Quote.id).filter(Quote.numero_cotizacion == numero_cotizacion).first():
+        renumbered_from = numero_cotizacion
+        numero_cotizacion = f"TCR-{issue_date.year}-{next_quote_sequence(db, issue_date.year):04d}"
 
     if quote:
         # Update
@@ -201,5 +214,6 @@ async def upsert_quote(request: Request, db: Session = Depends(deps.get_db), use
     if opportunity is not None:
         advance_to_proposal(db, opportunity, user)
     db.commit()
-    return {"status": "success", "id": quote.id, "account_id": quote.account_id,
+    return {"status": "success", "id": quote.id, "numero_cotizacion": quote.numero_cotizacion,
+            "renumbered_from": renumbered_from, "account_id": quote.account_id,
             "opportunity_id": quote.opportunity_id}

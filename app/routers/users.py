@@ -1,3 +1,4 @@
+import re
 
 from typing import Optional, List
 from fastapi import APIRouter, Depends, Form, Request, status, HTTPException, UploadFile, File
@@ -37,6 +38,15 @@ def error_redirect(url: str, message: str):
     response.set_cookie(key="toast_type", value="error")
     return response
 
+EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+def valid_email(value: Optional[str]) -> Optional[str]:
+    """Every user needs an e-mail: it is how they recover their password (/recuperar)."""
+    value = (value or "").strip().lower()
+    return value if EMAIL_RE.match(value) else None
+
+
 @router.get("/")
 def list_users(
     request: Request, 
@@ -66,7 +76,9 @@ def list_users(
         "user": user,
         "page": page,
         "total_pages": total_pages,
-        "total_records": total_records
+        "total_records": total_records,
+        "without_email": db.query(User).filter((User.email.is_(None)) | (User.email == ""),
+                                               User.is_active == True).order_by(User.full_name).all(),  # noqa: E712
     })
 
 @router.get("/new")
@@ -97,6 +109,9 @@ def create_user(
 
     if role not in ALL_ROLES:
         return error_redirect("/users/new", "Rol no válido")
+    email = valid_email(email)
+    if not email:
+        return error_redirect("/users/new", "El correo es obligatorio y tiene que ser válido: con él la persona recupera su contraseña")
     
     # Check if user exists
     existing = db.query(User).filter(User.username == username).first()
@@ -200,6 +215,9 @@ def update_user(
 
     if role not in ALL_ROLES:
         return error_redirect(f"/users/{id}/edit", "Rol no válido")
+    email = valid_email(email)
+    if not email:
+        return error_redirect(f"/users/{id}/edit", "El correo es obligatorio y tiene que ser válido: con él la persona recupera su contraseña")
     # An inactive user can no longer log in, so an admin must not lock themselves out.
     if id == user.id and (not is_active or role != ADMIN):
         return error_redirect(f"/users/{id}/edit", "Error: No puedes desactivar tu propio usuario ni quitarte el rol de administrador.")

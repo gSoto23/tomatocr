@@ -69,11 +69,12 @@
 {% call m.section("guardadas", "Cotizaciones guardadas") %}
 {{ m.shot("cotizador/guardar.webp", "Cotizador: botones de arriba", "Número y botones de la cotización.") }}
 {{ m.steps([
-    (1, "El <strong>número</strong> de la cotización. Se asigna al siguiente libre del año y queda fijo al guardar."),
+    (1, "El <strong>número</strong> de la cotización. Se asigna al siguiente libre del año y queda fijo al guardar. Si justo otra persona guardó una con ese número, la tuya recibe el siguiente y te avisa."),
     (2, "<strong>Guardar</strong>: la sube a la nube (<em>Sincronizado en el servidor</em>). Guardar de nuevo una cotización cargada la reemplaza."),
     (3, "<strong>Duplicar</strong>: copia todo con número nuevo y la fecha de hoy. Útil para otra versión o un cliente parecido. Tenés que tocar Guardar."),
-    (4, "<strong>Nueva</strong>: empieza una en blanco."),
+    (4, "<strong>Nueva</strong>: empieza una en blanco. Si hay cambios sin guardar, te pregunta antes."),
 ]) }}
+<p><strong>Descartar cambios</strong> borra lo que está en pantalla y empieza de cero.</p>
 <p>Abajo, en <strong>Historial</strong>, están las últimas 20 cotizaciones guardadas{% if user.role == 'client' %} de tu empresa{% endif %}.
     <strong>Cargar</strong> abre una para verla, cambiarla o sacar su PDF.</p>
 {% endcall %}
@@ -81,8 +82,10 @@
 {% call m.section("preguntas", "Preguntas frecuentes") %}
 <div class="space-y-2">
 {% call m.faq("Recargué la página y perdí lo que había escrito") %}
-<p>El cotizador no recupera lo que no se guardó. Tocá <strong>Guardar</strong> seguido mientras trabajás. <em>Borrar
-    Borrador</em> también empieza de cero.</p>
+<p>El cotizador guarda en tu navegador lo que vas escribiendo. Al volver a abrirlo aparece arriba el aviso de un
+    <strong>borrador sin guardar</strong>: tocá <em>Recuperar</em> para seguir donde ibas o <em>Descartar</em> para
+    empezar de cero. El borrador queda solo en ese navegador y ese dispositivo: para que lo vean otros, tocá
+    <strong>Guardar</strong>. Si intentás cerrar la pestaña con cambios sin guardar, el navegador te avisa.</p>
 {% endcall %}
 {% call m.faq("Cambié la moneda y los precios no cambiaron") %}
 <p>El cotizador no convierte montos. Si cambiás de colones a dólares, escribí los precios de nuevo.</p>
@@ -96,8 +99,9 @@
     oportunidad con <em>Crear cotización</em>.</p>
 {% endcall %}
 {% call m.faq("Dos personas cotizando al mismo tiempo") %}
-<p>Si dos personas abren el cotizador a la vez, les puede tocar el mismo número y la segunda en guardar reemplaza a la
-    primera. Coordinen, o revisen el número en el Historial antes de guardar.</p>
+<p>No se pisan. Si a las dos les tocó el mismo número, la segunda en guardar recibe el siguiente número libre y ve
+    el aviso <em>Se guardó con el número …</em>. Guardar de nuevo una cotización cargada actualiza esa misma, aunque
+    le cambies el número.</p>
 {% endcall %}
 {% call m.faq("¿Puedo borrar una cotización?") %}
 <p>Desde el cotizador no. Si se hizo por error, avisale al admin.</p>

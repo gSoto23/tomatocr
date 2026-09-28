@@ -78,7 +78,7 @@
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Destinatarios</label>
                                     <div class="mb-2 p-2 bg-gray-100 rounded text-xs text-gray-600 flex items-center">
                                         <svg class="h-4 w-4 mr-1 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                        Siempre se enviará una copia oculta a tomatocostarica@gmail.com
+                                        TOMATO recibe una copia oculta: el cliente no la ve.
                                     </div>
                                     <div id="email-recipients-container"
                                         class="space-y-2 border rounded-md p-3 bg-white max-h-40 overflow-y-auto">
@@ -470,11 +470,6 @@
                 recipients.push(cb.value);
             });
             
-            // Auto CC tomatocostarica@gmail.com per requirements
-            if (!recipients.includes("tomatocostarica@gmail.com")) {
-                recipients.push("tomatocostarica@gmail.com");
-            }
-
             if (recipients.length === 0) {
                 showGlobalToast("Error", "Por favor seleccione al menos un destinatario.", "error");
                 return;

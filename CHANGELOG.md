@@ -6,7 +6,41 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-28
 
-### Arreglo: salario pendiente con pagos antiguos (esta rama)
+### UI/UX ronda 1: contraseñas, celular, bitácora y cotizador (esta rama)
+- **Contraseñas**: cada persona cambia la suya desde la llave del menú
+  (`/cuenta/contrasena`) y la recupera con "¿Olvidaste tu contraseña?"
+  (`/recuperar`): le llega un enlace al correo del perfil que dura una hora y sirve
+  una vez (máximo 3 pedidos por hora; la pantalla no revela si el usuario existe).
+  El correo pasó a ser obligatorio al crear o editar una persona, y la lista de
+  Empleados avisa quién está activo sin correo.
+- **Portada**: mensajes claros cuando el sistema te devuelve (sesión vencida,
+  enlace inválido, usuario inexistente) y aviso verde al cambiar la contraseña.
+  En el celular los campos de acceso son más grandes y no ponen mayúscula inicial.
+- **Dashboard del trabajador**: "Mis asignaciones: hoy y próximos días" empieza por
+  hoy (hora de Costa Rica), en tarjetas con el botón "Gestionar tareas" en el
+  celular; las pasadas quedan en "Anteriores" (últimas 5). Marcar una tarea la
+  tacha al instante en la lista.
+- **Bitácora**: se puede registrar un día de hasta 7 días atrás. Fotos JPEG, PNG,
+  WebP y HEIC (iPhone) de hasta 20 MB: el servidor las gira según la cámara, las
+  achica a 2048 px y las guarda en JPEG. El formulario avisa qué archivo no sirve y
+  muestra los errores en la pantalla en vez de ventanas emergentes. El mismo
+  tratamiento de fotos aplica al monitoreo de reforestación.
+- **Correo del reporte**: TOMATO (`REPORT_BCC_EMAIL`, por defecto
+  tomatocostarica@gmail.com) va en copia oculta real; "Correo enviado" solo sale si
+  el envío funcionó, y si no, "No se pudo enviar el correo".
+- **Cotizador**: recupera el borrador sin guardar al volver a abrirlo (Recuperar /
+  Descartar) y avisa antes de cerrar con cambios. Guardar una cotización cargada la
+  actualiza por su id; una nueva con un número que ya existe recibe el siguiente
+  libre y lo avisa, en vez de reemplazar la otra. "Borrar Borrador" pasó a
+  "Descartar cambios".
+- **Manual**: sección nueva "Cambiar o recuperar la contraseña" en Primeros pasos y
+  capítulos de Dashboard, Proyectos, Cotizador y Empleados al día, con capturas
+  nuevas. `capturas.mjs` acepta `MANUAL_OUT_DIR` y `MANUAL_TOKENS_FILE` para correr
+  fuera del proyecto (macOS).
+- Dependencia nueva: `pillow-heif`. Despliegue: sin migraciones;
+  `pip install -r requirements.txt` y reiniciar.
+
+### Arreglo: salario pendiente con pagos antiguos (#68)
 - Si el último pago o planilla final registrado tiene más de un mes, el salario
   pendiente queda en 0 con la fecha de ese registro y el aviso de escribirlo: los
   pagos posteriores se hicieron fuera del sistema. Antes contaba todo desde ahí

@@ -39,6 +39,8 @@ class Settings(BaseSettings):
     LEADS_PER_HOUR: int = int(os.getenv("LEADS_PER_HOUR", 30))
     # Address that receives a copy of every new lead notification.
     LEADS_NOTIFY_EMAIL: str = os.getenv("LEADS_NOTIFY_EMAIL", "info@tomatocr.com")
+    # Blind copy of every report sent to a client (they never see it).
+    REPORT_BCC_EMAIL: str = os.getenv("REPORT_BCC_EMAIL", "tomatocostarica@gmail.com")
 
     # Email
     MAIL_USERNAME: str = os.getenv("MAIL_USERNAME", "")

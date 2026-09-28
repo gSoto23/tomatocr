@@ -20,6 +20,18 @@
         </a>
     </div>
 
+    {% if without_email %}
+    <div class="mb-6 rounded-lg border-l-4 border-amber-500 bg-amber-50 p-4 text-sm text-amber-900">
+        <p class="font-semibold">{{ without_email|length }} persona{{ 's' if without_email|length != 1 }} activa{{ 's' if without_email|length != 1 }} sin correo</p>
+        <p class="mt-1">Sin correo no pueden recuperar su contraseña. Agregáselo:</p>
+        <div class="mt-2 flex flex-wrap gap-2">
+            {% for u in without_email %}
+            <a href="/users/{{ u.id }}/edit" class="rounded-md bg-white px-2 py-1 font-medium ring-1 ring-amber-300 hover:bg-amber-100">{{ u.full_name or u.username }}</a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
     <div class="bg-white shadow-sm rounded-lg border border-gray-200 overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">

@@ -62,9 +62,13 @@ def test_client_quotes_go_to_its_account_and_cannot_overwrite_others(db, login_a
     client = login_as("client")
     assert client.post("/api/quotes/", json=quote_payload("Q-NUEVA")).status_code == 200
     assert db.query(Quote).filter_by(numero_cotizacion="Q-NUEVA").one().account_id == world["museo"].id
-    assert client.post("/api/quotes/", json=quote_payload("Q-TICAL", total=1)).status_code == 403
+    # Another account's number: saved as a new quote with the next number, the other stays intact.
+    response = client.post("/api/quotes/", json=quote_payload("Q-TICAL", total=1))
+    assert response.status_code == 200 and response.json()["renumbered_from"] == "Q-TICAL"
     db.expire_all()
     assert db.query(Quote).filter_by(numero_cotizacion="Q-TICAL").one().total == 20
+    tical_id = db.query(Quote).filter_by(numero_cotizacion="Q-TICAL").one().id
+    assert client.post("/api/quotes/", json=quote_payload("Q-TICAL", id=tical_id, total=1)).status_code == 404
 
 
 def test_client_quote_tool_has_no_account_picker(login_as, world):

@@ -33,10 +33,10 @@ CHAPTERS: List[Chapter] = [
     Chapter(
         "primeros-pasos", "Primeros pasos",
         "Entrar al sistema, moverte por el menú y qué hacer si no podés ingresar.",
-        ALL_ROLES, (),
-        (("entrar", "Entrar y salir"), ("menu", "El menú"), ("ayuda", "Dónde encontrar ayuda"),
-         ("problemas", "Si no podés entrar")),
-        "login ingresar contraseña usuario sesión salir menú celular tablet",
+        ALL_ROLES, ("/cuenta",),
+        (("entrar", "Entrar y salir"), ("contrasena", "Cambiar o recuperar la contraseña"), ("menu", "El menú"),
+         ("ayuda", "Dónde encontrar ayuda"), ("problemas", "Si no podés entrar")),
+        "login ingresar contraseña olvidé recuperar cambiar clave usuario sesión salir menú celular tablet",
     ),
     Chapter(
         "dashboard", "Dashboard",

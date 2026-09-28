@@ -35,11 +35,14 @@
 
 {% if user.role in ['admin', 'supervisor', 'worker'] %}
 <h3 class="mt-4 font-semibold text-gray-900">Supervisor y trabajador</h3>
-{{ m.shot("dashboard/trabajador.webp", "Dashboard de un trabajador en el celular", "Mis Asignaciones, en el celular.", mobile=True) }}
+{{ m.shot("dashboard/trabajador.webp", "Dashboard de un trabajador en el celular", "Tus asignaciones, en el celular.", mobile=True) }}
 {{ m.steps([
-    (1, "<strong>Mis Asignaciones</strong>: los días y proyectos que te asignaron en el Calendario, con sus tareas."),
-    (2, "<strong>Gestionar</strong> abre la asignación: marcá cada tarea al terminarla (se guarda sola) o tocá <em>Ir al Proyecto</em>. En el celular, deslizá la tabla hacia la izquierda para ver el botón."),
+    (1, "<strong>Mis asignaciones: hoy y próximos días</strong>: lo que te asignaron en el Calendario, empezando por hoy, con sus tareas."),
+    (2, "El día de <strong>hoy</strong> aparece primero y resaltado en verde."),
+    (3, "<strong>Gestionar tareas</strong> abre la asignación: marcá cada tarea al terminarla (se guarda sola y se tacha en la lista) o tocá <em>Ir al Proyecto</em>."),
 ]) }}
+<p>Más abajo, en <strong>Anteriores</strong>, están tus últimas 5 asignaciones pasadas. En la computadora se ven como
+    tabla.</p>
 <p>El supervisor además ve <strong>Gestionar Calendario</strong>, para organizar las asignaciones del equipo.</p>
 {% endif %}
 
@@ -69,12 +72,8 @@
 {% endcall %}
 {% endif %}
 {% if user.role in ['admin', 'supervisor', 'worker'] %}
-{% call m.faq("Marqué una tarea y la tabla no cambió") %}
-<p>Quedó guardada (sale el aviso <em>Actualizado</em>). La tabla se refresca al volver a cargar la página.</p>
-{% endcall %}
-{% call m.faq("¿Por qué veo asignaciones de días que no son hoy?") %}
-<p>La lista muestra tus últimas 20 asignaciones, empezando por la fecha más lejana. Buscá la del día en la columna Fecha
-    o abrí el Calendario.</p>
+{% call m.faq("No veo la asignación de hoy") %}
+<p>Si no aparece <em>Hoy</em> arriba, no tenés asignación para hoy en el Calendario. Revisá con tu supervisor.</p>
 {% endcall %}
 {% endif %}
 {% if user.role in ['admin', 'client'] %}
