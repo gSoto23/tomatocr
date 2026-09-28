@@ -136,8 +136,11 @@ def test_only_sellers_can_be_assigned(db, login_as, users, accounts, mails):
 # --- Guide ---------------------------------------------------------------------------
 
 @pytest.mark.parametrize("role,status", [("admin", 200), ("ventas", 200), ("worker", 403), ("client", 403)])
-def test_guide_access(role, status, login_as):
+def test_guide_moved_to_the_manual(role, status, login_as):
     response = login_as(role).get("/clientes/ayuda", follow_redirects=False)
-    assert response.status_code == status or (status == 403 and response.status_code in (302, 303))
     if status == 200:
-        assert "Cómo trabajar un prospecto" in response.text and "Piloto (15/10/2026 – 15/12/2026)" in response.text
+        assert response.status_code == 301 and response.headers["location"] == "/manual/clientes"
+        page = login_as(role).get("/manual/clientes")
+        assert page.status_code == 200 and "Piloto (15/10/2026 – 15/12/2026)" in page.text
+    else:
+        assert response.status_code in (302, 303, 403)

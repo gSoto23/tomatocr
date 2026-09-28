@@ -6,6 +6,18 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-27
 
+### Manual del usuario, parte 1 (#63)
+- Menú **Manual** (`/manual`) para todos los roles: índice con buscador y capítulos
+  Primeros pasos, Dashboard, Proyectos y bitácora, Clientes y Cotizador, con
+  capturas de pantalla y marcas numeradas. Cada rol ve solo sus capítulos.
+- Botón **?** en todas las pantallas internas y en el Cotizador: abre el capítulo
+  de esa pantalla.
+- La guía "Cómo trabajar" de Clientes pasa al manual (`/clientes/ayuda` redirige).
+- Capturas con datos ficticios locales, regenerables:
+  `scripts/manual/datos_demo.py` y `scripts/manual/capturas.mjs`.
+- `docs/PUNTOS_DIFICILES_UX.md`: lo que cuesta usar, para el trabajo de UI/UX.
+- Despliegue: sin migraciones; reiniciar.
+
 ### Integración con darboles.com activada (#62, solo documentación)
 - darboles.com ya envía al CRM las solicitudes de su formulario de empresas
   (darboles.com PR #8). Se configuró `DARBOLES_API_KEY` en producción y el QA
@@ -14,7 +26,7 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
   `401` comparando la huella de la clave en los dos servidores.
 - Sin migración ni pasos de despliegue.
 
-### Arreglo: editar proyectos con trabajo registrado (esta rama)
+### Arreglo: editar proyectos con trabajo registrado (#61)
 - Desde el cambio a PostgreSQL, guardar un proyecto fallaba ("Error al
   guardar") si ya tenía bitácoras con tareas marcadas, facturas, o bitácoras o
   asignaciones del calendario en una sede: se borraban y recreaban tareas,
@@ -28,7 +40,7 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 - Los errores al guardar un proyecto se muestran sin comillas de JSON.
 - Despliegue: `alembic upgrade head` (0007 → 0008) y reiniciar.
 
-### Piloto en el sistema (esta rama)
+### Piloto en el sistema (#60)
 - El Embudo cuenta solo oportunidades **nuevas** creadas en el periodo del
   piloto (15/10–15/12/2026, editable por admin junto a las metas).
   Renovaciones y ampliaciones no cuentan; "Todo el historial" muestra el
@@ -39,7 +51,7 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 - Guía "Cómo trabajar un prospecto" en `/clientes/ayuda`.
 - Despliegue: `alembic upgrade head` (0006 → 0007) y reiniciar.
 
-### Documentación: estado final de la Fase 2 (esta rama)
+### Documentación: estado final de la Fase 2 (#60)
 - Plan y diseño del CRM marcan la Fase 2 completa; correo de /privacidad
   confirmado; lista de pendientes después de la Fase 2.
 - El piloto (15/10–15/12/2026) se lleva en el sistema, no en el tablero.

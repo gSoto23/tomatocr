@@ -148,10 +148,19 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
     creadas en el periodo (por defecto 15/10–15/12/2026, lo cambia el admin
     junto a las metas); "Todo el historial" muestra el conteo completo. El
     admin reparte las oportunidades cambiando su vendedor (le llega un
-    correo). Guía para el equipo en `/clientes/ayuda`.
+    correo). Guía para el equipo en el manual, `/manual/clientes`.
   - Importar el tablero del piloto:
     `PYTHONPATH=. python scripts/import_tablero.py tablero.json` (simulación)
     y luego con `--apply`. No duplica si se corre dos veces.
+
+### Manual del usuario
+- **`/manual`** (menú "Manual", todos los roles): qué es cada parte del sistema, para
+  qué sirve y cómo se usa, con capturas y marcas numeradas. Cada rol ve solo los
+  capítulos de lo que usa, y el botón **?** de cada pantalla abre su capítulo.
+- Capítulos en `app/templates/manual/`, registro y permisos en `app/utils/manual.py`.
+- Las capturas salen de datos ficticios locales, nunca de producción:
+  `scripts/manual/README.md` explica cómo regenerarlas.
+- Lo que cuesta explicar queda en `docs/PUNTOS_DIFICILES_UX.md`, para el trabajo de UI/UX.
 
 ### 7. Configuración Jerárquica & Auth
 - Prevención total basada en Roles: `[Admin, Supervisor, Worker, Client, Ventas]`.

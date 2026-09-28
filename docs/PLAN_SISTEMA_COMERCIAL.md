@@ -12,6 +12,7 @@ Este documento lo usa el tab de Code (Claude Code) para implementar cada fase. I
 | Migración a PostgreSQL | No estaba en el plan: producción corría en SQLite (ver `docs/MIGRACION_POSTGRES.md`) | antes de Fase 1 | En producción (27/09/2026) |
 | 1. Supervivencia de árboles | Estado y monitoreos por árbol, indicador de supervivencia, mapa público con autorización por proyecto | 30/11/2026 | En producción (27/09/2026) |
 | 2. CRM y formulario web | Según `docs/DISENO_CRM.md` (reemplaza la sección de Fase 2 de este plan), en 4 sub-fases | 15/01/2027 | Completa: 2A, 2B, 2C y 2D en producción (27/09/2026) |
+| Manual del usuario | `/manual` con capítulos por módulo, capturas y el botón "?" en cada pantalla; en dos PR | antes del piloto | Parte 1 (primeros pasos, Dashboard, Proyectos, Clientes, Cotizador) en PR; parte 2 (Presupuestos, Planilla, Calendario, Empleados, Actividad, Reforestación, recorridos) pendiente |
 
 El historial detallado de cambios está en `CHANGELOG.md`.
 

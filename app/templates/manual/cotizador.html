@@ -1,0 +1,111 @@
+{% extends "manual/_layout.html" %}
+
+{% block manual %}
+{% call m.section("que-es", "Qué es") %}
+<p>El <strong>Cotizador</strong> arma cotizaciones con el formato de TOMATO: datos del cliente, ítems, IVA, descuento,
+    alcance y términos. Revisa que no falte nada y las exporta en PDF, listas para enviar. Cada cotización queda
+    guardada en la nube con su número (TCR-año-número).</p>
+<p>Quién lo usa: {{ m.roles(["admin", "ventas", "client"]) }}. Se abre con el botón <strong>Cotizador</strong> arriba a
+    la derecha (en el celular, <strong>Cotizar</strong>), o con <strong>Crear cotización</strong> desde una oportunidad en Clientes.</p>
+{% endcall %}
+
+{% call m.section("nueva", "Hacer una cotización") %}
+{{ m.shot("cotizador/cliente.webp", "Cotizador: cliente y servicio", "Arriba, el cliente y el servicio; a la derecha, el resumen.") }}
+{% if user.role in ['admin', 'ventas'] %}
+{{ m.steps([
+    (1, "<strong>Cuenta del cliente</strong> (obligatoria): buscá por nombre o cédula. Si no existe, tocá <em>+ Crear cuenta</em>; si hay cuentas parecidas, el sistema te las muestra para que no dupliques."),
+    (2, "<strong>Contacto de la cuenta</strong>: viene puesto el contacto principal. Correo y teléfono se llenan solos."),
+    (3, "<strong>Tipo de servicio</strong>, <strong>Frecuencia</strong>, <strong>Validez (días)</strong> y <strong>Moneda</strong>."),
+    (4, "El <strong>resumen</strong> de la derecha calcula todo solo y te dice qué falta."),
+]) }}
+{% call m.tip("Mejor desde la oportunidad") %}
+<p>Si la cotización es para un prospecto, abrila desde su oportunidad en Clientes con <strong>Crear cotización</strong>:
+    la cuenta y el contacto vienen puestos, la cotización queda ligada y, al guardarla, la oportunidad pasa sola a
+    <em>Propuesta</em>.</p>
+{% endcall %}
+{% else %}
+{{ m.steps([
+    (1, "Escribí el nombre de tu empresa en <strong>Cliente / Empresa</strong>."),
+    (2, "Completá contacto, correo, teléfono y dirección."),
+    (3, "Elegí el tipo de servicio, la frecuencia, la validez y la moneda."),
+    (4, "El resumen de la derecha calcula todo solo y te dice qué falta."),
+]) }}
+{% endif %}
+<h3 class="font-semibold text-gray-900">Los ítems</h3>
+{{ m.shot("cotizador/items.webp", "Cotizador: ítems", "Los ítems de la cotización.") }}
+{{ m.steps([
+    (1, "<strong>+ Servicio</strong> agrega una línea de servicio (unidad <em>Visita</em>) y <strong>+ Material</strong> una de material (unidad <em>Unidad</em>)."),
+    (2, "Escribí la <strong>Descripción</strong> (puede tener varias líneas), la <strong>Cantidad</strong> y el <strong>Precio unitario</strong>. El total de la línea se calcula solo."),
+    (3, "<strong>⧉</strong> duplica la línea justo debajo; <strong>✕</strong> la quita."),
+]) }}
+<p>Abajo, en <strong>Condiciones</strong>, escribí el <strong>Alcance</strong> (qué incluye el trabajo) y los
+    <strong>Términos</strong>. Los dos salen en el PDF.</p>
+{% endcall %}
+
+{% call m.section("revision", "La revisión antes del PDF") %}
+{{ m.shot("cotizador/revision.webp", "Cotizador: resumen y revisión", "El resumen y la revisión de lo que falta.") }}
+{{ m.steps([
+    (1, "<strong>IVA</strong>: marcado por defecto al 13 %. Podés cambiar el porcentaje o quitarlo."),
+    (2, "<strong>Descuento</strong>: es un <strong>monto</strong> en la moneda de la cotización (no un porcentaje) y se resta antes del IVA."),
+    (3, "<strong>Falta para exportar</strong> (en rojo): sin esto no se puede sacar el PDF. <strong>Recomendado completar</strong> (en amarillo): se puede exportar igual, pero la cotización queda más completa."),
+    (4, "Cuando dice <strong>✓ Lista para exportar</strong> (o <strong>✓ Cotización completa</strong> si no falta nada), tocá <strong>Exportar PDF</strong>."),
+]) }}
+{% endcall %}
+
+{% call m.section("pdf", "Exportar el PDF") %}
+{{ m.steps([
+    (None, "Tocá <strong>Guardar</strong> primero: el PDF no guarda la cotización."),
+    (None, "Tocá <strong>Exportar PDF</strong>. Se abre una ventana nueva con la cotización y el diálogo de impresión."),
+    (None, "En el diálogo elegí <strong>Guardar como PDF</strong> y tamaño <strong>Carta</strong>, y guardalo."),
+]) }}
+{% call m.warn("Si no se abre la ventana") %}
+<p>El navegador bloqueó la ventana emergente. Permití ventanas emergentes para tomatocr.com (en Chrome, el ícono a la
+    derecha de la barra de direcciones) y volvé a tocar Exportar PDF.</p>
+{% endcall %}
+<p>El PDF lleva el encabezado de TOMATO, los datos del cliente, la tabla de ítems (sin cortar líneas entre páginas),
+    los totales, el alcance, los términos y un espacio para la aceptación del cliente.</p>
+{% endcall %}
+
+{% call m.section("guardadas", "Cotizaciones guardadas") %}
+{{ m.shot("cotizador/guardar.webp", "Cotizador: botones de arriba", "Número y botones de la cotización.") }}
+{{ m.steps([
+    (1, "El <strong>número</strong> de la cotización. Se asigna al siguiente libre del año y queda fijo al guardar."),
+    (2, "<strong>Guardar</strong>: la sube a la nube (<em>Sincronizado en el servidor</em>). Guardar de nuevo una cotización cargada la reemplaza."),
+    (3, "<strong>Duplicar</strong>: copia todo con número nuevo y la fecha de hoy. Útil para otra versión o un cliente parecido. Tenés que tocar Guardar."),
+    (4, "<strong>Nueva</strong>: empieza una en blanco."),
+]) }}
+<p>Abajo, en <strong>Historial</strong>, están las últimas 20 cotizaciones guardadas{% if user.role == 'client' %} de tu empresa{% endif %}.
+    <strong>Cargar</strong> abre una para verla, cambiarla o sacar su PDF.</p>
+{% endcall %}
+
+{% call m.section("preguntas", "Preguntas frecuentes") %}
+<div class="space-y-2">
+{% call m.faq("Recargué la página y perdí lo que había escrito") %}
+<p>El cotizador no recupera lo que no se guardó. Tocá <strong>Guardar</strong> seguido mientras trabajás. <em>Borrar
+    Borrador</em> también empieza de cero.</p>
+{% endcall %}
+{% call m.faq("Cambié la moneda y los precios no cambiaron") %}
+<p>El cotizador no convierte montos. Si cambiás de colones a dólares, escribí los precios de nuevo.</p>
+{% endcall %}
+{% call m.faq("Cambié la validez y los términos siguen diciendo 15 días") %}
+<p>Los términos son texto libre: corregí ahí también la validez.</p>
+{% endcall %}
+{% if user.role in ['admin', 'ventas'] %}
+{% call m.faq("Toqué «Cambiar» la cuenta y se perdió la oportunidad") %}
+<p>Al cambiar de cuenta la cotización deja de estar ligada a la oportunidad. Si fue un error, abrí de nuevo desde la
+    oportunidad con <em>Crear cotización</em>.</p>
+{% endcall %}
+{% call m.faq("Dos personas cotizando al mismo tiempo") %}
+<p>Si dos personas abren el cotizador a la vez, les puede tocar el mismo número y la segunda en guardar reemplaza a la
+    primera. Coordinen, o revisen el número en el Historial antes de guardar.</p>
+{% endcall %}
+{% call m.faq("¿Puedo borrar una cotización?") %}
+<p>Desde el cotizador no. Si se hizo por error, avisale al admin.</p>
+{% endcall %}
+{% endif %}
+{% call m.faq("Sale «Complete antes de exportar»") %}
+<p>Mirá la lista en rojo del resumen: dice exactamente qué falta (cuenta, descripción, cantidad o precio de un ítem…).</p>
+{% endcall %}
+</div>
+{% endcall %}
+{% endblock %}

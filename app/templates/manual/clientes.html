@@ -1,0 +1,134 @@
+{% extends "manual/_layout.html" %}
+
+{% block manual %}
+{% call m.section("que-es", "Qué es") %}
+<p><strong>Clientes</strong> es donde el equipo comercial lleva a las empresas y personas con las que trabaja o quiere
+    trabajar: las <strong>cuentas</strong> (clientes y prospectos en un solo lugar), sus <strong>contactos</strong>,
+    las <strong>oportunidades</strong> de venta y los <strong>seguimientos</strong> de cada una.</p>
+<p>El piloto comercial se lleva aquí: <strong>{{ period.label }}</strong>.</p>
+<p>Quién lo usa: {{ m.roles(["admin", "ventas"]) }}.</p>
+{% endcall %}
+
+{% call m.section("dia", "Tu día") %}
+<p>Empieza en el <strong>Dashboard</strong>, con tus próximos pasos vencidos, de hoy y de los próximos 7 días. La regla es
+    simple: <strong>ninguna oportunidad abierta sin próximo paso y sin fecha</strong>.</p>
+{{ m.shot("clientes/embudo.webp", "Embudo de Clientes", "Clientes → Embudo.") }}
+{{ m.steps([
+    (1, "El <strong>Embudo</strong> del periodo: cuántas cuentas llegaron a cada etapa, contra la meta. <em>Todo el historial</em> muestra el conteo desde el inicio."),
+    (2, "<strong>Próximos pasos vencidos</strong> y <strong>Para hoy</strong>."),
+    (3, "La lista de oportunidades, con filtros por motor, vendedor y etapa."),
+    (4, "<strong>Nueva cuenta</strong> para registrar un prospecto."),
+]) }}
+{% endcall %}
+
+{% call m.section("origen", "De dónde salen los prospectos") %}
+<ul class="list-disc space-y-1 pl-5">
+    <li><strong>Los buscás vos</strong> (LinkedIn, correo, SICOP, referidos, visitas): los registrás como en el punto siguiente.</li>
+    <li><strong>Llegan solos</strong> por el formulario de tomatocr.com (y más adelante de darboles.com). Entran como
+        oportunidad en Prospecto con el próximo paso <em>Responder la solicitud</em> para ese día.</li>
+    <li><strong>El admin los reparte.</strong> Cuando te asigna una oportunidad te llega un correo con el enlace. Respondé ese mismo día.</li>
+</ul>
+{% endcall %}
+
+{% call m.section("registrar", "Registrar un prospecto") %}
+{{ m.steps([
+    (None, "<strong>Buscá primero</strong> en <a href='/clientes/cuentas' class='text-indigo-600 hover:underline'>Cuentas</a>: la empresa puede existir ya (como cliente, ex-cliente o prospecto de otro)."),
+    (None, "Si no está: <strong>Nueva cuenta</strong>. Si el sistema avisa que hay cuentas parecidas, revisalas antes de crear otra."),
+    (None, "En la cuenta, pestaña <strong>Contactos</strong>: agregá a la persona con su cargo, correo y teléfono."),
+    (None, "Pestaña <strong>Oportunidades</strong>: creá la oportunidad con su <strong>motor</strong>, tipo <strong>Nuevo</strong> y el próximo paso con fecha."),
+]) }}
+{{ m.shot("clientes/cuenta.webp", "Ficha de una cuenta", "La ficha de una cuenta.") }}
+{{ m.steps([
+    (1, "<strong>Registrar seguimiento</strong>: cada llamada, correo, WhatsApp, visita o reunión."),
+    (2, "Las pestañas: <strong>Seguimientos</strong>, <strong>Contactos</strong>, <strong>Oportunidades</strong>, <strong>Cotizaciones</strong> y <strong>Proyectos</strong> de la cuenta."),
+    (3, "El <strong>estado</strong> (Prospecto, Cliente, Ex-cliente o Descartada) se calcula solo según sus proyectos. <em>Descartar</em> es lo único manual."),
+]) }}
+{% endcall %}
+
+{% call m.section("etapas", "Las etapas") %}
+{{ m.shot("clientes/oportunidad.webp", "Página de una oportunidad", "La página de una oportunidad.") }}
+{{ m.steps([
+    (1, "<strong>Cambiar etapa</strong> y <em>Guardar etapa</em>. Cada cambio queda en el historial de la cuenta."),
+    (2, "<strong>Próximo paso</strong> y su fecha, el monto estimado y el vendedor."),
+    (3, "<strong>Crear cotización</strong> abre el Cotizador ligado a esta oportunidad."),
+]) }}
+<ul class="list-disc space-y-1 pl-5">
+    <li><strong>Prospecto:</strong> la empresa está identificada y le hiciste (o vas a hacer) el primer contacto.</li>
+    <li><strong>Respuesta:</strong> te contestó, aunque sea para decir "ahora no".</li>
+    <li><strong>Reunión:</strong> hubo una reunión, llamada formal o visita.</li>
+    <li><strong>Propuesta:</strong> se envió una cotización. Pasa sola al guardar una cotización hecha con <em>Crear cotización</em>.</li>
+    <li><strong>Ganado:</strong> el cliente aceptó. El admin la liga al proyecto con <em>Marcar ganada</em>.</li>
+    <li><strong>Perdido:</strong> no va a avanzar. El sistema pide el motivo; escribilo claro, sirve para aprender.</li>
+</ul>
+{% endcall %}
+
+{% call m.section("seguimientos", "Seguimientos") %}
+<p>Cada contacto con el cliente se registra en la cuenta con <strong>Registrar seguimiento</strong>: tipo, fecha, con
+    quién y qué pasó. Al final de cada contacto, actualizá el próximo paso y su fecha.</p>
+{% endcall %}
+
+{% call m.section("cotizar", "Cotizar") %}
+<p>Desde la oportunidad, <strong>Crear cotización</strong> abre el Cotizador con la cuenta y el contacto ya puestos y deja
+    la cotización ligada. No la hagas por fuera: no quedaría ligada ni contaría en el embudo. Detalle en el capítulo
+    <a href="/manual/cotizador" class="text-indigo-600 hover:underline">Cotizador</a>.</p>
+{% endcall %}
+
+{% call m.section("metas", "Qué cuenta para las metas") %}
+<ul class="list-disc space-y-1 pl-5">
+    <li>Cuentan las <strong>cuentas</strong> con una oportunidad de tipo <strong>Nuevo</strong> creada dentro del periodo ({{ period.label }}).</li>
+    <li>Cuenta la <strong>etapa más alta alcanzada</strong>: si una oportunidad llegó a Reunión y después se perdió, sigue contando hasta Reunión.</li>
+    <li>Las <strong>renovaciones y ampliaciones</strong> de clientes actuales no cuentan para las metas; igual se trabajan y aparecen en la lista.</li>
+    <li>Metas: {% for row in funnel %}{{ crm_labels.stage[row.stage] }} {{ row.target }}{{ ', ' if not loop.last }}{% endfor %}.</li>
+</ul>
+{% endcall %}
+
+{% call m.section("permisos", "Qué podés ver y editar") %}
+<p>Ventas ve todas las cuentas, sin datos de finanzas. Editás las tuyas y las que no tienen dueño (al editarlas quedan
+    a tu nombre). Reasignar, fusionar duplicados, cambiar metas y marcar ganada lo hace el admin.</p>
+{% endcall %}
+
+{% call m.section("admin", "Tareas del admin") %}
+{% if user.role == 'admin' %}
+<ul class="list-disc space-y-2 pl-5">
+    <li><strong>Repartir prospectos:</strong> en la página de la oportunidad, cambiá el <em>vendedor</em> y guardá. Le
+        llega un correo. La asignación automática de lo que entra por el formulario está en
+        <a href="/clientes/asignacion" class="text-indigo-600 hover:underline">Asignación de prospectos</a>.</li>
+    <li><strong>Dueño de una cuenta:</strong> en la ficha de la cuenta, <em>Dueño</em> → <em>Reasignar</em>.</li>
+    <li><strong>Metas y periodo:</strong> en el Embudo, <em>Editar metas y periodo</em>.</li>
+    <li><strong>Marcar ganada:</strong> en la oportunidad, crea el proyecto ya ligado a la cuenta o liga uno existente.</li>
+    <li><strong>Renovaciones:</strong> en el Embudo, <em>Contratos por vencer</em> muestra los contratos que terminan en
+        90 días (en rojo, menos de 60). <em>Crear renovación</em> abre la oportunidad para el dueño de la cuenta.</li>
+    <li><strong>Duplicados:</strong> cuando aparece el aviso <em>posibles duplicados por revisar</em>, abrilo y elegí con
+        cuál cuenta quedarte (se mueve todo a esa) o marcalas como distintas.</li>
+</ul>
+{{ m.shot("clientes/asignacion.webp", "Asignación de prospectos", "Asignación de prospectos por motor.") }}
+{% else %}
+<p>El admin reparte los prospectos, reasigna dueños, edita las metas, marca las oportunidades ganadas, crea las
+    renovaciones y fusiona duplicados. Si ves una cuenta repetida, avisale.</p>
+{% endif %}
+{% endcall %}
+
+{% call m.section("datos", "Datos personales") %}
+<p>Si una persona pide que borremos sus datos, avisale al admin: en la cuenta, pestaña Contactos → <em>Editar</em> →
+    <em>Eliminar datos personales</em>. Se borran nombre, correo y teléfono, y el historial de la cuenta se conserva.
+    Solo se contacta por correo o WhatsApp a quien lo pidió o nos dio sus datos para eso.</p>
+{% endcall %}
+
+{% call m.section("preguntas", "Preguntas frecuentes") %}
+<div class="space-y-2">
+{% call m.faq("Una oportunidad no aparece en mis próximos pasos") %}
+<p>Solo aparecen las oportunidades abiertas que son tuyas y tienen fecha de próximo paso. Ponele fecha.</p>
+{% endcall %}
+{% call m.faq("El embudo del piloto marca menos de lo que esperaba") %}
+<p>Solo cuentan las oportunidades <strong>Nuevo</strong> creadas dentro del periodo. Una oportunidad creada antes del
+    inicio, o una renovación, no suma. Mirá <em>Todo el historial</em> para el conteo completo.</p>
+{% endcall %}
+{% call m.faq("No puedo editar una cuenta") %}
+<p>Es de otro vendedor. Podés verla y registrar lo que pase; si tiene que ser tuya, pedile al admin que la reasigne.</p>
+{% endcall %}
+{% call m.faq("Me aparece que ya hay una cuenta parecida") %}
+<p>Revisala: puede ser la misma empresa escrita distinto. Si es otra, seguí igual; si es la misma, trabajá en la que ya existe.</p>
+{% endcall %}
+</div>
+{% endcall %}
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends "base_dashboard.html" %}
+{% import "manual/_macros.html" as m %}
+
+{% block title %}{{ current.title ~ ' | ' if current }}Manual | TOMATO{% endblock %}
+{% block header_title %}Manual{{ ' · ' ~ current.title if current }}{% endblock %}
+
+{% block content %}
+<div class="mx-auto flex max-w-6xl flex-col gap-6 lg:flex-row">
+    <!-- Índice -->
+    <aside class="lg:w-64 lg:shrink-0">
+        <div class="lg:sticky lg:top-0 space-y-3">
+            <a href="/manual" class="block text-sm font-semibold text-gray-600 hover:text-black">← Índice del manual</a>
+            <nav class="hidden rounded-xl border border-gray-200 bg-white p-3 text-sm lg:block">
+                {% for c in chapters %}
+                <a href="/manual/{{ c.slug }}" class="block rounded-md px-3 py-2 font-semibold {{ 'bg-gray-100 text-gray-900' if current and c.slug == current.slug else 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">{{ c.title }}</a>
+                {% if current and c.slug == current.slug %}
+                <div class="mb-1 ml-3 border-l border-gray-200 pl-3">
+                    {% for anchor, title in c.sections %}
+                    <a href="#{{ anchor }}" class="block py-1 text-xs text-gray-500 hover:text-gray-900">{{ title }}</a>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% endfor %}
+            </nav>
+            {% if current %}
+            <select onchange="location.href=this.value" class="w-full rounded-md border border-gray-300 bg-white p-2 text-sm lg:hidden" aria-label="Ir a una sección">
+                <option value="#">En este capítulo…</option>
+                {% for anchor, title in current.sections %}<option value="#{{ anchor }}">{{ title }}</option>{% endfor %}
+            </select>
+            {% endif %}
+        </div>
+    </aside>
+
+    <!-- Contenido -->
+    <article class="min-w-0 flex-1 space-y-5">
+        {% block manual %}{% endblock %}
+
+        {% if current %}
+        <div class="flex flex-wrap justify-between gap-3 pt-2 text-sm font-semibold">
+            {% if previous %}<a href="/manual/{{ previous.slug }}" class="text-gray-600 hover:text-black">← {{ previous.title }}</a>{% else %}<span></span>{% endif %}
+            {% if next %}<a href="/manual/{{ next.slug }}" class="text-gray-600 hover:text-black">{{ next.title }} →</a>{% endif %}
+        </div>
+        {% endif %}
+    </article>
+</div>
+{% endblock %}
