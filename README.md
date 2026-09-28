@@ -100,6 +100,11 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
   "Proyecto institucional"). Nunca publica notas, fotos ni usuarios. Los
   árboles de Dárboles no se manejan aquí: darboles.com es una plataforma
   independiente.
+- **Cifras en el inicio** (`/`): árboles sembrados, % con coordenada GPS y
+  especies, en vivo desde la base (`public_stats`, mismo alcance que el mapa
+  público; las reposiciones no cuentan). Sin árboles cargados, o si la consulta
+  falla, la tarjeta no aparece y el inicio carga igual. La supervivencia no se
+  muestra ahí hasta que haya árboles verificados.
 
 ### 6. Clientes / CRM (`docs/DISENO_CRM.md` y `docs/ANALISIS_ENCAJE_CRM.md`)
 - **Menú "Clientes"** (admin y ventas):

@@ -6,7 +6,26 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-28
 
-### Home: menú del celular con las secciones y acceso secundario
+### Home: hero nuevo con cifras en vivo
+- Titular centrado en lo que nos diferencia: *Reforestación que podés comprobar, árbol
+  por árbol*. El texto de apoyo nombra ingenieros forestales, vivero propio y GPS, y
+  también mantenimiento, jardinería y paisajismo.
+- El segundo botón pasa de *Ver servicios* a **Ver el mapa en vivo**
+  (`/proyectos-reforestacion`).
+- Tarjeta **En vivo desde nuestro sistema**: árboles sembrados, % con coordenada GPS y
+  especies, calculados desde la base con el mismo alcance que el mapa público (solo
+  proyectos institucionales, sin contar reposiciones). Lleva al mapa. Sin árboles, o si
+  la consulta falla, no aparece y el inicio carga igual.
+- **Foto real** a la derecha (persona del equipo sembrando, con la camiseta de TOMATO) en
+  lugar de la ilustración de fondo, en dos tamaños (`static/images/hero/`, 640 y 960 px,
+  sin metadatos). La tarjeta de cifras monta sobre el borde inferior de la foto; en el
+  celular va debajo y la foto se recorta en cuadrado para que se vean las manos.
+- La franja de logos de clientes queda **blanca también en modo oscuro**: los logos son
+  imágenes con fondo blanco y en oscuro se veían como recuadros. El texto de la franja
+  pasa a un gris con contraste suficiente.
+- Despliegue: sin migraciones; reiniciar.
+
+### Home: menú del celular con las secciones y acceso secundario (#80)
 - **Celular y tablet**: el menú ☰ ahora trae Empresa, Servicios, Proceso, Dárboles y
   Contacto (antes solo tenía el acceso), *Cotizar por WhatsApp* y, al final, el acceso al
   sistema. Tocar una sección cierra el menú. El botón *Ingresar* sigue arriba, con menos

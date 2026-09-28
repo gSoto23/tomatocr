@@ -1,6 +1,10 @@
-from fastapi import FastAPI, Request
+import logging
+
+from fastapi import Depends, FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 from starlette.responses import RedirectResponse, PlainTextResponse, Response
 from app.core.config import settings
 from app.db.base import Base
@@ -8,6 +12,7 @@ from app.db.session import engine
 from app.routers import auth, projects, users, calendar, finance, dashboard, payroll, payments, liquidation, quotes, logs
 
 app = FastAPI(title=settings.PROJECT_NAME)
+logger = logging.getLogger(__name__)
 
 # CORS middleware configuration
 # Antes era allow_origins=["*"] con allow_credentials=True — combinación
@@ -41,10 +46,19 @@ async def redirect_www_to_apex(request: Request, call_next):
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 from app.core.templates import templates
+from app.routers import deps
+from app.utils.reforestation import public_stats
 
 @app.api_route("/", methods=["GET", "HEAD"])
-async def read_root(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+def read_root(request: Request, db: Session = Depends(deps.get_db)):
+    # The live figures are a bonus: if the query fails, the home still loads without them.
+    try:
+        stats = public_stats(db)
+    except SQLAlchemyError:
+        logger.exception("Home: public reforestation figures unavailable")
+        db.rollback()
+        stats = None
+    return templates.TemplateResponse("index.html", {"request": request, "stats": stats})
 
 @app.api_route("/proyectos-reforestacion", methods=["GET", "HEAD"])
 async def view_reforestation_report(request: Request):
