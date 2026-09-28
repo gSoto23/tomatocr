@@ -6,7 +6,18 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-28
 
-### Formulario de contacto: más claro y con respuesta en 24 horas
+### Sitio público: imagen para compartir y medición de clics
+- **Imagen al compartir el enlace** (WhatsApp, Facebook, LinkedIn): la foto genérica en
+  blanco y negro pasa a una tarjeta de TOMATO con la foto real de siembra, el logo y
+  "Reforestación que podés comprobar, árbol por árbol" (`og-tomato-2026-09.jpg`, nombre
+  nuevo para que las redes no muestren la anterior). Se suma `og:image:alt`.
+- **Google Analytics**: `static/js/analytics.js` registra los clics en WhatsApp, mapa en
+  vivo, Cotizar, Dárboles y la tienda, con la sección desde donde se hicieron. En el home,
+  Dárboles, el mapa y las páginas con `public_base.html`.
+- Despliegue: sin migraciones; reiniciar. En GA4: marcar `whatsapp_click` como evento
+  clave y registrar `location` como dimensión personalizada.
+
+### Formulario de contacto: más claro y con respuesta en 24 horas (#87)
 - **¿Qué te interesa?** muestra opciones en palabras del cliente ("Reforestación para mi
   empresa (ESG)", "Mantenimiento, jardinería o paisajismo", etc.) en vez de los nombres
   internos del CRM; los valores de motor no cambian, así que la asignación de prospectos
