@@ -58,12 +58,21 @@ def test_help_button_url(path, role, url):
     assert help_url(path, role) == url
 
 
-def test_help_button_is_on_every_internal_page(login_as):
-    for role, path in (("admin", "/dashboard"), ("worker", "/projects"), ("ventas", "/clientes"),
-                       ("ventas", "/cotizador")):
-        html = login_as(role).get(path).text
-        assert "data-help-button" in html, (role, path)
-    assert 'href="/manual/clientes"' in login_as("ventas").get("/clientes").text
+HELP_LINK = re.compile(r'<a href="([^"]*)"[^>]*data-help-button')
+
+
+@pytest.mark.parametrize("role,path,chapter", [
+    ("admin", "/dashboard", "/manual/dashboard"), ("worker", "/projects", "/manual/proyectos"),
+    ("ventas", "/clientes", "/manual/clientes"), ("admin", "/dashboard/activity", "/manual/actividad"),
+    ("supervisor", "/calendar", "/manual/calendario"), ("admin", "/users", "/manual/empleados"),
+    ("ventas", "/cotizador", "/manual/cotizador"),
+])
+def test_help_button_opens_the_chapter(role, path, chapter, login_as):
+    """Every "?" (mobile and desktop header) points to the chapter, and the chapter opens."""
+    client = login_as(role)
+    links = HELP_LINK.findall(client.get(path).text)
+    assert links and all(link == chapter for link in links), (role, path, links)
+    assert client.get(links[0]).status_code == 200
 
 
 def test_chapter_sections_match_the_templates():

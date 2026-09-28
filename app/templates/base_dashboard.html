@@ -62,7 +62,7 @@
                 Cotizar
             </a>
             {% endif %}
-            <a href="{ manual_help_url(request.url.path if request else '', user.role) }" title="Ayuda: abre el manual de esta pantalla" aria-label="Ayuda" data-help-button
+            <a href="{{ manual_help_url(request.url.path if request else '', user.role) }}" title="Ayuda: abre el manual de esta pantalla" aria-label="Ayuda" data-help-button
                 class="flex h-7 w-7 items-center justify-center rounded-full border border-white/40 text-sm font-bold text-white hover:bg-white/20">?</a>
             <button @click="sidebarOpen = true" class="text-white hover:text-gray-300">
                 <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -228,7 +228,7 @@
                 {% block header_title %}Dashboard{% endblock %}
             </h1>
             <div class="flex items-center gap-3">
-            <a href="{ manual_help_url(request.url.path if request else '', user.role) }" title="Ayuda: abre el manual de esta pantalla" aria-label="Ayuda" data-help-button
+            <a href="{{ manual_help_url(request.url.path if request else '', user.role) }}" title="Ayuda: abre el manual de esta pantalla" aria-label="Ayuda" data-help-button
                 class="flex h-9 w-9 items-center justify-center rounded-full border border-gray-300 text-sm font-bold text-gray-700 hover:border-black hover:text-black">?</a>
             {% if user.role in ['admin', 'client', 'ventas'] %}
             <a href="/cotizador" class="flex items-center gap-2 rounded-md bg-black px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 transition-colors">
