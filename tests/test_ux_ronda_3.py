@@ -165,7 +165,8 @@ def week(db, login_as, users):
 def test_events_know_their_range(week):
     client, days = week
     events = client.get("/calendar/events?start=2026-09-01&end=2026-09-30").json()
-    assert {e["extendedProps"]["group_size"] for e in events} == {5}
+    assert len(events) == 5  # one per project and day
+    assert {m["group_size"] for e in events for m in e["extendedProps"]["members"]} == {5}
 
 
 def test_edit_the_whole_range(db, week, users):
