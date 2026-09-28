@@ -6,7 +6,21 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-28
 
-### Home: galería de proyectos
+### Sitio público: verde de marca en las acciones de venta
+- Color `brand` en Tailwind (verde bosque #166534; #15803d en modo oscuro), con texto
+  blanco y contraste AA en los dos temas.
+- En verde: *Cotizar* (barra), *Cotizar por WhatsApp* (hero y menú del celular), *Enviar
+  solicitud* (formulario de contacto, también en Dárboles), el WhatsApp de la página de
+  gracias, *Ver reporte en vivo* (servicios) y *Explorar el mapa de árboles en vivo*
+  (Dárboles). En contacto, el WhatsApp pasa a contorno verde para no competir
+  con *Enviar solicitud*.
+- *Ingresar* y el acceso del equipo siguen en negro o contorno. Las tipografías no cambian.
+- Arreglado: esos dos botones de mapa usaban un verde
+  con texto blanco por debajo del contraste mínimo (3.3:1).
+- Botones de marca con contorno visible al navegar con teclado.
+- Despliegue: sin migraciones; reiniciar.
+
+### Home: galería de proyectos (#83)
 - Sección **Proyectos** entre Servicios y Proceso, con fotos reales: paisajismo y
   mantenimiento en el Museo de Arte Costarricense, reforestación urbana con la
   Municipalidad de Alajuela, el vivero propio y mantenimiento residencial. Cada foto

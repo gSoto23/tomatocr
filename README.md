@@ -265,6 +265,13 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
    El archivo compilado queda versionado en git, así que el servidor de
    producción no necesita Node.js instalado — solo recibe el CSS ya generado
    con el `git pull`.
+   **Verde de marca** (`tailwind.config.js`, `brand`): `bg-brand` (#166534,
+   hover `brand-hover`) y en modo oscuro `brand-light` (#15803d), siempre con
+   texto blanco (contraste AA). Solo en las acciones de venta: *Cotizar*,
+   WhatsApp, *Enviar solicitud*, *Ver reporte en vivo*. Donde ya hay un botón
+   verde (el formulario de contacto), el WhatsApp va en contorno verde. El
+   acceso del equipo (*Ingresar*) queda en negro o contorno. Las tipografías no
+   cambian.
 
 ---
 
