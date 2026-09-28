@@ -143,6 +143,29 @@
    ]
   },
   {
+   "name": "dashboard/supervisor",
+   "path": "/dashboard",
+   "as": "supervisor",
+   "height": 1100,
+   "markers": [
+    {
+     "n": 1,
+     "text": "Requiere atención",
+     "tags": "h2"
+    },
+    {
+     "n": 2,
+     "text": "Hoy en campo",
+     "tags": "h2"
+    },
+    {
+     "n": 3,
+     "text": "Gestionar Calendario",
+     "tags": "a"
+    }
+   ]
+  },
+  {
    "name": "dashboard/ventas",
    "path": "/dashboard",
    "as": "ventas",
@@ -168,21 +191,27 @@
     {
      "n": 4,
      "text": "Abrir Cotizador"
+    },
+    {
+     "n": 5,
+     "text": "Mi embudo",
+     "tags": "h3"
     }
-   ]
+   ],
+   "height": 1150
   },
   {
    "name": "dashboard/trabajador",
    "path": "/dashboard",
    "as": "worker",
    "viewport": "mobile",
-   "height": 1000,
+   "height": 1900,
    "markers": [
     {
      "n": 1,
-     "text": "Mis asignaciones: hoy y próximos días",
+     "text": "sin bitácora",
      "exact": false,
-     "tags": "h2,h3"
+     "tags": "p"
     },
     {
      "n": 2,
@@ -194,6 +223,11 @@
      "n": 3,
      "text": "Gestionar tareas",
      "tags": "button,a"
+    },
+    {
+     "n": 4,
+     "text": "Registrar bitácora de hoy",
+     "tags": "a"
     }
    ]
   },
@@ -205,20 +239,30 @@
    "markers": [
     {
      "n": 1,
-     "selector": "select[name=\"project_id\"]"
+     "text": "Última visita",
+     "tags": "dt"
     },
     {
      "n": 2,
-     "text": "Fecha",
-     "exact": false,
-     "tags": "th,a"
+     "text": "Próxima visita",
+     "tags": "dt"
     },
     {
      "n": 3,
+     "text": "Reportes del mes",
+     "tags": "dt"
+    },
+    {
+     "n": 4,
+     "selector": "select[name=\"project_id\"]"
+    },
+    {
+     "n": 5,
      "text": "Ver Detalle",
      "tags": "button,a"
     }
-   ]
+   ],
+   "height": 1300
   },
   {
    "name": "proyectos/lista",

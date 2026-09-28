@@ -41,3 +41,55 @@ def test_dashboard_shows_the_sections(login_as):
     for text in ("Requiere atención", "Hoy en campo", "Dinero", "Por cobrar", "Por facturar", "Facturas por cobrar"):
         assert text in html, text
 
+
+
+# --- The other roles ------------------------------------------------------------------------
+
+def schedule(db, users, who, days_ago, confirmed=False):
+    s = ProjectSchedule(project_id=users["project_id"], user_id=users[who].id,
+                        date=today_cr() - timedelta(days=days_ago), is_confirmed=confirmed)
+    db.add(s)
+    db.commit()
+    return s
+
+
+def test_supervisor_sees_the_team_but_not_own_hours(db, login_as, users):
+    schedule(db, users, "worker", 0)
+    schedule(db, users, "supervisor", 2)  # own: never asked to confirm it
+    html = login_as("supervisor").get("/dashboard").text
+    assert "Hoy en campo" in html and "Gestionar Calendario" in html
+    assert "jornada con horas sin confirmar" not in html
+    schedule(db, users, "worker", 3)
+    assert "1 jornada con horas sin confirmar" in login_as("supervisor").get("/dashboard").text
+
+
+def test_worker_is_reminded_of_days_without_report(db, login_as, users):
+    schedule(db, users, "worker", 0)
+    past = schedule(db, users, "worker", 2)
+    html = login_as("worker").get("/dashboard").text
+    assert "Te quedó 1 día sin bitácora" in html
+    assert f"/logs/new?project_id={users['project_id']}&date={past.date.isoformat()}" in html
+    assert "Registrar bitácora de hoy" in html
+
+
+def test_report_form_takes_the_day_from_the_link(login_as, users):
+    client = login_as("worker")
+    day = (today_cr() - timedelta(days=2)).isoformat()
+    assert f"reportDate: '{day}'" in client.get(f"/logs/new?project_id={users['project_id']}&date={day}").text
+    too_old = (today_cr() - timedelta(days=30)).isoformat()
+    assert f"reportDate: '{today_cr().isoformat()}'" in client.get(f"/logs/new?date={too_old}").text
+
+
+def test_client_sees_each_project_with_next_visit_date_only(db, login_as, users):
+    schedule(db, users, "worker", -3)  # in 3 days
+    db.add(DailyLog(project_id=users["project_id"], user_id=users["worker"].id, date=today_cr(), notes="ok"))
+    db.commit()
+    html = login_as("client").get("/dashboard").text
+    assert "Mis proyectos" in html and "Próxima visita" in html
+    assert (today_cr() + timedelta(days=3)).strftime("%d/%m/%Y") in html
+    cards = html.split("Mis proyectos", 1)[1].split("Bitácora Global", 1)[0]
+    assert "u_worker" not in cards  # no staff names
+
+
+def test_sales_sees_own_funnel(login_as):
+    assert "Mi embudo" in login_as("ventas").get("/dashboard").text

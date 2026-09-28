@@ -13,7 +13,7 @@ from app.db.models.finance import Invoice, InvoiceStatus
 from app.db.models.log import DailyLog
 from app.db.models.schedule import ProjectSchedule
 from app.db.models.associations import project_users
-from app.utils.admin_overview import admin_overview
+from app.utils.admin_overview import admin_overview, client_projects, supervisor_overview, worker_missing
 from app.routers.finance import check_update_overdue_invoices, get_project_budget_status
 
 router = APIRouter(
@@ -95,8 +95,8 @@ def dashboard(
 
     elif user.role == CLIENT:
         # 1. Get Client Projects for Dropdown & Filter
-        client_projects = db.query(Project).join(project_users).filter(project_users.c.user_id == user.id).all()
-        project_ids = [p.id for p in client_projects]
+        client_projects_list = db.query(Project).join(project_users).filter(project_users.c.user_id == user.id).all()
+        project_ids = [p.id for p in client_projects_list]
         
         # 2. Logs Query
         # If project_id param is provided, verify it belongs to client
@@ -139,7 +139,9 @@ def dashboard(
         logs = query.offset(offset).limit(limit).all()
         
         data["logs"] = logs
-        data["projects"] = client_projects
+        data["today"] = today_cr()
+        data["project_cards"] = client_projects(db, data["today"], client_projects_list)
+        data["projects"] = client_projects_list
         data["selected_project_id"] = selected_project_id
         data["page"] = page
         data["total_pages"] = total_pages
@@ -160,9 +162,19 @@ def dashboard(
             ProjectSchedule.user_id == user.id, ProjectSchedule.date < today
         ).order_by(ProjectSchedule.date.desc()).limit(5).all()
         data["today"] = today
+        if user.role == SUPERVISOR:
+            # The team alert already covers the supervisor's own days without report.
+            data["overview"] = supervisor_overview(db, today, user)
+            data["missing"] = []
+        else:
+            data["missing"] = worker_missing(db, today, user)
 
     elif user.role == VENTAS:
-        data["next_steps"] = crm.next_steps(db, owner_id=user.id)
+        today = today_cr()
+        data["next_steps"] = crm.next_steps(db, owner_id=user.id, today=today)
+        data["crm_period"] = crm.funnel_period(db)
+        data["crm_running"] = data["crm_period"].start <= today <= data["crm_period"].end
+        data["crm_funnel"] = crm.funnel(db, owner_id=user.id, period=data["crm_period"])
 
     return templates.TemplateResponse("dashboard.html", {
         "request": request, 

@@ -80,3 +80,11 @@ def long_date_weekday(day) -> str:
 
 
 templates.env.globals["long_date"] = long_date_weekday
+
+
+def _today_cr():
+    from app.utils.timecr import today_cr
+    return today_cr()
+
+
+templates.env.globals["today_cr"] = _today_cr

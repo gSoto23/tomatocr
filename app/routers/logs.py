@@ -284,7 +284,8 @@ def update_log(
     return response
 
 @router.get("/new")
-def new_log_form(request: Request, project_id: Optional[int] = None, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
+def new_log_form(request: Request, project_id: Optional[int] = None,
+                 db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
     # RBAC: Clients cannot report
     if user.role == CLIENT:
         return RedirectResponse(url="/projects", status_code=status.HTTP_303_SEE_OTHER)
@@ -315,6 +316,13 @@ def new_log_form(request: Request, project_id: Optional[int] = None, db: Session
         ]
 
     today = today_cr()
+    earliest = today - timedelta(days=MAX_DAYS_BACK)
+    # A day left without report (from the Dashboard) comes preselected, if it is within the window.
+    try:
+        chosen = datetime.strptime(request.query_params.get("date") or "", "%Y-%m-%d").date()
+    except ValueError:
+        chosen = today
+    chosen = chosen if earliest <= chosen <= today else today
     project_tasks_json = json.dumps(project_tasks_map)
     project_locations_json = json.dumps(project_locations_map)
     
@@ -323,7 +331,8 @@ def new_log_form(request: Request, project_id: Optional[int] = None, db: Session
         "user": user, 
         "projects": projects,
         "today": today,
-        "earliest": today - timedelta(days=MAX_DAYS_BACK),
+        "earliest": earliest,
+        "chosen_date": chosen,
         "photo_rules": PHOTO_RULES,
         "project_tasks_json": project_tasks_json,
         "project_locations_json": project_locations_json,

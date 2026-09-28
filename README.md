@@ -23,11 +23,15 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
   queda archivada: no aparece en formularios, pero los reportes viejos la
   siguen mostrando. Una línea del presupuesto con facturas no se puede quitar.
 
-### Dashboard del admin (`/dashboard`)
+### Dashboard (`/dashboard`)
 - Primero **Requiere atención** (facturas vencidas, días sin bitácora, horas sin
   confirmar, planillas en borrador, pasos atrasados en Clientes, personas sin correo),
   luego **Hoy en campo** y **Dinero** (por cobrar, vencido, facturado del mes, por
   facturar). Lo calcula `app/utils/admin_overview.py`.
+- Los otros roles: el supervisor ve lo pendiente del equipo y *Hoy en campo*; el
+  trabajador, sus días sin bitácora con el botón para registrarlos; el cliente, una
+  tarjeta por proyecto (última y próxima visita, reportes del mes); ventas, sus pasos
+  atrasados y su embudo.
 
 ### 2. Módulo Financiero
 - **Facturación**: Control al momento de ingresos adjudicados vs facturados, y saldo pendiente real

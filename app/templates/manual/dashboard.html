@@ -29,30 +29,43 @@
     (2, "<strong>Para hoy</strong>."),
     (3, "<strong>Próximos 7 días</strong>, para planear la semana."),
     (4, "Cada línea abre la oportunidad. <strong>Abrir Cotizador</strong> te lleva directo a cotizar."),
+    (5, "<strong>Mi embudo</strong>: cuántas de tus cuentas llegaron a cada etapa en el periodo del piloto. Si tenés pasos atrasados, arriba aparece un aviso en rojo."),
 ]) }}
 <p>Solo aparecen tus oportunidades abiertas que tienen fecha de próximo paso. Si una no aparece, revisá que tenga fecha.</p>
 {% endif %}
 
+{% if user.role in ['admin', 'supervisor'] %}
+<h3 class="mt-4 font-semibold text-gray-900">Supervisor</h3>
+{{ m.shot("dashboard/supervisor.webp", "Dashboard del supervisor", "Dashboard del supervisor.") }}
+{{ m.steps([
+    (1, "<strong>Requiere atención</strong>: las jornadas del equipo con horas sin confirmar (las tuyas las confirma el admin) y los días trabajados sin bitácora de los últimos 7 días."),
+    (2, "<strong>Hoy en campo</strong>: cada proyecto con gente hoy, quiénes van y si ya tiene bitácora."),
+    (3, "<strong>Gestionar Calendario</strong>: para organizar el equipo de cada proyecto y confirmar sus horas. Debajo están tus propias asignaciones, igual que las de un trabajador."),
+]) }}
+{% endif %}
+
 {% if user.role in ['admin', 'supervisor', 'worker'] %}
-<h3 class="mt-4 font-semibold text-gray-900">Supervisor y trabajador</h3>
+<h3 class="mt-4 font-semibold text-gray-900">Trabajador</h3>
 {{ m.shot("dashboard/trabajador.webp", "Dashboard de un trabajador en el celular", "Tus asignaciones, en el celular.", mobile=True) }}
 {{ m.steps([
-    (1, "<strong>Mis asignaciones: hoy y próximos días</strong>: lo que te asignaron en el Calendario, empezando por hoy, con sus tareas."),
-    (2, "El día de <strong>hoy</strong> aparece primero y resaltado en verde."),
+    (1, "Si te quedó un día asignado <strong>sin bitácora</strong> en los últimos 7, aparece arriba con su botón <em>Registrar bitácora</em>: abre el formulario con ese proyecto y ese día ya puestos."),
+    (2, "<strong>Mis asignaciones: hoy y próximos días</strong>: lo que te asignaron en el Calendario, empezando por hoy (resaltado en verde), con sus tareas."),
     (3, "<strong>Gestionar tareas</strong> abre la asignación: marcá cada tarea al terminarla (se guarda sola y se tacha en la lista) o tocá <em>Ir al Proyecto</em>."),
+    (4, "<strong>Registrar bitácora de hoy</strong>, en la tarjeta de hoy, abre el formulario del reporte con el proyecto ya elegido."),
 ]) }}
 <p>Más abajo, en <strong>Anteriores</strong>, están tus últimas 5 asignaciones pasadas. En la computadora se ven como
     tabla.</p>
-<p>El supervisor además ve <strong>Gestionar Calendario</strong>, para organizar el equipo de cada proyecto y confirmar sus horas.</p>
 {% endif %}
 
 {% if user.role in ['admin', 'client'] %}
 <h3 class="mt-4 font-semibold text-gray-900">Cliente</h3>
-{{ m.shot("dashboard/cliente.webp", "Dashboard de un cliente", "La bitácora de los proyectos del cliente.") }}
+{{ m.shot("dashboard/cliente.webp", "Dashboard de un cliente", "Los proyectos y la bitácora del cliente.") }}
 {{ m.steps([
-    (1, "Elegí un proyecto para ver solo su bitácora, o dejá <em>Todos mis Proyectos</em>."),
-    (2, "Tocá <strong>Fecha</strong> para ordenar de la más nueva a la más vieja o al revés."),
-    (3, "<strong>Ver Detalle</strong> abre el registro del día con sus fotos."),
+    (1, "<strong>Última visita</strong>: el último día con reporte del equipo en ese proyecto."),
+    (2, "<strong>Próxima visita</strong>: el próximo día que el equipo tiene programado (dice <em>Hoy</em> si es hoy)."),
+    (3, "<strong>Reportes del mes</strong>. Debajo, <em>Ver bitácora</em> y <em>Presupuesto</em> de ese proyecto."),
+    (4, "En la <strong>Bitácora Global</strong>, elegí un proyecto para ver solo su bitácora, o dejá <em>Todos mis Proyectos</em>. Tocá <em>Fecha</em> para ordenar."),
+    (5, "<strong>Ver Detalle</strong> abre el registro del día con sus fotos."),
 ]) }}
 {% endif %}
 {% endcall %}
