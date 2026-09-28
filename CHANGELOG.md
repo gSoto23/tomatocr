@@ -4,9 +4,33 @@ Cambios en el sistema y en el sitio público, del más reciente al más antiguo.
 Cada entrada indica el PR y si necesitó migración o pasos especiales al
 desplegar. Hora de Costa Rica salvo que diga UTC.
 
+## 2026-09-28
+
+### Liquidación según el Código de Trabajo y arreglos de prioridad A (esta rama)
+- **Liquidación** (`app/utils/liquidacion.py`): motivo de la salida, días de
+  vacaciones ya disfrutados y preaviso dado. Aguinaldo desde el 1 de diciembre
+  con las planillas finales (los meses sin planilla, al salario promedio); vacaciones acumuladas menos disfrutadas; preaviso
+  (art. 28) y cesantía (art. 29) en despido con responsabilidad patronal; salario
+  pendiente con las horas confirmadas desde el último pago; rebajo de CCSS del
+  trabajador sobre salario y vacaciones. Cada monto se puede corregir; la carta y
+  el registro usan lo que diga la pantalla, y el total se recalcula en el
+  servidor. Migración `0009`.
+- **Carta de liquidación**: cédula 3-102-876296, TOMATO COSTA RICA ANY S.R.L.,
+  domicilio, teléfono 7080-8613, "Alajuela" y la fecha en español. El reporte de
+  planilla también muestra el nombre y la cédula correctos.
+- **Presupuestos**: "+ Agregar Costo" ya no sobrescribe un gasto que se había
+  abierto para editar; un segundo pago parcial se suma al anterior (montos,
+  retención, comprobantes y notas) y la ventana propone el saldo pendiente.
+- **Planilla**: la casilla "Apl. Ded?" funciona; una planilla final ya no se puede
+  cambiar; no se pueden generar planillas con días en común ni con la fecha final
+  antes de la inicial.
+- **Calendario**: editar una asignación conserva las tareas ya marcadas por el
+  trabajador; los textos de las tareas se cargan de forma segura.
+- Despliegue: `alembic upgrade head` (0008 → 0009) y reiniciar.
+
 ## 2026-09-27
 
-### Arreglo: botón "?" del manual (esta rama)
+### Arreglo: botón "?" del manual (#65)
 - El botón "?" de las pantallas internas llevaba a una dirección rota (la
   plantilla perdió las llaves de Jinja al armar el botón). Ahora abre el
   capítulo de la pantalla. El "?" del Cotizador ya funcionaba.

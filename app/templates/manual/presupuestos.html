@@ -65,10 +65,8 @@
     (2, "<strong>Monto Depositado</strong>: viene con el monto de la factura. Si una institución retuvo una parte, marcá <em>Aplicar Retención Institucional Automática</em> y escribí lo que realmente se depositó: la diferencia queda como retención."),
     (3, "<strong>Estado del Pago</strong>: <em>Pagado</em> o <em>Pago Parcial</em> (con una nota obligatoria). Tocá <strong>Confirmar Pago</strong>."),
 ]) }}
-{% call m.warn("Pagos parciales") %}
-<p>Cada factura guarda <strong>un solo pago</strong>. Si reportás otro pago de una factura en Pago Parcial, el nuevo
-    <strong>reemplaza</strong> al anterior: escribí el <strong>monto acumulado</strong> (lo de antes más lo de ahora) y el último depósito.</p>
-{% endcall %}
+<p><strong>Pagos parciales</strong>: si la factura ya tiene un abono, la ventana muestra lo ya pagado y propone el
+    <em>saldo pendiente</em>. El nuevo pago se <strong>suma</strong> al anterior, y el comprobante y la nota se agregan a los anteriores.</p>
 {% else %}
 <p>Cuando TOMATO registra tu pago, la factura pasa a <strong>Pagada</strong> y muestra la fecha del pago.</p>
 {% endif %}
@@ -82,10 +80,6 @@
     (None, "Fecha, <strong>Monto Invertido</strong> y <strong>Descripción</strong>, y <strong>Guardar Costo</strong>."),
     (None, "<em>Editar</em> lo corrige; <em>Eliminar Gasto</em> lo borra sin pedir confirmación."),
 ]) }}
-{% call m.warn("Antes de agregar un gasto") %}
-<p>Si abriste <em>Editar</em> en un gasto y cancelaste, <strong>recargá la página</strong> antes de tocar
-    <em>+ Agregar Costo</em>: si no, la ventana sigue editando el gasto anterior y lo sobrescribe.</p>
-{% endcall %}
 {% else %}
 <p>Los gastos del proyecto los registra TOMATO y se suman a los costos.</p>
 {% endif %}

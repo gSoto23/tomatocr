@@ -166,23 +166,31 @@ def update_schedule(
     schedule.user_id = user_id
     schedule.date = datetime.strptime(date_val, "%Y-%m-%d").date()
     
-    # Update tasks (Replace all)
-    db.query(ScheduleTask).filter(ScheduleTask.schedule_id == id).delete()
-    
+    # Update tasks in place: an edited or unchanged task keeps whether the worker ticked it.
     import json
     try:
         tasks_data = json.loads(tasks_json)
-        for task in tasks_data:
-            title = task.get("title", "")
-            desc = task.get("description", "")
-            if title.strip() or desc.strip():
-                db.add(ScheduleTask(
-                    schedule_id=schedule.id, 
-                    title=title.strip(),
-                    description=desc.strip()
-                ))
     except json.JSONDecodeError:
-        pass
+        tasks_data = []
+    existing = {t.id: t for t in db.query(ScheduleTask).filter(ScheduleTask.schedule_id == id)}
+    kept = set()
+    for task in tasks_data if isinstance(tasks_data, list) else []:
+        title = str(task.get("title") or "").strip()[:100]
+        desc = str(task.get("description") or "").strip()[:255]
+        if not (title or desc):
+            continue
+        row = existing.get(task.get("id")) if isinstance(task.get("id"), int) else None
+        if row is None:  # callers without ids: same title and description
+            row = next((t for t in existing.values() if t.id not in kept
+                        and (t.title or "") == title and (t.description or "") == desc), None)
+        if row is None:
+            db.add(ScheduleTask(schedule_id=schedule.id, title=title, description=desc))
+        else:
+            row.title, row.description = title, desc
+            kept.add(row.id)
+    for task_id, row in existing.items():
+        if task_id not in kept:
+            db.delete(row)
 
     db.commit()
     return JSONResponse({"status": "success", "message": "Asignación actualizada correctamente"})
