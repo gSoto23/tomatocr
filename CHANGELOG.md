@@ -6,7 +6,18 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-28
 
-### Arreglo: el hero entra completo en la pantalla de una laptop
+### Home: galería de proyectos
+- Sección **Proyectos** entre Servicios y Proceso, con fotos reales: paisajismo y
+  mantenimiento en el Museo de Arte Costarricense, reforestación urbana con la
+  Municipalidad de Alajuela, el vivero propio y mantenimiento residencial. Cada foto
+  lleva qué se hizo y dónde; arriba, enlace al mapa en vivo.
+- Computadora: mosaico de 3 columnas. Celular: fila que se desliza con el dedo.
+- Fotos en `static/images/proyectos/` (sin metadatos, carga diferida).
+- *Proyectos* se suma al menú de arriba y al del celular.
+- Arreglado: al tocar una sección del menú, el encabezado fijo ya no tapa su título.
+- Despliegue: sin migraciones; reiniciar.
+
+### Arreglo: el hero entra completo en la pantalla de una laptop (#82)
 - En la computadora, el alto de la foto se ajusta a la ventana (entre 16 y 30 rem) y la
   tarjeta de cifras pasa a una sola fila compacta (árboles, % con GPS, especies y *Ver
   mapa*). El titular baja un tamaño hasta los 1280 px de ancho. Probado en 1000×530,

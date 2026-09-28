@@ -16,7 +16,9 @@ def test_public_page_head(path):
 
 
 @pytest.mark.parametrize("path", ["/robots.txt", "/sitemap.xml", "/api/reforestation/map-data",
-                                  "/static/images/hero/siembra-640.jpg", "/static/images/hero/siembra-960.jpg"])
+                                  "/static/images/hero/siembra-640.jpg", "/static/images/hero/siembra-960.jpg",
+                                  *[f"/static/images/proyectos/{name}.jpg" for name in
+                                    ("museo-jardin", "alajuela-parque", "vivero", "mantenimiento-residencial")]])
 def test_public_resources(path):
     assert new_client().get(path).status_code == 200
 
@@ -75,3 +77,10 @@ def test_home_loads_when_figures_fail(monkeypatch):
     response = new_client().get("/")
     assert response.status_code == 200
     assert "En vivo desde nuestro sistema" not in response.text
+
+
+def test_home_has_projects_gallery_in_the_menu():
+    html = new_client().get("/").text
+    assert 'id="projects"' in html
+    assert html.count('href="#projects"') == 2  # desktop bar and phone menu
+    assert html.count('src="/static/images/proyectos/') == 4
