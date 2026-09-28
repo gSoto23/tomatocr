@@ -307,3 +307,25 @@ def test_public_texts_use_vos():
         for formal in ("usted", "Escríbanos", "Déjenos", "Elija ", "Le contactaremos", "¿Qué le interesa", "Prefiere",
                        "Contáctenos", "Solicite", "Escriba ", "Indique", "Revise ", "Intente "):
             assert formal not in html, (path, formal)
+
+
+# --- What visitors see in the form -------------------------------------------------------
+
+def test_form_options_speak_the_clients_language_and_keep_the_motors():
+    from app.db.models.crm import MOTORS
+    from app.routers.leads import PUBLIC_MOTOR_LABELS
+    assert set(PUBLIC_MOTOR_LABELS) == set(MOTORS)  # every CRM motor, nothing more
+    client = new_client()
+    home = client.get("/").text
+    assert "Mantenimiento, jardinería o paisajismo" in home and "Reforestación para mi empresa (ESG)" in home
+    form = home[home.index("data-contact-form"):home.index("</form>", home.index("data-contact-form"))]
+    assert '<option value="">Elegí una opción</option>' in form and "selected" not in form
+    assert 'data-motor="mantenimiento"' in home  # "Cotizar este servicio" preselects it
+    darboles = client.get("/programas/darboles").text
+    assert '<option value="esg" selected>' in darboles
+
+
+def test_success_promises_the_24_hour_answer(db, sellers):
+    answer = post_form(FORM).json()
+    assert answer["ok"] and "24 horas" in answer["message"]
+    assert "24 horas" in new_client().get("/contacto/gracias").text
