@@ -6,7 +6,7 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-28
 
-### Dashboards de supervisor, trabajador, cliente y ventas (esta rama)
+### Dashboards de supervisor, trabajador, cliente y ventas (#78)
 - **Supervisor**: arriba *Requiere atención* del equipo (jornadas con horas sin confirmar,
   sin contar las suyas, y días trabajados sin bitácora) y *Hoy en campo*; debajo sus
   asignaciones.
