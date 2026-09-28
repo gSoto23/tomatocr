@@ -32,7 +32,7 @@
 ]) }}
 {% call m.tip("Si la persona ya tiene algo ese día") %}
 <p>El sistema te avisa qué días ya tiene otra asignación y te pregunta si querés asignarla igual. Un rango crea
-    asignaciones separadas: después se editan o borran una por una.</p>
+    asignaciones separadas, pero se pueden cambiar o borrar todas juntas (ver abajo).</p>
 {% endcall %}
 {% else %}
 <p>Las asignaciones las hace el supervisor o el admin. Si falta la tuya o está en otro día, avisales.</p>
@@ -70,7 +70,13 @@
 {% call m.section("preguntas", "Preguntas frecuentes") %}
 <div class="space-y-2">
 {% call m.faq("¿Se puede arrastrar una asignación a otro día?") %}
-<p>No. Abrila, cambiá la <em>Fecha Inicio</em> y guardá.</p>
+<p>Sí: arrastrala en la vista de mes y soltala en el día nuevo. Si la persona ya tiene algo ese día, te pregunta. Una
+    asignación con las horas ya confirmadas no se mueve.</p>
+{% endcall %}
+{% call m.faq("Asigné un rango y quiero cambiar o borrar todos los días") %}
+<p>Abrí cualquiera de esos días. Arriba aparece <em>Esta asignación es parte de un rango</em>: elegí <strong>Cambiar todos los
+    días del rango</strong> para cambiar la sede, las horas y las tareas de todos, o tocá <em>Eliminar</em> →
+    <strong>Eliminar todo el rango</strong>. Las tareas que el trabajador ya marcó se conservan.</p>
 {% endcall %}
 {% call m.faq("¿Dónde elijo la sede?") %}
 <p>En la ventana de la asignación, debajo del proyecto. El trabajador la ve al abrir su asignación.</p>

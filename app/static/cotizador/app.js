@@ -82,8 +82,8 @@ function todayCR() {
 }
 
 async function saveToSQL() {
-  if (PICKS_ACCOUNT && !state.accountId) return showToast("Elija la cuenta del cliente (o créela) antes de guardar.", "error");
-  if (!state.client.name.trim()) return showToast("Ingrese el nombre del cliente antes de guardar.", "error");
+  if (PICKS_ACCOUNT && !state.accountId) return showToast("Elegí la cuenta del cliente (o creala) antes de guardar.", "error");
+  if (!state.client.name.trim()) return showToast("Escribí el nombre del cliente antes de guardar.", "error");
 
   const { subtotal, tax, total } = calc();
   const record = {
@@ -141,7 +141,7 @@ async function renderRecent() {
       <td class="font-bold">${r.numero_cotizacion}</td>
       <td>${escapeHtml(r.cliente_nombre)}</td>
       ${PICKS_ACCOUNT ? `<td>${escapeHtml(r.account_name || "—")}</td>` : ""}
-      <td class="muted">${r.fecha_emision}</td>
+      <td class="muted">${formatDateCR(r.fecha_emision)}</td>
       <td class="text-right font-bold">${formatMoney(r.total || 0, r.moneda)}</td>
       <td class="text-right">
         <div class="flex justify-end gap-1 whitespace-nowrap">
@@ -167,13 +167,14 @@ function quoteFromData(data) {
       notes: data.notes || "",
       terms: data.terminos || "",
       items: data.items,
-      taxEnabled: data.iva > 0,
+      // IVA 0 only means "no IVA" when there was something to tax at a positive rate.
+      taxEnabled: data.iva > 0 || !((data.subtotal || 0) - (data.discount || 0) > 0 && Number(data.tax_rate ?? 13) > 0),
       taxRate: data.tax_rate ?? 13,
       discount: data.discount || 0,
       accountId: data.account_id || null,
       accountName: data.account_name || "",
       opportunityId: data.opportunity_id || null,
-      opportunityTitle: ""
+      opportunityTitle: data.opportunity_title || ""
   };
 }
 
@@ -191,7 +192,7 @@ window.loadFromSQL = async (id) => {
 window.pdfFromHistory = async (id) => {
   // The window opens right away (inside the click), or the browser blocks it.
   const win = window.open("", "_blank");
-  if (!win) return showToast("El navegador bloqueó la ventana del PDF. Permita ventanas emergentes para este sitio.", "error");
+  if (!win) return showToast("El navegador bloqueó la ventana del PDF. Permití ventanas emergentes para este sitio.", "error");
   win.document.write("<p style='font-family:sans-serif'>Preparando el PDF…</p>");
   const response = await fetch(API_URL + id);
   if (!response.ok) { win.close(); return showToast("No se pudo abrir esa cotización.", "error"); }
@@ -639,9 +640,9 @@ window.showToast = function(message, type = "success") {
 
 function exportPDF() {
   const { errors } = checkQuote();
-  if (errors.length) return showToast("Complete antes de exportar: " + errors.slice(0, 3).join(", ") + (errors.length > 3 ? "…" : ""), "error");
+  if (errors.length) return showToast("Completá antes de exportar: " + errors.slice(0, 3).join(", ") + (errors.length > 3 ? "…" : ""), "error");
   const win = window.open("", "_blank");
-  if (!win) return showToast("El navegador bloqueó la ventana del PDF. Permita ventanas emergentes para este sitio.", "error");
+  if (!win) return showToast("El navegador bloqueó la ventana del PDF. Permití ventanas emergentes para este sitio.", "error");
   printQuote(win, state);
 }
 

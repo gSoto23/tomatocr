@@ -48,7 +48,7 @@
 {% if user.role == 'admin' %}
 {{ m.shot("planilla/periodos.webp", "Lista de planillas", "Planilla: periodos y accesos.") }}
 {{ m.steps([
-    (1, "<strong>Generar Planilla</strong>: elegí <em>Fecha Inicio</em> y <em>Fecha Fin</em> y tocá <em>Generar</em>. Queda como borrador (<em>draft</em>)."),
+    (1, "<strong>Generar Planilla</strong>: elegí <em>Fecha Inicio</em> y <em>Fecha Fin</em> y tocá <em>Generar</em>. Queda como <em>Borrador</em>."),
     (2, "Tocá el periodo para abrirlo y revisar."),
     (3, "<strong>Historial de Pagos</strong> y <strong>Liquidaciones</strong>."),
 ]) }}
@@ -70,7 +70,8 @@
 <p>El admin genera la planilla de cada periodo. En <strong>Planilla</strong> ves los periodos donde tenés horas; al abrir uno
     ves tu fila: horas, extras, rebajas, <strong>Total a Pagar</strong> y <em>Ver desglose</em> día por día.
     <em>Imprimir Reporte</em> te da tu comprobante. Arriba ves tu <strong>Fecha de Inicio</strong> y tus
-    <strong>Vacaciones Disponibles</strong> (1 día por mes trabajado; no descuenta las ya tomadas).</p>
+    <strong>Vacaciones Disponibles</strong>: 1 día por mes trabajado menos los días que ya tomaste (los anota el admin en
+    tu perfil). Debajo dice cuántos acumulaste y cuántos tomaste.</p>
 {{ m.shot("planilla/trabajador.webp", "Planilla vista por un trabajador", "Planilla, vista de un trabajador.", mobile=True) }}
 {% endif %}
 {% endcall %}
@@ -115,7 +116,9 @@
 <p>Es un cálculo de referencia: revisalo con el contador. La carta y el registro usan los montos que diga la pantalla,
     incluidas tus correcciones. Hace falta la <strong>Fecha de Inicio</strong> en el perfil de la persona.</p>
 {% endcall %}
-<p><strong>Reactivar Contrato</strong> vuelve a activar a una persona liquidada, con fecha de inicio hoy.</p>
+<p><strong>Reactivar Contrato</strong> vuelve a activar a una persona liquidada: elegí la fecha del nuevo contrato (hoy si
+    no cambiás nada). Sus vacaciones tomadas vuelven a 0.</p>
+<p>La liquidación propone los <strong>días de vacaciones ya disfrutados</strong> que dice el perfil de la persona.</p>
 {% else %}
 <p>Las liquidaciones las calcula y registra el admin.</p>
 {% endif %}
@@ -136,7 +139,8 @@
 {% endif %}
 {% if user.role == 'admin' %}
 {% call m.faq("Finalicé una planilla y necesito cambiarla") %}
-<p>Se puede eliminar y volver a generar. Hacelo solo si todavía no se pagó.</p>
+<p>Se puede eliminar y volver a generar solo si <strong>ningún pago está ligado a ella</strong>: tocá <em>Eliminar</em> y
+    escribí ELIMINAR. Si ya se pagó, corregí la diferencia en la planilla siguiente.</p>
 {% endcall %}
 {% call m.faq("Le cambié la tarifa a alguien: ¿se corrige la planilla?") %}
 <p>No: cada planilla se queda con la tarifa con la que se generó. Si la tarifa estaba mal en una planilla en borrador,

@@ -14,14 +14,14 @@
 {% call m.section("panel", "El panel de reforestación") %}
 {{ m.shot("reforestacion/panel.webp", "Panel de reforestación", "Reforestación, con datos de ejemplo.") }}
 {{ m.steps([
-    (1, "<strong>Supervivencia por proyecto</strong>: plantados, verificados, vivos, muertos, reemplazados, supervivencia a 6 y 12 meses y último monitoreo."),
+    (1, "<strong>Supervivencia por proyecto</strong>: plantados, verificados, vivos, muertos, reemplazados, supervivencia a 3, 6 y 12 meses y último monitoreo."),
     (2, "<strong>Importar CSV</strong> para cargar un inventario nuevo."),
     (3, "Por proyecto: <strong>Importar CSV actualizado</strong>, <strong>Descargar CSV</strong> y <strong>Monitoreo en campo</strong>."),
     (4, "La configuración del proyecto: a qué proyecto de operaciones está ligado y qué nombre muestra el mapa público."),
 ]) }}
 <h3 class="font-semibold text-gray-900">Cómo se calcula la supervivencia</h3>
 <p>Supervivencia = <strong>vivos ÷ (vivos + muertos + reemplazados)</strong>, entre los árboles <em>verificados</em>
-    sembrados hace al menos 6 o 12 meses. Un reemplazado cuenta como pérdida, y los árboles sembrados como reposición se
+    sembrados hace al menos 3, 6 o 12 meses. Un reemplazado cuenta como pérdida, y los árboles sembrados como reposición se
     cuentan aparte. Leé siempre el <strong>% verificado</strong> que aparece abajo: una supervivencia alta con pocos
     árboles verificados todavía no dice mucho. Los árboles sin fecha de siembra no entran en el cálculo.</p>
 {% endcall %}
@@ -109,7 +109,8 @@
 <p>Le faltan las coordenadas (Lat y Lng). Completalas en el CSV y volvé a importarlo.</p>
 {% endcall %}
 {% call m.faq("¿Hay monitoreo a los 3 meses?") %}
-<p>El indicador se calcula a 6 y 12 meses. Los monitoreos se registran cuando el equipo va al sitio; el sistema no manda recordatorios.</p>
+<p>Sí: el panel muestra la supervivencia a 3, 6 y 12 meses (el mapa público, solo la de 12). Los monitoreos se registran
+    cuando el equipo va al sitio; el sistema no manda recordatorios.</p>
 {% endcall %}
 {% endif %}
 </div>

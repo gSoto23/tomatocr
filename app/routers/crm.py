@@ -492,7 +492,7 @@ def mark_won(opportunity_id: int, project_id: str = Form(...), db: Session = Dep
     url = f"/clientes/oportunidades/{opportunity.id}"
     project = db.get(Project, int(project_id)) if project_id.isdigit() else None
     if project is None:
-        return toast_redirect(url, "Elija el proyecto", error=True)
+        return toast_redirect(url, "Elegí el proyecto", error=True)
     try:
         win_opportunity(db, opportunity, project, user)
     except ValueError as e:

@@ -48,7 +48,7 @@ def test_client_sees_invoices_and_payments_only(login_as, users, budget):
 def test_admin_sees_everything_with_clear_names(login_as, users, budget):
     html = login_as("admin").get(f"/finance/{users['project_id']}").text
     assert "Abono secreto" in html and "Ganancia" in html and "Presupuesto del proyecto" in html
-    assert "queda por facturar: 400.00" in html and "Registrar pago" not in html  # FE-1 is paid
+    assert "queda por facturar: ₡400.00" in html and "Registrar pago" not in html  # FE-1 is paid
     assert "Gestión Financiera" not in login_as("admin").get("/finance/").text
 
 

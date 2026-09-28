@@ -173,7 +173,7 @@
             if (!isoDate) return '';
             if (isoDate.includes('T')) isoDate = isoDate.split('T')[0];
             const parts = isoDate.split('-');
-            if (parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`;
+            if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
             return isoDate;
         }
 

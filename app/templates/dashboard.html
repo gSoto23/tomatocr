@@ -101,7 +101,7 @@
             </div>
             <div>
                 <p class="text-sm font-medium text-gray-500">Total Adjudicado</p>
-                <p class="text-2xl font-bold text-gray-900">{{ "{:,.2f}".format(data.stats.total_adjudicated) }}</p>
+                <p class="text-2xl font-bold text-gray-900">{{ data.stats.total_adjudicated | crc }}</p>
             </div>
         </div>
     </div>
@@ -118,7 +118,7 @@
             </div>
             <div>
                 <p class="text-sm font-medium text-gray-500">Total Facturado{% if data.filtered %} <span class="text-xs">(según filtros)</span>{% endif %}</p>
-                <p class="text-2xl font-bold text-gray-900">{{ "{:,.2f}".format(data.stats.total_invoiced) }}</p>
+                <p class="text-2xl font-bold text-gray-900">{{ data.stats.total_invoiced | crc }}</p>
             </div>
         </div>
     </div>
@@ -155,9 +155,9 @@
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ inv.budget.project.name if
                         inv.budget and inv.budget.project else 'N/A' }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ "{:,.2f}".format(inv.amount) }}
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ inv.amount | crc }}
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ inv.due_date }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ inv.due_date | format_date }}</td>
                     <td class="px-6 py-4 whitespace-nowrap">
                         {% if inv.status == 'vencida' %}
                         <span
@@ -307,10 +307,12 @@
     </table>
     {% from "components/pagination.html" import render_pagination %}
     <!-- Construct endpoint with existing query params -->
-    {% set base_url = '/dashboard' %}
-    {% if data.selected_project_id %}
-    {% set base_url = base_url ~ '?project_id=' ~ data.selected_project_id %}
-    {% endif %}
+    {# Keep the project filter and the sort order when changing page #}
+    {% set params = [] %}
+    {% if data.selected_project_id %}{% set _ = params.append('project_id=' ~ data.selected_project_id) %}{% endif %}
+    {% if request.query_params.get('sort') %}{% set _ = params.append('sort=' ~ (request.query_params.get('sort') | urlencode)) %}{% endif %}
+    {% if request.query_params.get('order') %}{% set _ = params.append('order=' ~ (request.query_params.get('order') | urlencode)) %}{% endif %}
+    {% set base_url = '/dashboard' ~ ('?' ~ params | join('&') if params else '') %}
 
     {{ render_pagination(data.page, data.total_pages, base_url) }}
 </div>

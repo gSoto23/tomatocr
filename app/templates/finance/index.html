@@ -65,22 +65,22 @@
                                     {% endif %}
                                 </td>
                                 <td class="whitespace-nowrap px-3 py-4 text-sm text-right text-gray-900 font-medium">
-                                    {{ "{:,.2f}".format(item.total_adjudicated) }}
+                                    {{ item.total_adjudicated | crc }}
                                 </td>
                                 <td class="whitespace-nowrap px-3 py-4 text-sm text-right text-gray-500">
-                                    {{ "{:,.2f}".format(item.total_invoiced) }}
+                                    {{ item.total_invoiced | crc }}
                                 </td>
                                 <td class="whitespace-nowrap px-3 py-4 text-sm text-right text-gray-900">
-                                    {{ "{:,.2f}".format(item.receivable) }}
+                                    {{ item.receivable | crc }}
                                 </td>
                                 {% if user.role != 'client' %}
                                 <td class="whitespace-nowrap px-3 py-4 text-sm text-right text-red-600">
-                                    {{ "{:,.2f}".format(item.total_costs) }}
+                                    {{ item.total_costs | crc }}
                                 </td>
                                 {% endif %}
                                 <td
                                     class="whitespace-nowrap px-3 py-4 text-sm text-right font-bold {{ 'text-green-600' if item.balance >= 0 else 'text-red-600' }}">
-                                    {{ "{:,.2f}".format(item.balance) }}
+                                    {{ item.balance | crc }}
                                 </td>
                                 <td
                                     class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">

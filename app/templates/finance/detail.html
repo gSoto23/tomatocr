@@ -43,7 +43,7 @@
     {% macro card(label, value, hint, color='text-gray-900') %}
     <div class="overflow-hidden rounded-lg bg-white px-3 py-4 shadow sm:p-4 border border-gray-200">
         <dt class="text-xs font-medium text-gray-500 uppercase">{{ label }}</dt>
-        <dd class="mt-1 text-lg lg:text-base xl:text-lg font-semibold tracking-tight {{ color }}" title="{{ '{:,.2f}'.format(value) }}">{{ "{:,.2f}".format(value) }}</dd>
+        <dd class="mt-1 text-lg lg:text-base xl:text-lg font-semibold tracking-tight {{ color }}" title="{{ value | crc }}">{{ value | crc }}</dd>
         <p class="mt-1 text-xs text-gray-500">{{ hint }}</p>
     </div>
     {% endmacro %}
@@ -102,7 +102,7 @@
                     </div>
                     <div class="flex justify-between border-b pb-2">
                         <span class="text-gray-500">Monto Prórroga</span>
-                        <span class="font-medium">{{ "{:,.2f}".format(budget.prorrogable_amount or 0) }}</span>
+                        <span class="font-medium">{{ (budget.prorrogable_amount or 0) | crc }}</span>
                     </div>
                     {% else %}
                     <div class="flex justify-between border-b pb-2">
@@ -129,7 +129,7 @@
                                 <p class="text-sm font-semibold leading-6 text-gray-900">{{ line.name }}</p>
                             </div>
                             <div class="mt-1 flex items-center gap-x-2 text-xs leading-5 text-gray-500">
-                                <p class="whitespace-nowrap">Sub: {{ "{:,.2f}".format(line.subtotal) }}</p>
+                                <p class="whitespace-nowrap">Sub: {{ line.subtotal | crc }}</p>
                                 <svg viewBox="0 0 2 2" class="h-0.5 w-0.5 fill-current">
                                     <circle cx="1" cy="1" r="1" />
                                 </svg>
@@ -137,7 +137,7 @@
                             </div>
                         </div>
                         <div class="flex flex-none items-center gap-x-4">
-                            <div class="text-sm font-bold text-gray-900">{{ "{:,.2f}".format(line.total) }}</div>
+                            <div class="text-sm font-bold text-gray-900">{{ line.total | crc }}</div>
                         </div>
                     </li>
                     {% else %}
@@ -176,7 +176,7 @@
                                     {% endif %}
                                 </td>
                                 <td class="whitespace-nowrap px-3 py-4 text-right text-sm font-medium text-red-600">
-                                    {{ "{:,.2f}".format(payroll.cost) }}
+                                    {{ payroll.cost | crc }}
                                 </td>
                             </tr>
                             {% else %}
@@ -381,8 +381,7 @@
                                 <td class="px-3 py-4 text-sm text-gray-500" title="{{ inv.line.name if inv.line else '?' }}">
                                     <span class="line-clamp-2 min-w-[8rem] max-w-[12rem]">{{ inv.line.name if inv.line else '?' }}</span>
                                 </td>
-                                <td class="whitespace-nowrap px-3 py-4 text-sm text-right font-medium text-gray-900">{{
-                                    "{:,.2f}".format(inv.amount) }}</td>
+                                <td class="whitespace-nowrap px-3 py-4 text-sm text-right font-medium text-gray-900">{{ inv.amount | crc }}</td>
                                 <td class="whitespace-nowrap px-3 py-4 text-sm text-center">
                                     {% if inv.status == 'pagada' %}
                                     <span
@@ -470,7 +469,7 @@
                                     {{ cost.date | format_date }}
                                 </td>
                                 <td class="whitespace-nowrap px-3 py-4 text-right text-sm font-medium text-red-600">
-                                    {{ "{:,.2f}".format(cost.amount) }}
+                                    {{ cost.amount | crc }}
                                 </td>
                                 {% if user.role == 'admin' %}
                                 <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
@@ -538,7 +537,7 @@
                                     {{ ret.payment_date | format_date }}
                                 </td>
                                 <td class="whitespace-nowrap px-3 py-4 text-right text-sm font-medium text-red-600">
-                                    {{ "{:,.2f}".format(ret.retention_amount) }}
+                                    {{ ret.retention_amount | crc }}
                                 </td>
                             </tr>
                             {% else %}
@@ -623,8 +622,7 @@
                                         class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
                                         <option value="">Seleccione una línea...</option>
                                         {% for item in lines_data %}
-                                        <option value="{{ item.line.id }}">{{ item.line.name }} (queda por facturar: {{
-                                            "{:,.2f}".format(item.available) }})</option>
+                                        <option value="{{ item.line.id }}">{{ item.line.name }} (queda por facturar: {{ item.available | crc }})</option>
                                         {% endfor %}
                                     </select>
                                 </div>

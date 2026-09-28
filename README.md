@@ -343,7 +343,10 @@ públicas.
   UUID — nunca se usa el nombre de archivo que manda el cliente.
 - **Roles**: `admin`, `supervisor`, `worker`, `client` y `ventas`, definidos
   en `app/core/roles.py`. El admin y el supervisor ven y reportan en todos los
-  proyectos (`SEES_ALL_PROJECTS`); trabajador y cliente, solo en los asignados. Los routers de operaciones (proyectos, bitácora,
+  proyectos (`SEES_ALL_PROJECTS`); trabajador y cliente, solo en los asignados. Presupuestos es solo
+  para admin y cliente (`FINANCE_ROLES`), y el costo del proyecto solo lo ve el admin.
+- **Errores**: las páginas que abre el navegador (GET con `Accept: text/html`, fuera de
+  `/api/`) muestran un error en español (`errors/page.html`); el resto recibe JSON. Los routers de operaciones (proyectos, bitácora,
   calendario, finanzas, planilla, pagos, liquidación) exigen uno de los cuatro
   roles operativos con `deps.require_roles`; `ventas` solo ve el Dashboard,
   Clientes y el Cotizador. Al crear o editar usuarios solo se aceptan esos roles.

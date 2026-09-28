@@ -3,7 +3,8 @@
 {% block title %}Reforestación Admin | TOMATO{% endblock %}
 {% block header_title %}Administración de Reforestación{% endblock %}
 
-{% macro pct(value) %}{{ '%.1f'|format(value) ~ ' %' if value is not none else '—' }}{% endmacro %}
+{# Decimal comma, like the public map #}
+{% macro pct(value) %}{{ ('%.1f'|format(value)).replace('.', ',') ~ ' %' if value is not none else '—' }}{% endmacro %}
 
 {% block content %}
 <div class="max-w-6xl mx-auto space-y-6" x-data="reforestationAdmin()">
@@ -30,6 +31,7 @@
                         <th class="px-3 py-3 text-right font-semibold">Vivos</th>
                         <th class="px-3 py-3 text-right font-semibold">Muertos</th>
                         <th class="px-3 py-3 text-right font-semibold">Reemplazados</th>
+                        <th class="px-3 py-3 text-right font-semibold">Superv. 3 m</th>
                         <th class="px-3 py-3 text-right font-semibold">Superv. 6 m</th>
                         <th class="px-3 py-3 text-right font-semibold">Superv. 12 m</th>
                         <th class="px-4 py-3 text-left font-semibold">Último monitoreo</th>
@@ -47,7 +49,7 @@
                         <td class="px-3 py-3 text-right text-green-700">{{ s.alive }}</td>
                         <td class="px-3 py-3 text-right text-red-700">{{ s.dead }}</td>
                         <td class="px-3 py-3 text-right text-amber-700">{{ s.replaced }}</td>
-                        {% for months in [6, 12] %}
+                        {% for months in [3, 6, 12] %}
                         {% set c = s.cohorts[months] %}
                         <td class="px-3 py-3 text-right">
                             <div class="font-semibold">{{ pct(c.survival_pct) }}</div>
@@ -61,7 +63,7 @@
             </table>
         </div>
         <p class="px-6 py-3 text-xs text-gray-500 border-t border-gray-100">
-            Supervivencia = vivos ÷ (vivos + muertos + reemplazados) entre los árboles verificados, sembrados hace al menos 6 o 12 meses.
+            Supervivencia = vivos ÷ (vivos + muertos + reemplazados) entre los árboles verificados, sembrados hace al menos 3, 6 o 12 meses. El mapa público muestra solo la de 12 meses.
             Un árbol reemplazado cuenta como pérdida; los árboles sembrados como reposición se cuentan aparte y no suben la cifra.
         </p>
         {% else %}

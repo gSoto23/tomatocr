@@ -33,6 +33,18 @@
     </div>
     {% endif %}
 
+    <form method="get" action="/users/" class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
+        <input type="search" name="q" value="{{ q }}" placeholder="Buscar por nombre, usuario o correo" aria-label="Buscar"
+            class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm sm:max-w-sm">
+        <select name="sort" aria-label="Ordenar" onchange="this.form.submit()" class="rounded-md border border-gray-300 px-3 py-2 text-sm">
+            {% for value, label in [('name', 'Ordenar por nombre'), ('role', 'Por rol'), ('status', 'Activos primero'), ('new', 'Más recientes')] %}
+            <option value="{{ value }}" {% if sort == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+        <button class="rounded-md bg-black px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800">Buscar</button>
+        {% if q %}<a href="/users/" class="text-sm text-gray-600 underline">Limpiar</a>{% endif %}
+    </form>
+
     <div class="bg-white shadow-sm rounded-lg border border-gray-200 overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
@@ -64,10 +76,13 @@
                     <td class="px-6 py-4 whitespace-nowrap">
                         <span
                             class="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">{{
-                            u.role }}</span>
+                            role_name(u.role) }}</span>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
-                        {% if u.is_active %}
+                        {% if u.status == 'liquidated' %}
+                        <span
+                            class="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-500/20">Liquidado</span>
+                        {% elif u.is_active %}
                         <span
                             class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Activo</span>
                         {% else %}
@@ -83,7 +98,10 @@
             </tbody>
         </table>
         {% from "components/pagination.html" import render_pagination %}
-        {{ render_pagination(page, total_pages, '/users') }}
+        {% set params = [] %}
+        {% if q %}{% set _ = params.append('q=' ~ (q | urlencode)) %}{% endif %}
+        {% if sort != 'name' %}{% set _ = params.append('sort=' ~ sort) %}{% endif %}
+        {{ render_pagination(page, total_pages, '/users/' ~ ('?' ~ params | join('&') if params else '')) }}
     </div>
 
     <!-- Modals (Expediente) -->
@@ -110,7 +128,7 @@
                       </div>
                       <div>
                           <h3 class="text-xl font-bold leading-6 text-gray-900" id="modal-title">{{ u.full_name or 'Sin Nombre' }}</h3>
-                          <p class="text-sm text-gray-500 font-medium">Expediente de Empleado ({{ u.role.capitalize() }})</p>
+                          <p class="text-sm text-gray-500 font-medium">Expediente ({{ role_name(u.role) }})</p>
                       </div>
                   </div>
                   <button @click="activeModal = null" class="text-gray-400 hover:text-gray-600 transition-colors">

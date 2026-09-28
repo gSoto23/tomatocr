@@ -84,19 +84,19 @@
         class="-translate-x-full fixed inset-y-0 left-0 z-50 w-64 bg-black text-white transition-transform duration-300 ease-in-out md:translate-x-0 md:static md:inset-0 md:flex md:w-64 md:flex-col shadow-xl md:shadow-none">
 
         <div class="p-6 border-b border-white/10 flex items-center justify-between gap-3">
-            <div class="flex items-center gap-3">
-                <img src="/static/images/LogoTomatoW.png" alt="TOMATO" class="h-8">
-                <span class="font-bold tracking-wide">SISTEMA</span>
+            <div class="flex min-w-0 items-center gap-2">
+                <img src="/static/images/LogoTomatoW.png" alt="TOMATO" class="h-7 shrink-0">
+                <span class="hidden text-sm font-bold tracking-wide md:inline">SISTEMA</span>
             </div>
             <!-- Close Button (Mobile Only) -->
-            <button @click="sidebarOpen = false" class="md:hidden text-gray-400 hover:text-white">
+            <button @click="sidebarOpen = false" class="md:hidden shrink-0 -mr-2 p-2 text-gray-400 hover:text-white" aria-label="Cerrar menú">
                 <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
             </button>
         </div>
 
-        <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
+        <nav class="flex-1 p-4 space-y-1 overflow-y-auto" @click="if ($event.target.closest('a')) sidebarOpen = false">
             <a href="/dashboard"
                 class="group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors {{ 'bg-white/10 text-white' if request and request.url.path == '/dashboard' else 'text-white/70 hover:bg-white/10 hover:text-white' }}">
                 <svg class="mr-3 h-5 w-5 text-white/70 group-hover:text-white" fill="none" viewBox="0 0 24 24"
@@ -208,7 +208,7 @@
                 </div>
                 <div class="flex-1 min-w-0">
                     <p class="text-sm font-medium truncate">{{ user.full_name or user.username }}</p>
-                    <p class="text-xs text-white/50 truncate">{{ user.role }}</p>
+                    <p class="text-xs text-white/50 truncate">{{ role_name(user.role) }}</p>
                 </div>
                 <a href="/cuenta/contrasena" class="p-2 text-white/50 hover:text-white" title="Cambiar contraseña" aria-label="Cambiar contraseña">
                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">

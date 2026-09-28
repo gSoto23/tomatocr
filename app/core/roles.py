@@ -11,6 +11,10 @@ VENTAS = "ventas"
 
 ALL_ROLES = frozenset({ADMIN, SUPERVISOR, WORKER, CLIENT, VENTAS})
 
+# How each role is shown on screen.
+ROLE_NAMES = {ADMIN: "Administrador", SUPERVISOR: "Supervisor", WORKER: "Trabajador", CLIENT: "Cliente",
+              VENTAS: "Ventas"}
+
 # Labels for the user form, in display order.
 ROLE_LABELS = {
     WORKER: "Trabajador (worker)",
@@ -28,5 +32,5 @@ OPERATIONS_ROLES = (ADMIN, SUPERVISOR, WORKER, CLIENT)
 # Roles that see, and report on, every project, not only the ones they are assigned to.
 SEES_ALL_PROJECTS = (ADMIN, SUPERVISOR)
 
-FINANCE_ROLES = (ADMIN, SUPERVISOR, CLIENT)
+FINANCE_ROLES = (ADMIN, CLIENT)  # the supervisor sees no amounts
 QUOTES_ROLES = (ADMIN, CLIENT, VENTAS)

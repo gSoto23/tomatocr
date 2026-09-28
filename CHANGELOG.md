@@ -6,7 +6,34 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-28
 
-### UI/UX ronda 2b: presupuestos, planilla, calendario y reforestación (esta rama)
+### UI/UX ronda 3: detalles y rangos del Calendario (esta rama)
+- **Errores**: una página abierta en el navegador que da 403, 404 o 400 muestra una
+  pantalla en español con "Volver" e "Ir al Dashboard" (`errors/page.html`); fetch y
+  `/api/` siguen recibiendo JSON.
+- **Navegación**: el menú del celular se cierra al elegir una opción y la X ya no tapa
+  el título; el rol aparece en español (`role_name`).
+- **Montos y fechas**: montos con ₡ (filtro `crc`) en Dashboard, Presupuestos y la ficha;
+  fechas dd/mm/aaaa en todas las pantallas; pasar de página conserva el orden.
+- **Permisos**: el costo del proyecto solo lo ve el admin; el supervisor ya no entra a
+  Presupuestos (`FINANCE_ROLES` = admin y cliente).
+- **Cotizador**: IVA bien recargado, título de la oportunidad en la insignia, un cliente
+  sin cuenta no puede guardar (la cotización quedaba invisible), cabecera que cabe en el
+  celular con "Volver" visible, y textos de "vos".
+- **Planilla**: una planilla final solo se elimina si no tiene pagos ligados y escribiendo
+  ELIMINAR; estados "Borrador" y "Final". **Vacaciones**: el perfil registra los días
+  tomados (`users.vacation_days_taken`, migración `0011`), el trabajador ve acumulados −
+  tomados y la liquidación los propone. Reactivar un contrato pide la fecha de inicio y
+  pone las vacaciones tomadas en 0.
+- **Calendario**: los días de un rango se cambian (sede, horas, tareas) o se borran juntos;
+  una asignación se mueve arrastrándola (no si ya tiene horas confirmadas) y pregunta si
+  la persona ya tiene algo ese día.
+- **Empleados**: búsqueda, orden y estado "Liquidado".
+- **Reforestación**: supervivencia a 3, 6 y 12 meses con coma decimal.
+- `docs/PUNTOS_DIFICILES_UX.md` queda como registro: todos los puntos están resueltos.
+- Manual al día y capturas nuevas.
+- **Migración `0011`**. Despliegue: snapshot, `alembic upgrade head` y reiniciar.
+
+### UI/UX ronda 2b: presupuestos, planilla, calendario y reforestación (#71)
 - **Presupuestos**: un solo nombre (Presupuestos / Presupuesto del proyecto). Tarjetas
   Total Adjudicado, Facturado, Cobrado, Por cobrar, Por facturar y, para el equipo,
   Costos y Ganancia, cada una con su explicación. El **cliente** solo ve facturas y

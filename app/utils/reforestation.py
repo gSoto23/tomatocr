@@ -316,7 +316,7 @@ def survival_summary(trees: Iterable[ReforestationTree], today: Optional[date] =
     today = today or date.today()
     trees = list(trees)
     replacement_ids = {t.replaced_by_id for t in trees if t.replaced_by_id}
-    summary = Summary(cohorts={6: Cohort(6), 12: Cohort(12)})
+    summary = Summary(cohorts={3: Cohort(3), 6: Cohort(6), 12: Cohort(12)})
     for tree in trees:
         if tree.last_checked_at and (summary.last_check is None or tree.last_checked_at > summary.last_check):
             summary.last_check = tree.last_checked_at

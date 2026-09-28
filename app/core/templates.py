@@ -31,7 +31,7 @@ def format_datetime_cr_filter(value):
     from datetime import timedelta
     cr_time = value - timedelta(hours=6)
     
-    return cr_time.strftime("%d-%m-%Y %I:%M %p")
+    return cr_time.strftime("%d/%m/%Y %I:%M %p")
 
 templates.env.filters["format_datetime_cr"] = format_datetime_cr_filter
 
@@ -56,3 +56,17 @@ def static_url(path: str) -> str:
 
 
 templates.env.globals["static_url"] = static_url
+
+
+from app.core.roles import ROLE_NAMES  # noqa: E402
+
+templates.env.globals["role_name"] = lambda role: ROLE_NAMES.get(role, role or "")
+
+
+def crc_filter(value) -> str:
+    """Amount in colones: ₡1,234.00 (-₡1,234.00 when negative)."""
+    amount = float(value or 0)
+    return f"{'-' if amount < 0 else ''}₡{abs(amount):,.2f}"
+
+
+templates.env.filters["crc"] = crc_filter
