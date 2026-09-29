@@ -6,7 +6,7 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-28
 
-### Páginas de servicio
+### Páginas de servicio (#90)
 - 4 páginas nuevas, una por servicio: `/servicios/reforestacion-para-empresas`,
   `/servicios/mantenimiento-de-zonas-verdes`, `/servicios/jardineria` y
   `/servicios/paisajismo`. Cada una con título y descripción propios, foto real, *Para

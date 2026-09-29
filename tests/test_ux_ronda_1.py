@@ -184,9 +184,9 @@ def test_email_uses_a_real_blind_copy_and_reports_failure(db, login_as, a_report
         return len(calls) == 1
     monkeypatch.setattr(logs_router, "send_log_email", fake)
     client = login_as("admin")
-    body = {"recipients": ["cliente@example.com", "tomatocostarica@gmail.com"]}
+    body = {"recipients": ["cliente@example.com", "info@tomatocr.com"]}
     assert client.post(f"/logs/{a_report.id}/send-email", json=body).status_code == 200
-    assert calls[0] == {"to": ["cliente@example.com"], "bcc": ["tomatocostarica@gmail.com"]}
+    assert calls[0] == {"to": ["cliente@example.com"], "bcc": ["info@tomatocr.com"]}
     failed = client.post(f"/logs/{a_report.id}/send-email", json=body)
     assert failed.status_code == 502 and "No se pudo enviar" in failed.json()["detail"]
 

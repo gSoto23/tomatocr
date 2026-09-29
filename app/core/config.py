@@ -40,12 +40,12 @@ class Settings(BaseSettings):
     # Address that receives a copy of every new lead notification.
     LEADS_NOTIFY_EMAIL: str = os.getenv("LEADS_NOTIFY_EMAIL", "info@tomatocr.com")
     # Blind copy of every report sent to a client (they never see it).
-    REPORT_BCC_EMAIL: str = os.getenv("REPORT_BCC_EMAIL", "tomatocostarica@gmail.com")
+    REPORT_BCC_EMAIL: str = os.getenv("REPORT_BCC_EMAIL", "info@tomatocr.com")
 
     # Email
     MAIL_USERNAME: str = os.getenv("MAIL_USERNAME", "")
     MAIL_PASSWORD: str = os.getenv("MAIL_PASSWORD", "")
-    MAIL_FROM: str = os.getenv("MAIL_FROM", "admin@tomatocr.com")
+    MAIL_FROM: str = os.getenv("MAIL_FROM", "notificaciones@tomatocr.com")
     MAIL_PORT: int = int(os.getenv("MAIL_PORT", 587))
     MAIL_SERVER: str = os.getenv("MAIL_SERVER", "smtp.gmail.com")
     MAIL_STARTTLS: bool = True
