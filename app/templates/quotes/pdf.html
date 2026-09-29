@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Cotización {{ q.numero_cotizacion }} · {{ q.cliente_nombre }}</title>
+{# Same content and look as the PDF the quote tool prints (app/static/cotizador/app.js,
+   buildPrintableHTML), made by WeasyPrint on the server to attach it to an e-mail. #}
+<style>
+    @page {
+        size: letter;
+        margin: 14mm 16mm 20mm;
+        @bottom-left { content: "{{ issuer.name }} · {{ issuer.phone }} · {{ issuer.web }}"; font-size: 8pt; color: #6b7280; font-family: "Helvetica Neue", Helvetica, Arial, "DejaVu Sans", sans-serif;
+                       border-top: 1px solid #e5e7eb; vertical-align: top; padding-top: 5px; }
+        @bottom-right { content: "{{ q.numero_cotizacion }} · página " counter(page) " de " counter(pages); font-size: 8pt; font-family: "Helvetica Neue", Helvetica, Arial, "DejaVu Sans", sans-serif;
+                        color: #6b7280; border-top: 1px solid #e5e7eb; vertical-align: top; padding-top: 5px; }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Helvetica Neue", Helvetica, Arial, "DejaVu Sans", sans-serif; color: #1f2937;
+           font-size: 11pt; line-height: 1.45; }
+    .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #111;
+              padding-bottom: 12px; }
+    .logo { height: 46px; }
+    .issuer { font-size: 8.5pt; color: #4b5563; margin-top: 6px; line-height: 1.35; }
+    .doc { text-align: right; }
+    .doc h1 { margin: 0; font-size: 20pt; letter-spacing: 1px; }
+    .doc .number { font-size: 12pt; font-weight: 700; }
+    .doc .dates { font-size: 9pt; color: #4b5563; margin-top: 4px; }
+    .grid { display: flex; gap: 12px; margin: 14px 0; }
+    .grid .box:first-child { flex: 1.3; }
+    .grid .box:last-child { flex: 1; }
+    .box { border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px 12px; break-inside: avoid; }
+    .box h2 { margin: 0 0 6px; font-size: 8.5pt; text-transform: uppercase; letter-spacing: .08em; color: #6b7280; }
+    .kv { width: 100%; border-collapse: collapse; }
+    .kv th { text-align: left; font-weight: 600; color: #6b7280; width: 30%; padding: 1px 6px 1px 0; vertical-align: top; font-size: 9.5pt; }
+    .kv td { padding: 1px 0; font-size: 9.5pt; overflow-wrap: anywhere; }
+    table.items { width: 100%; border-collapse: collapse; margin-top: 6px; }
+    table.items thead { display: table-header-group; }
+    table.items th { background: #111; color: #fff; text-align: left; font-size: 8.5pt; text-transform: uppercase;
+                     letter-spacing: .05em; padding: 7px 8px; }
+    table.items td { padding: 8px; border-bottom: 1px solid #e5e7eb; font-size: 10pt; vertical-align: top; }
+    table.items tr { break-inside: avoid; }
+    .r { text-align: right; white-space: nowrap; }
+    .num { width: 26px; color: #6b7280; }
+    .strong { font-weight: 700; }
+    .tag { display: inline-block; font-size: 7.5pt; text-transform: uppercase; letter-spacing: .06em; color: #6b7280; }
+    .desc { white-space: pre-wrap; overflow-wrap: anywhere; }
+    .keep { break-inside: avoid; }
+    .summary { margin-top: 10px; }
+    .totals { width: 300px; border-collapse: collapse; margin-left: auto; }
+    .totals th { text-align: left; font-weight: 500; color: #4b5563; padding: 4px 0; }
+    .totals td { text-align: right; padding: 4px 0; white-space: nowrap; }
+    .totals .grand th, .totals .grand td { border-top: 2px solid #111; font-size: 13pt; font-weight: 700; color: #111; padding-top: 8px; }
+    .section { margin-top: 16px; }
+    .section h2 { font-size: 9pt; text-transform: uppercase; letter-spacing: .08em; color: #6b7280; margin: 0 0 4px; break-after: avoid; }
+    .section .lines { font-size: 9.5pt; }
+    .section .line { white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+    .section .gap { height: .6em; }
+    .accept { margin-top: 26px; width: 100%; border-collapse: separate; border-spacing: 18px 0; margin-left: -18px; width: calc(100% + 36px); }
+    .accept td { width: 33%; border-top: 1px solid #9ca3af; padding-top: 4px; font-size: 8.5pt; color: #6b7280; }
+</style>
+</head>
+<body>
+<div class="header">
+    <div>
+        <img src="{{ logo }}" class="logo" alt="TOMATO">
+        <div class="issuer">{{ issuer.name }} · Cédula jurídica {{ issuer.tax_id }}<br>{{ issuer.address }} · {{ issuer.phone }} · {{ issuer.web }}</div>
+    </div>
+    <div class="doc">
+        <h1>COTIZACIÓN</h1>
+        <div class="number">{{ q.numero_cotizacion }}</div>
+        <div class="dates">Emitida el {{ q.fecha_emision.strftime('%d/%m/%Y') }}{% if valid_until %}<br>Válida hasta el {{ valid_until.strftime('%d/%m/%Y') }}{% endif %}</div>
+    </div>
+</div>
+
+<div class="grid">
+    <div class="box"><h2>Cliente</h2><table class="kv">
+        {% for label, value in client_rows %}<tr><th>{{ label }}</th><td>{{ value }}</td></tr>{% endfor %}
+    </table></div>
+    <div class="box"><h2>Condiciones</h2><table class="kv">
+        <tr><th>Servicio</th><td>{{ q.tipo_servicio or '' }}</td></tr>
+        <tr><th>Frecuencia</th><td>{{ q.frecuencia or 'Por demanda' }}</td></tr>
+        <tr><th>Moneda</th><td>{{ currency }}</td></tr>
+        <tr><th>Validez</th><td>{{ q.validez_dias }} días naturales</td></tr>
+    </table></div>
+</div>
+
+<table class="items">
+    <thead><tr><th>#</th><th>Descripción</th><th>Unidad</th><th class="r">Cant.</th><th class="r">Precio unit.</th><th class="r">Total</th></tr></thead>
+    <tbody>
+    {% for it in q.items or [] %}
+    <tr>
+        <td class="num">{{ loop.index }}</td>
+        <td><span class="tag">{{ it.type or '' }}</span><div class="desc">{{ it.description or '' }}</div></td>
+        <td>{{ it.unit or '' }}</td>
+        <td class="r">{{ it.qty }}</td>
+        <td class="r">{{ money(it.unitPrice) }}</td>
+        <td class="r strong">{{ money((it.qty or 0)|float * (it.unitPrice or 0)|float) }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+<div class="keep">
+    <div class="summary"><table class="totals">
+        <tr><th>Subtotal</th><td>{{ money(totals.subtotal) }}</td></tr>
+        {% if totals.discount > 0 %}<tr><th>Descuento</th><td>− {{ money(totals.discount) }}</td></tr>{% endif %}
+        {% if totals.tax_enabled %}<tr><th>IVA ({{ '%g'|format(totals.tax_rate) }} %)</th><td>{{ money(totals.tax) }}</td></tr>
+        {% else %}<tr><th>IVA</th><td>No incluido</td></tr>{% endif %}
+        <tr class="grand"><th>Total</th><td>{{ money(totals.total) }}</td></tr>
+    </table></div>
+</div>
+
+{% for title, lines in [('Alcance y notas', notes), ('Términos y condiciones', terms)] if lines %}
+<div class="section"><h2>{{ title }}</h2><div class="lines">
+    {% for line in lines %}{% if line.strip() %}<div class="line">{{ line }}</div>{% else %}<div class="gap"></div>{% endif %}{% endfor %}
+</div></div>
+{% endfor %}
+
+<div class="keep section">
+    <h2>Aceptación del cliente</h2>
+    <table class="accept"><tr><td>Nombre</td><td>Firma</td><td>Fecha</td></tr></table>
+</div>
+</body>
+</html>

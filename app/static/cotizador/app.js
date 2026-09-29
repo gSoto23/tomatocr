@@ -5,6 +5,7 @@ const CRM_API = "/clientes/api/";
 // Admin and ventas pick the client's account (Clientes); the client role types the name as before.
 const PICKS_ACCOUNT = !!(window.COTIZADOR && window.COTIZADOR.picksAccount);
 const CAN_DELETE = !!(window.COTIZADOR && window.COTIZADOR.canDelete);
+const CAN_SEND = !!(window.COTIZADOR && window.COTIZADOR.canSend);
 
 const COUNTER_KEY = "tomato_quote_counter_v1";
 const DRAFT_KEY = "tomato_quote_draft_v1";
@@ -138,7 +139,7 @@ async function renderRecent() {
 
   $("recentBody").innerHTML = data.map(r => `
     <tr>
-      <td class="font-bold">${r.numero_cotizacion}</td>
+      <td class="font-bold">${r.numero_cotizacion}${r.last_sent_at ? `<div class="muted text-xs font-normal">✉ Enviada ${formatDateCR(r.last_sent_at.slice(0, 10))}</div>` : ""}</td>
       <td>${escapeHtml(r.cliente_nombre)}</td>
       ${PICKS_ACCOUNT ? `<td>${escapeHtml(r.account_name || "—")}</td>` : ""}
       <td class="muted">${formatDateCR(r.fecha_emision)}</td>
@@ -147,6 +148,7 @@ async function renderRecent() {
         <div class="flex justify-end gap-1 whitespace-nowrap">
           <button class="btn py-1 px-3 text-xs" onclick="loadFromSQL('${r.id}')">Cargar</button>
           <button class="btn py-1 px-3 text-xs" onclick="pdfFromHistory('${r.id}')" title="Abrir el PDF sin cargarla">PDF</button>
+          ${CAN_SEND ? `<button class="btn py-1 px-3 text-xs" onclick="openEmail('${r.id}')" title="Enviar por correo con el PDF adjunto">Enviar</button>` : ""}
           ${CAN_DELETE ? `<button class="btn btn-danger py-1 px-3 text-xs" onclick="deleteQuote('${r.id}', '${escapeHtml(r.numero_cotizacion)}')"><span class="danger">Borrar</span></button>` : ""}
         </div>
       </td>
@@ -321,6 +323,79 @@ function renderQuality() {
   }
   $("btnPDF").disabled = errors.length > 0;
   $("btnPDF").classList.toggle("opacity-50", errors.length > 0);
+  renderEmailButton(errors);
+}
+
+// --- Enviar por correo ---
+// Only a saved quote without pending changes can be sent: the PDF is made by the server
+// from what is saved, so it must be exactly what's on screen.
+function renderEmailButton(errors) {
+  const button = $("btnEmail");
+  if (!button) return;
+  const reason = errors && errors.length ? "Completá la cotización para poder enviarla."
+    : !state.quoteId ? "Guardá la cotización para poder enviarla."
+    : isDirty() ? "Guardá los cambios antes de enviarla." : "";
+  button.disabled = !!reason;
+  button.classList.toggle("opacity-50", !!reason);
+  $("emailHint").textContent = reason || "Se envía con el PDF adjunto desde notificaciones@tomatocr.com.";
+}
+
+function sentLine(h) {
+  const when = new Date(h.sent_at).toLocaleString("es-CR", { timeZone: "America/Costa_Rica", dateStyle: "short", timeStyle: "short" });
+  return `${escapeHtml(when)} · ${escapeHtml(h.by)} → ${escapeHtml(h.to)}`;
+}
+
+window.openEmail = async (id) => {
+  const response = await fetch(`${API_URL}${id}/email`);
+  if (!response.ok) {
+    let detail = "No se pudo preparar el envío.";
+    try { detail = (await response.json()).detail || detail; } catch (e) {}
+    return showToast(detail, "error");
+  }
+  const data = await response.json();
+  const modal = $("emailModal");
+  modal.dataset.quoteId = id;
+  $("emailTo").value = data.to.join(", ");
+  $("emailSubject").value = data.subject;
+  $("emailMessage").value = data.message;
+  $("emailFile").textContent = data.filename;
+  $("emailPreview").href = `${API_URL}${id}/pdf`;
+  $("emailReplyTo").textContent = data.reply_to || "notificaciones@tomatocr.com";
+  const opp = data.opportunity;
+  $("emailNextBox").style.display = opp && opp.open ? "" : "none";
+  $("emailNextDate").value = opp && opp.open ? data.next_step_date : "";
+  $("emailOpportunity").textContent = opp ? `Oportunidad: ${opp.title}` : "";
+  $("emailHistory").innerHTML = data.history.length
+    ? `<p class="font-semibold">Ya se envió:</p><ul class="list-disc pl-5">${data.history.map(h => `<li>${sentLine(h)}</li>`).join("")}</ul>` : "";
+  modal.classList.remove("hidden");
+  $("emailTo").focus();
+};
+
+function closeEmail() { $("emailModal").classList.add("hidden"); }
+
+async function sendEmail(event) {
+  event.preventDefault();
+  const id = $("emailModal").dataset.quoteId;
+  const button = $("emailSend");
+  button.disabled = true;
+  button.textContent = "Enviando…";
+  try {
+    const response = await fetch(`${API_URL}${id}/email`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ to: $("emailTo").value, subject: $("emailSubject").value, message: $("emailMessage").value,
+                             next_step_date: $("emailNextBox").style.display === "none" ? null : ($("emailNextDate").value || null) }),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) return showToast(result.detail || "No se pudo enviar el correo.", "error");
+    closeEmail();
+    showToast(result.message || "Cotización enviada.", "success");
+    renderRecent();
+  } catch (e) {
+    showToast("Error de conexión: no se envió el correo.", "error");
+  } finally {
+    button.disabled = false;
+    button.textContent = "Enviar";
+  }
 }
 
 // --- Borrador: lo no guardado se conserva en este navegador y se ofrece recuperarlo ---
@@ -331,6 +406,7 @@ function isDirty() { return baseline !== "" && JSON.stringify(state) !== baselin
 function markSaved() {
   baseline = JSON.stringify(state);
   try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
+  if (typeof renderQuality === "function") renderQuality();
 }
 function autoSaveDraft() {
   clearTimeout(autoSaveTimer);
@@ -534,6 +610,12 @@ async function loadOpportunityFromUrl() {
 function wireListeners() {
   initTheme();
   $("btnSave").onclick = saveToSQL;
+  if (CAN_SEND) {
+    $("btnEmail").onclick = () => state.quoteId && openEmail(state.quoteId);
+    $("emailForm").onsubmit = sendEmail;
+    document.querySelectorAll("#emailModal [data-close]").forEach(el => el.onclick = closeEmail);
+    document.addEventListener("keydown", e => { if (e.key === "Escape") closeEmail(); });
+  }
   $("btnAddService").onclick = () => addItem("Servicio");
   $("btnAddMaterial").onclick = () => addItem("Material");
   $("btnNew").onclick = () => (!isDirty() || confirm("Hay cambios sin guardar. ¿Empezar una nueva de todos modos?")) && init();

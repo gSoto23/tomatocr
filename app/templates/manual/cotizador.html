@@ -66,6 +66,28 @@
     los totales, el alcance, los términos y un espacio para la aceptación del cliente.</p>
 {% endcall %}
 
+{% call m.section("correo", "Enviar por correo") %}
+{% if user.role in ['admin', 'ventas'] %}
+<p>La cotización se envía al cliente desde el sistema, con el PDF adjunto. Sale de <strong>notificaciones@tomatocr.com</strong>
+    con el nombre «TOMATO»; si el cliente responde, la respuesta te llega <strong>a tu correo</strong>.</p>
+{{ m.shot("cotizador/enviar.webp", "Enviar una cotización por correo", "La ventana de envío.") }}
+{{ m.steps([
+    (1, "<strong>Para</strong>: viene el correo del cliente de la cotización o, si no tiene, el del contacto principal de la cuenta. Podés poner varios separados por coma (máximo 5)."),
+    (2, "<strong>Asunto</strong> y <strong>Mensaje</strong> vienen escritos, con el número, el total y la validez. Cambialos si querés."),
+    (3, "<strong>Vista previa del PDF</strong>: es exactamente el archivo que se adjunta."),
+    (4, "<strong>Próximo paso</strong>: al enviar, la oportunidad queda con <em>Dar seguimiento a la cotización</em> para esa fecha (3 días hábiles después, si no la cambiás)."),
+]) }}
+<ul class="list-disc space-y-1 pl-5">
+    <li>El botón <strong>Enviar por correo</strong> se activa cuando la cotización está <strong>guardada y sin cambios pendientes</strong>: el PDF se arma con lo guardado.</li>
+    <li>También se envía desde el <strong>Historial</strong>, con el botón <em>Enviar</em>, sin cargarla.</li>
+    <li>Al enviar queda registrado: en el Historial dice <em>✉ Enviada</em> con la fecha, en Clientes queda un seguimiento tipo <em>Correo</em> y la oportunidad pasa a <strong>Propuesta</strong>. La ventana muestra los envíos anteriores.</li>
+    <li>Si el correo no sale, la pantalla lo dice y no se registra nada: intentá de nuevo.</li>
+</ul>
+{% else %}
+<p>El equipo de TOMATO te envía las cotizaciones por correo con el PDF adjunto. Vos podés descargarla con <strong>Exportar PDF</strong>.</p>
+{% endif %}
+{% endcall %}
+
 {% call m.section("guardadas", "Cotizaciones guardadas") %}
 {{ m.shot("cotizador/guardar.webp", "Cotizador: botones de arriba", "Número y botones de la cotización.") }}
 {{ m.steps([
@@ -77,7 +99,7 @@
 <p><strong>Descartar cambios</strong> borra lo que está en pantalla y empieza de cero.</p>
 <p>Abajo, en <strong>Historial</strong>, están las últimas 20 cotizaciones guardadas{% if user.role == 'client' %} de tu empresa{% endif %}.
     <strong>Cargar</strong> abre una para verla o cambiarla (si tenés cambios sin guardar, te pregunta antes).
-    <strong>PDF</strong> abre su PDF sin cargarla.{% if user.role == 'admin' %} <strong>Borrar</strong> la elimina para
+    <strong>PDF</strong> abre su PDF sin cargarla.{% if user.role in ['admin', 'ventas'] %} <strong>Enviar</strong> la manda por correo.{% endif %}{% if user.role == 'admin' %} <strong>Borrar</strong> la elimina para
     siempre (solo el admin; queda en Actividad).{% endif %}</p>
 {% endcall %}
 

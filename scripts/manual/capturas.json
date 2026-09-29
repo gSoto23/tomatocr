@@ -628,6 +628,35 @@
    ]
   },
   {
+   "name": "cotizador/enviar",
+   "path": "/cotizador",
+   "as": "ventas",
+   "wait": 1500,
+   "viewport": "mobile",
+   "height": 1250,
+   "before": [
+    "openEmail(document.querySelector('#recentBody button[onclick^=openEmail]').getAttribute('onclick').match(/\\d+/)[0]); await new Promise(r => setTimeout(r, 900))"
+   ],
+   "markers": [
+    {
+     "n": 1,
+     "selector": "#emailTo"
+    },
+    {
+     "n": 2,
+     "selector": "#emailMessage"
+    },
+    {
+     "n": 3,
+     "selector": "#emailPreview"
+    },
+    {
+     "n": 4,
+     "selector": "#emailNextDate"
+    }
+   ]
+  },
+  {
    "name": "clientes/embudo",
    "path": "/clientes",
    "as": "admin",

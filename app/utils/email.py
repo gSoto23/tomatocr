@@ -17,6 +17,7 @@ conf = ConnectionConfig(
     MAIL_USERNAME=settings.MAIL_USERNAME,
     MAIL_PASSWORD=settings.MAIL_PASSWORD,
     MAIL_FROM=settings.MAIL_FROM,
+    MAIL_FROM_NAME=settings.MAIL_FROM_NAME,
     MAIL_PORT=settings.MAIL_PORT,
     MAIL_SERVER=settings.MAIL_SERVER,
     MAIL_STARTTLS=settings.MAIL_STARTTLS,
@@ -175,3 +176,41 @@ async def send_plain_email(recipients: List[str], subject: str, body: str):
         await FastMail(conf).send_message(message)
     except Exception as e:
         logger.error(f"Error sending notification '{subject}': {e}")
+
+
+async def send_quote_email(recipients: List[str], subject: str, message: str, pdf: bytes, filename: str,
+                           reply_to: List[str]) -> bool:
+    """A quote to the client, with its PDF attached; the client's reply goes to the seller
+    (reply_to). Returns True only when the mail server accepted it."""
+    if not settings.MAIL_USERNAME:
+        logger.error("Quote e-mail not sent: mail is not configured")
+        return False
+    folder = tempfile.mkdtemp()
+    path = os.path.join(folder, filename)
+    try:
+        with open(path, "wb") as f:
+            f.write(pdf)
+        body = message_html(message)
+        email = MessageSchema(subject=subject, recipients=recipients, body=body, subtype=MessageType.html,
+                              reply_to=[r for r in reply_to if r],
+                              attachments=[{"file": path, "mime_type": "application", "mime_subtype": "pdf"}])
+        await FastMail(conf).send_message(email)
+        return True
+    except Exception as e:
+        logger.error(f"Error sending quote '{subject}': {e}")
+        return False
+    finally:
+        try:
+            os.remove(path)
+            os.rmdir(folder)
+        except OSError:
+            pass
+
+
+def message_html(message: str) -> str:
+    """The seller's text as simple HTML (escaped), with line breaks kept."""
+    from html import escape
+    paragraphs = "".join(f"<p style=\"margin:0 0 12px\">{escape(block).replace(chr(10), '<br>')}</p>"
+                         for block in message.strip().split("\n\n"))
+    return (f"<div style=\"font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:#1f2937\">"
+            f"{paragraphs}</div>")
