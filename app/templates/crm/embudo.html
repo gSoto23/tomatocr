@@ -1,6 +1,6 @@
 {% extends "base_dashboard.html" %}
 
-{% block title %}Embudo | Clientes | TOMATO{% endblock %}
+{% block title %}Filtro | Clientes | TOMATO{% endblock %}
 {% block header_title %}Clientes{% endblock %}
 
 {% macro money(value) %}{{ '₡{:,.0f}'.format(value) if value else '—' }}{% endmacro %}
@@ -10,10 +10,10 @@
 <div class="max-w-6xl mx-auto space-y-6" x-data="{ editGoals: false }">
     {% set active = 'embudo' %}{% include "crm/_nav.html" %}
 
-    <!-- Embudo -->
+    <!-- Filtro (funnel) -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
         <div class="flex flex-wrap items-center justify-between gap-2">
-            <h2 class="font-semibold text-gray-900">Embudo · {{ 'Todo el historial' if whole_history else period.label }} {% if filters.motor or filters.owner %}<span class="text-sm font-normal text-gray-500">(filtrado)</span>{% endif %}</h2>
+            <h2 class="font-semibold text-gray-900">Filtro · {{ 'Todo el historial' if whole_history else period.label }} {% if filters.motor or filters.owner %}<span class="text-sm font-normal text-gray-500">(filtrado)</span>{% endif %}</h2>
             <div class="flex gap-1 rounded-lg bg-gray-100 p-1 text-xs font-semibold">
                 {% set keep = ('&motor=' ~ (filters.motor or '') ~ '&owner=' ~ (filters.owner or '') ~ '&stage=' ~ (filters.stage or '') ~ '&q=' ~ (filters.q|urlencode)) %}
                 <a href="/clientes?{{ keep[1:] }}" class="rounded-md px-3 py-1 {{ 'text-gray-600 hover:text-gray-900' if whole_history else 'bg-white shadow-sm text-gray-900' }}">{{ period.name }}</a>
@@ -22,7 +22,8 @@
         </div>
         <p class="mt-1 text-xs text-gray-500">
             {% if whole_history %}Cuentas que alcanzaron cada etapa, con cualquier oportunidad desde el inicio.
-            {% else %}Cuentas que alcanzaron cada etapa con una oportunidad <strong>nueva</strong> creada en el periodo; las renovaciones y ampliaciones no cuentan. La lista de abajo muestra todas.{% endif %}
+            {% else %}Cuentas que alcanzaron cada etapa con una oportunidad <strong>nueva</strong> creada en el periodo; las renovaciones y ampliaciones no cuentan.{% endif %}
+            Las cuentas descartadas siguen contando aquí (llegaron y se perdieron), pero no salen en la lista de abajo.
         </p>
         <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
             {% for row in funnel %}
@@ -132,7 +133,7 @@
                     <option value="">Todas</option>
                     {% for s in stages %}<option value="{{ s }}" {% if filters.stage == s %}selected{% endif %}>{{ L.stage[s] }}</option>{% endfor %}
                 </select></label>
-            <button class="rounded-md bg-black px-3 py-2 font-semibold text-white hover:bg-gray-800">Filtrar</button>
+            <button class="rounded-md bg-black px-3 py-2 font-semibold text-white hover:bg-gray-800">Buscar</button>
             <a href="/clientes" class="px-2 py-2 text-gray-600 hover:text-black">Limpiar</a>
         </form>
         <div class="overflow-x-auto">

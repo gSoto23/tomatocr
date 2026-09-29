@@ -61,7 +61,7 @@ def test_form_creates_account_contact_and_opportunity_for_the_motor_seller(db, s
     note = db.query(CrmActivity).one()
     assert "Jardines de 2 hectáreas" in note.notes
     assert len(mails) == 1 and settings.LEADS_NOTIFY_EMAIL in mails[0]["to"]
-    assert mails[0]["subject"] == "Nuevo prospecto: Hotel Bosque (Mantenimiento)"
+    assert mails[0]["subject"] == "Nueva oportunidad: Hotel Bosque (Mantenimiento)"
     assert f"/clientes/oportunidades/{opp.id}" in mails[0]["body"]
 
 

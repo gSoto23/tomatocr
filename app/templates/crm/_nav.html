@@ -1,8 +1,9 @@
-{# Tabs shared by the Clientes screens. `active` is "embudo" or "cuentas". #}
+{# Tabs shared by the Clientes screens. `active` is "embudo" (shown as "Filtro"), "cuentas" or "descartados". #}
 <div class="flex flex-wrap items-center justify-between gap-3">
     <nav class="flex gap-1 rounded-lg bg-gray-100 p-1 text-sm font-semibold">
-        <a href="/clientes" class="rounded-md px-4 py-2 {{ 'bg-white shadow-sm text-gray-900' if active == 'embudo' else 'text-gray-600 hover:text-gray-900' }}">Embudo</a>
+        <a href="/clientes" class="rounded-md px-4 py-2 {{ 'bg-white shadow-sm text-gray-900' if active == 'embudo' else 'text-gray-600 hover:text-gray-900' }}">Filtro</a>
         <a href="/clientes/cuentas" class="rounded-md px-4 py-2 {{ 'bg-white shadow-sm text-gray-900' if active == 'cuentas' else 'text-gray-600 hover:text-gray-900' }}">Cuentas</a>
+        <a href="/clientes/descartados" class="rounded-md px-4 py-2 {{ 'bg-white shadow-sm text-gray-900' if active == 'descartados' else 'text-gray-600 hover:text-gray-900' }}">Descartados{% if discarded %} <span class="text-xs font-normal text-gray-500">{{ discarded }}</span>{% endif %}</a>
     </nav>
     <div class="flex items-center gap-3 text-sm">
         <a href="/manual/clientes" class="rounded-md px-3 py-2 font-semibold text-gray-600 hover:text-gray-900">Cómo trabajar</a>
@@ -12,7 +13,7 @@
         </a>
         {% endif %}
         {% if user and user.role == 'admin' %}
-        <a href="/clientes/asignacion" class="rounded-md px-3 py-2 font-semibold text-gray-600 hover:text-gray-900">Asignación de prospectos</a>
+        <a href="/clientes/asignacion" class="rounded-md px-3 py-2 font-semibold text-gray-600 hover:text-gray-900">Asignación de oportunidades</a>
         {% endif %}
         <a href="/clientes/cuentas/nueva" class="rounded-md bg-black px-3 py-2 font-semibold text-white hover:bg-gray-800">Nueva cuenta</a>
     </div>

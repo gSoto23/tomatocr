@@ -92,4 +92,4 @@ def test_client_sees_each_project_with_next_visit_date_only(db, login_as, users)
 
 
 def test_sales_sees_own_funnel(login_as):
-    assert "Mi embudo" in login_as("ventas").get("/dashboard").text
+    assert "Mi filtro" in login_as("ventas").get("/dashboard").text

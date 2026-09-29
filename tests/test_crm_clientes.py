@@ -110,7 +110,7 @@ def test_admin_reassigns_owner(db, login_as, crm):
 
 def test_discard_only_by_owner_or_admin(db, login_as, crm):
     assert post(login_as("ventas"), f"/clientes/cuentas/{crm['theirs'].id}/descartar", {}).status_code == 403
-    post(login_as("ventas"), f"/clientes/cuentas/{crm['mine'].id}/descartar", {})
+    post(login_as("ventas"), f"/clientes/cuentas/{crm['mine'].id}/descartar", {"reason": "No le interesa"})
     db.refresh(crm["mine"])
     assert crm["mine"].discarded_at is not None
     post(login_as("ventas"), f"/clientes/cuentas/{crm['mine'].id}/descartar", {})
@@ -205,7 +205,7 @@ def test_next_steps_and_dashboard(db, login_as, crm, users):
 
     html = login_as("ventas").get("/dashboard/").text
     assert "Mis próximos pasos" in html and "Hotel Playa Azul" in html and "Condominio Ajeno" not in html
-    assert "Embudo comercial del equipo" in login_as("admin").get("/dashboard/").text
+    assert "Filtro comercial del equipo" in login_as("admin").get("/dashboard/").text
 
 
 # --- Follow-ups ------------------------------------------------------------------------

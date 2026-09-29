@@ -4,6 +4,26 @@ Cambios en el sistema y en el sitio público, del más reciente al más antiguo.
 Cada entrada indica el PR y si necesitó migración o pasos especiales al
 desplegar. Hora de Costa Rica salvo que diga UTC.
 
+## 2026-09-29
+
+### Clientes: Descartados, lo nuevo arriba y nombres nuevos (esta rama)
+- **Descartar cliente desde la oportunidad** (además de la ficha de la cuenta): pide el
+  motivo, cierra como perdidas las oportunidades abiertas de la cuenta y la manda a la
+  pestaña nueva **Descartados**. Sale de Filtro y de Cuentas; se puede **Reactivar**, y
+  se reactiva sola si la persona vuelve a escribir por el formulario.
+- **Borrar para siempre** (solo admin), desde Descartados, las cuentas que no tienen
+  proyectos, cotizaciones ni usuarios del portal (spam, pruebas); si no se puede, la
+  tabla dice por qué. Queda en Actividad.
+- Las tablas de oportunidades y de cuentas muestran **lo más nuevo arriba**.
+- Nombres: **Embudo → Filtro** (el botón de la lista pasa a *Buscar*; en el Dashboard
+  "Filtro comercial del equipo" y "Mi filtro"), estado **Prospecto → Oportunidad**,
+  primera etapa **Prospecto → Nueva**, *Asignación de oportunidades* y correo
+  "Nueva oportunidad: …".
+- Manual (Clientes, Dashboard, Recorridos, Cotizador) y capturas al día; sección nueva
+  *Descartar y borrar*. `docs/DISENO_CRM.md` y README al día.
+- Despliegue: **migración 0012** (`accounts.discard_reason`). Snapshot, `alembic upgrade
+  head` y reiniciar.
+
 ## 2026-09-28
 
 ### Páginas de servicio (#90)
@@ -24,7 +44,7 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 - Sitemap con las 4 páginas; con barra final redirigen con 308; `/servicios/<otro>` da 404.
 - Despliegue: sin migraciones; reiniciar. En Search Console, pedir la indexación de las 4.
 
-### Correo del sistema desde notificaciones@tomatocr.com (esta rama)
+### Correo del sistema desde notificaciones@tomatocr.com (#90, #91)
 - Los correos del sistema salen de `notificaciones@tomatocr.com`, un usuario propio de
   Google Workspace, en vez de `tomatocostarica@gmail.com`. Se cambió en el `.env` de
   producción; en el código solo cambian los valores por defecto (`MAIL_FROM`).

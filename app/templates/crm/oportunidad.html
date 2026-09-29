@@ -6,7 +6,7 @@
 {% block content %}
 {% set L = crm_labels %}
 {% set input = "mt-1 block w-full rounded-md border border-gray-300 p-2" %}
-<div class="max-w-4xl mx-auto space-y-5" x-data="{ stage: '{{ opportunity.stage }}', followup: false }">
+<div class="max-w-4xl mx-auto space-y-5" x-data="{ stage: '{{ opportunity.stage }}', followup: false, discard: false }">
     <a href="/clientes/cuentas/{{ account.id }}?tab=oportunidades" class="text-sm font-semibold text-gray-600 hover:text-black">&larr; {{ account.name }}</a>
 
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 space-y-4">
@@ -29,6 +29,9 @@
             <li class="rounded-md px-2 py-2 text-center {{ 'bg-black text-white' if s == opportunity.stage else ('bg-green-50 text-green-800' if reached else 'bg-gray-100 text-gray-500') }}">{{ L.stage[s] }}</li>
             {% endfor %}
         </ol>
+        {% if account.discarded_at %}
+        <p class="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800">{{ account.name }} está descartada; esta oportunidad no sale en Filtro. Se reactiva desde <a href="/clientes/descartados" class="font-semibold underline">Descartados</a>.</p>
+        {% endif %}
         {% if opportunity.stage == 'perdido' and opportunity.lost_reason %}
         <p class="text-sm text-red-700">Motivo: {{ opportunity.lost_reason }}</p>
         {% endif %}
@@ -47,10 +50,14 @@
             {% if opportunity.stage not in ['ganado', 'perdido'] %}
             <a href="/cotizador?opportunity_id={{ opportunity.id }}" class="rounded-md bg-black px-3 py-2 font-semibold text-white hover:bg-gray-800">Crear cotización</a>
             {% endif %}
+            {% if not account.discarded_at and (user.role == 'admin' or user.id in [account.owner_id, opportunity.owner_id]) %}
+            <button type="button" @click="discard = !discard" class="rounded-md bg-white px-3 py-2 font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Descartar cliente</button>
+            {% endif %}
             {% if linked_project %}
             <span class="text-gray-700">Proyecto: <a href="/projects/{{ linked_project.id }}" class="font-semibold hover:underline">{{ linked_project.name }}</a></span>
             {% endif %}
         </div>
+        {% if not account.discarded_at %}{% set discard_url = '/clientes/oportunidades/' ~ opportunity.id ~ '/descartar' %}{% include "crm/_descartar.html" %}{% endif %}
         {% if user.role == 'admin' and opportunity.stage != 'ganado' %}
         <div x-data="{ win: false }" class="text-sm">
             <button type="button" @click="win = !win" class="font-semibold text-green-700 hover:text-green-900">Marcar ganada…</button>

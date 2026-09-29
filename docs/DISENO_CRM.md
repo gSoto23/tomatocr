@@ -6,11 +6,11 @@ Preparado el 26/09/2026. Reemplaza la sección "Fase 2. CRM y formulario web" de
 
 **Cambios aprobados sobre este diseño** (ver el análisis para el detalle):
 - **Una sola lista de contactos por cuenta.** `project_contact_roles` indica qué contactos usa cada proyecto (de sitio, recibe reportes). Los `project_contacts` actuales se copian a la cuenta con la migración; en 2C el formulario de proyecto y el correo de la bitácora pasan a usarlos.
-- **Estado de la cuenta calculado:** cliente (proyecto activo o reforestación), ex-cliente (solo proyectos cerrados), prospecto (sin proyectos). Solo "descartada" es manual (`discarded_at`). No hay columna `status`.
+- **Estado de la cuenta calculado:** cliente (proyecto activo o reforestación), ex-cliente (solo proyectos cerrados), prospecto (sin proyectos; en pantalla "Oportunidad" desde el 29/09/2026). Solo "descartada" es manual (`discarded_at` y `discard_reason`). No hay columna `status`.
 - **Sin `segment` en la cuenta:** el motor va en la oportunidad.
 - **Monto de la oportunidad:** sale de la cotización ligada; `amount_crc` solo mientras no haya cotización.
 - **Renovaciones:** lista "Contratos por vencer" con botón "Crear renovación", no automáticas.
-- **Nombres:** menú "Clientes" (rutas `/clientes`), con Embudo y Cuentas; las actividades comerciales se llaman "Seguimientos".
+- **Nombres:** menú "Clientes" (rutas `/clientes`), con Filtro (antes "Embudo"), Cuentas y Descartados; las actividades comerciales se llaman "Seguimientos". La etapa `prospecto` se muestra como "Nueva".
 Principio: **una sola cuenta por cliente**. Prospectos y clientes actuales viven en la misma tabla, y todo lo que ya existe (proyectos, cotizaciones, usuarios del portal, reforestación) se liga a esa cuenta sin romperse.
 
 ## 1. Cómo están hoy los clientes en el sistema
@@ -136,3 +136,12 @@ Confirmadas el 27/09/2026: plazo de 90 días para convertir cotizaciones en opor
 Confirmadas el 27/09/2026 (2D): correo de `/privacidad` info@tomatocr.com; sector público y prospectos sin motor asignados a Gerardo; el tablero se importa con `scripts/import_tablero.py` (exportación actual con 0 prospectos).
 
 Por confirmar: usuarios de Melina y Albert (rol ventas) para asignarles sus motores; pasar la IP real del visitante desde nginx.
+
+## Descartados y nombres (29/09/2026, migración 0012)
+
+- **Descartar** una cuenta (desde su ficha, o "Descartar cliente" desde una oportunidad) lo puede hacer su dueño, el dueño de la oportunidad o el admin, y pide un motivo (`accounts.discard_reason`). Marca `discarded_at` y pasa a `perdido` las oportunidades abiertas con el motivo "Cuenta descartada: …" (`app/utils/crm.py`, `discard_account`).
+- Las cuentas descartadas no aparecen en la lista de oportunidades del Filtro ni en Cuentas; están en `/clientes/descartados`, ordenadas por fecha de descarte. **Siguen contando en el Filtro** (llegaron a esas etapas y se perdieron), para no inflar las conversiones del piloto.
+- **Reactivar** borra `discarded_at` y el motivo; las oportunidades quedan perdidas hasta que el vendedor les cambie la etapa. Una solicitud nueva por el formulario o la API para una cuenta descartada la reactiva sola (`app/utils/leads.py`).
+- **Borrar** (solo admin, `delete_account`): solo cuentas descartadas sin proyectos, proyectos de reforestación, cotizaciones (de la cuenta o de sus oportunidades), contactos que sean usuarios del portal ni cuentas fusionadas en ella. Borra contactos, roles de contacto por proyecto, marcas de "no duplicado", oportunidades, seguimientos y la cuenta; queda un registro DELETE en Actividad.
+- Las tablas de oportunidades y de cuentas van de la más nueva a la más vieja.
+- En pantalla: "Embudo" → "Filtro" (el botón de la lista pasa a "Buscar"), estado "Prospecto" → "Oportunidad", etapa "Prospecto" → "Nueva", "Asignación de prospectos" → "Asignación de oportunidades", correo "Nuevo prospecto" → "Nueva oportunidad". Los valores en la base no cambian.

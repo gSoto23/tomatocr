@@ -234,11 +234,11 @@
     </div>
 </div>
 
-<!-- Embudo del equipo (Clientes): compact until the period is running -->
+<!-- Filtro del equipo (Clientes): compact until the period is running -->
 <div class="mt-6 bg-white rounded-xl shadow-sm border border-gray-100 {{ 'p-6' if data.crm_running else 'px-6 py-4' }}">
     <div class="flex flex-wrap justify-between items-center gap-2">
         <div>
-            <h3 class="font-bold text-gray-900">Embudo comercial del equipo</h3>
+            <h3 class="font-bold text-gray-900">Filtro comercial del equipo</h3>
             <p class="text-xs text-gray-500">{{ data.crm_period.label }} · solo oportunidades nuevas{% if not data.crm_running %} · el periodo no está en curso{% endif %}</p>
         </div>
         <a href="/clientes" class="text-sm font-semibold text-black hover:text-gray-600">Ver Clientes &rarr;</a>
@@ -529,7 +529,7 @@
     <div class="border-t border-gray-100 px-6 py-3 text-sm"><a href="/clientes" class="font-semibold text-black hover:text-gray-600">Ir a Clientes &rarr;</a></div>
 </div>
 <div class="mt-6 rounded-xl border border-gray-100 bg-white {{ 'p-6' if data.crm_running else 'px-6 py-4' }} shadow-sm">
-    <h3 class="font-bold text-gray-900">Mi embudo</h3>
+    <h3 class="font-bold text-gray-900">Mi filtro</h3>
     <p class="text-xs text-gray-500">{{ data.crm_period.label }} · tus oportunidades nuevas{% if not data.crm_running %} · el periodo no está en curso{% endif %}</p>
     {% if data.crm_running %}
     <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">

@@ -1,0 +1,10 @@
+{# "Descartar" form, shared by the account and the opportunity. Needs `discard` in the Alpine scope and `discard_url`. #}
+{% set discard_url = discard_url | default('/clientes/cuentas/' ~ account.id ~ '/descartar') %}
+<form x-show="discard" x-cloak method="post" action="{{ discard_url }}" class="mt-4 space-y-2 rounded-lg border border-red-200 bg-red-50 p-4 text-sm">
+    <p class="text-gray-800"><strong>{{ account.name }}</strong> pasa a <strong>Descartados</strong>: sale de Filtro y de Cuentas, y
+        sus oportunidades abiertas quedan como <em>Perdidas</em> con este motivo. Se puede reactivar.</p>
+    <label class="block"><span class="font-medium text-gray-700">¿Por qué se descarta?</span>
+        <input type="text" name="reason" required maxlength="300" placeholder="Ej.: spam, prueba, no le interesa, fuera de zona"
+               class="mt-1 block w-full rounded-md border border-gray-300 p-2"></label>
+    <button class="rounded-md bg-red-700 px-3 py-2 font-semibold text-white hover:bg-red-800">Descartar cliente</button>
+</form>
