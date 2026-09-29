@@ -6,7 +6,26 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-28
 
-### Sitio público: imagen para compartir y medición de clics
+### SEO: arreglos rápidos
+- **Títulos y descripciones** que caben en Google (≤ 60 y ≤ 155 caracteres) y dicen dónde:
+  home "Reforestación y jardinería en Costa Rica | TOMATO", Dárboles "Reforestación para
+  empresas con GPS | Dárboles", mapa "Mapa de reforestación con GPS en Costa Rica |
+  TOMATO". Mismos textos en Open Graph y Twitter.
+- **Mapa de reforestación legible sin JavaScript**: título principal fijo en el HTML, la
+  cifra de árboles viene del servidor (antes Google veía "0") y una sección nueva *Cómo
+  funciona la trazabilidad de cada árbol* con *En cifras* (árboles, % con GPS, especies,
+  proyectos) y enlaces a Dárboles y a cotizar.
+- **Datos estructurados** del negocio completos: razón social, cédula, logo, imágenes,
+  zona (Costa Rica), contacto de ventas, temas y los 4 servicios.
+- Encabezados del home con palabras que se buscan ("Empresa de reforestación y zonas
+  verdes", "Cómo trabajamos"); el título principal de Dárboles incluye "reforestación
+  corporativa e institucional" para lectores de pantalla y buscadores.
+- Logos con ancho y alto (sin saltos al cargar); logos de clientes con carga diferida.
+- **Servidor**: las páginas públicas con barra final redirigen con 308 (permanente) en vez
+  de 307; cabecera HSTS; caché de 1 año para CSS/JS versionados y 7 días para imágenes.
+- Despliegue: sin migraciones; reiniciar.
+
+### Sitio público: imagen para compartir y medición de clics (#88)
 - **Imagen al compartir el enlace** (WhatsApp, Facebook, LinkedIn): la foto genérica en
   blanco y negro pasa a una tarjeta de TOMATO con la foto real de siembra, el logo y
   "Reforestación que podés comprobar, árbol por árbol" (`og-tomato-2026-09.jpg`, nombre

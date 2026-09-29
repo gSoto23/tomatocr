@@ -41,6 +41,26 @@ async def redirect_www_to_apex(request: Request, call_next):
         return RedirectResponse(url=str(target), status_code=308)
     return await call_next(request)
 
+
+# Public pages reached with a trailing slash redirect for good (308) instead of FastAPI's
+# temporary 307, so search engines keep a single URL. Internal routes keep their own slashes.
+PUBLIC_SLASH_PATHS = {"/proyectos-reforestacion/", "/programas/darboles/", "/privacidad/", "/contacto/gracias/"}
+STATIC_VERSIONED = "public, max-age=31536000, immutable"  # CSS/JS carry ?v=<mtime>
+STATIC_PLAIN = "public, max-age=604800"                   # images: 7 days; a changed image gets a new name
+
+
+@app.middleware("http")
+async def seo_and_cache_headers(request: Request, call_next):
+    path = request.url.path
+    if request.method in ("GET", "HEAD") and path in PUBLIC_SLASH_PATHS:
+        target = request.url.replace(path=path.rstrip("/"))
+        return RedirectResponse(url=str(target), status_code=308)
+    response = await call_next(request)
+    response.headers.setdefault("Strict-Transport-Security", "max-age=31536000")
+    if path.startswith("/static/") and response.status_code == 200:
+        response.headers["Cache-Control"] = STATIC_VERSIONED if "v=" in request.url.query else STATIC_PLAIN
+    return response
+
 # Mount static files
 # Directory structure is app/static, so we mount it to /static path
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
@@ -49,20 +69,24 @@ from app.core.templates import templates
 from app.routers import deps
 from app.utils.reforestation import public_stats
 
+def safe_public_stats(db: Session):
+    """The live figures are a bonus: if the query fails, the page still loads without them."""
+    try:
+        return public_stats(db)
+    except SQLAlchemyError:
+        logger.exception("Public reforestation figures unavailable")
+        db.rollback()
+        return None
+
+
 @app.api_route("/", methods=["GET", "HEAD"])
 def read_root(request: Request, db: Session = Depends(deps.get_db)):
-    # The live figures are a bonus: if the query fails, the home still loads without them.
-    try:
-        stats = public_stats(db)
-    except SQLAlchemyError:
-        logger.exception("Home: public reforestation figures unavailable")
-        db.rollback()
-        stats = None
-    return templates.TemplateResponse("index.html", {"request": request, "stats": stats})
+    return templates.TemplateResponse("index.html", {"request": request, "stats": safe_public_stats(db)})
 
 @app.api_route("/proyectos-reforestacion", methods=["GET", "HEAD"])
-async def view_reforestation_report(request: Request):
-    return templates.TemplateResponse("reforestacion.html", {"request": request})
+def view_reforestation_report(request: Request, db: Session = Depends(deps.get_db)):
+    # Figures rendered on the server too, so search engines read them without running the map's JavaScript.
+    return templates.TemplateResponse("reforestacion.html", {"request": request, "stats": safe_public_stats(db)})
 
 @app.api_route("/programas/darboles", methods=["GET", "HEAD"])
 async def view_darboles_program(request: Request):

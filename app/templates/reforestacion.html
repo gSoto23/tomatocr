@@ -12,25 +12,25 @@
         gtag('config', 'G-HL6PM4KVF3');
     </script>
     <script defer src="{{ static_url('js/analytics.js') }}"></script>
-    <title>Reporte de Reforestación | TOMATO</title>
+    <title>Mapa de reforestación con GPS en Costa Rica | TOMATO</title>
     <meta name="description"
-        content="Reporte público de reforestación de TOMATO: mapa interactivo con trazabilidad GPS de los árboles sembrados por cliente y proyecto en Costa Rica." />
+        content="Mapa público con la coordenada GPS de cada árbol sembrado por TOMATO en Costa Rica: especie, estado y supervivencia por proyecto, en vivo." />
     <link rel="canonical" href="https://tomatocr.com/proyectos-reforestacion" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="TOMATO" />
     <meta property="og:url" content="https://tomatocr.com/proyectos-reforestacion" />
-    <meta property="og:title" content="Reporte de Reforestación | TOMATO" />
+    <meta property="og:title" content="Mapa de reforestación con GPS en Costa Rica | TOMATO" />
     <meta property="og:description"
-        content="Reporte público de reforestación de TOMATO: mapa interactivo con trazabilidad GPS de los árboles sembrados por cliente y proyecto en Costa Rica." />
+        content="Mapa público con la coordenada GPS de cada árbol sembrado por TOMATO en Costa Rica: especie, estado y supervivencia por proyecto, en vivo." />
     <meta property="og:image" content="https://tomatocr.com/static/images/og-tomato-2026-09.jpg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="628" />
     <meta property="og:image:alt" content="Persona del equipo de TOMATO sembrando un árbol, con el lema Reforestación que podés comprobar, árbol por árbol" />
     <meta property="og:locale" content="es_CR" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Reporte de Reforestación | TOMATO" />
+    <meta name="twitter:title" content="Mapa de reforestación con GPS en Costa Rica | TOMATO" />
     <meta name="twitter:description"
-        content="Reporte público de reforestación de TOMATO: mapa interactivo con trazabilidad GPS de los árboles sembrados por cliente y proyecto en Costa Rica." />
+        content="Mapa público con la coordenada GPS de cada árbol sembrado por TOMATO en Costa Rica: especie, estado y supervivencia por proyecto, en vivo." />
     <meta name="twitter:image" content="https://tomatocr.com/static/images/og-tomato-2026-09.jpg" />
     <!-- Favicons -->
     <link rel="apple-touch-icon" sizes="57x57" href="/static/images/fav/apple-icon-57x57.png">
@@ -109,7 +109,8 @@
 
     <main class="mx-auto max-w-7xl px-4 py-8">
         <div class="mb-8">
-            <h1 class="text-3xl font-bold tracking-tight" x-text="selectedClient === 'all' ? 'Reporte Nacional de Reforestación' : selectedClient"></h1>
+            {% macro num(n) %}{{ "{:,}".format(n).replace(",", ".") }}{% endmacro %}
+            <h1 class="text-3xl font-bold tracking-tight" x-text="selectedClient === 'all' ? 'Mapa de reforestación con trazabilidad GPS' : selectedClient">Mapa de reforestación con trazabilidad GPS</h1>
             <p class="mt-2 text-gray-600">Reporte en vivo de árboles plantados, inventario y georreferenciación.</p>
             <p class="mt-1 text-sm text-gray-500">Tecnología de trazabilidad propia de TOMATO, adoptada también por <a href="/programas/darboles" class="font-semibold text-green-700 hover:underline">Dárboles</a> para la venta directa de árboles.</p>
         </div>
@@ -149,7 +150,7 @@
                         <div class="h-10 w-24 bg-gray-200 rounded"></div>
                     </div>
                     
-                    <div x-show="!isLoading" class="mt-2 text-5xl font-extrabold text-green-600" x-text="totalTrees">0</div>
+                    <div x-show="!isLoading" class="mt-2 text-5xl font-extrabold text-green-600" x-text="totalTrees">{{ num(stats.planted) if stats else 0 }}</div>
                     <div x-show="!isLoading" class="mt-2 text-sm text-gray-600">registrados en el área</div>
                 </div>
 
@@ -200,6 +201,53 @@
                 </div>
             </div>
         </div>
+
+        <!-- Plain text the search engines can read without running the map (figures from the server) -->
+        <section class="mt-12 grid gap-8 lg:grid-cols-3" aria-labelledby="como-funciona">
+            <div class="lg:col-span-2 space-y-4 text-gray-700 leading-relaxed">
+                <h2 id="como-funciona" class="text-2xl font-semibold tracking-tight text-gray-900">Cómo funciona la trazabilidad de cada árbol</h2>
+                <p>
+                    Cada árbol que TOMATO siembra en un proyecto de reforestación institucional queda registrado con su
+                    número, su especie, el sector y la <strong>coordenada GPS</strong> donde se sembró. Este mapa muestra
+                    esos registros tal como están en nuestro sistema, sin intermediarios: cualquier persona puede buscar
+                    un árbol y ver dónde está.
+                </p>
+                <p>
+                    Después de la siembra, el equipo de campo hace monitoreos y actualiza el <strong>estado</strong> de
+                    cada árbol: vivo, muerto, reemplazado o sin verificar. La <strong>supervivencia a 12 meses</strong> se
+                    calcula solo sobre los árboles verificados que se sembraron hace al menos un año, y los árboles de
+                    reposición se cuentan aparte, para que replantar no infle el resultado.
+                </p>
+                <p>
+                    El nombre del cliente aparece solo con su autorización; si no, el proyecto figura como "Proyecto
+                    institucional". El mapa nunca publica notas internas, fotos ni datos de personas.
+                </p>
+                <h2 class="pt-2 text-xl font-semibold tracking-tight text-gray-900">Reforestación con ingeniería forestal en Costa Rica</h2>
+                <p>
+                    Los proyectos los dirigen ingenieros forestales, con plantas de nuestro vivero y
+                    <strong>hidrokeeper</strong> para ayudar a cada árbol a resistir la época seca. Trabajamos con
+                    municipalidades, instituciones y empresas que necesitan demostrar su impacto ambiental con datos, por
+                    ejemplo en sus informes ESG.
+                </p>
+                <p>
+                    Si tu empresa o institución quiere un proyecto así, conocé el
+                    <a href="/programas/darboles" class="font-semibold text-green-700 hover:underline">programa Dárboles de reforestación para empresas</a>
+                    o <a href="/#contact" class="font-semibold text-green-700 hover:underline">cotizá tu proyecto de reforestación</a>:
+                    te respondemos en menos de 24 horas.
+                </p>
+            </div>
+            {% if stats and stats.planted %}
+            <aside class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm h-fit">
+                <h2 class="text-sm font-semibold uppercase tracking-widest text-gray-500">En cifras</h2>
+                <dl class="mt-4 space-y-4">
+                    <div class="flex flex-col-reverse"><dt class="text-sm text-gray-600">árboles sembrados en proyectos institucionales, sin contar reposiciones</dt><dd class="text-3xl font-extrabold text-green-700">{{ num(stats.planted) }}</dd></div>
+                    <div class="flex flex-col-reverse"><dt class="text-sm text-gray-600">con coordenada GPS</dt><dd class="text-2xl font-bold text-gray-900">{{ stats.gps_pct }}%</dd></div>
+                    <div class="flex flex-col-reverse"><dt class="text-sm text-gray-600">especies distintas</dt><dd class="text-2xl font-bold text-gray-900">{{ num(stats.species) }}</dd></div>
+                    <div class="flex flex-col-reverse"><dt class="text-sm text-gray-600">{{ "proyecto" if stats.projects == 1 else "proyectos" }} en el mapa</dt><dd class="text-2xl font-bold text-gray-900">{{ num(stats.projects) }}</dd></div>
+                </dl>
+            </aside>
+            {% endif %}
+        </section>
     </main>
 
     <script>
