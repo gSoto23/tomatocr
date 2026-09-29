@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.core.roles import ADMIN, VENTAS
 from app.core.templates import templates
-from app.db.models.crm import (ACCOUNT_KINDS, ACTIVITY_TYPES, ASSIGNMENT_DEFAULT, FUNNEL_STAGES, LABELS, MOTORS,
+from app.db.models.crm import (ACCOUNT_KINDS, ACTIVITY_TYPES, ASSIGNMENT_DEFAULT, FUNNEL_STAGES, GOAL_STAGES, LABELS, MOTORS,
                                OPPORTUNITY_KINDS, STAGES, Account, Contact, CrmActivity, CrmAssignment, Opportunity,
                                ProjectContactRole)
 from app.db.models.project import Project
@@ -121,7 +121,7 @@ def pipeline(request: Request, motor: Optional[str] = None, owner: Optional[str]
         "steps": next_steps(db, owner_id),
         "amounts": proposal_amounts(db, owner_id),
         "opportunities": [(o, quote_amount(db, o)) for o in opportunities],
-        "sellers": sellers(db), "motors": MOTORS, "stages": STAGES, "funnel_stages": FUNNEL_STAGES,
+        "sellers": sellers(db), "motors": MOTORS, "stages": STAGES, "funnel_stages": FUNNEL_STAGES, "goal_stages": GOAL_STAGES,
         "filters": {"motor": motor, "owner": owner_id, "stage": stage, "q": q or ""},
         "duplicates": len(find_duplicates(db)) if user.role == ADMIN else 0,
         "discarded": discarded_count(db),
@@ -140,8 +140,8 @@ def guide(user: User = Depends(view_roles)):
 async def update_goals(request: Request, db: Session = Depends(deps.get_db), user: User = Depends(admin_only)):
     form = await request.form()
     targets = {}
-    for stage in FUNNEL_STAGES:
-        value = (form.get(stage) or "").strip()
+    for stage in GOAL_STAGES:  # empty = no target
+        value = (form.get(stage) or "").strip() or "0"
         if not value.isdigit():
             return toast_redirect("/clientes", "Las metas deben ser números enteros", error=True)
         targets[stage] = int(value)

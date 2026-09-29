@@ -174,15 +174,22 @@ def test_funnel_counts_accounts_by_highest_stage(db, crm):
     db.commit()
     rows = {r["stage"]: r for r in funnel(db)}
     assert [rows[s]["reached"] for s in ["prospecto", "respuesta", "reunion", "propuesta", "ganado"]] == [2, 2, 2, 1, 0]
-    assert rows["prospecto"]["target"] == 150  # default when no goals are stored
+    # Only Propuesta and Ganado have a target; the other boxes show the share from the previous one.
+    assert [rows[s]["target"] for s in ["prospecto", "respuesta", "reunion", "propuesta", "ganado"]] == [0, 0, 0, 10, 4]
+    assert rows["prospecto"]["from_previous"] is None and rows["respuesta"]["from_previous"] == 100
+    assert rows["propuesta"]["from_previous"] == 50 and rows["ganado"]["from_previous"] == 0
     assert {r["stage"]: r["reached"] for r in funnel(db, motor="mantenimiento")}["propuesta"] == 0
 
 
 def test_goals_are_editable(db, login_as, crm):
     post(login_as("admin"), "/clientes/metas", {"prospecto": "200", "respuesta": "80", "reunion": "30",
                                                 "propuesta": "12", "ganado": "5"})
-    assert db.get(CrmGoal, "prospecto").target == 200
-    assert "/ 200" in login_as("admin").get("/clientes").text
+    assert db.get(CrmGoal, "propuesta").target == 12 and db.get(CrmGoal, "ganado").target == 5
+    assert db.get(CrmGoal, "prospecto") is None  # the earlier stages have no target
+    html = login_as("admin").get("/clientes").text
+    assert "/ 12" in html and "/ 5" in html and "de Nueva" in html
+    post(login_as("admin"), "/clientes/metas", {"propuesta": "", "ganado": "6"})
+    assert db.get(CrmGoal, "propuesta").target == 0  # empty = no target
 
 
 def test_amount_comes_from_the_linked_quote(db, crm):

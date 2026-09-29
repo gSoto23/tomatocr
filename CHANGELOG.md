@@ -6,7 +6,16 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-29
 
-### Clientes: Descartados, lo nuevo arriba y nombres nuevos (esta rama)
+### Filtro: metas solo en Propuesta y Ganado (esta rama)
+- Nueva, Respuesta y Reunión ya no tienen meta (150, 60 y 25 venían del plan, no de datos
+  reales): muestran el **% que pasó de la caja anterior** ("50 % de Respuesta").
+  Propuesta y Ganado mantienen su meta (10 y 4) con la barra de avance.
+- *Editar metas y periodo* pide solo esas dos metas (vacío = sin meta). Mismo formato en
+  el Dashboard.
+- Manual (Clientes: qué cuenta cada caja, con un ejemplo; Dashboard) y capturas al día.
+- Despliegue: sin migraciones; reiniciar.
+
+### Clientes: Descartados, lo nuevo arriba y nombres nuevos (#92)
 - **Descartar cliente desde la oportunidad** (además de la ficha de la cuenta): pide el
   motivo, cierra como perdidas las oportunidades abiertas de la cuenta y la manda a la
   pestaña nueva **Descartados**. Sale de Filtro y de Cuentas; se puede **Reactivar**, y

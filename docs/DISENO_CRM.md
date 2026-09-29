@@ -145,3 +145,11 @@ Por confirmar: usuarios de Melina y Albert (rol ventas) para asignarles sus moto
 - **Borrar** (solo admin, `delete_account`): solo cuentas descartadas sin proyectos, proyectos de reforestación, cotizaciones (de la cuenta o de sus oportunidades), contactos que sean usuarios del portal ni cuentas fusionadas en ella. Borra contactos, roles de contacto por proyecto, marcas de "no duplicado", oportunidades, seguimientos y la cuenta; queda un registro DELETE en Actividad.
 - Las tablas de oportunidades y de cuentas van de la más nueva a la más vieja.
 - En pantalla: "Embudo" → "Filtro" (el botón de la lista pasa a "Buscar"), estado "Prospecto" → "Oportunidad", etapa "Prospecto" → "Nueva", "Asignación de prospectos" → "Asignación de oportunidades", correo "Nuevo prospecto" → "Nueva oportunidad". Los valores en la base no cambian.
+
+## Metas solo en Propuesta y Ganado (29/09/2026)
+
+- Las metas de 150, 60 y 25 para Nueva, Respuesta y Reunión venían del plan del piloto, no de datos de TOMATO. Desde ahora solo **Propuesta** y **Ganado** tienen meta (`GOAL_STAGES`; por defecto 10 y 4; vacío = sin meta). Las filas guardadas en `crm_goals` para las otras etapas se ignoran.
+- Las cajas sin meta muestran la **tasa de paso** desde la caja anterior (`from_previous` en `funnel()`): "50 % de Respuesta" en Reunión quiere decir que la mitad de las cuentas que respondieron llegaron a reunión. Nueva muestra el total del periodo.
+- Mismo formato en el Filtro y en el Dashboard (`templates/crm/_funnel.html`). "Mi filtro" de ventas muestra solo conteos y tasas.
+- Cuando el piloto dé las tasas reales, se puede volver a poner metas en las etapas intermedias calculándolas hacia atrás desde la meta de Ganado.
+

@@ -1,0 +1,21 @@
+{# One box of the Filtro. Propuesta and Ganado show their target and progress; the earlier
+   boxes, which have no target, show the share that passed from the previous box. #}
+{% macro funnel_box(row, rows, loop_index, show_target=True) %}
+<div class="rounded-lg border border-gray-200 p-3">
+    <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ crm_labels.stage[row.stage] }}</div>
+    <div class="mt-1 text-2xl font-bold text-gray-900">{{ row.reached }}{% if show_target and row.target %}<span class="text-sm font-normal text-gray-500"> / {{ row.target }}</span>{% endif %}</div>
+    {% if show_target and row.target %}
+    <div class="mt-2 h-1.5 rounded bg-gray-100"><div class="h-1.5 rounded bg-green-600" style="width: {{ [row.pct or 0, 100]|min }}%"></div></div>
+    <div class="mt-1 text-xs text-gray-500">meta del periodo</div>
+    {% elif loop_index == 0 %}
+    <div class="mt-2 text-xs text-gray-500">cuentas en el periodo</div>
+    {% elif row.from_previous is not none %}
+    <div class="mt-2 text-xs text-gray-500"><strong class="text-gray-700">{{ row.from_previous }} %</strong> de {{ crm_labels.stage[rows[loop_index - 1].stage] }}</div>
+    {% else %}
+    <div class="mt-2 text-xs text-gray-500">— de {{ crm_labels.stage[rows[loop_index - 1].stage] }}</div>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{# The same, in one line (Dashboard, outside the period). #}
+{% macro funnel_line(rows) %}{% for row in rows %}{{ crm_labels.stage[row.stage] }} {{ row.reached }}{% if row.target %}/{{ row.target }}{% endif %}{{ ' · ' if not loop.last }}{% endfor %}{% endmacro %}

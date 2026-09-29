@@ -110,8 +110,10 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
 - **Menú "Clientes"** (admin y ventas):
   - **Filtro** (`/clientes`; en el código y en las URL sigue llamándose
     embudo): cuentas que alcanzaron cada etapa (nueva, respuesta, reunión,
-    propuesta, ganado) contra metas que edita el admin
-    (piloto: 150, 60, 25, 10, 4); monto en propuesta por motor, tomado de la
+    propuesta, ganado). Solo **Propuesta y Ganado tienen meta** (la edita el
+    admin, vacío = sin meta; piloto: 10 y 4); Nueva, Respuesta y Reunión
+    muestran el % que pasó de la caja anterior (`GOAL_STAGES` en
+    `app/db/models/crm.py`); monto en propuesta por motor, tomado de la
     cotización ligada; próximos pasos vencidos y de hoy; lista de
     oportunidades **de la más nueva a la más vieja**, con búsqueda por texto,
     motor, vendedor y etapa (botón "Buscar"). Las cuentas descartadas no salen

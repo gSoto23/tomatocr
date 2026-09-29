@@ -14,7 +14,7 @@
     simple: <strong>ninguna oportunidad abierta sin próximo paso y sin fecha</strong>.</p>
 {{ m.shot("clientes/embudo.webp", "Filtro de Clientes", "Clientes → Filtro.") }}
 {{ m.steps([
-    (1, "El <strong>Filtro</strong> del periodo: cuántas cuentas llegaron a cada etapa, contra la meta. <em>Todo el historial</em> muestra el conteo desde el inicio."),
+    (1, "El <strong>Filtro</strong> del periodo: cuántas cuentas llegaron a cada etapa. Propuesta y Ganado tienen meta; las otras cajas dicen qué parte pasó de la anterior. <em>Todo el historial</em> muestra el conteo desde el inicio."),
     (2, "<strong>Próximos pasos vencidos</strong> y <strong>Para hoy</strong>."),
     (3, "La lista de oportunidades, <strong>la más nueva arriba</strong>. Se busca por texto, motor, vendedor y etapa con <em>Buscar</em>."),
     (4, "<strong>Nueva cuenta</strong> para registrar una oportunidad. Las pestañas de arriba son <strong>Filtro</strong>, <strong>Cuentas</strong> y <strong>Descartados</strong>."),
@@ -93,11 +93,20 @@
 {% endcall %}
 
 {% call m.section("metas", "Qué cuenta para las metas") %}
+<p>Cada caja del Filtro es una etapa y cuenta cuántas cuentas <strong>llegaron por lo menos hasta ahí</strong>. Es
+    acumulado: una cuenta en Propuesta suma también en Nueva, Respuesta y Reunión, por eso los números bajan de
+    izquierda a derecha.</p>
+<p>Ejemplo con 5 empresas: A solo recibió tu correo, B contestó, C tuvo visita, D recibió cotización y E aceptó. Las
+    cajas quedan <strong>Nueva 5 · Respuesta 4 · Reunión 3 · Propuesta 2 · Ganado 1</strong>, y Reunión dice
+    <em>75 % de Respuesta</em> (3 de 4). Si después D se pierde, las cajas no cambian: llegó hasta Propuesta.</p>
 <ul class="list-disc space-y-1 pl-5">
+    <li><strong>Metas:</strong> solo <strong>Propuesta</strong> ({{ funnel[3].target or 'sin meta' }}) y <strong>Ganado</strong>
+        ({{ funnel[4].target or 'sin meta' }}) llevan meta, para todo el equipo y todo el periodo. Nueva, Respuesta y Reunión
+        muestran el <strong>% que pasó de la caja anterior</strong>: así se ve dónde se traba la venta sin inventar números.
+        Cuando el piloto dé las tasas reales, se pueden poner metas con más sentido.</li>
     <li>Cuentan las <strong>cuentas</strong> con una oportunidad de tipo <strong>Nuevo</strong> creada dentro del periodo ({{ period.label }}).</li>
     <li>Cuenta la <strong>etapa más alta alcanzada</strong>: si una oportunidad llegó a Reunión y después se perdió, sigue contando hasta Reunión.</li>
     <li>Las <strong>renovaciones y ampliaciones</strong> de clientes actuales no cuentan para las metas; igual se trabajan y aparecen en la lista.</li>
-    <li>Metas: {% for row in funnel %}{{ crm_labels.stage[row.stage] }} {{ row.target }}{{ ', ' if not loop.last }}{% endfor %}.</li>
 </ul>
 {% endcall %}
 
@@ -113,7 +122,7 @@
         llega un correo. La asignación automática de lo que entra por el formulario está en
         <a href="/clientes/asignacion" class="text-indigo-600 hover:underline">Asignación de oportunidades</a>.</li>
     <li><strong>Dueño de una cuenta:</strong> en la ficha de la cuenta, <em>Dueño</em> → <em>Reasignar</em>.</li>
-    <li><strong>Metas y periodo:</strong> en el Filtro, <em>Editar metas y periodo</em>.</li>
+    <li><strong>Metas y periodo:</strong> en el Filtro, <em>Editar metas y periodo</em>: la meta de Propuesta y de Ganado (vacío = sin meta), el nombre del periodo y sus fechas. Se calcula al momento, así que cambiar las fechas recalcula todo.</li>
     <li><strong>Marcar ganada:</strong> en la oportunidad, crea el proyecto ya ligado a la cuenta o liga uno existente.</li>
     <li><strong>Renovaciones:</strong> en el Filtro, <em>Contratos por vencer</em> muestra los contratos que terminan en
         90 días (en rojo, menos de 60). <em>Crear renovación</em> abre la oportunidad para el dueño de la cuenta.</li>
