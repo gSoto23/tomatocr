@@ -286,6 +286,10 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
    el servidor para que Google lo lea sin JavaScript. Caché: CSS/JS con `?v=` 1 año,
    imágenes 7 días (una imagen que cambia lleva nombre nuevo). Auditoría y plan en el
    documento "Auditoría SEO tomatocr.com".
+   **Páginas de servicio** (`/servicios/<slug>`): contenido en `app/utils/servicios.py`
+   (título ≤ 60, descripción ≤ 155, `motor` que preselecciona el formulario, foto, para
+   quién, alcance, pasos, galería y preguntas frecuentes); una página nueva = una entrada
+   ahí, y entra sola al sitemap, al menú de las páginas de servicio y a las pruebas.
 
 ---
 
@@ -312,6 +316,32 @@ Estado al 27/09/2026:
   tiene una copia vieja de marzo y no se usa.
 - `apt install` en el servidor reinicia `tomato` y nginx por su cuenta
   (needrestart).
+
+### Correo
+
+El sistema **solo envía** correos; no lee ningún buzón (los prospectos entran por el
+formulario de la web, no por correo).
+
+| Qué | Configuración |
+|---|---|
+| Cuenta que envía | `notificaciones@tomatocr.com`, usuario propio de Google Workspace con verificación en dos pasos y una **contraseña de aplicación** (`MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM`), por `smtp.gmail.com:587`. Su Gmail reenvía a `info@` los rebotes y respuestas |
+| `info@tomatocr.com` | Grupo de Google Workspace que solo recibe |
+| `REPORT_BCC_EMAIL` | Copia oculta de cada reporte de bitácora enviado a un cliente: `info@tomatocr.com` |
+| `LEADS_NOTIFY_EMAIL` | Aviso de prospecto nuevo, además del vendedor asignado: `info@tomatocr.com` |
+
+Correos que envía: reporte de bitácora (a los contactos elegidos, con la copia oculta),
+prospecto nuevo, oportunidad reasignada (al nuevo responsable) y recuperar contraseña
+(al correo del usuario). Estos dos últimos usan el correo guardado en cada usuario.
+
+DNS en Route 53 (`tomatocr.com`): MX `1 smtp.google.com`; en el TXT de la raíz,
+`v=spf1 include:_spf.google.com ~all`; DKIM en `google._domainkey` (activado en la
+consola de Workspace → Gmail → Autenticar correo electrónico); DMARC en `_dmarc` con
+`v=DMARC1; p=none; rua=mailto:info@tomatocr.com`. Para revisar un envío: en Gmail,
+⋮ → *Mostrar original*, y SPF, DKIM y DMARC deben decir PASS.
+
+Si la contraseña de la cuenta cambia o se desactiva la verificación en dos pasos, la
+contraseña de aplicación deja de servir y no sale ningún correo: generar una nueva,
+ponerla en `MAIL_PASSWORD` y reiniciar `tomato`.
 
 ### Cómo desplegar
 

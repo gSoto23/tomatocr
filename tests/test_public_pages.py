@@ -1,8 +1,10 @@
 import pytest
 
 from tests.conftest import new_client
+from app.utils.servicios import SERVICIOS
 
-PAGES = ["/", "/proyectos-reforestacion", "/programas/darboles", "/privacidad", "/contacto/gracias"]
+PAGES = ["/", "/proyectos-reforestacion", "/programas/darboles", "/privacidad", "/contacto/gracias",
+         *(f"/servicios/{slug}" for slug in SERVICIOS)]
 
 
 @pytest.mark.parametrize("path", PAGES)
@@ -98,15 +100,15 @@ def test_sales_actions_use_the_brand_green():
     assert ".bg-brand{" in css and "bg-brand-light" in css
 
 
-def test_services_are_photo_cards_that_keep_the_full_scope():
+def test_services_are_photo_cards_that_link_to_their_pages():
     html = new_client().get("/").text
     services = html[html.index('id="services"'):html.index('id="projects"')]
     assert services.count("<article") == 4
     assert services.count('src="/static/images/servicios/') == 4
-    assert services.count("<details") == 4
-    # The detailed scope text stays on the page (inside <details>)
-    assert "hidrokeeper (polímeros retenedores de agua)" in services
-    assert "Resultado esperado: un espacio más armónico" in services
+    for slug in SERVICIOS:
+        assert f'href="/servicios/{slug}"' in services
+    # The full scope lives on each service page only (no duplicate text on the home)
+    assert "<details" not in services and "hidrokeeper (polímeros" not in services
     assert "services-toggle" not in html
 
 
@@ -167,3 +169,44 @@ def test_security_and_cache_headers():
     assert "max-age=31536000" in client.get("/").headers["strict-transport-security"]
     assert "immutable" in client.get("/static/css/tailwind.css?v=1").headers["cache-control"]
     assert client.get("/static/images/og-tomato-2026-09.jpg").headers["cache-control"] == "public, max-age=604800"
+
+
+# --- Service pages -----------------------------------------------------------------------
+
+import json
+
+
+@pytest.mark.parametrize("slug", list(SERVICIOS))
+def test_service_page_is_complete_for_search_and_quotes(slug):
+    service = SERVICIOS[slug]
+    html = new_client().get(f"/servicios/{slug}").text
+    assert len(service["title"]) <= 60 and len(service["description"]) <= 155
+    assert f"<title>{service['title']}</title>" in html
+    assert f'<link rel="canonical" href="https://tomatocr.com/servicios/{slug}" />' in html
+    assert re.search(r"<h1[^>]*>(.*?)</h1>", html, re.S).group(1).strip() == service["h1"]
+    graph = json.loads(re.search(r'<script type="application/ld\+json">(.*?)</script>', html, re.S).group(1))["@graph"]
+    assert [g["@type"] for g in graph] == ["Service", "BreadcrumbList", "FAQPage"]
+    assert len(graph[2]["mainEntity"]) == len(service["faq"])
+    assert f'<option value="{service["motor"]}" selected>' in html  # the form comes with the service chosen
+    words = len(re.findall(r"\w+", re.sub(r"<script.*?</script>|<[^>]+>", " ", html, flags=re.S)))
+    assert words > 450
+    for src, *_ in service["gallery"] + [service["hero"]]:
+        assert new_client().get(src).status_code == 200
+    for other in SERVICIOS:
+        assert f'href="/servicios/{other}"' in html
+
+
+def test_unknown_service_is_404_and_services_are_in_the_sitemap():
+    client = new_client()
+    assert client.get("/servicios/no-existe").status_code == 404
+    sitemap = client.get("/sitemap.xml").text
+    for slug in SERVICIOS:
+        assert f"https://tomatocr.com/servicios/{slug}</loc>" in sitemap
+    assert client.get("/servicios/jardineria/", follow_redirects=False).status_code == 308
+
+
+def test_reforestation_service_shows_live_figures(db):
+    add_project(db, "institucional", [("Cedro", 10.0)] * 3)
+    html = new_client().get("/servicios/reforestacion-para-empresas").text
+    assert "Cada árbol, en un mapa público" in html
+    assert "Cada árbol, en un mapa público" not in new_client().get("/servicios/jardineria").text
