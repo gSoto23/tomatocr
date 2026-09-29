@@ -9,7 +9,8 @@ from sqlalchemy.orm import Session
 
 from app.core.roles import ADMIN, VENTAS
 from app.core.templates import templates
-from app.db.models.crm import (ACCOUNT_KINDS, ACTIVITY_TYPES, ASSIGNMENT_DEFAULT, FUNNEL_STAGES, GOAL_STAGES, LABELS, MOTORS,
+from app.db.models.crm import (ACCOUNT_KINDS, ACTIVITY_TYPES, ASSIGNMENT_DEFAULT, FUNNEL_STAGES, GOAL_STAGES, LABELS, MONEY_GOALS,
+                               MOTORS, ORIGINS,
                                OPPORTUNITY_KINDS, STAGES, Account, Contact, CrmActivity, CrmAssignment, Opportunity,
                                ProjectContactRole)
 from app.db.models.project import Project
@@ -23,7 +24,7 @@ from app.utils.crm import (account_payload, account_status, active_accounts, ano
                            can_edit_opportunity, delete_account, delete_blockers, discard_account, reactivate_account,
                            change_stage, claim_if_unowned, create_renewal, dismiss_duplicate, expiring_contracts,
                            filter_opportunities, find_duplicates, funnel, funnel_period, last_followups, merge_accounts,
-                           next_steps, set_funnel_period,
+                           money_progress, next_steps, set_funnel_period,
                            proposal_amounts, quote_amount, rename_account_projects, search_accounts, set_goals,
                            similar_accounts, win_opportunity)
 from app.utils.reforestation import parse_date
@@ -104,25 +105,29 @@ def clean(value: Optional[str]) -> Optional[str]:
 @router.get("")
 @router.get("/")
 def pipeline(request: Request, motor: Optional[str] = None, owner: Optional[str] = None, stage: Optional[str] = None,
-             q: Optional[str] = None, periodo: Optional[str] = None, db: Session = Depends(deps.get_db),
+             q: Optional[str] = None, periodo: Optional[str] = None, origen: Optional[str] = None,
+             db: Session = Depends(deps.get_db),
              user: User = Depends(view_roles)):
     owner_id = optional_int(owner)
     motor = motor if motor in MOTORS else None
     stage = stage if stage in STAGES else None
+    origin = origen if origen in ORIGINS + ("sin_origen",) else None
     # Newest first; opportunities of discarded accounts live in "Descartados".
-    opportunities = filter_opportunities(db.query(Opportunity), motor, owner_id, stage, q).filter(
+    opportunities = filter_opportunities(db.query(Opportunity), motor, owner_id, stage, q, origin).filter(
         ~Opportunity.account.has(Account.discarded_at.isnot(None))).order_by(Opportunity.id.desc()).all()
     period = funnel_period(db)
     whole_history = periodo == "todo"
     return templates.TemplateResponse("crm/embudo.html", {
         "request": request, "user": user,
-        "funnel": funnel(db, motor, owner_id, None if whole_history else period),
+        "funnel": funnel(db, motor, owner_id, None if whole_history else period, origin),
+        "money_rows": money_progress(db, period, motor, owner_id, origin),
         "period": period, "whole_history": whole_history,
         "steps": next_steps(db, owner_id),
         "amounts": proposal_amounts(db, owner_id),
         "opportunities": [(o, quote_amount(db, o)) for o in opportunities],
         "sellers": sellers(db), "motors": MOTORS, "stages": STAGES, "funnel_stages": FUNNEL_STAGES, "goal_stages": GOAL_STAGES,
-        "filters": {"motor": motor, "owner": owner_id, "stage": stage, "q": q or ""},
+        "filters": {"motor": motor, "owner": owner_id, "stage": stage, "q": q or "", "origin": origin},
+        "origins": ORIGINS,
         "duplicates": len(find_duplicates(db)) if user.role == ADMIN else 0,
         "discarded": discarded_count(db),
         "today": date.today(),
@@ -140,8 +145,8 @@ def guide(user: User = Depends(view_roles)):
 async def update_goals(request: Request, db: Session = Depends(deps.get_db), user: User = Depends(admin_only)):
     form = await request.form()
     targets = {}
-    for stage in GOAL_STAGES:  # empty = no target
-        value = (form.get(stage) or "").strip() or "0"
+    for stage in GOAL_STAGES + MONEY_GOALS:  # empty = no target
+        value = (form.get(stage) or "").strip().replace(",", "").replace(".", "").replace("₡", "") or "0"
         if not value.isdigit():
             return toast_redirect("/clientes", "Las metas deben ser números enteros", error=True)
         targets[stage] = int(value)
@@ -276,7 +281,7 @@ def account_file(account_id: int, request: Request, tab: str = "seguimientos",
         "reforestation": db.query(ReforestationProject).filter(ReforestationProject.account_id == account.id).all(),
         "activities": sorted(account.activities, key=lambda a: a.happened_at, reverse=True),
         "kinds": ACCOUNT_KINDS, "motors": MOTORS, "activity_types": [t for t in ACTIVITY_TYPES if t != "cambio_etapa"],
-        "opportunity_kinds": OPPORTUNITY_KINDS, "sellers": sellers(db), "today": date.today(),
+        "opportunity_kinds": OPPORTUNITY_KINDS, "origins": ORIGINS, "sellers": sellers(db), "today": date.today(),
     })
 
 
@@ -438,6 +443,7 @@ def anonymize(contact_id: int, db: Session = Depends(deps.get_db), user: User = 
 def create_opportunity(account_id: int, title: str = Form(...), motor: Optional[str] = Form(None),
                        kind: str = Form("nuevo"), next_step: Optional[str] = Form(None),
                        next_step_date: Optional[str] = Form(None), amount_crc: Optional[str] = Form(None),
+                       origin: Optional[str] = Form(None),
                        db: Session = Depends(deps.get_db), user: User = Depends(view_roles)):
     account = editable_account(db, account_id, user)
     url = f"/clientes/cuentas/{account.id}?tab=oportunidades"
@@ -452,7 +458,7 @@ def create_opportunity(account_id: int, title: str = Form(...), motor: Optional[
     opportunity = Opportunity(account_id=account.id, title=title.strip(), motor=motor if motor in MOTORS else None,
                               kind=kind if kind in OPPORTUNITY_KINDS else "nuevo", next_step=clean(next_step),
                               next_step_date=step_date, amount_crc=amount, owner_id=account.owner_id or user.id,
-                              created_by_id=user.id, source="manual")
+                              created_by_id=user.id, source="manual", origin=origin if origin in ORIGINS else None)
     db.add(opportunity)
     db.commit()
     log_activity(db, user, "CREATE", "OPPORTUNITY", opportunity.id, f"{opportunity.title} ({account.name})")
@@ -472,7 +478,7 @@ def opportunity_page(opportunity_id: int, request: Request, db: Session = Depend
         "quotes": db.query(Quote).filter(Quote.opportunity_id == opportunity.id).order_by(Quote.fecha_emision.desc()).all(),
         "activities": db.query(CrmActivity).filter(CrmActivity.opportunity_id == opportunity.id).order_by(
             CrmActivity.happened_at.desc()).all(),
-        "stages": STAGES, "motors": MOTORS, "sellers": sellers(db),
+        "stages": STAGES, "motors": MOTORS, "origins": ORIGINS, "sellers": sellers(db),
         "activity_types": [t for t in ACTIVITY_TYPES if t != "cambio_etapa"], "today": date.today(),
         "linked_project": linked_project,
         "account_projects": db.query(Project).filter(
@@ -484,7 +490,7 @@ def opportunity_page(opportunity_id: int, request: Request, db: Session = Depend
 def update_opportunity(opportunity_id: int, background: BackgroundTasks, title: str = Form(...), motor: Optional[str] = Form(None),
                        next_step: Optional[str] = Form(None), next_step_date: Optional[str] = Form(None),
                        expected_close_date: Optional[str] = Form(None), amount_crc: Optional[str] = Form(None),
-                       owner_id: Optional[str] = Form(None),
+                       owner_id: Optional[str] = Form(None), origin: Optional[str] = Form(None),
                        db: Session = Depends(deps.get_db), user: User = Depends(view_roles)):
     opportunity = editable_opportunity(db, opportunity_id, user)
     url = f"/clientes/oportunidades/{opportunity.id}"
@@ -498,6 +504,8 @@ def update_opportunity(opportunity_id: int, background: BackgroundTasks, title: 
     opportunity.title, opportunity.motor = title.strip(), motor if motor in MOTORS else None
     opportunity.next_step, opportunity.next_step_date = clean(next_step), step_date
     opportunity.expected_close_date, opportunity.amount_crc = close_date, amount
+    if origin is not None:
+        opportunity.origin = origin if origin in ORIGINS else None
     new_owner = None
     if user.role == ADMIN and owner_id is not None:
         new_id = optional_int(owner_id)

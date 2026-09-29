@@ -14,9 +14,9 @@
     <!-- Filtro (funnel) -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
         <div class="flex flex-wrap items-center justify-between gap-2">
-            <h2 class="font-semibold text-gray-900">Filtro · {{ 'Todo el historial' if whole_history else period.label }} {% if filters.motor or filters.owner %}<span class="text-sm font-normal text-gray-500">(filtrado)</span>{% endif %}</h2>
+            <h2 class="font-semibold text-gray-900">Filtro · {{ 'Todo el historial' if whole_history else period.label }} {% if filters.motor or filters.owner or filters.origin %}<span class="text-sm font-normal text-gray-500">(filtrado)</span>{% endif %}</h2>
             <div class="flex gap-1 rounded-lg bg-gray-100 p-1 text-xs font-semibold">
-                {% set keep = ('&motor=' ~ (filters.motor or '') ~ '&owner=' ~ (filters.owner or '') ~ '&stage=' ~ (filters.stage or '') ~ '&q=' ~ (filters.q|urlencode)) %}
+                {% set keep = ('&motor=' ~ (filters.motor or '') ~ '&owner=' ~ (filters.owner or '') ~ '&stage=' ~ (filters.stage or '') ~ '&origen=' ~ (filters.origin or '') ~ '&q=' ~ (filters.q|urlencode)) %}
                 <a href="/clientes?{{ keep[1:] }}" class="rounded-md px-3 py-1 {{ 'text-gray-600 hover:text-gray-900' if whole_history else 'bg-white shadow-sm text-gray-900' }}">{{ period.name }}</a>
                 <a href="/clientes?periodo=todo{{ keep }}" class="rounded-md px-3 py-1 {{ 'bg-white shadow-sm text-gray-900' if whole_history else 'text-gray-600 hover:text-gray-900' }}">Todo el historial</a>
             </div>
@@ -32,11 +32,17 @@
         {% if user.role == 'admin' %}
         <button type="button" @click="editGoals = !editGoals" class="mt-3 text-xs font-semibold text-gray-600 hover:text-black">Editar metas y periodo</button>
         <form x-show="editGoals" x-cloak method="post" action="/clientes/metas" class="mt-3 flex flex-wrap items-end gap-3 text-sm">
-            <p class="w-full text-xs text-gray-500">Solo <strong>Propuesta</strong> y <strong>Ganado</strong> llevan meta (vacío = sin meta), para todo el periodo y todo el equipo. Las otras cajas muestran qué parte pasó de la caja anterior.</p>
+            <p class="w-full text-xs text-gray-500">Solo <strong>Propuesta</strong> y <strong>Ganado</strong> llevan meta de cuentas (vacío = sin meta), para todo el periodo y todo el equipo. Las otras cajas muestran qué parte pasó de la caja anterior. Las metas en colones cuentan lo <strong>ganado dentro del periodo</strong>.</p>
             {% for row in funnel if row.stage in goal_stages %}
             <label class="block">
                 <span class="text-xs text-gray-600">Meta de {{ L.stage[row.stage] }}</span>
                 <input type="number" min="0" name="{{ row.stage }}" value="{{ row.target or '' }}" placeholder="Sin meta" class="mt-1 block w-28 rounded-md border border-gray-300 p-2">
+            </label>
+            {% endfor %}
+            {% for m in money_rows %}
+            <label class="block">
+                <span class="text-xs text-gray-600">Meta ₡ {{ L.money[m.key] }}</span>
+                <input type="text" inputmode="numeric" name="{{ m.key }}" value="{{ '{:,.0f}'.format(m.target) if m.target else '' }}" placeholder="Sin meta" class="mt-1 block w-36 rounded-md border border-gray-300 p-2">
             </label>
             {% endfor %}
             <label class="block">
@@ -62,6 +68,31 @@
             {% endfor %}
         </div>
         {% endif %}
+    </div>
+
+    <!-- Metas en colones: lo ganado en el periodo y la cobertura de las propuestas -->
+    <div class="grid gap-4 md:grid-cols-2">
+        {% for m in money_rows %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+            <div class="flex items-baseline justify-between gap-2">
+                <h3 class="font-semibold text-gray-900">{{ L.money[m.key] }}</h3>
+                <span class="text-xs text-gray-500">{{ 'motor Sector público' if m.key == 'monto_licitaciones' else 'los demás motores' }}</span>
+            </div>
+            <div class="mt-2 text-2xl font-bold text-gray-900">{{ money(m.won) if m.won else '₡0' }}{% if m.target %}<span class="text-sm font-normal text-gray-500"> / {{ money(m.target) }}</span>{% endif %}</div>
+            <p class="text-xs text-gray-500">Ganado en el periodo · {{ m.count }} oportunidad{{ 'es' if m.count != 1 }}</p>
+            {% if m.target %}
+            <div class="mt-2 h-1.5 rounded bg-gray-100"><div class="h-1.5 rounded bg-green-600" style="width: {{ [m.pct or 0, 100]|min }}%"></div></div>
+            {% endif %}
+            <p class="mt-3 text-sm text-gray-700">En propuesta: <strong>{{ money(m.proposals) if m.proposals else '₡0' }}</strong>
+                {% if m.target and not m.missing %}· <span class="font-semibold text-green-700">meta cumplida</span>
+                {% elif m.missing and not m.proposals %}· <span class="font-semibold text-red-700">no hay propuestas abiertas</span> para lo que falta ({{ money(m.missing) }})
+                {% elif m.coverage is not none %}· cubre <strong class="{{ 'text-green-700' if m.coverage >= 3 else ('text-amber-700' if m.coverage >= 1 else 'text-red-700') }}">{{ m.coverage }}×</strong> lo que falta ({{ money(m.missing) }}){% endif %}</p>
+            {% if m.target and m.missing and (m.coverage or 0) < 3 %}
+            <p class="text-xs text-gray-500">Lo sano es tener en propuesta 3 veces lo que falta ganar.</p>
+            {% endif %}
+            {% if not m.target and user.role == 'admin' %}<p class="text-xs text-gray-500">Sin meta: se pone en <em>Editar metas y periodo</em>.</p>{% endif %}
+        </div>
+        {% endfor %}
     </div>
 
     <!-- Próximos pasos -->
@@ -119,6 +150,12 @@
                     <option value="">Todos</option>
                     {% for m in motors %}<option value="{{ m }}" {% if filters.motor == m %}selected{% endif %}>{{ L.motor[m] }}</option>{% endfor %}
                 </select></label>
+            <label class="block"><span class="text-xs text-gray-600">Origen</span>
+                <select name="origen" class="mt-1 block rounded-md border border-gray-300 p-2">
+                    <option value="">Todos</option>
+                    {% for o in origins %}<option value="{{ o }}" {% if filters.origin == o %}selected{% endif %}>{{ L.origin[o] }}</option>{% endfor %}
+                    <option value="sin_origen" {% if filters.origin == 'sin_origen' %}selected{% endif %}>Sin origen</option>
+                </select></label>
             <label class="block"><span class="text-xs text-gray-600">Vendedor</span>
                 <select name="owner" class="mt-1 block rounded-md border border-gray-300 p-2">
                     <option value="">Todos</option>
@@ -135,7 +172,7 @@
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200 text-sm">
                 <thead class="bg-gray-50 text-left text-xs uppercase text-gray-500">
-                    <tr><th class="px-4 py-3">Cuenta · Oportunidad</th><th class="px-3 py-3">Motor</th><th class="px-3 py-3">Etapa</th>
+                    <tr><th class="px-4 py-3">Cuenta · Oportunidad</th><th class="px-3 py-3">Motor · Origen</th><th class="px-3 py-3">Etapa</th>
                         <th class="px-3 py-3 text-right">Monto</th><th class="px-3 py-3">Próximo paso</th><th class="px-3 py-3">Vendedor</th></tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
@@ -143,7 +180,7 @@
                     <tr class="hover:bg-gray-50">
                         <td class="px-4 py-3"><a href="/clientes/oportunidades/{{ o.id }}" class="font-medium text-gray-900 hover:underline">{{ o.account.name }}</a>
                             <div class="text-gray-600">{{ o.title }}</div></td>
-                        <td class="px-3 py-3">{{ L.motor.get(o.motor, '—') }}</td>
+                        <td class="px-3 py-3">{{ L.motor.get(o.motor, '—') }}<div class="text-xs text-gray-500">{{ L.origin.get(o.origin, 'Sin origen') }}</div></td>
                         <td class="px-3 py-3">{{ L.stage[o.stage] }}</td>
                         <td class="px-3 py-3 text-right">{{ money(amount) }}</td>
                         <td class="px-3 py-3 {{ 'text-red-700' if o.next_step_date and o.next_step_date < today and o.stage not in ['ganado', 'perdido'] }}">

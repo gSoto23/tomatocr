@@ -15,6 +15,11 @@ ACCOUNT_KINDS = ("empresa", "institucion_publica", "condominio", "hotel", "perso
 ACCOUNT_STATUSES = ("prospecto", "cliente", "ex_cliente", "descartada")
 MOTORS = ("esg", "regalo_corporativo", "mantenimiento", "tienda", "sector_publico")
 OPPORTUNITY_KINDS = ("nuevo", "renovacion", "ampliacion")
+# Where the opportunity came from (set by the seller; the web form and renewals set it alone).
+ORIGINS = ("web", "referido", "prospeccion", "sicop", "cliente_actual", "otro")
+# Money goals per period: tenders (motor "sector_publico") and one-off jobs (every other motor).
+MONEY_GOALS = ("monto_licitaciones", "monto_puntuales")
+TENDER_MOTOR = "sector_publico"
 # Order matters: max_stage stores the index of the highest stage reached.
 STAGES = ("prospecto", "respuesta", "reunion", "propuesta", "ganado", "perdido")
 ACTIVITY_TYPES = ("llamada", "correo", "whatsapp", "visita", "reunion", "nota", "cambio_etapa")
@@ -39,6 +44,9 @@ LABELS = {
     "activity": {"llamada": "Llamada", "correo": "Correo", "whatsapp": "WhatsApp", "visita": "Visita",
                  "reunion": "Reunión", "nota": "Nota", "cambio_etapa": "Cambio de etapa"},
     "opportunity_kind": {"nuevo": "Nuevo", "renovacion": "Renovación", "ampliacion": "Ampliación"},
+    "origin": {"web": "Formulario web", "referido": "Referido", "prospeccion": "Prospección", "sicop": "SICOP",
+               "cliente_actual": "Cliente actual", "otro": "Otro"},
+    "money": {"monto_licitaciones": "Licitaciones", "monto_puntuales": "Trabajos puntuales"},
 }
 
 
@@ -119,6 +127,9 @@ class Opportunity(Base):
     stage = Column(String(20), nullable=False, default="prospecto", server_default="prospecto")
     max_stage = Column(Integer, nullable=False, default=0, server_default="0")
     lost_reason = Column(Text, nullable=True)
+    # When it was marked "Ganado" (money goals count what was won inside the period).
+    won_at = Column(DateTime, nullable=True)
+    origin = Column(String(30), nullable=True)
     amount_crc = Column(Float, nullable=True)
     expected_close_date = Column(Date, nullable=True)
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=True)
@@ -182,7 +193,8 @@ class ProjectContactRole(Base):
 
 
 class CrmGoal(Base):
-    """Funnel target per stage (accounts that should reach it)."""
+    """Funnel target per stage (accounts that should reach it), or a money goal in colones
+    (MONEY_GOALS keys)."""
     __tablename__ = "crm_goals"
 
     stage = Column(String(20), primary_key=True)

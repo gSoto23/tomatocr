@@ -113,7 +113,13 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
     propuesta, ganado). Solo **Propuesta y Ganado tienen meta** (la edita el
     admin, vacío = sin meta; piloto: 10 y 4); Nueva, Respuesta y Reunión
     muestran el % que pasó de la caja anterior (`GOAL_STAGES` en
-    `app/db/models/crm.py`); monto en propuesta por motor, tomado de la
+    `app/db/models/crm.py`). **Metas en colones** por separado:
+    Licitaciones (motor Sector público) y Trabajos puntuales (los demás), con lo
+    ganado dentro del periodo (`opportunities.won_at`, migración 0013; monto
+    adjudicado en Presupuestos o, si no hay proyecto, la cotización) y la
+    **cobertura** (en propuesta ÷ lo que falta; lo sano es 3×). Filtro por
+    **origen** (`opportunities.origin`: formulario web, referido, prospección,
+    SICOP, cliente actual, otro), que aplica a cajas, metas y lista; monto en propuesta por motor, tomado de la
     cotización ligada; próximos pasos vencidos y de hoy; lista de
     oportunidades **de la más nueva a la más vieja**, con búsqueda por texto,
     motor, vendedor y etapa (botón "Buscar"). Las cuentas descartadas no salen

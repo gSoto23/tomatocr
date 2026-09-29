@@ -208,6 +208,8 @@
                 <select name="motor" class="{{ input }}"><option value="">—</option>{% for m in motors %}<option value="{{ m }}">{{ L.motor[m] }}</option>{% endfor %}</select></label>
             <label class="block"><span class="font-medium text-gray-700">Tipo</span>
                 <select name="kind" class="{{ input }}">{% for k in opportunity_kinds %}<option value="{{ k }}">{{ L.opportunity_kind[k] }}</option>{% endfor %}</select></label>
+            <label class="block"><span class="font-medium text-gray-700">Origen</span>
+                <select name="origin" class="{{ input }}"><option value="">—</option>{% for o in origins %}<option value="{{ o }}">{{ L.origin[o] }}</option>{% endfor %}</select></label>
             <label class="block"><span class="font-medium text-gray-700">Próximo paso</span><input type="text" name="next_step" class="{{ input }}"></label>
             <label class="block"><span class="font-medium text-gray-700">Fecha del próximo paso</span><input type="date" name="next_step_date" class="{{ input }}"></label>
             <label class="block"><span class="font-medium text-gray-700">Monto estimado (₡, hasta que haya cotización)</span><input type="text" name="amount_crc" inputmode="numeric" class="{{ input }}"></label>

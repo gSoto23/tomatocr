@@ -15,6 +15,9 @@ from app.utils.crm import guess_kind
 from app.utils.leads import EMAIL_RE, find_account
 
 MOTOR_MAP = {LABELS["motor"][m]: m for m in MOTORS}
+# The board's "fuente" as the opportunity's origin (the rest stay without origin).
+TABLERO_ORIGIN = {"web": "web", "google": "web", "referido": "referido", "sicop": "sicop", "linkedin": "prospeccion",
+                  "correo": "prospeccion", "whatsapp": "prospeccion", "evento": "prospeccion", "visita": "prospeccion"}
 STAGE_MAP = {"prospecto": "prospecto", "respuesta": "respuesta", "reunion": "reunion", "propuesta": "propuesta",
              "cerrado": "ganado", "perdido": "perdido"}
 FALLBACK_OWNER = "Gerardo"
@@ -143,6 +146,7 @@ def import_leads(db: Session, leads: List[Dict], user: Optional[User] = None) ->
         opportunity = Opportunity(
             account_id=account.id, title=f"{LABELS['motor'][motor]} · tablero", motor=motor, stage=stage,
             max_stage=max_stage, owner_id=owner.id if owner else None, source=source, origin_ref=origin,
+            origin=TABLERO_ORIGIN.get(source), won_at=updated_at if stage == "ganado" else None,
             next_step=str(lead.get("proximo") or "").strip()[:255] or None, next_step_date=parse_day(lead.get("fecha")),
             lost_reason="Registrado como perdido en el tablero" if stage == "perdido" else None,
             created_by_id=user.id if user else None, created_at=created_at, updated_at=updated_at,
