@@ -7,6 +7,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from starlette.responses import RedirectResponse, PlainTextResponse, Response
 from app.core.config import settings
+from app.utils.servicios import SERVICIOS
 from app.db.base import Base
 from app.db.session import engine
 from app.routers import auth, projects, users, calendar, finance, dashboard, payroll, payments, liquidation, quotes, logs
@@ -44,7 +45,8 @@ async def redirect_www_to_apex(request: Request, call_next):
 
 # Public pages reached with a trailing slash redirect for good (308) instead of FastAPI's
 # temporary 307, so search engines keep a single URL. Internal routes keep their own slashes.
-PUBLIC_SLASH_PATHS = {"/proyectos-reforestacion/", "/programas/darboles/", "/privacidad/", "/contacto/gracias/"}
+PUBLIC_SLASH_PATHS = {"/proyectos-reforestacion/", "/programas/darboles/", "/privacidad/", "/contacto/gracias/",
+                      *(f"/servicios/{slug}/" for slug in SERVICIOS)}
 STATIC_VERSIONED = "public, max-age=31536000, immutable"  # CSS/JS carry ?v=<mtime>
 STATIC_PLAIN = "public, max-age=604800"                   # images: 7 days; a changed image gets a new name
 
@@ -88,11 +90,23 @@ def view_reforestation_report(request: Request, db: Session = Depends(deps.get_d
     # Figures rendered on the server too, so search engines read them without running the map's JavaScript.
     return templates.TemplateResponse("reforestacion.html", {"request": request, "stats": safe_public_stats(db)})
 
+@app.api_route("/servicios/{slug}", methods=["GET", "HEAD"])
+def view_service(slug: str, request: Request, db: Session = Depends(deps.get_db)):
+    service = SERVICIOS.get(slug)
+    if not service:
+        raise StarletteHTTPException(status_code=404)
+    stats = safe_public_stats(db) if service.get("live_stats") else None
+    faq_ld = [{"@type": "Question", "name": question, "acceptedAnswer": {"@type": "Answer", "text": answer}}
+              for question, answer in service["faq"]]
+    return templates.TemplateResponse("servicios/servicio.html", {
+        "request": request, "slug": slug, "s": service, "servicios": SERVICIOS, "stats": stats, "faq_ld": faq_ld})
+
 @app.api_route("/programas/darboles", methods=["GET", "HEAD"])
 async def view_darboles_program(request: Request):
     return templates.TemplateResponse("programas/darboles.html", {"request": request})
 
-PUBLIC_PAGES = ["", "proyectos-reforestacion", "programas/darboles", "privacidad"]
+PUBLIC_PAGES = ["", *(f"servicios/{slug}" for slug in SERVICIOS), "proyectos-reforestacion", "programas/darboles",
+                "privacidad"]
 
 @app.get("/robots.txt", response_class=PlainTextResponse)
 async def robots_txt():

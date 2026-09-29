@@ -6,7 +6,37 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-28
 
-### SEO: arreglos rápidos
+### Páginas de servicio
+- 4 páginas nuevas, una por servicio: `/servicios/reforestacion-para-empresas`,
+  `/servicios/mantenimiento-de-zonas-verdes`, `/servicios/jardineria` y
+  `/servicios/paisajismo`. Cada una con título y descripción propios, foto real, *Para
+  quién es*, *Cómo lo hacemos*, *Qué incluye*, *Paso a paso*, *Trabajo real*, preguntas
+  frecuentes, enlaces a los otros servicios y el formulario con el servicio ya elegido
+  (ESG en reforestación, mantenimiento en las demás).
+- Reforestación muestra las cifras en vivo del mapa.
+- Datos estructurados por página: `Service`, `BreadcrumbList` (Inicio › Servicios › …) y
+  `FAQPage`.
+- Contenido en `app/utils/servicios.py` (una entrada por servicio, sin precios, zonas ni
+  garantías que no estén publicadas) y plantilla `templates/servicios/servicio.html`.
+- Home: *Ver alcance completo* pasa a *Ver el servicio →* hacia cada página (el texto largo
+  vive en un solo lugar); los servicios del LocalBusiness y el pie enlazan a las páginas; el
+  mapa enlaza a la página de reforestación.
+- Sitemap con las 4 páginas; con barra final redirigen con 308; `/servicios/<otro>` da 404.
+- Despliegue: sin migraciones; reiniciar. En Search Console, pedir la indexación de las 4.
+
+### Correo del sistema desde notificaciones@tomatocr.com (esta rama)
+- Los correos del sistema salen de `notificaciones@tomatocr.com`, un usuario propio de
+  Google Workspace, en vez de `tomatocostarica@gmail.com`. Se cambió en el `.env` de
+  producción; en el código solo cambian los valores por defecto (`MAIL_FROM`).
+- La copia oculta de los reportes de bitácora va a `info@tomatocr.com`
+  (`REPORT_BCC_EMAIL`); manual (Proyectos) al día.
+- DNS de `tomatocr.com`: se agregaron SPF y DMARC; DKIM ya estaba.
+- `SECRET_KEY` de producción reemplazada por una clave aleatoria (tenía el valor de
+  ejemplo): se cerraron todas las sesiones.
+- README: sección *Correo* con las cuentas, los correos que envía y el DNS.
+- Despliegue: sin migraciones; reiniciar.
+
+### SEO: arreglos rápidos (#89)
 - **Títulos y descripciones** que caben en Google (≤ 60 y ≤ 155 caracteres) y dicen dónde:
   home "Reforestación y jardinería en Costa Rica | TOMATO", Dárboles "Reforestación para
   empresas con GPS | Dárboles", mapa "Mapa de reforestación con GPS en Costa Rica |

@@ -1,0 +1,303 @@
+<!doctype html>
+{# One page per service: /servicios/<slug>. Content in app/utils/servicios.py (s = that service). #}
+{% macro num(n) %}{{ "{:,}".format(n).replace(",", ".") }}{% endmacro %}
+{% set url = "https://tomatocr.com/servicios/" ~ slug %}
+{% set hero_src, hero_w, hero_h, hero_alt, hero_pos = s.hero %}
+{% set btn = "inline-flex items-center justify-center rounded-md px-5 py-3 text-sm font-semibold bg-brand text-white hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand dark:bg-brand-light dark:hover:bg-brand" %}
+{% set btn_outline = "inline-flex items-center justify-center rounded-md px-5 py-3 text-sm font-semibold border border-brand/40 text-brand hover:bg-brand hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand dark:border-green-400/40 dark:text-green-400 dark:hover:bg-brand-light dark:hover:text-white" %}
+{% set muted = "text-black/70 dark:text-white/70" %}
+<html lang="es" class="scroll-pt-20">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-HL6PM4KVF3"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+        gtag('config', 'G-HL6PM4KVF3');
+    </script>
+    <script defer src="{{ static_url('js/analytics.js') }}"></script>
+    <title>{{ s.title }}</title>
+    <meta name="description" content="{{ s.description }}" />
+    <link rel="canonical" href="{{ url }}" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="TOMATO" />
+    <meta property="og:url" content="{{ url }}" />
+    <meta property="og:title" content="{{ s.title }}" />
+    <meta property="og:description" content="{{ s.description }}" />
+    <meta property="og:image" content="https://tomatocr.com/static/images/og-tomato-2026-09.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="628" />
+    <meta property="og:image:alt" content="Persona del equipo de TOMATO sembrando un árbol, con el lema Reforestación que podés comprobar, árbol por árbol" />
+    <meta property="og:locale" content="es_CR" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="{{ s.title }}" />
+    <meta name="twitter:description" content="{{ s.description }}" />
+    <meta name="twitter:image" content="https://tomatocr.com/static/images/og-tomato-2026-09.jpg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/images/fav/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/static/images/fav/android-icon-192x192.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/images/fav/apple-icon-180x180.png">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="stylesheet" href="{{ static_url('css/tailwind.css') }}">
+    <script type="application/ld+json">
+    {{ {
+        "@context": "https://schema.org",
+        "@graph": [
+            {
+                "@type": "Service",
+                "@id": url ~ "#servicio",
+                "name": s.h1,
+                "serviceType": s.service_type,
+                "description": s.description,
+                "url": url,
+                "image": "https://tomatocr.com" ~ hero_src,
+                "areaServed": {"@type": "Country", "name": "Costa Rica"},
+                "provider": {"@type": "LocalBusiness", "@id": "https://tomatocr.com/#negocio", "name": "TOMATO",
+                             "url": "https://tomatocr.com/", "telephone": "+506-7080-8613"}
+            },
+            {
+                "@type": "BreadcrumbList",
+                "itemListElement": [
+                    {"@type": "ListItem", "position": 1, "name": "Inicio", "item": "https://tomatocr.com/"},
+                    {"@type": "ListItem", "position": 2, "name": "Servicios", "item": "https://tomatocr.com/#services"},
+                    {"@type": "ListItem", "position": 3, "name": s.h1, "item": url}
+                ]
+            },
+            {
+                "@type": "FAQPage",
+                "mainEntity": faq_ld
+            }
+        ]
+    } | tojson }}
+    </script>
+</head>
+
+<body class="bg-white text-black antialiased dark:bg-black dark:text-white">
+
+    <!-- HEADER -->
+    <header class="sticky top-0 z-50 border-b border-black/10 bg-white/90 backdrop-blur dark:border-white/10 dark:bg-black/80">
+        <div class="mx-auto max-w-6xl px-4">
+            <div class="flex items-center justify-between gap-4 py-4">
+                <a href="/" class="flex items-center">
+                    <img src="/static/images/LogoTomatoB.png" alt="TOMATO" width="144" height="36" class="w-auto h-9 block dark:hidden" />
+                    <img src="/static/images/LogoTomatoW.png" alt="TOMATO" width="144" height="36" class="w-auto h-9 hidden dark:block" />
+                </a>
+                <nav class="hidden md:flex items-center gap-6 text-sm" aria-label="Servicios">
+                    {% for other_slug, other in servicios.items() %}
+                    <a href="/servicios/{{ other_slug }}" class="hover:opacity-70 {% if other_slug == slug %}font-semibold text-green-700 dark:text-green-400{% endif %}"
+                        {% if other_slug == slug %}aria-current="page"{% endif %}>{{ other.nav }}</a>
+                    {% endfor %}
+                    <a href="/programas/darboles" class="hover:opacity-70">Dárboles</a>
+                </nav>
+                <a href="#contacto" data-motor="{{ s.motor }}" class="rounded-md px-4 py-2 text-sm font-semibold bg-brand text-white hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand dark:bg-brand-light dark:hover:bg-brand">
+                    Cotizar
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- HERO -->
+        <section class="border-b border-black/10 bg-[#f5f6f1] dark:border-white/10 dark:bg-neutral-950">
+            <div class="mx-auto max-w-6xl px-4 py-10 md:py-14">
+                <nav aria-label="Ruta" class="text-xs text-black/60 dark:text-white/60">
+                    <ol class="flex flex-wrap items-center gap-1">
+                        <li><a href="/" class="hover:underline">Inicio</a></li>
+                        <li aria-hidden="true">›</li>
+                        <li><a href="/#services" class="hover:underline">Servicios</a></li>
+                        <li aria-hidden="true">›</li>
+                        <li aria-current="page" class="text-black/80 dark:text-white/80">{{ s.nav }}</li>
+                    </ol>
+                </nav>
+                <div class="mt-6 grid items-center gap-10 md:grid-cols-12">
+                    <div class="md:col-span-7">
+                        <div class="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-green-700 dark:text-green-400">
+                            <span class="h-1.5 w-1.5 rounded-full bg-green-600 dark:bg-green-400"></span>
+                            {{ s.kicker }}
+                        </div>
+                        <h1 class="mt-3 text-4xl md:text-5xl font-semibold tracking-tight leading-[1.05]">{{ s.h1 }}</h1>
+                        <p class="mt-5 max-w-xl text-base md:text-lg text-black/80 dark:text-white/80 leading-relaxed">{{ s.lead }}</p>
+                        <div class="mt-7 flex flex-col sm:flex-row gap-3">
+                            <a href="#contacto" data-motor="{{ s.motor }}" class="{{ btn }}">Cotizar este servicio</a>
+                            <a href="https://wa.me/50670808613" target="_blank" rel="noopener noreferrer" class="{{ btn_outline }} bg-white dark:bg-transparent">
+                                WhatsApp 7080-8613
+                            </a>
+                        </div>
+                        <p class="mt-3 text-sm {{ muted }}">Te respondemos en menos de 24 horas.</p>
+                    </div>
+                    <div class="md:col-span-5">
+                        <img src="{{ hero_src }}" width="{{ hero_w }}" height="{{ hero_h }}" alt="{{ hero_alt }}" fetchpriority="high"
+                            class="w-full aspect-[4/3] md:aspect-[5/6] md:max-h-[28rem] rounded-3xl object-cover shadow-sm"
+                            style="object-position: {{ hero_pos }}" />
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FOR WHOM -->
+        <section class="border-b border-black/10 dark:border-white/10">
+            <div class="mx-auto max-w-6xl px-4 py-12">
+                <h2 class="text-2xl md:text-3xl font-semibold tracking-tight">Para quién es</h2>
+                <div class="mt-6 grid gap-4 md:grid-cols-3">
+                    {% for who, why in s.for_whom %}
+                    <div class="rounded-2xl border border-black/10 p-5 dark:border-white/10">
+                        <h3 class="text-sm font-semibold">{{ who }}</h3>
+                        <p class="mt-2 text-sm {{ muted }}">{{ why }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+
+        <!-- SCOPE -->
+        <section class="border-b border-black/10 dark:border-white/10">
+            <div class="mx-auto grid max-w-6xl gap-10 px-4 py-12 md:grid-cols-12">
+                <div class="md:col-span-7 space-y-4 {{ muted }} leading-relaxed">
+                    <h2 class="text-2xl md:text-3xl font-semibold tracking-tight text-black dark:text-white">Cómo lo hacemos</h2>
+                    {% for paragraph in s.intro %}<p>{{ paragraph }}</p>{% endfor %}
+                    <p class="font-semibold text-black dark:text-white">Resultado esperado: {{ s.result[0] | lower }}{{ s.result[1:] }}</p>
+                </div>
+                <div class="md:col-span-5">
+                    <div class="rounded-2xl bg-[#f5f6f1] p-6 dark:bg-neutral-900">
+                        <h2 class="text-sm font-semibold uppercase tracking-widest text-black/60 dark:text-white/60">Qué incluye</h2>
+                        <ul class="mt-4 space-y-3 text-sm">
+                            {% for item in s.includes %}
+                            <li class="flex gap-3">
+                                <svg class="mt-0.5 h-4 w-4 shrink-0 text-green-700 dark:text-green-400" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                                <span>{{ item }}</span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- STEPS -->
+        <section class="border-b border-black/10 dark:border-white/10">
+            <div class="mx-auto max-w-6xl px-4 py-12">
+                <h2 class="text-2xl md:text-3xl font-semibold tracking-tight">Paso a paso</h2>
+                <ol class="mt-6 grid gap-4 md:grid-cols-4">
+                    {% for step_title, step_text in s.steps %}
+                    <li class="rounded-2xl border border-black/10 p-5 dark:border-white/10">
+                        <span class="flex h-7 w-7 items-center justify-center rounded-full bg-green-50 text-xs font-semibold text-green-800 dark:bg-green-500/10 dark:text-green-300">{{ loop.index }}</span>
+                        <h3 class="mt-3 text-sm font-semibold">{{ step_title }}</h3>
+                        <p class="mt-1 text-sm {{ muted }}">{{ step_text }}</p>
+                    </li>
+                    {% endfor %}
+                </ol>
+            </div>
+        </section>
+
+        {% if s.live_stats and stats and stats.planted %}
+        <!-- LIVE FIGURES (same scope as the public map) -->
+        <section class="border-b border-black/10 bg-[#f5f6f1] dark:border-white/10 dark:bg-neutral-950">
+            <div class="mx-auto max-w-6xl px-4 py-12">
+                <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                    <div>
+                        <h2 class="text-2xl md:text-3xl font-semibold tracking-tight">Cada árbol, en un mapa público</h2>
+                        <p class="mt-2 max-w-2xl {{ muted }}">Cifras en vivo de nuestros proyectos de reforestación institucional, sin contar reposiciones.</p>
+                    </div>
+                    <a href="/proyectos-reforestacion" class="text-sm font-semibold text-green-700 hover:underline dark:text-green-400">Ver el mapa de reforestación →</a>
+                </div>
+                <dl class="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
+                    {% for value, label in [(num(stats.planted), "árboles sembrados"), (stats.gps_pct ~ "%", "con coordenada GPS"), (num(stats.species), "especies"), (num(stats.projects), "proyecto en el mapa" if stats.projects == 1 else "proyectos en el mapa")] %}
+                    <div class="flex flex-col-reverse rounded-2xl border border-black/10 bg-white p-5 dark:border-white/10 dark:bg-neutral-900">
+                        <dt class="text-sm {{ muted }}">{{ label }}</dt>
+                        <dd class="text-3xl font-semibold tracking-tight tabular-nums">{{ value }}</dd>
+                    </div>
+                    {% endfor %}
+                </dl>
+            </div>
+        </section>
+        {% endif %}
+
+        <!-- GALLERY -->
+        <section class="border-b border-black/10 dark:border-white/10">
+            <div class="mx-auto max-w-6xl px-4 py-12">
+                <h2 class="text-2xl md:text-3xl font-semibold tracking-tight">Trabajo real</h2>
+                <ul class="mt-6 grid gap-4 {% if s.gallery | length >= 3 %}md:grid-cols-3{% elif s.gallery | length == 2 %}md:grid-cols-2{% else %}md:max-w-2xl{% endif %}">
+                    {% for src, w, h, alt, caption in s.gallery %}
+                    <li class="relative overflow-hidden rounded-2xl bg-black/5 dark:bg-white/5">
+                        <img src="{{ src }}" width="{{ w }}" height="{{ h }}" alt="{{ alt }}" loading="lazy" decoding="async"
+                            class="aspect-[4/3] w-full object-cover" />
+                        <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent p-4 pt-10 text-sm font-semibold text-white">{{ caption }}</div>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </section>
+
+        <!-- FAQ -->
+        <section class="border-b border-black/10 dark:border-white/10">
+            <div class="mx-auto max-w-3xl px-4 py-12">
+                <h2 class="text-2xl md:text-3xl font-semibold tracking-tight">Preguntas frecuentes</h2>
+                <div class="mt-6 divide-y divide-black/10 rounded-2xl border border-black/10 dark:divide-white/10 dark:border-white/10">
+                    {% for question, answer in s.faq %}
+                    <details class="group p-5">
+                        <summary class="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold [&::-webkit-details-marker]:hidden">
+                            <h3 class="text-base">{{ question }}</h3>
+                            <svg class="h-4 w-4 shrink-0 transition-transform group-open:rotate-180" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                        </summary>
+                        <p class="mt-3 text-sm {{ muted }} leading-relaxed">{{ answer }}</p>
+                    </details>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+
+        <!-- OTHER SERVICES -->
+        <section class="border-b border-black/10 dark:border-white/10">
+            <div class="mx-auto max-w-6xl px-4 py-12">
+                <h2 class="text-xl font-semibold tracking-tight">Otros servicios</h2>
+                <div class="mt-4 grid gap-3 sm:grid-cols-3">
+                    {% for other_slug, other in servicios.items() if other_slug != slug %}
+                    <a href="/servicios/{{ other_slug }}" class="group rounded-2xl border border-black/10 p-5 hover:border-black/30 dark:border-white/10 dark:hover:border-white/30">
+                        <div class="text-sm font-semibold group-hover:underline">{{ other.h1 }} →</div>
+                        <div class="mt-1 text-sm {{ muted }}">{{ other.kicker }}</div>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+
+        <!-- CONTACT -->
+        <section id="contacto">
+            <div class="mx-auto grid max-w-6xl items-start gap-10 px-4 py-14 md:grid-cols-12">
+                <div class="md:col-span-7">
+                    <h2 class="text-2xl md:text-3xl font-semibold tracking-tight">Cotizá: {{ s.nav | lower }}</h2>
+                    <p class="mt-3 {{ muted }} leading-relaxed">Contanos qué necesitás y te respondemos en menos de 24 horas.</p>
+                    <div class="mt-6">
+                        {% set form_motor = s.motor %}{% include "components/contact_form.html" %}
+                    </div>
+                </div>
+                <aside class="md:col-span-5 rounded-2xl bg-[#f5f6f1] p-6 dark:bg-neutral-900">
+                    <div class="text-sm font-semibold">¿Preferís escribirnos directo?</div>
+                    <p class="mt-1 text-sm {{ muted }}">Por WhatsApp coordinamos más rápido.</p>
+                    <a href="https://wa.me/50670808613" target="_blank" rel="noopener noreferrer" class="mt-4 {{ btn_outline }}">WhatsApp 7080-8613</a>
+                    <p class="mt-4 text-sm text-black/60 dark:text-white/60">Atención de lunes a sábado, según agenda.</p>
+                </aside>
+            </div>
+        </section>
+    </main>
+
+    <footer class="mx-auto max-w-6xl border-t border-black/10 px-4 py-6 text-sm text-black/60 dark:border-white/10 dark:text-white/60">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>© <span id="year"></span> TOMATO COSTA RICA ANY S.R.L.</div>
+            <div class="flex flex-wrap items-center gap-4">
+                <a href="/" class="hover:opacity-70">Inicio</a>
+                <a href="/proyectos-reforestacion" class="hover:opacity-70">Mapa de reforestación</a>
+                <a href="/programas/darboles" class="hover:opacity-70">Programa Dárboles</a>
+                <a href="https://www.linkedin.com/company/tomato-cr" target="_blank" rel="noopener noreferrer" class="hover:opacity-70">LinkedIn</a>
+                <a href="/privacidad" class="hover:opacity-70">Privacidad</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{ static_url('js/script.js') }}"></script>
+</body>
+
+</html>
