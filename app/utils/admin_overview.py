@@ -26,13 +26,28 @@ class FieldDay:
     reported: bool
 
 
+# Most important first. urgente: money or people waiting; importante: affects the work
+# soon; revisar: worth fixing, no hurry.
+LEVELS = ("urgente", "importante", "revisar")
+LEVEL_LABELS = {"urgente": "Urgente", "importante": "Importante", "revisar": "Para revisar"}
+
+
 @dataclass
 class Alert:
-    level: str   # "red" (money or people waiting) or "amber"
+    key: str      # stable id, for "ya lo vi"
+    level: str    # one of LEVELS
     title: str
     detail: str
     url: str
     action: str
+    # What the alert is made of (invoice ids, days...): a mark hides it until a new item appears.
+    items: List[str] = field(default_factory=list)
+    # Extra direct links, e.g. one "Registrar bitácora" per missing day.
+    links: List[tuple] = field(default_factory=list)
+
+
+def by_importance(alerts: List[Alert]) -> List[Alert]:
+    return sorted(alerts, key=lambda a: LEVELS.index(a.level))
 
 
 @dataclass
@@ -88,8 +103,9 @@ def missing_alert(db: Session, missing: List[tuple]) -> Alert:
     projects = {p.id: p.name for p in db.query(Project).filter(Project.id.in_({pid for pid, _ in missing}))}
     listed = ", ".join(f"{projects.get(pid, '?')} ({d:%d/%m})" for pid, d in missing[:3])
     more = f" y {len(missing) - 3} más" if len(missing) > 3 else ""
-    return Alert("amber", n(len(missing), "día trabajado sin bitácora", "días trabajados sin bitácora"),
-                 f"Últimos {MISSING_REPORT_DAYS} días: {listed}{more}.", "/logs/", "Ver bitácora")
+    return Alert("sin_bitacora", "importante", n(len(missing), "día trabajado sin bitácora", "días trabajados sin bitácora"),
+                 f"Últimos {MISSING_REPORT_DAYS} días: {listed}{more}.", "/logs/", "Ver bitácora",
+                 items=[f"{pid}:{d.isoformat()}" for pid, d in missing])
 
 
 def unconfirmed_alert(db: Session, today: date, exclude_user_id: Optional[int] = None) -> Optional[Alert]:
@@ -97,13 +113,12 @@ def unconfirmed_alert(db: Session, today: date, exclude_user_id: Optional[int] =
                                              ProjectSchedule.is_confirmed == False)  # noqa: E712
     if exclude_user_id:
         query = query.filter(ProjectSchedule.user_id != exclude_user_id)
-    pending = query.count()
-    if not pending:
+    rows = query.order_by(ProjectSchedule.date).all()
+    if not rows:
         return None
-    oldest = query.order_by(ProjectSchedule.date).first().date
-    return Alert("amber", n(pending, "jornada con horas sin confirmar", "jornadas con horas sin confirmar"),
-                 f"Desde el {oldest:%d/%m/%Y}. Sin confirmar no entran en la planilla.",
-                 "/calendar", "Confirmar en el Calendario")
+    return Alert("horas_sin_confirmar", "urgente", n(len(rows), "jornada con horas sin confirmar", "jornadas con horas sin confirmar"),
+                 f"Desde el {rows[0].date:%d/%m/%Y}. Sin confirmar no entran en la planilla.",
+                 "/calendar", "Confirmar en el Calendario", items=[str(r.id) for r in rows])
 
 
 def supervisor_overview(db: Session, today: date, user: User) -> Overview:
@@ -116,6 +131,7 @@ def supervisor_overview(db: Session, today: date, user: User) -> Overview:
     missing = missing_reports(db, today)
     if missing:
         ov.alerts.append(missing_alert(db, missing))
+    ov.alerts = by_importance(ov.alerts)
     return ov
 
 
@@ -124,6 +140,30 @@ def worker_missing(db: Session, today: date, user: User) -> List[dict]:
     missing = missing_reports(db, today, user_id=user.id)
     projects = {p.id: p.name for p in db.query(Project).filter(Project.id.in_({pid for pid, _ in missing}))}
     return [{"project_id": pid, "project": projects.get(pid, "?"), "date": d} for pid, d in missing]
+
+
+def worker_alerts(db: Session, today: date, user: User) -> List[Alert]:
+    """The worker's own days without a report, each with its link to register it."""
+    missing = worker_missing(db, today, user)
+    if not missing:
+        return []
+    return [Alert("mis_dias_sin_bitacora", "importante",
+                  "Te quedó 1 día sin bitácora" if len(missing) == 1 else f"Te quedaron {len(missing)} días sin bitácora",
+                  f"Días que tenías asignados en los últimos {MISSING_REPORT_DAYS} y que nadie reportó. Registralos antes de que pase la semana.",
+                  "/logs/new", "Registrar bitácora",
+                  items=[f"{m['project_id']}:{m['date'].isoformat()}" for m in missing],
+                  links=[(f"{m['date']:%d/%m} · {m['project']}", f"/logs/new?project_id={m['project_id']}&date={m['date'].isoformat()}")
+                         for m in missing])]
+
+
+def sales_alerts(next_steps: Dict) -> List[Alert]:
+    late = next_steps.get("vencidos", [])
+    if not late:
+        return []
+    return [Alert("mis_pasos_atrasados", "urgente", n(len(late), "próximo paso atrasado", "próximos pasos atrasados"),
+                  "Oportunidades con la fecha del próximo paso ya pasada: atendelas primero.", "/clientes", "Ver Clientes",
+                  items=[str(o.id) for o in late],
+                  links=[(f"{o.account.name} · {o.next_step_date:%d/%m}", f"/clientes/oportunidades/{o.id}") for o in late[:5]])]
 
 
 def client_projects(db: Session, today: date, projects) -> List[dict]:
@@ -140,7 +180,8 @@ def client_projects(db: Session, today: date, projects) -> List[dict]:
     return sorted(rows, key=lambda r: (not r["project"].is_active, r["project"].name.lower()))
 
 
-def admin_overview(db: Session, today: date, next_steps: Optional[Dict] = None) -> Overview:
+def admin_overview(db: Session, today: date, next_steps: Optional[Dict] = None,
+                   expiring: Optional[List[Dict]] = None) -> Overview:
     ov = Overview(today=today)
 
     # --- Today in the field: each project with people today and whether its report is in.
@@ -168,9 +209,9 @@ def admin_overview(db: Session, today: date, next_steps: Optional[Dict] = None) 
     # --- What needs attention, most urgent first.
     if overdue:
         oldest = min(i.due_date for i in overdue)
-        ov.alerts.append(Alert("red", n(len(overdue), "factura vencida", "facturas vencidas"),
+        ov.alerts.append(Alert("facturas_vencidas", "urgente", n(len(overdue), "factura vencida", "facturas vencidas"),
                                f"₡{ov.money['overdue']:,.2f} sin cobrar; la más vieja venció el {oldest:%d/%m/%Y}.",
-                               "/dashboard?invoice_status=vencida", "Ver facturas"))
+                               "/dashboard?invoice_status=vencida", "Ver facturas", items=[str(i.id) for i in overdue]))
 
     missing = missing_reports(db, today)
     if missing:
@@ -184,18 +225,30 @@ def admin_overview(db: Session, today: date, next_steps: Optional[Dict] = None) 
     drafts = db.query(PayrollPeriod).filter(PayrollPeriod.status == "draft").order_by(PayrollPeriod.start_date).all()
     if drafts:
         first = drafts[0]
-        ov.alerts.append(Alert("amber", n(len(drafts), "planilla en borrador", "planillas en borrador"),
+        ov.alerts.append(Alert("planillas_borrador", "importante", n(len(drafts), "planilla en borrador", "planillas en borrador"),
                                f"La primera es del {first.start_date:%d/%m} al {first.end_date:%d/%m/%Y}.",
-                               f"/payroll/detail/{first.id}", "Revisar"))
+                               f"/payroll/detail/{first.id}", "Revisar", items=[str(d.id) for d in drafts]))
 
-    late_steps = len((next_steps or {}).get("vencidos", []))
-    if late_steps:
-        ov.alerts.append(Alert("amber", n(late_steps, "próximo paso atrasado en Clientes", "próximos pasos atrasados en Clientes"),
-                               "Oportunidades con la fecha del próximo paso ya pasada.", "/clientes", "Ver Clientes"))
+    late = (next_steps or {}).get("vencidos", [])
+    if late:
+        ov.alerts.append(Alert("pasos_atrasados", "importante", n(len(late), "próximo paso atrasado en Clientes", "próximos pasos atrasados en Clientes"),
+                               "Oportunidades con la fecha del próximo paso ya pasada.", "/clientes", "Ver Clientes",
+                               items=[str(o.id) for o in late]))
 
-    without_email = db.query(User).filter((User.email.is_(None)) | (User.email == ""),
-                                          User.is_active == True).count()  # noqa: E712
+    pending_renewals = [row for row in (expiring or []) if not row["renewal"]]
+    if pending_renewals:
+        urgent = [row for row in pending_renewals if row["urgent"]]
+        first = pending_renewals[0]
+        ov.alerts.append(Alert("contratos_por_vencer", "importante" if urgent else "revisar",
+                               n(len(pending_renewals), "contrato por vencer sin renovación", "contratos por vencer sin renovación"),
+                               f"El primero, {first['project'].name}, vence el {first['end_date']:%d/%m/%Y} ({first['days_left']} días).",
+                               "/clientes", "Crear renovación", items=[str(row["project"].id) for row in pending_renewals]))
+
+    without_email = db.query(User.id).filter((User.email.is_(None)) | (User.email == ""),
+                                             User.is_active == True).all()  # noqa: E712
     if without_email:
-        ov.alerts.append(Alert("amber", n(without_email, "persona activa sin correo", "personas activas sin correo"),
-                               "No pueden recuperar su contraseña.", "/users/", "Agregar correos"))
+        ov.alerts.append(Alert("sin_correo", "revisar", n(len(without_email), "persona activa sin correo", "personas activas sin correo"),
+                               "No pueden recuperar su contraseña.", "/users/", "Agregar correos",
+                               items=[str(uid) for (uid,) in without_email]))
+    ov.alerts = by_importance(ov.alerts)
     return ov

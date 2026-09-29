@@ -1,0 +1,154 @@
+{# Dashboard pieces shared by every role: "Requiere atención" with its Pendientes tab, and
+   the "Hoy" block with the person's tasks. #}
+
+{% set level_style = {
+    'urgente': ('bg-red-50 text-red-700 ring-red-600/20', 'border-red-200', 'bg-red-500'),
+    'importante': ('bg-amber-50 text-amber-800 ring-amber-600/20', 'border-amber-200', 'bg-amber-500'),
+    'revisar': ('bg-gray-100 text-gray-700 ring-gray-500/20', 'border-gray-200', 'bg-gray-400'),
+} %}
+
+{% macro alert_card(a, level_labels, pending=None) %}
+{% set st = level_style[a.level] %}
+<li class="flex flex-col gap-3 rounded-xl border bg-white p-4 shadow-sm {{ 'border-gray-200' if pending else st[1] }}">
+    <div class="flex min-w-0 gap-3">
+        <span class="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full {{ st[2] }}" aria-hidden="true"></span>
+        <div class="min-w-0">
+            <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset {{ st[0] }}">{{ level_labels[a.level] }}</span>
+            <p class="mt-1 font-semibold text-gray-900">{{ a.title }}</p>
+            <p class="mt-0.5 text-sm text-gray-600">{{ a.detail }}</p>
+            {% if pending %}<p class="mt-1 text-xs text-gray-500">La marcaste el {{ pending.acked_at|format_datetime_cr }}. Vuelve a Nuevas si empeora.</p>{% endif %}
+        </div>
+    </div>
+    {% if a.links %}
+    <ul class="space-y-1 pl-5 text-sm">
+        {% for label, url in a.links %}<li><a href="{{ url }}" class="font-medium text-indigo-600 hover:underline">{{ label }} &rarr;</a></li>{% endfor %}
+    </ul>
+    {% endif %}
+    <div class="flex flex-wrap items-center justify-between gap-2 pl-5">
+        <a href="{{ a.url }}" class="text-sm font-semibold text-indigo-600 hover:text-indigo-800">{{ a.action }} &rarr;</a>
+        <form method="post" action="/dashboard/alertas/{{ a.key }}/{{ 'volver' if pending else 'visto' }}">
+            <button class="rounded-md bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+                    title="{{ 'Volver a mostrarla en Nuevas' if pending else 'Pasa a Pendientes aunque no esté resuelta' }}">{{ 'Volver a mostrar' if pending else '✓ Ya lo vi' }}</button>
+        </form>
+    </div>
+</li>
+{% endmacro %}
+
+{% macro attention(alerts, pending, level_labels, empty) %}
+<section class="mb-8" aria-labelledby="atencion" x-data="{ tab: 'nuevas' }">
+    <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <h2 id="atencion" class="text-sm font-semibold uppercase tracking-wide text-gray-500">Requiere atención</h2>
+        <div class="flex gap-1 rounded-lg bg-gray-100 p-1 text-xs font-semibold" role="tablist">
+            <button type="button" role="tab" @click="tab = 'nuevas'" :class="tab === 'nuevas' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-600'" class="rounded-md bg-white px-3 py-1 text-gray-900 shadow-sm">Nuevas ({{ alerts|length }})</button>
+            <button type="button" role="tab" @click="tab = 'pendientes'" :class="tab === 'pendientes' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-600'" class="rounded-md px-3 py-1 text-gray-600">Pendientes ({{ pending|length }})</button>
+        </div>
+    </div>
+    <div x-show="tab === 'nuevas'">
+        {% if alerts %}
+        <ul class="grid gap-3 md:grid-cols-2">{% for a in alerts %}{{ alert_card(a, level_labels) }}{% endfor %}</ul>
+        {% else %}
+        <p class="rounded-xl border border-green-200 bg-green-50 p-4 text-sm font-medium text-green-800">{{ 'Nada nuevo. Lo que ya viste está en Pendientes.' if pending else empty }}</p>
+        {% endif %}
+    </div>
+    <div x-show="tab === 'pendientes'" x-cloak>
+        {% if pending %}
+        <p class="mb-3 text-xs text-gray-500">Alertas que marcaste como vistas y todavía no se resolvieron. Desaparecen solas cuando se resuelven.</p>
+        <ul class="grid gap-3 md:grid-cols-2">{% for p in pending %}{{ alert_card(p.alert, level_labels, p) }}{% endfor %}</ul>
+        {% else %}
+        <p class="rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-500">No tenés alertas marcadas como vistas.</p>
+        {% endif %}
+    </div>
+</section>
+{% endmacro %}
+
+{% set priority_style = {'alta': 'bg-red-50 text-red-700 ring-red-600/20', 'normal': 'bg-gray-100 text-gray-700 ring-gray-500/20', 'baja': 'bg-white text-gray-500 ring-gray-300'} %}
+
+{% macro task_fields(t, data, priorities, priority_labels, user) %}
+{% set input = "mt-1 block w-full rounded-md border border-gray-300 p-2 text-sm" %}
+<label class="block sm:col-span-2"><span class="text-xs font-medium text-gray-700">Qué hay que hacer *</span>
+    <input type="text" name="title" required maxlength="200" value="{{ t.title if t else '' }}" placeholder="Ej.: Llamar al vivero por las plantas" class="{{ input }}"></label>
+<label class="block"><span class="text-xs font-medium text-gray-700">Fecha *</span>
+    <input type="date" name="due_date" required value="{{ (t.due_date if t else data.today).isoformat() }}" class="{{ input }}"></label>
+<label class="block"><span class="text-xs font-medium text-gray-700">Prioridad</span>
+    <select name="priority" class="{{ input }}">{% for p in priorities %}<option value="{{ p }}" {% if (t.priority if t else 'normal') == p %}selected{% endif %}>{{ priority_labels[p] }}</option>{% endfor %}</select></label>
+{% if data.assignable|length > 1 %}
+<label class="block sm:col-span-2"><span class="text-xs font-medium text-gray-700">Para</span>
+    <select name="assignee_id" class="{{ input }}">{% for u in data.assignable %}<option value="{{ u.id }}" {% if (t.assignee_id if t else user.id) == u.id %}selected{% endif %}>{{ 'Mí' if u.id == user.id else (u.full_name or u.username) }}</option>{% endfor %}</select></label>
+{% endif %}
+<label class="block sm:col-span-2"><span class="text-xs font-medium text-gray-700">Descripción o enlace</span>
+    <textarea name="description" rows="2" placeholder="Detalles; los enlaces (https://…) se pueden abrir desde la tarea" class="{{ input }}">{{ (t.description or '') if t else '' }}</textarea></label>
+{% endmacro %}
+
+{% macro task_item(t, data, priorities, priority_labels, user) %}
+{% set late = t.due_date < data.today and not t.done_at %}
+<li class="py-3" x-data="{ edit: false, more: false }">
+    <div class="flex items-start gap-3">
+        <form method="post" action="/dashboard/tareas/{{ t.id }}/hecha" class="pt-0.5">
+            <button class="flex h-5 w-5 items-center justify-center rounded border {{ 'border-green-600 bg-green-600 text-white' if t.done_at else 'border-gray-400 bg-white hover:border-black' }}"
+                    aria-label="{{ 'Marcar pendiente' if t.done_at else 'Marcar hecha' }}: {{ t.title }}">{% if t.done_at %}<span class="text-xs">✓</span>{% endif %}</button>
+        </form>
+        <div class="min-w-0 flex-1">
+            <div class="flex flex-wrap items-center gap-2">
+                <button type="button" @click="more = !more" class="text-left text-sm font-semibold {{ 'text-gray-400 line-through' if t.done_at else 'text-gray-900' }}">{{ t.title }}</button>
+                {% if t.priority != 'normal' %}<span class="rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset {{ priority_style[t.priority] }}">{{ priority_labels[t.priority] }}</span>{% endif %}
+            </div>
+            <p class="text-xs {{ 'font-semibold text-red-700' if late else 'text-gray-500' }}">
+                {% if late %}Atrasada · {{ t.due_date|format_date }}{% elif t.due_date == data.today %}Hoy{% else %}{{ long_date(t.due_date)|capitalize }}{% endif %}
+                {% if t.assignee_id != user.id %} · para {{ t.assignee.full_name or t.assignee.username }}{% elif t.created_by_id and t.created_by_id != user.id %} · te la asignó {{ t.created_by.full_name or t.created_by.username }}{% endif %}
+            </p>
+            {% if t.description %}<p class="mt-1 whitespace-pre-line break-words text-sm text-gray-600" :class="more ? '' : 'line-clamp-2'">{{ t.description|linkify }}</p>{% endif %}
+            <button type="button" @click="edit = !edit" class="mt-1 text-xs font-semibold text-gray-500 hover:text-black">Editar</button>
+            <div x-show="edit" x-cloak class="mt-2 rounded-lg border border-gray-200 bg-gray-50 p-3">
+                <form method="post" action="/dashboard/tareas/{{ t.id }}/editar" class="grid gap-2 sm:grid-cols-2">
+                    {{ task_fields(t, data, priorities, priority_labels, user) }}
+                    <div class="flex gap-2 sm:col-span-2">
+                        <button class="rounded-md bg-black px-3 py-2 text-sm font-semibold text-white hover:bg-gray-800">Guardar</button>
+                        <button type="button" @click="edit = false" class="rounded-md px-3 py-2 text-sm font-semibold text-gray-600">Cancelar</button>
+                    </div>
+                </form>
+                <form method="post" action="/dashboard/tareas/{{ t.id }}/borrar" class="mt-2" onsubmit="return confirm('¿Borrar la tarea?')">
+                    <button class="text-xs font-semibold text-red-700 hover:underline">Borrar tarea</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</li>
+{% endmacro %}
+
+{# "Hoy": the person's tasks on the left; what the caller puts (the day's work) on the right. #}
+{% macro today_block(data, priorities, priority_labels, user) %}
+{% set tasks = data.tasks %}
+<section class="mb-8" aria-labelledby="hoy">
+    <h2 id="hoy" class="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">Hoy</h2>
+    <div class="grid gap-4 lg:grid-cols-2">
+        <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm" x-data="{ add: false }">
+            <div class="flex items-center justify-between gap-2">
+                <h3 class="font-bold text-gray-900">Mis tareas <span class="text-sm font-normal text-gray-500">({{ tasks.today|length }})</span></h3>
+                <button type="button" @click="add = !add" class="rounded-md bg-black px-3 py-1.5 text-sm font-semibold text-white hover:bg-gray-800">+ Tarea</button>
+            </div>
+            <form x-show="add" x-cloak method="post" action="/dashboard/tareas" class="mt-3 grid gap-2 rounded-lg border border-gray-200 bg-gray-50 p-3 sm:grid-cols-2">
+                {{ task_fields(None, data, priorities, priority_labels, user) }}
+                <div class="sm:col-span-2"><button class="rounded-md bg-black px-3 py-2 text-sm font-semibold text-white hover:bg-gray-800">Agregar tarea</button></div>
+            </form>
+            {% if tasks.today %}
+            <ul class="mt-2 divide-y divide-gray-100">{% for t in tasks.today %}{{ task_item(t, data, priorities, priority_labels, user) }}{% endfor %}</ul>
+            {% else %}
+            <p class="mt-3 text-sm text-gray-500">No tenés tareas para hoy. Agregá lo que no genera el sistema: una llamada, una compra, un pendiente.</p>
+            {% endif %}
+            {% if tasks.upcoming or tasks.done or tasks.assigned %}
+            <div class="mt-3 space-y-2 border-t border-gray-100 pt-3 text-sm">
+                {% for key, title in [('upcoming', 'Próximos 7 días'), ('assigned', 'Que asigné a otros'), ('done', 'Hechas hoy')] if tasks[key] %}
+                <details>
+                    <summary class="cursor-pointer py-1 font-semibold text-gray-700">{{ title }} ({{ tasks[key]|length }})</summary>
+                    <ul class="divide-y divide-gray-100">{% for t in tasks[key] %}{{ task_item(t, data, priorities, priority_labels, user) }}{% endfor %}</ul>
+                </details>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+            {{ caller() }}
+        </div>
+    </div>
+</section>
+{% endmacro %}

@@ -68,7 +68,7 @@ def test_worker_is_reminded_of_days_without_report(db, login_as, users):
     past = schedule(db, users, "worker", 2)
     html = login_as("worker").get("/dashboard").text
     assert "Te quedó 1 día sin bitácora" in html
-    assert f"/logs/new?project_id={users['project_id']}&date={past.date.isoformat()}" in html
+    assert f"/logs/new?project_id={users['project_id']}&amp;date={past.date.isoformat()}" in html
     assert "Registrar bitácora de hoy" in html
 
 

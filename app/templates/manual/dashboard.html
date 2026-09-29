@@ -2,9 +2,63 @@
 
 {% block manual %}
 {% call m.section("que-es", "Qué es") %}
-<p>El Dashboard es la pantalla de inicio, la primera que ves al entrar. Te muestra lo más importante de tu trabajo
-    según tu rol: facturas pendientes, tus asignaciones, tus próximos pasos de venta o la bitácora de tus proyectos.
-    Para volver a él, tocá <strong>Dashboard</strong> en el menú.</p>
+<p>El Dashboard es la pantalla de inicio, la primera que ves al entrar. Te muestra lo que tenés que hacer hoy y lo más
+    importante de tu trabajo según tu rol. Para volver a él, tocá <strong>Dashboard</strong> en el menú.</p>
+<p>Siempre está en el mismo orden, de lo más importante a lo menos:</p>
+<ol class="list-decimal space-y-1 pl-5">
+    <li><strong>Hoy</strong>: tus tareas de hoy y las atrasadas, y al lado lo del día según tu rol (quién está en campo, tu
+        trabajo de hoy o tus próximos pasos de venta).</li>
+    <li><strong>Requiere atención</strong>: las alertas del sistema, de la más urgente a la menos.</li>
+    <li>Los <strong>números de tu rol</strong>: dinero y facturas, tus asignaciones, tu filtro de ventas o tus proyectos.</li>
+</ol>
+<p>Arriba, junto a la fecha, dice cuántas tareas tenés hoy y cuántas alertas urgentes hay.</p>
+{% endcall %}
+
+{% call m.section("tareas", "Mis tareas") %}
+{% if user.role == 'client' %}
+<p>Las tareas son para el equipo de TOMATO; en el portal del cliente no aparecen.</p>
+{% else %}
+<p>Una lista de pendientes tuyos que el sistema no genera: una llamada, una compra, algo que no te podés olvidar. Cada
+    tarea tiene <strong>fecha</strong>; el día que le toca (o si se atrasó) aparece en <strong>Hoy</strong>.</p>
+{{ m.shot("dashboard/tareas.webp", "Agregar una tarea", "Mis tareas, con el formulario abierto.") }}
+{{ m.steps([
+    (1, "<strong>+ Tarea</strong> abre el formulario."),
+    (2, "<strong>Qué hay que hacer</strong> y la <strong>fecha</strong> (viene puesta la de hoy). Son obligatorios."),
+    (3, "<strong>Prioridad</strong>: alta, normal o baja. En cada día, las de prioridad alta van primero."),
+    (4, "<strong>Para</strong> (solo admin y supervisor): a quién le toca. La tarea le aparece a esa persona con <em>te la asignó</em> y tu nombre, y a vos en <em>Que asigné a otros</em>."),
+    (5, "Las <strong>atrasadas</strong> salen primero, en rojo, con su fecha."),
+]) }}
+<ul class="list-disc space-y-1 pl-5">
+    <li>En <strong>Descripción o enlace</strong> podés poner detalles; los enlaces (https://…) se abren desde la tarea.</li>
+    <li>El cuadrito de la izquierda la marca <strong>hecha</strong>: pasa a <em>Hechas hoy</em>. Si te equivocaste, tocalo otra vez.</li>
+    <li><strong>Editar</strong> cambia cualquier dato o la borra. Una tarea la pueden cambiar quien la tiene y quien la creó.</li>
+    <li>Debajo están <em>Próximos 7 días</em> y, si asignás tareas, <em>Que asigné a otros</em>.</li>
+</ul>
+{% endif %}
+{% endcall %}
+
+{% call m.section("alertas", "Alertas: Requiere atención") %}
+{% if user.role == 'client' %}
+<p>Las alertas son para el equipo de TOMATO; en el portal del cliente no aparecen.</p>
+{% else %}
+<p>El sistema revisa solo lo que está pendiente y lo muestra ordenado por importancia:</p>
+<ul class="list-disc space-y-1 pl-5">
+    <li><span class="font-semibold text-red-700">Urgente</span>: dinero o personas esperando (facturas vencidas, horas sin confirmar que frenan la planilla, tus próximos pasos atrasados si sos de ventas).</li>
+    <li><span class="font-semibold text-amber-700">Importante</span>: afecta el trabajo pronto (días sin bitácora, planillas en borrador, pasos atrasados del equipo, contratos por vencer en menos de 60 días).</li>
+    <li><span class="font-semibold text-gray-700">Para revisar</span>: sin prisa (personas sin correo, contratos que vencen en 60 a 90 días).</li>
+</ul>
+<p><strong>✓ Ya lo vi</strong> mueve la alerta a la pestaña <strong>Pendientes</strong> aunque no esté resuelta, para que
+    no te distraiga. Solo para vos: a los demás les sigue apareciendo.</p>
+{{ m.shot("dashboard/pendientes.webp", "Alertas pendientes", "La pestaña Pendientes.") }}
+{{ m.steps([
+    (1, "<strong>Nuevas</strong> y <strong>Pendientes</strong>, con cuántas hay en cada una."),
+    (2, "<strong>Volver a mostrar</strong> la regresa a Nuevas."),
+]) }}
+<ul class="list-disc space-y-1 pl-5">
+    <li>Si la alerta <strong>empeora</strong> (por ejemplo, la marcaste con 2 facturas vencidas y ahora son 3), vuelve sola a Nuevas.</li>
+    <li>Cuando se <strong>resuelve</strong>, desaparece sola de las dos pestañas.</li>
+</ul>
+{% endif %}
 {% endcall %}
 
 {% call m.section("por-rol", "Qué ves según tu rol") %}
@@ -12,12 +66,13 @@
 <h3 class="font-semibold text-gray-900">Admin</h3>
 {{ m.shot("dashboard/admin.webp", "Dashboard del admin", "Dashboard del admin con datos de ejemplo.") }}
 {{ m.steps([
-    (1, "<strong>Requiere atención</strong>: lo que hay que resolver, lo más urgente primero. En rojo, las facturas vencidas; en amarillo, los días trabajados sin bitácora (últimos 7 días), las jornadas con horas sin confirmar, las planillas en borrador, los próximos pasos atrasados en Clientes y las personas sin correo. Cada aviso tiene su enlace para resolverlo. Si no hay nada, dice <em>Todo al día</em>."),
+    (1, "<strong>Mis tareas</strong> de hoy y las atrasadas (ver Mis tareas)."),
     (2, "<strong>Hoy en campo</strong>: cada proyecto con gente asignada hoy en el Calendario, quiénes van y si ya tiene la bitácora del día."),
-    (3, "<strong>Dinero</strong>: <em>Por cobrar</em> (facturado que falta pagar), <em>Vencido</em>, <em>Facturado este mes</em> y <em>Por facturar</em> (adjudicado que falta facturar). Debajo, los proyectos activos y los totales adjudicado y facturado."),
-    (4, "<strong>Filtros</strong>: filtran la lista de facturas por fecha de emisión y estado (Pendiente, Pago parcial, Vencida, Pagada). Con un filtro puesto se quedan abiertos y dicen <em>activos</em>."),
-    (5, "<strong>Facturas por cobrar</strong>: sin filtros muestra las pendientes, con pago parcial y vencidas, de la que vence primero a la última. En el celular se ven como tarjetas. Tocá una para abrir el presupuesto del proyecto."),
+    (3, "<strong>Requiere atención</strong>: facturas vencidas y horas sin confirmar (urgente); días sin bitácora, planillas en borrador, pasos atrasados en Clientes y contratos por vencer sin renovación (importante); personas sin correo (para revisar). Cada una tiene su enlace para resolverla y <em>Ya lo vi</em>. Si no hay nada, dice <em>Todo al día</em>."),
+    (4, "<strong>Pendientes</strong>: las alertas que marcaste como vistas (ver Alertas)."),
+    (5, "<strong>Dinero</strong>: <em>Por cobrar</em> (facturado que falta pagar), <em>Vencido</em>, <em>Facturado este mes</em> y <em>Por facturar</em> (adjudicado que falta facturar). Debajo, los proyectos activos y los totales adjudicado y facturado."),
     (6, "<strong>Filtro comercial del equipo</strong>: cuántas cuentas llegaron a cada etapa en el periodo del piloto; Propuesta y Ganado contra su meta y las demás con el % que pasó de la anterior. Debajo, lo <strong>ganado en el periodo</strong> en colones: Licitaciones y Trabajos puntuales contra su meta. Fuera del periodo se muestra en una sola línea. Ver el capítulo Clientes."),
+    (7, "<strong>Facturas por cobrar</strong>: sin filtros muestra las pendientes, con pago parcial y vencidas, de la que vence primero a la última. En el celular se ven como tarjetas. Tocá una para abrir el presupuesto del proyecto. Arriba, <strong>Filtros</strong> por fecha de emisión y estado; con un filtro puesto se quedan abiertos y dicen <em>activos</em>."),
 ]) }}
 {% endif %}
 
@@ -25,11 +80,11 @@
 <h3 class="mt-4 font-semibold text-gray-900">Ventas</h3>
 {{ m.shot("dashboard/ventas.webp", "Dashboard de ventas", "Dashboard de un vendedor.") }}
 {{ m.steps([
-    (1, "<strong>Vencidos</strong>: próximos pasos cuya fecha ya pasó. Atendelos primero."),
-    (2, "<strong>Para hoy</strong>."),
-    (3, "<strong>Próximos 7 días</strong>, para planear la semana."),
-    (4, "Cada línea abre la oportunidad. <strong>Abrir Cotizador</strong> te lleva directo a cotizar."),
-    (5, "<strong>Mi filtro</strong>: cuántas de tus cuentas llegaron a cada etapa en el periodo del piloto. Si tenés pasos atrasados, arriba aparece un aviso en rojo."),
+    (1, "<strong>Mis tareas</strong> de hoy y las atrasadas."),
+    (2, "<strong>Próximos pasos de hoy</strong> en Clientes; cada uno abre la oportunidad."),
+    (3, "<strong>Requiere atención</strong>: tus próximos pasos atrasados (urgente), con enlace a cada oportunidad."),
+    (4, "<strong>Mis próximos pasos</strong>: vencidos, para hoy y los próximos 7 días, para planear la semana. <em>Abrir Cotizador</em> te lleva directo a cotizar."),
+    (5, "<strong>Mi filtro</strong>: cuántas de tus cuentas llegaron a cada etapa en el periodo del piloto."),
 ]) }}
 <p>Solo aparecen tus oportunidades abiertas que tienen fecha de próximo paso. Si una no aparece, revisá que tenga fecha.</p>
 {% endif %}
@@ -38,9 +93,10 @@
 <h3 class="mt-4 font-semibold text-gray-900">Supervisor</h3>
 {{ m.shot("dashboard/supervisor.webp", "Dashboard del supervisor", "Dashboard del supervisor.") }}
 {{ m.steps([
-    (1, "<strong>Requiere atención</strong>: las jornadas del equipo con horas sin confirmar (las tuyas las confirma el admin) y los días trabajados sin bitácora de los últimos 7 días."),
+    (1, "<strong>Mis tareas</strong>: las tuyas y las que le asignás al equipo (con <em>Para</em>)."),
     (2, "<strong>Hoy en campo</strong>: cada proyecto con gente hoy, quiénes van y si ya tiene bitácora."),
-    (3, "<strong>Gestionar Calendario</strong>: para organizar el equipo de cada proyecto y confirmar sus horas. Debajo están tus propias asignaciones, igual que las de un trabajador."),
+    (3, "<strong>Requiere atención</strong>: las jornadas del equipo con horas sin confirmar (las tuyas las confirma el admin) y los días trabajados sin bitácora de los últimos 7 días."),
+    (4, "<strong>Gestionar Calendario</strong>: para organizar el equipo de cada proyecto y confirmar sus horas. Debajo están tus propias asignaciones, igual que las de un trabajador."),
 ]) }}
 {% endif %}
 
@@ -48,13 +104,13 @@
 <h3 class="mt-4 font-semibold text-gray-900">Trabajador</h3>
 {{ m.shot("dashboard/trabajador.webp", "Dashboard de un trabajador en el celular", "Tus asignaciones, en el celular.", mobile=True) }}
 {{ m.steps([
-    (1, "Si te quedó un día asignado <strong>sin bitácora</strong> en los últimos 7, aparece arriba con su botón <em>Registrar bitácora</em>: abre el formulario con ese proyecto y ese día ya puestos."),
-    (2, "<strong>Mis asignaciones: hoy y próximos días</strong>: lo que te asignaron en el Calendario, empezando por hoy (resaltado en verde), con sus tareas."),
-    (3, "<strong>Gestionar tareas</strong> abre la asignación: marcá cada tarea al terminarla (se guarda sola y se tacha en la lista) o tocá <em>Ir al Proyecto</em>."),
-    (4, "<strong>Registrar bitácora de hoy</strong>, en la tarjeta de hoy, abre el formulario del reporte con el proyecto ya elegido."),
+    (1, "<strong>Mis tareas</strong>: las tuyas y las que te asignó el supervisor o el admin."),
+    (2, "<strong>Mi trabajo de hoy</strong>: el proyecto que tenés hoy en el Calendario, con sus tareas. <em>Registrar bitácora de hoy</em> abre el reporte con el proyecto ya elegido."),
+    (3, "<strong>Gestionar tareas</strong> abre la asignación: marcá cada tarea del proyecto al terminarla (se guarda sola) o tocá <em>Ir al Proyecto</em>."),
+    (4, "<strong>Requiere atención</strong>: si te quedó un día asignado <strong>sin bitácora</strong> en los últimos 7, con un enlace por día que abre el formulario con ese proyecto y ese día ya puestos."),
 ]) }}
-<p>Más abajo, en <strong>Anteriores</strong>, están tus últimas 5 asignaciones pasadas. En la computadora se ven como
-    tabla.</p>
+<p>Más abajo están <strong>Mis próximas asignaciones</strong> y, en <strong>Anteriores</strong>, las últimas 5 pasadas.
+    En la computadora se ven como tabla.</p>
 {% endif %}
 
 {% if user.role in ['admin', 'client'] %}
@@ -88,12 +144,22 @@
 {% endif %}
 {% if user.role in ['admin', 'supervisor', 'worker'] %}
 {% call m.faq("No veo la asignación de hoy") %}
-<p>Si no aparece <em>Hoy</em> arriba, no tenés asignación para hoy en el Calendario. Revisá con tu supervisor.</p>
+<p>Si en <em>Mi trabajo de hoy</em> dice que no tenés asignaciones, no hay nada para hoy en el Calendario. Revisá con tu supervisor.</p>
 {% endcall %}
 {% endif %}
 {% if user.role in ['admin', 'client'] %}
 {% call m.faq("Cambié de página y se perdió el orden por fecha") %}
 <p>Al pasar de página vuelve al orden normal (la más nueva primero). Volvé a tocar <em>Fecha</em> si lo necesitás.</p>
+{% endcall %}
+{% endif %}
+{% if user.role != 'client' %}
+{% call m.faq("Marqué una alerta como vista y volvió a aparecer") %}
+<p>Volvió porque empeoró: apareció algo nuevo que no estaba cuando la marcaste (otra factura vencida, otro día sin
+    bitácora). Revisala y, si querés, marcala de nuevo.</p>
+{% endcall %}
+{% call m.faq("¿Quién ve mis tareas?") %}
+<p>Solo vos. Si la tarea te la asignó alguien, también la ve esa persona en <em>Que asigné a otros</em>. El admin puede
+    abrir y cambiar cualquier tarea.</p>
 {% endcall %}
 {% endif %}
 {% call m.faq("No veo algo que otra persona sí ve") %}

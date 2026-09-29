@@ -1,4 +1,7 @@
-from fastapi import APIRouter, Depends, Request, status
+from datetime import datetime
+from typing import Optional
+
+from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
@@ -13,7 +16,13 @@ from app.db.models.finance import Invoice, InvoiceStatus
 from app.db.models.log import DailyLog
 from app.db.models.schedule import ProjectSchedule
 from app.db.models.associations import project_users
-from app.utils.admin_overview import admin_overview, client_projects, supervisor_overview, worker_missing
+from app.db.models.task import PRIORITIES, PRIORITY_LABELS, Task
+from app.utils.activity import log_activity
+from app.utils.admin_overview import (LEVEL_LABELS, admin_overview, client_projects, sales_alerts, supervisor_overview,
+                                      worker_alerts)
+from app.utils.tasks import (assignable_users, can_manage, mark_seen, my_tasks, parse_task_form, split_alerts, unmark,
+                             uses_tasks)
+from app.routers.crm import toast_redirect
 from app.routers.finance import check_update_overdue_invoices, get_project_budget_status
 
 router = APIRouter(
@@ -92,7 +101,8 @@ def dashboard(
         today = today_cr()
         period = data["crm_period"]
         data["crm_running"] = period.start <= today <= period.end
-        data["overview"] = admin_overview(db, today, crm.next_steps(db, today=today))
+        data["overview"] = admin_overview(db, today, crm.next_steps(db, today=today), crm.expiring_contracts(db, today))
+        data["alerts"] = data["overview"].alerts
 
     elif user.role == CLIENT:
         # 1. Get Client Projects for Dropdown & Filter
@@ -163,12 +173,13 @@ def dashboard(
             ProjectSchedule.user_id == user.id, ProjectSchedule.date < today
         ).order_by(ProjectSchedule.date.desc()).limit(5).all()
         data["today"] = today
+        data["today_assignments"] = [s for s in data["upcoming"] if s.date == today]
         if user.role == SUPERVISOR:
             # The team alert already covers the supervisor's own days without report.
             data["overview"] = supervisor_overview(db, today, user)
-            data["missing"] = []
+            data["alerts"] = data["overview"].alerts
         else:
-            data["missing"] = worker_missing(db, today, user)
+            data["alerts"] = worker_alerts(db, today, user)
 
     elif user.role == VENTAS:
         today = today_cr()
@@ -176,12 +187,118 @@ def dashboard(
         data["crm_period"] = crm.funnel_period(db)
         data["crm_running"] = data["crm_period"].start <= today <= data["crm_period"].end
         data["crm_funnel"] = crm.funnel(db, owner_id=user.id, period=data["crm_period"])
+        data["alerts"] = sales_alerts(data["next_steps"])
 
+    data["alerts"], data["pending_alerts"] = split_alerts(db, user, data.get("alerts", []))
+    if uses_tasks(user):
+        data["today"] = data.get("today") or today_cr()
+        data["tasks"] = my_tasks(db, user, data["today"])
+        data["assignable"] = assignable_users(db, user)
     return templates.TemplateResponse("dashboard.html", {
         "request": request, 
         "user": user, 
-        "data": data
+        "data": data,
+        "priorities": PRIORITIES, "priority_labels": PRIORITY_LABELS, "level_labels": LEVEL_LABELS,
     })
+
+
+def current_alerts(db: Session, user: User):
+    """The alerts of this person's Dashboard, computed the same way as the page."""
+    today = today_cr()
+    if user.role == ADMIN:
+        check_update_overdue_invoices(db)
+        return admin_overview(db, today, crm.next_steps(db, today=today), crm.expiring_contracts(db, today)).alerts
+    if user.role == SUPERVISOR:
+        return supervisor_overview(db, today, user).alerts
+    if user.role == WORKER:
+        return worker_alerts(db, today, user)
+    if user.role == VENTAS:
+        return sales_alerts(crm.next_steps(db, owner_id=user.id, today=today))
+    return []
+
+
+@router.post("/alertas/{key}/visto")
+def alert_seen(key: str, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
+    """'Ya lo vi': the alert moves to Pendientes for this person, even if it isn't fixed yet."""
+    alert = next((a for a in current_alerts(db, user) if a.key == key), None)
+    if alert is None:
+        return toast_redirect("/dashboard/", "Esa alerta ya no está: se resolvió")
+    mark_seen(db, user, alert)
+    db.commit()
+    return toast_redirect("/dashboard/", "Movida a Pendientes; vuelve a Nuevas si empeora")
+
+
+@router.post("/alertas/{key}/volver")
+def alert_back(key: str, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
+    unmark(db, user, key)
+    db.commit()
+    return toast_redirect("/dashboard/", "La alerta volvió a Requiere atención")
+
+
+# --- Tareas ------------------------------------------------------------------------
+
+def task_user(user: User = Depends(deps.get_current_user)) -> User:
+    if not uses_tasks(user):
+        raise HTTPException(status_code=403, detail="Las tareas son para el equipo")
+    return user
+
+
+def managed_task(db: Session, task_id: int, user: User) -> Task:
+    task = db.get(Task, task_id)
+    if task is None:
+        raise HTTPException(status_code=404, detail="Tarea no encontrada")
+    if not can_manage(user, task):
+        raise HTTPException(status_code=403, detail="Esa tarea es de otra persona")
+    return task
+
+
+@router.post("/tareas")
+def create_task(title: str = Form(""), due_date: str = Form(""), priority: Optional[str] = Form(None),
+                description: Optional[str] = Form(None), assignee_id: Optional[str] = Form(None),
+                db: Session = Depends(deps.get_db), user: User = Depends(task_user)):
+    try:
+        fields = parse_task_form(db, user, title, due_date, priority, description, assignee_id)
+    except ValueError as e:
+        return toast_redirect("/dashboard/", str(e), error=True)
+    task = Task(created_by_id=user.id, **fields)
+    db.add(task)
+    db.commit()
+    if task.assignee_id != user.id:
+        log_activity(db, user, "CREATE", "TASK", task.id, f"Tarea para {task.assignee.full_name or task.assignee.username}: {task.title}")
+        return toast_redirect("/dashboard/", f"Tarea asignada a {task.assignee.full_name or task.assignee.username}")
+    return toast_redirect("/dashboard/", "Tarea agregada")
+
+
+@router.post("/tareas/{task_id}/hecha")
+def toggle_task(task_id: int, db: Session = Depends(deps.get_db), user: User = Depends(task_user)):
+    task = managed_task(db, task_id, user)
+    task.done_at = None if task.done_at else datetime.utcnow()
+    db.commit()
+    return toast_redirect("/dashboard/", "Tarea hecha" if task.done_at else "Tarea pendiente otra vez")
+
+
+@router.post("/tareas/{task_id}/editar")
+def edit_task(task_id: int, title: str = Form(""), due_date: str = Form(""), priority: Optional[str] = Form(None),
+              description: Optional[str] = Form(None), assignee_id: Optional[str] = Form(None),
+              db: Session = Depends(deps.get_db), user: User = Depends(task_user)):
+    task = managed_task(db, task_id, user)
+    try:
+        fields = parse_task_form(db, user, title, due_date, priority, description,
+                                 assignee_id if assignee_id is not None else str(task.assignee_id))
+    except ValueError as e:
+        return toast_redirect("/dashboard/", str(e), error=True)
+    for name, value in fields.items():
+        setattr(task, name, value)
+    db.commit()
+    return toast_redirect("/dashboard/", "Tarea guardada")
+
+
+@router.post("/tareas/{task_id}/borrar")
+def delete_task(task_id: int, db: Session = Depends(deps.get_db), user: User = Depends(task_user)):
+    task = managed_task(db, task_id, user)
+    db.delete(task)
+    db.commit()
+    return toast_redirect("/dashboard/", "Tarea borrada")
 
 @router.get("/activity")
 def activity_log(

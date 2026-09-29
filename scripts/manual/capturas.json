@@ -119,34 +119,42 @@
    "name": "dashboard/admin",
    "path": "/dashboard",
    "as": "admin",
-   "height": 2100,
+   "height": 2150,
    "markers": [
     {
      "n": 1,
-     "text": "Requiere atención",
-     "tags": "h2"
+     "text": "Mis tareas",
+     "exact": false,
+     "tags": "h3"
     },
     {
      "n": 2,
      "text": "Hoy en campo",
-     "tags": "h2"
+     "tags": "h3"
     },
     {
      "n": 3,
-     "text": "Dinero",
+     "text": "Requiere atención",
      "tags": "h2"
     },
     {
      "n": 4,
-     "text": "Filtros"
+     "text": "Pendientes (",
+     "exact": false,
+     "tags": "button"
     },
     {
      "n": 5,
-     "text": "Facturas por cobrar"
+     "text": "Dinero",
+     "tags": "h2"
     },
     {
      "n": 6,
      "text": "Filtro comercial del equipo"
+    },
+    {
+     "n": 7,
+     "text": "Facturas por cobrar"
     }
    ]
   },
@@ -154,20 +162,26 @@
    "name": "dashboard/supervisor",
    "path": "/dashboard",
    "as": "supervisor",
-   "height": 1100,
+   "height": 1500,
    "markers": [
     {
      "n": 1,
-     "text": "Requiere atención",
-     "tags": "h2"
+     "text": "Mis tareas",
+     "exact": false,
+     "tags": "h3"
     },
     {
      "n": 2,
      "text": "Hoy en campo",
-     "tags": "h2"
+     "tags": "h3"
     },
     {
      "n": 3,
+     "text": "Requiere atención",
+     "tags": "h2"
+    },
+    {
+     "n": 4,
      "text": "Gestionar Calendario",
      "tags": "a"
     }
@@ -180,25 +194,24 @@
    "markers": [
     {
      "n": 1,
-     "text": "Vencidos",
+     "text": "Mis tareas",
      "exact": false,
-     "tags": "h3,h4,h5,p,span,div"
+     "tags": "h3"
     },
     {
      "n": 2,
-     "text": "Para hoy",
-     "exact": false,
-     "tags": "h3,h4,h5,p,span,div"
+     "text": "Próximos pasos de hoy",
+     "tags": "h3"
     },
     {
      "n": 3,
-     "text": "Próximos 7 días",
-     "exact": false,
-     "tags": "h3,h4,h5,p,span,div"
+     "text": "Requiere atención",
+     "tags": "h2"
     },
     {
      "n": 4,
-     "text": "Abrir Cotizador"
+     "text": "Mis próximos pasos",
+     "tags": "h3"
     },
     {
      "n": 5,
@@ -206,26 +219,25 @@
      "tags": "h3"
     }
    ],
-   "height": 1150
+   "height": 1600
   },
   {
    "name": "dashboard/trabajador",
    "path": "/dashboard",
    "as": "worker",
    "viewport": "mobile",
-   "height": 1900,
+   "height": 2100,
    "markers": [
     {
      "n": 1,
-     "text": "sin bitácora",
+     "text": "Mis tareas",
      "exact": false,
-     "tags": "p"
+     "tags": "h3"
     },
     {
      "n": 2,
-     "text": "Hoy · ",
-     "exact": false,
-     "tags": "span,div,p"
+     "text": "Registrar bitácora de hoy",
+     "tags": "a"
     },
     {
      "n": 3,
@@ -234,8 +246,73 @@
     },
     {
      "n": 4,
-     "text": "Registrar bitácora de hoy",
-     "tags": "a"
+     "text": "sin bitácora",
+     "exact": false,
+     "tags": "p"
+    }
+   ]
+  },
+  {
+   "name": "dashboard/tareas",
+   "path": "/dashboard",
+   "as": "admin",
+   "height": 1300,
+   "before": [
+    "document.querySelector('section[aria-labelledby=hoy] button').click()",
+    "await new Promise(r => setTimeout(r, 300))"
+   ],
+   "clip": "section[aria-labelledby=hoy]",
+   "markers": [
+    {
+     "n": 1,
+     "text": "+ Tarea",
+     "tags": "button"
+    },
+    {
+     "n": 2,
+     "text": "Qué hay que hacer *",
+     "exact": false,
+     "tags": "span"
+    },
+    {
+     "n": 3,
+     "text": "Prioridad",
+     "tags": "span"
+    },
+    {
+     "n": 4,
+     "text": "Para",
+     "tags": "span"
+    },
+    {
+     "n": 5,
+     "text": "Atrasada",
+     "exact": false,
+     "tags": "p"
+    }
+   ]
+  },
+  {
+   "name": "dashboard/pendientes",
+   "path": "/dashboard",
+   "as": "admin",
+   "height": 1600,
+   "before": [
+    "document.querySelectorAll('section[aria-labelledby=atencion] button[role=tab]')[1].click()",
+    "await new Promise(r => setTimeout(r, 300))"
+   ],
+   "clip": "section[aria-labelledby=atencion]",
+   "markers": [
+    {
+     "n": 1,
+     "text": "Pendientes (",
+     "exact": false,
+     "tags": "button"
+    },
+    {
+     "n": 2,
+     "text": "Volver a mostrar",
+     "tags": "button"
     }
    ]
   },
