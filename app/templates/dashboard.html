@@ -243,17 +243,13 @@
         </div>
         <a href="/clientes" class="text-sm font-semibold text-black hover:text-gray-600">Ver Clientes &rarr;</a>
     </div>
+    {% from "crm/_funnel.html" import funnel_box, funnel_line %}
     {% if data.crm_running %}
     <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
-        {% for row in data.crm_funnel %}
-        <div class="rounded-lg border border-gray-200 p-3">
-            <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ crm_labels.stage[row.stage] }}</div>
-            <div class="mt-1 text-2xl font-bold text-gray-900">{{ row.reached }}<span class="text-sm font-normal text-gray-500"> / {{ row.target }}</span></div>
-        </div>
-        {% endfor %}
+        {% for row in data.crm_funnel %}{{ funnel_box(row, data.crm_funnel, loop.index0) }}{% endfor %}
     </div>
     {% else %}
-    <p class="mt-2 text-sm text-gray-600">{% for row in data.crm_funnel %}{{ crm_labels.stage[row.stage] }} {{ row.reached }}/{{ row.target }}{{ ' · ' if not loop.last }}{% endfor %}</p>
+    <p class="mt-2 text-sm text-gray-600">{{ funnel_line(data.crm_funnel) }}</p>
     {% endif %}
 </div>
 
@@ -533,12 +529,8 @@
     <p class="text-xs text-gray-500">{{ data.crm_period.label }} · tus oportunidades nuevas{% if not data.crm_running %} · el periodo no está en curso{% endif %}</p>
     {% if data.crm_running %}
     <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
-        {% for row in data.crm_funnel %}
-        <div class="rounded-lg border border-gray-200 p-3">
-            <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ crm_labels.stage[row.stage] }}</div>
-            <div class="mt-1 text-2xl font-bold text-gray-900">{{ row.reached }}</div>
-        </div>
-        {% endfor %}
+        {% from "crm/_funnel.html" import funnel_box %}
+        {% for row in data.crm_funnel %}{{ funnel_box(row, data.crm_funnel, loop.index0, show_target=False) }}{% endfor %}
     </div>
     {% else %}
     <p class="mt-2 text-sm text-gray-600">{% for row in data.crm_funnel %}{{ crm_labels.stage[row.stage] }} {{ row.reached }}{{ ' · ' if not loop.last }}{% endfor %}</p>

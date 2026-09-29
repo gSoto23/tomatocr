@@ -22,8 +22,11 @@ ACTIVITY_TYPES = ("llamada", "correo", "whatsapp", "visita", "reunion", "nota", 
 
 # Stages counted in the funnel, in order ("perdido" is not a step of the funnel).
 FUNNEL_STAGES = STAGES[:5]
-# Pilot targets per funnel stage (docs/PLAN_SISTEMA_COMERCIAL.md); editable by admin.
-DEFAULT_GOALS = {"prospecto": 150, "respuesta": 60, "reunion": 25, "propuesta": 10, "ganado": 4}
+# Only these stages have a target (editable by admin; 0 = no target). The earlier boxes show
+# the share that passed from the previous box instead: there is no data yet to set real
+# targets for them (decided 29/09/2026).
+GOAL_STAGES = ("propuesta", "ganado")
+DEFAULT_GOALS = {"prospecto": 0, "respuesta": 0, "reunion": 0, "propuesta": 10, "ganado": 4}
 
 LABELS = {
     "stage": {"prospecto": "Nueva", "respuesta": "Respuesta", "reunion": "Reunión", "propuesta": "Propuesta",

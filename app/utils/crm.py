@@ -11,7 +11,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.db.models.activity import ActivityLog
-from app.db.models.crm import (DEFAULT_GOALS, FUNNEL_STAGES, LABELS, STAGES, Account, AccountNotDuplicate, Contact,
+from app.db.models.crm import (DEFAULT_GOALS, FUNNEL_STAGES, GOAL_STAGES, LABELS, STAGES, Account, AccountNotDuplicate, Contact,
                                 CrmActivity, CrmGoal, CrmSetting, Opportunity, ProjectContactRole, stage_index)
 from app.db.models.finance import ProjectBudget
 from app.db.models.project_details import ProjectContact
@@ -344,11 +344,11 @@ def claim_if_unowned(entity, user: User):
 
 def goals(db: Session) -> Dict[str, int]:
     stored = {g.stage: g.target for g in db.query(CrmGoal)}
-    return {stage: stored.get(stage, DEFAULT_GOALS[stage]) for stage in FUNNEL_STAGES}
+    return {stage: stored.get(stage, DEFAULT_GOALS[stage]) if stage in GOAL_STAGES else 0 for stage in FUNNEL_STAGES}
 
 
 def set_goals(db: Session, targets: Dict[str, int]):
-    for stage in FUNNEL_STAGES:
+    for stage in GOAL_STAGES:
         if stage in targets:
             goal = db.get(CrmGoal, stage) or CrmGoal(stage=stage)
             goal.target = max(0, int(targets[stage]))
@@ -438,11 +438,15 @@ def funnel(db: Session, motor: Optional[str] = None, owner_id: Optional[int] = N
         best[account_id] = max(best.get(account_id, 0), max_stage or 0)
     targets = goals(db)
     rows = []
+    previous = None
     for index, stage in enumerate(FUNNEL_STAGES):
         reached = sum(1 for value in best.values() if value >= index)
         target = targets[stage]
         rows.append({"stage": stage, "reached": reached, "target": target,
-                     "pct": round(100 * reached / target) if target else None})
+                     "pct": round(100 * reached / target) if target else None,
+                     # Share of the previous box that got here ("de 12 respuestas, 5 llegaron a reunión").
+                     "from_previous": round(100 * reached / previous) if previous else None})
+        previous = reached
     return rows
 
 
