@@ -146,7 +146,7 @@
     },
     {
      "n": 6,
-     "text": "Embudo comercial del equipo"
+     "text": "Filtro comercial del equipo"
     }
    ]
   },
@@ -202,7 +202,7 @@
     },
     {
      "n": 5,
-     "text": "Mi embudo",
+     "text": "Mi filtro",
      "tags": "h3"
     }
    ],
@@ -558,7 +558,7 @@
    "markers": [
     {
      "n": 1,
-     "text": "Embudo ·",
+     "text": "Filtro ·",
      "exact": false,
      "tags": "h2"
     },
@@ -597,7 +597,7 @@
     },
     {
      "n": 3,
-     "text": "Prospecto",
+     "text": "Oportunidad",
      "tags": "span"
     }
    ]
@@ -622,6 +622,34 @@
      "n": 3,
      "text": "Crear cotización",
      "tags": "a"
+    },
+    {
+     "n": 4,
+     "text": "Descartar cliente",
+     "tags": "button"
+    }
+   ]
+  },
+  {
+   "name": "clientes/descartados",
+   "path": "/clientes/descartados",
+   "as": "admin",
+   "markers": [
+    {
+     "n": 1,
+     "text": "Descartados",
+     "exact": false,
+     "tags": "a"
+    },
+    {
+     "n": 2,
+     "text": "Reactivar",
+     "tags": "button"
+    },
+    {
+     "n": 3,
+     "text": "Borrar",
+     "tags": "button"
     }
    ]
   },

@@ -108,23 +108,41 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
 
 ### 6. Clientes / CRM (`docs/DISENO_CRM.md` y `docs/ANALISIS_ENCAJE_CRM.md`)
 - **Menú "Clientes"** (admin y ventas):
-  - **Embudo** (`/clientes`): cuentas que alcanzaron cada etapa (prospecto,
-    respuesta, reunión, propuesta, ganado) contra metas que edita el admin
+  - **Filtro** (`/clientes`; en el código y en las URL sigue llamándose
+    embudo): cuentas que alcanzaron cada etapa (nueva, respuesta, reunión,
+    propuesta, ganado) contra metas que edita el admin
     (piloto: 150, 60, 25, 10, 4); monto en propuesta por motor, tomado de la
     cotización ligada; próximos pasos vencidos y de hoy; lista de
-    oportunidades con filtros por motor, vendedor, etapa y búsqueda.
+    oportunidades **de la más nueva a la más vieja**, con búsqueda por texto,
+    motor, vendedor y etapa (botón "Buscar"). Las cuentas descartadas no salen
+    en la lista, pero siguen contando en el Filtro.
   - **Cuentas** (`/clientes/cuentas`): búsqueda por nombre, cédula o correo;
-    estado calculado, motores, dueño y último seguimiento. "Nueva cuenta" pide
+    estado calculado, motores, dueño y último seguimiento, la más nueva
+    arriba y sin las descartadas. "Nueva cuenta" pide
     solo nombre, tipo y un contacto, y avisa si ya existe una parecida (la
     misma cédula nunca se repite).
   - **Ficha de la cuenta**: "Registrar seguimiento", "Más datos", y pestañas
     Seguimientos, Contactos, Oportunidades, Cotizaciones y Proyectos (el
     enlace a finanzas solo para admin).
   - **Oportunidad**: cambio de etapa (queda como seguimiento y en Actividad;
-    "perdido" pide motivo y conserva la etapa más alta), próximo paso y
-    seguimientos.
-- **Dashboard**: ventas ve sus próximos pasos (vencidos, hoy, 7 días); admin
-  ve el embudo del equipo.
+    "perdido" pide motivo y conserva la etapa más alta), próximo paso,
+    seguimientos y **"Descartar cliente"**.
+  - **Descartados** (`/clientes/descartados`): "Descartar" (en la cuenta) o
+    "Descartar cliente" (en la oportunidad), por el dueño o el admin, pide el
+    motivo (`accounts.discard_reason`, migración 0012), marca la cuenta
+    (`discarded_at`) y cierra como perdidas sus oportunidades abiertas con ese
+    motivo. La cuenta sale de Filtro y Cuentas y queda en esta pestaña, la más
+    reciente primero, con "Reactivar" (sus oportunidades siguen perdidas). Si
+    la persona vuelve a escribir por el formulario, la cuenta se reactiva sola.
+    **Borrar** (solo admin) elimina para siempre una cuenta descartada con sus
+    contactos, oportunidades y seguimientos, solo si no tiene proyectos,
+    proyectos de reforestación, cotizaciones, contactos usuarios del portal ni
+    cuentas fusionadas en ella; queda en Actividad.
+  - Nombres en pantalla: el estado de una cuenta sin proyectos es
+    **Oportunidad** y la primera etapa es **Nueva** (en la base siguen siendo
+    `prospecto`); el correo de un formulario dice "Nueva oportunidad".
+- **Dashboard**: ventas ve sus próximos pasos (vencidos, hoy, 7 días) y "Mi
+  filtro"; admin ve el filtro comercial del equipo.
 - **Proyectos**: se elige la cuenta del cliente (con búsqueda, o se crea ahí
   mismo con aviso de cuentas parecidas) y, de sus contactos, cuáles son de
   sitio y cuáles reciben los reportes. El nombre visible del cliente se toma
@@ -139,7 +157,7 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
   "propuesta".
 - **Marcar ganada** (admin): crea el proyecto desde la oportunidad o liga uno
   existente de la misma cuenta.
-- **Contratos por vencer** (en el Embudo): contratos de Presupuestos que
+- **Contratos por vencer** (en el Filtro): contratos de Presupuestos que
   vencen en 90 días (en rojo, menos de 60) con botón "Crear renovación".
 - **Permisos**: ventas ve todas las cuentas sin finanzas y edita las suyas y
   las que no tienen dueño (al editarlas queda como dueño). Solo admin
@@ -159,8 +177,8 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
   los contactos se siguen editando en el proyecto: volver a correr el script
   trae los nuevos.
 - **Estado calculado**: cliente (proyecto activo o reforestación), ex-cliente
-  (solo proyectos cerrados), prospecto (sin proyectos); "descartada" es lo
-  único manual.
+  (solo proyectos cerrados), oportunidad (sin proyectos); "descartada" es lo
+  único manual y va a Descartados.
 - **Duplicados** (`/clientes/duplicados`, solo admin): cuentas con nombres
   parecidos o el mismo correo de contacto, para fusionarlas o marcarlas como
   distintas. La fusión mueve todo a la cuenta que queda y se registra en
@@ -174,11 +192,11 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
   - API para darboles.com: `POST /api/crm/leads` con la clave
     `DARBOLES_API_KEY` en el encabezado `X-API-Key` (vacía = apagada).
   - `/privacidad` (Ley 8968) y `/contacto/gracias`.
-  - **Asignación de prospectos** (`/clientes/asignacion`, solo admin):
+  - **Asignación de oportunidades** (`/clientes/asignacion`, solo admin):
     vendedor por motor.
   - "Eliminar datos personales" de un contacto (admin), para el derecho de
     supresión.
-  - **Piloto en el sistema**: el Embudo cuenta solo oportunidades nuevas
+  - **Piloto en el sistema**: el Filtro cuenta solo oportunidades nuevas
     creadas en el periodo (por defecto 15/10–15/12/2026, lo cambia el admin
     junto a las metas); "Todo el historial" muestra el conteo completo. El
     admin reparte las oportunidades cambiando su vendedor (le llega un

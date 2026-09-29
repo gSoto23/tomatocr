@@ -116,6 +116,12 @@ def intake_lead(db: Session, lead: Dict, source: str) -> LeadResult:
                           owner_id=owner.id if owner else None, source=source, origin_ref=f"{source}:{now:%Y%m%d%H%M%S}")
         db.add(account)
         db.flush()
+    elif account.discarded_at:
+        # Someone discarded asks again: back to the tables with the new request.
+        account.discarded_at = None
+        account.discard_reason = None
+        db.add(CrmActivity(account_id=account.id, type="nota", happened_at=now,
+                           notes=f"Reactivada: llegó una solicitud nueva desde {SOURCES[source]}"))
 
     contact = None
     if lead["email"]:
@@ -157,7 +163,7 @@ def intake_lead(db: Session, lead: Dict, source: str) -> LeadResult:
     db.add(CrmActivity(account_id=account.id, opportunity_id=opportunity.id, contact_id=contact.id, type="nota",
                        happened_at=now, notes=note))
     db.add(ActivityLog(action="CREATE", entity_type="LEAD", entity_id=opportunity.id,
-                       details=f"Prospecto {SOURCES[source]}: {account.name} ({LABELS['motor'][lead['motor']]})"))
+                       details=f"Oportunidad {SOURCES[source]}: {account.name} ({LABELS['motor'][lead['motor']]})"))
     db.commit()
     return LeadResult(account, contact, opportunity, new_account, new_opportunity)
 
@@ -166,7 +172,7 @@ def notification(result: LeadResult, lead: Dict, source: str) -> Dict:
     """Subject and body of the internal e-mail about a new lead."""
     motor = LABELS["motor"][lead["motor"]]
     lines = [
-        f"Nuevo prospecto desde {SOURCES[source]}.",
+        f"Nueva oportunidad desde {SOURCES[source]}.",
         "",
         f"Cuenta: {result.account.name}{' (nueva)' if result.new_account else ''}",
         f"Contacto: {lead['name']}",
@@ -178,4 +184,4 @@ def notification(result: LeadResult, lead: Dict, source: str) -> Dict:
         "",
         f"Ver en el sistema: https://tomatocr.com/clientes/oportunidades/{result.opportunity.id}",
     ]
-    return {"subject": f"Nuevo prospecto: {result.account.name} ({motor})", "body": "\n".join(lines)}
+    return {"subject": f"Nueva oportunidad: {result.account.name} ({motor})", "body": "\n".join(lines)}

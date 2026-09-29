@@ -20,7 +20,7 @@ from app.routers import deps
 from app.utils.activity import log_activity
 from app.utils.email import send_plain_email
 from app.utils.crm import (account_payload, account_status, active_accounts, anonymize_contact, can_edit_account,
-                           can_edit_opportunity,
+                           can_edit_opportunity, delete_account, delete_blockers, discard_account, reactivate_account,
                            change_stage, claim_if_unowned, create_renewal, dismiss_duplicate, expiring_contracts,
                            filter_opportunities, find_duplicates, funnel, funnel_period, last_followups, merge_accounts,
                            next_steps, set_funnel_period,
@@ -99,7 +99,7 @@ def clean(value: Optional[str]) -> Optional[str]:
     return (value or "").strip() or None
 
 
-# --- Embudo -------------------------------------------------------------------------
+# --- Filtro (the sales funnel) ------------------------------------------------------
 
 @router.get("")
 @router.get("/")
@@ -109,8 +109,9 @@ def pipeline(request: Request, motor: Optional[str] = None, owner: Optional[str]
     owner_id = optional_int(owner)
     motor = motor if motor in MOTORS else None
     stage = stage if stage in STAGES else None
-    opportunities = filter_opportunities(db.query(Opportunity), motor, owner_id, stage, q).order_by(
-        Opportunity.next_step_date.is_(None), Opportunity.next_step_date, Opportunity.id.desc()).all()
+    # Newest first; opportunities of discarded accounts live in "Descartados".
+    opportunities = filter_opportunities(db.query(Opportunity), motor, owner_id, stage, q).filter(
+        ~Opportunity.account.has(Account.discarded_at.isnot(None))).order_by(Opportunity.id.desc()).all()
     period = funnel_period(db)
     whole_history = periodo == "todo"
     return templates.TemplateResponse("crm/embudo.html", {
@@ -123,6 +124,7 @@ def pipeline(request: Request, motor: Optional[str] = None, owner: Optional[str]
         "sellers": sellers(db), "motors": MOTORS, "stages": STAGES, "funnel_stages": FUNNEL_STAGES,
         "filters": {"motor": motor, "owner": owner_id, "stage": stage, "q": q or ""},
         "duplicates": len(find_duplicates(db)) if user.role == ADMIN else 0,
+        "discarded": discarded_count(db),
         "today": date.today(),
         "expiring": expiring_contracts(db),
     })
@@ -160,11 +162,13 @@ async def update_goals(request: Request, db: Session = Depends(deps.get_db), use
 @router.get("/cuentas")
 def accounts(request: Request, q: Optional[str] = None, estado: Optional[str] = None, owner: Optional[str] = None,
              db: Session = Depends(deps.get_db), user: User = Depends(view_roles)):
+    if estado == "descartada":
+        return RedirectResponse(url="/clientes/descartados", status_code=status.HTTP_303_SEE_OTHER)
     owner_id = optional_int(owner)
     followups = last_followups(db)
     rows = []
-    for account in active_accounts(db):
-        if owner_id and account.owner_id != owner_id:
+    for account in reversed(active_accounts(db)):  # newest first
+        if account.discarded_at or (owner_id and account.owner_id != owner_id):
             continue
         if q:
             needle = q.strip().lower()
@@ -180,6 +184,24 @@ def accounts(request: Request, q: Optional[str] = None, estado: Optional[str] = 
     return templates.TemplateResponse("crm/cuentas.html", {
         "request": request, "user": user, "rows": rows, "sellers": sellers(db),
         "filters": {"q": q or "", "estado": estado, "owner": owner_id},
+        "duplicates": len(find_duplicates(db)) if user.role == ADMIN else 0,
+        "discarded": discarded_count(db),
+    })
+
+
+def discarded_count(db: Session) -> int:
+    return db.query(Account).filter(Account.merged_into_id.is_(None), Account.discarded_at.isnot(None)).count()
+
+
+@router.get("/descartados")
+def discarded(request: Request, db: Session = Depends(deps.get_db), user: User = Depends(view_roles)):
+    """Accounts that won't move forward, newest discard first: reactivate them or (admin) delete them."""
+    accounts = db.query(Account).filter(Account.merged_into_id.is_(None), Account.discarded_at.isnot(None)).order_by(
+        Account.discarded_at.desc()).all()
+    rows = [{"account": a, "blockers": delete_blockers(db, a),
+             "motors": sorted({o.motor for o in a.opportunities if o.motor})} for a in accounts]
+    return templates.TemplateResponse("crm/descartados.html", {
+        "request": request, "user": user, "rows": rows, "discarded": len(rows),
         "duplicates": len(find_duplicates(db)) if user.role == ADMIN else 0,
     })
 
@@ -311,15 +333,40 @@ def reassign_owner(account_id: int, owner_id: str = Form(""), db: Session = Depe
 
 
 @router.post("/cuentas/{account_id}/descartar")
-def toggle_discard(account_id: int, db: Session = Depends(deps.get_db), user: User = Depends(view_roles)):
+def toggle_discard(account_id: int, reason: Optional[str] = Form(None), back: Optional[str] = Form(None),
+                   db: Session = Depends(deps.get_db), user: User = Depends(view_roles)):
+    """Discards the account (with a reason) or, if it already was, brings it back."""
     account = get_active_account(db, account_id)
     if user.role != ADMIN and account.owner_id != user.id:
         raise HTTPException(status_code=403, detail="Solo el dueño o un admin")
-    account.discarded_at = None if account.discarded_at else datetime.utcnow()
+    url = f"/clientes/cuentas/{account.id}"
+    if account.discarded_at:
+        reactivate_account(db, account, user)
+        db.commit()
+        log_activity(db, user, "UPDATE", "ACCOUNT", account.id, f"Cuenta {account.name} reactivada")
+        return toast_redirect("/clientes/descartados" if back == "descartados" else url,
+                              f"{account.name} reactivada; sus oportunidades perdidas siguen así hasta que les cambies la etapa")
+    try:
+        discard_account(db, account, user, reason)
+    except ValueError as e:
+        return toast_redirect(url, str(e), error=True)
     db.commit()
-    state = "descartada" if account.discarded_at else "reactivada"
-    log_activity(db, user, "UPDATE", "ACCOUNT", account.id, f"Cuenta {account.name} {state}")
-    return toast_redirect(f"/clientes/cuentas/{account.id}", f"Cuenta {state}")
+    log_activity(db, user, "UPDATE", "ACCOUNT", account.id, f"Cuenta {account.name} descartada: {account.discard_reason}")
+    return toast_redirect("/clientes/cuentas", f"{account.name} descartada; está en Descartados")
+
+
+@router.post("/cuentas/{account_id}/borrar")
+def delete_discarded(account_id: int, db: Session = Depends(deps.get_db), user: User = Depends(admin_only)):
+    """Deletes for good a discarded account without real history (spam, tests)."""
+    account = get_active_account(db, account_id)
+    name = account.name
+    try:
+        delete_account(db, account)
+    except ValueError as e:
+        return toast_redirect("/clientes/descartados", str(e), error=True)
+    db.commit()
+    log_activity(db, user, "DELETE", "ACCOUNT", account_id, f"Cuenta descartada borrada: {name}")
+    return toast_redirect("/clientes/descartados", f"{name} borrada")
 
 
 # --- Contactos ----------------------------------------------------------------------
@@ -467,6 +514,26 @@ def update_opportunity(opportunity_id: int, background: BackgroundTasks, title: 
         if new_owner.id != user.id:
             background.add_task(send_plain_email, [new_owner.email], *assignment_email(opportunity))
     return toast_redirect(url, "Oportunidad guardada")
+
+
+@router.post("/oportunidades/{opportunity_id}/descartar")
+def discard_from_opportunity(opportunity_id: int, reason: Optional[str] = Form(None),
+                             db: Session = Depends(deps.get_db), user: User = Depends(view_roles)):
+    """'Descartar cliente' from the opportunity: the whole account goes to Descartados."""
+    opportunity = get_opportunity(db, opportunity_id)
+    account = get_active_account(db, opportunity.account_id)
+    if user.role != ADMIN and user.id not in (account.owner_id, opportunity.owner_id):
+        raise HTTPException(status_code=403, detail="Solo el dueño o un admin")
+    url = f"/clientes/oportunidades/{opportunity.id}"
+    if account.discarded_at:
+        return toast_redirect(url, "La cuenta ya está descartada", error=True)
+    try:
+        discard_account(db, account, user, reason)
+    except ValueError as e:
+        return toast_redirect(url, str(e), error=True)
+    db.commit()
+    log_activity(db, user, "UPDATE", "ACCOUNT", account.id, f"Cuenta {account.name} descartada: {account.discard_reason}")
+    return toast_redirect("/clientes", f"{account.name} descartada; está en Descartados")
 
 
 @router.post("/oportunidades/{opportunity_id}/etapa")
@@ -652,7 +719,7 @@ def not_duplicate(a_id: int, b_id: int, db: Session = Depends(deps.get_db), user
     return toast_redirect("/clientes/duplicados", "Marcadas como cuentas distintas")
 
 
-# --- Asignación de prospectos -------------------------------------------------------
+# --- Asignación de oportunidades -------------------------------------------------------
 
 @router.get("/asignacion")
 def assignment(request: Request, db: Session = Depends(deps.get_db), user: User = Depends(admin_only)):
@@ -680,5 +747,5 @@ async def update_assignment(request: Request, db: Session = Depends(deps.get_db)
         row.user_id = user_id
     db.commit()
     if changes:
-        log_activity(db, user, "UPDATE", "CRM_ASSIGNMENT", None, "Asignación de prospectos: " + ", ".join(changes))
+        log_activity(db, user, "UPDATE", "CRM_ASSIGNMENT", None, "Asignación de oportunidades: " + ", ".join(changes))
     return toast_redirect("/clientes/asignacion", "Asignación guardada")

@@ -26,13 +26,13 @@ FUNNEL_STAGES = STAGES[:5]
 DEFAULT_GOALS = {"prospecto": 150, "respuesta": 60, "reunion": 25, "propuesta": 10, "ganado": 4}
 
 LABELS = {
-    "stage": {"prospecto": "Prospecto", "respuesta": "Respuesta", "reunion": "Reunión", "propuesta": "Propuesta",
+    "stage": {"prospecto": "Nueva", "respuesta": "Respuesta", "reunion": "Reunión", "propuesta": "Propuesta",
               "ganado": "Ganado", "perdido": "Perdido"},
     "motor": {"esg": "ESG", "regalo_corporativo": "Regalo corporativo", "mantenimiento": "Mantenimiento",
               "tienda": "Tienda", "sector_publico": "Sector público"},
     "kind": {"empresa": "Empresa", "institucion_publica": "Institución pública", "condominio": "Condominio",
              "hotel": "Hotel", "persona": "Persona", "otro": "Otro"},
-    "status": {"prospecto": "Prospecto", "cliente": "Cliente", "ex_cliente": "Ex-cliente", "descartada": "Descartada"},
+    "status": {"prospecto": "Oportunidad", "cliente": "Cliente", "ex_cliente": "Ex-cliente", "descartada": "Descartada"},
     "activity": {"llamada": "Llamada", "correo": "Correo", "whatsapp": "WhatsApp", "visita": "Visita",
                  "reunion": "Reunión", "nota": "Nota", "cambio_etapa": "Cambio de etapa"},
     "opportunity_kind": {"nuevo": "Nuevo", "renovacion": "Renovación", "ampliacion": "Ampliación"},
@@ -52,8 +52,10 @@ class Account(Base):
     # Cédula física o jurídica. Unique when present (NULLs don't collide).
     tax_id = Column(String(30), nullable=True, unique=True)
     kind = Column(String(30), nullable=False, default="otro", server_default="otro")
-    # Set by hand when a prospect won't move forward; the other statuses are computed.
+    # Set by hand when an account won't move forward; the other statuses are computed.
+    # Discarded accounts leave the tables and go to the "Descartados" list.
     discarded_at = Column(DateTime, nullable=True)
+    discard_reason = Column(Text, nullable=True)
     source = Column(String(30), nullable=True)
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     province = Column(String(50), nullable=True)

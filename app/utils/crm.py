@@ -502,6 +502,68 @@ def change_stage(db: Session, opportunity: Opportunity, stage: str, user: User, 
                        details=f"{opportunity.title}: {note}"))
 
 
+# --- Descartados ---------------------------------------------------------------------
+
+def discard_account(db: Session, account: Account, user: User, reason: str):
+    """Sends the account to "Descartados" and closes its open opportunities as lost, with the reason."""
+    reason = (reason or "").strip()
+    if not reason:
+        raise ValueError("Indique por qué se descarta")
+    account.discarded_at = datetime.utcnow()
+    account.discard_reason = reason
+    for opportunity in account.opportunities:
+        if opportunity.stage not in CLOSED_STAGES:
+            change_stage(db, opportunity, "perdido", user, f"Cuenta descartada: {reason}")
+    db.add(CrmActivity(account_id=account.id, type="nota", happened_at=datetime.utcnow(), user_id=user.id,
+                       notes=f"Cuenta descartada. Motivo: {reason}"))
+
+
+def reactivate_account(db: Session, account: Account, user: User, note: str = "Cuenta reactivada"):
+    """Back to the tables. Its lost opportunities stay lost; the seller moves them if they're alive."""
+    account.discarded_at = None
+    account.discard_reason = None
+    db.add(CrmActivity(account_id=account.id, type="nota", happened_at=datetime.utcnow(),
+                       user_id=user.id if user else None, notes=note))
+
+
+def delete_blockers(db: Session, account: Account) -> List[str]:
+    """What keeps a discarded account from being deleted for good (real history is never deleted)."""
+    blockers = []
+    if not account.discarded_at:
+        blockers.append("primero hay que descartarla")
+    if db.query(Project.id).filter(Project.account_id == account.id).first():
+        blockers.append("tiene proyectos")
+    if db.query(ReforestationProject.id).filter(ReforestationProject.account_id == account.id).first():
+        blockers.append("tiene proyectos de reforestación")
+    opportunity_ids = [o.id for o in account.opportunities]
+    if db.query(Quote.id).filter((Quote.account_id == account.id) | (Quote.opportunity_id.in_(opportunity_ids))).first():
+        blockers.append("tiene cotizaciones")
+    if any(c.user_id for c in account.contacts):
+        blockers.append("un contacto es usuario del portal")
+    if db.query(Account.id).filter(Account.merged_into_id == account.id).first():
+        blockers.append("otras cuentas se fusionaron en ella")
+    return blockers
+
+
+def delete_account(db: Session, account: Account):
+    """Deletes a discarded account with its contacts, opportunities and follow-ups (spam, tests)."""
+    blockers = delete_blockers(db, account)
+    if blockers:
+        raise ValueError("No se puede borrar: " + ", ".join(blockers))
+    contact_ids = [c.id for c in account.contacts]
+    if contact_ids:
+        db.query(ProjectContactRole).filter(ProjectContactRole.contact_id.in_(contact_ids)).delete(
+            synchronize_session=False)
+    db.query(AccountNotDuplicate).filter((AccountNotDuplicate.account_a_id == account.id)
+                                         | (AccountNotDuplicate.account_b_id == account.id)).delete(
+        synchronize_session=False)
+    db.query(CrmActivity).filter(CrmActivity.account_id == account.id).delete(synchronize_session=False)
+    db.query(Opportunity).filter(Opportunity.account_id == account.id).delete(synchronize_session=False)
+    db.query(Contact).filter(Contact.account_id == account.id).delete(synchronize_session=False)
+    db.query(Account).filter(Account.id == account.id).delete(synchronize_session=False)
+    db.expunge(account)
+
+
 def similar_accounts(db: Session, name: str, tax_id: Optional[str] = None, email: Optional[str] = None) -> List[Account]:
     """Existing accounts that could be the same client: same cédula, contact email, or a similar name."""
     found = {}

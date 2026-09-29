@@ -1,0 +1,61 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Descartados | Clientes | TOMATO{% endblock %}
+{% block header_title %}Clientes{% endblock %}
+
+{% block content %}
+{% set L = crm_labels %}
+<div class="max-w-6xl mx-auto space-y-6">
+    {% set active = 'descartados' %}{% include "crm/_nav.html" %}
+
+    <p class="text-sm text-gray-600">
+        Cuentas que no siguen adelante, la más reciente primero. No salen en Filtro ni en Cuentas; si la persona vuelve
+        a escribir por el formulario, la cuenta se reactiva sola.
+        {% if user.role == 'admin' %}Las que no tienen proyectos ni cotizaciones (spam, pruebas) se pueden borrar para siempre.{% endif %}
+    </p>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200 text-sm">
+            <thead class="bg-gray-50 text-left text-xs uppercase text-gray-500">
+                <tr><th class="px-4 py-3">Cuenta</th><th class="px-3 py-3">Motivo</th><th class="px-3 py-3">Descartada</th>
+                    <th class="px-3 py-3">Dueño</th><th class="px-3 py-3 text-right">Acciones</th></tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for row in rows %}
+                {% set a = row.account %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-3"><a href="/clientes/cuentas/{{ a.id }}" class="font-medium text-gray-900 hover:underline">{{ a.name }}</a>
+                        <div class="text-xs text-gray-500">{% for m in row.motors %}{{ L.motor[m] }}{{ ', ' if not loop.last }}{% else %}Sin motor{% endfor %}
+                            · {{ a.opportunities|length }} oportunidad{{ 'es' if a.opportunities|length != 1 }}</div></td>
+                    <td class="px-3 py-3 text-gray-700">{{ a.discard_reason or '—' }}</td>
+                    <td class="px-3 py-3">{{ a.discarded_at|format_datetime_cr }}</td>
+                    <td class="px-3 py-3">{{ (a.owner.full_name or a.owner.username) if a.owner else 'Sin dueño' }}</td>
+                    <td class="px-3 py-3">
+                        <div class="flex flex-wrap justify-end gap-2">
+                            {% if user.role == 'admin' or a.owner_id == user.id %}
+                            <form method="post" action="/clientes/cuentas/{{ a.id }}/descartar">
+                                <input type="hidden" name="back" value="descartados">
+                                <button class="rounded-md bg-white px-3 py-1.5 font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Reactivar</button>
+                            </form>
+                            {% endif %}
+                            {% if user.role == 'admin' %}
+                            {% if row.blockers %}
+                            <span class="px-2 py-1.5 text-xs text-gray-500" title="No se puede borrar: {{ row.blockers|join(', ') }}">No se borra: {{ row.blockers|join(', ') }}</span>
+                            {% else %}
+                            <form method="post" action="/clientes/cuentas/{{ a.id }}/borrar"
+                                  onsubmit="return confirm('¿Borrar {{ a.name|e }} para siempre? Se borran sus contactos, oportunidades y seguimientos. No se puede deshacer.')">
+                                <button class="rounded-md bg-white px-3 py-1.5 font-semibold text-red-700 ring-1 ring-inset ring-red-300 hover:bg-red-50">Borrar</button>
+                            </form>
+                            {% endif %}
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="px-4 py-8 text-center text-gray-500">No hay cuentas descartadas.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

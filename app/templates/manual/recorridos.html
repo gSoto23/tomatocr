@@ -18,10 +18,10 @@
     lo hace y enlaza al capítulo donde está explicado.</p>
 
 {% if user.role in ['admin', 'ventas'] %}
-{% call m.section("prospecto-a-proyecto", "De un prospecto a un proyecto ganado") %}
+{% call m.section("prospecto-a-proyecto", "De una oportunidad a un proyecto ganado") %}
 {% call flow() %}
 {{ step("Cliente potencial", "Pide información en el formulario de tomatocr.com, o el vendedor lo encuentra (LinkedIn, SICOP, referido).") }}
-{{ step("Sistema", "Si vino por el formulario, crea la cuenta (sin duplicar), el contacto con su consentimiento y la oportunidad en <strong>Prospecto</strong>, y avisa por correo.", "/manual/clientes#origen") }}
+{{ step("Sistema", "Si vino por el formulario, crea la cuenta (sin duplicar), el contacto con su consentimiento y la oportunidad en la etapa <strong>Nueva</strong>, y avisa por correo.", "/manual/clientes#origen") }}
 {{ step("Admin", "Reparte la oportunidad a un vendedor. Al vendedor le llega un correo.", "/manual/clientes#admin") }}
 {{ step("Vendedor", "Responde el mismo día, registra el seguimiento y pasa la etapa a <strong>Respuesta</strong>. Deja siempre un próximo paso con fecha.", "/manual/clientes#seguimientos") }}
 {{ step("Vendedor", "Hace la reunión o visita y pasa a <strong>Reunión</strong>.", "/manual/clientes#etapas") }}
@@ -52,7 +52,7 @@
 {% if user.role in ['admin', 'ventas'] %}
 {% call m.section("renovacion", "Renovar un contrato") %}
 {% call flow() %}
-{{ step("Sistema", "90 días antes de que termine un contrato de Presupuestos, aparece en <strong>Contratos por vencer</strong> en el Embudo (en rojo si faltan menos de 60).", "/manual/clientes#admin") }}
+{{ step("Sistema", "90 días antes de que termine un contrato de Presupuestos, aparece en <strong>Contratos por vencer</strong> en el Filtro (en rojo si faltan menos de 60).", "/manual/clientes#admin") }}
 {{ step("Admin", "Toca <strong>Crear renovación</strong>: se abre una oportunidad de tipo Renovación para el dueño de la cuenta.") }}
 {{ step("Vendedor o admin", "La trabaja como cualquier oportunidad y cotiza desde ella.", "/manual/cotizador#nueva") }}
 {{ step("Admin", "Al aceptarse, <strong>Marcar ganada</strong> y <em>ligar el proyecto existente</em>, y actualiza las fechas del contrato en el proyecto.", "/manual/proyectos#crear") }}
