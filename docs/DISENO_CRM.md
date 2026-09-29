@@ -153,3 +153,12 @@ Por confirmar: usuarios de Melina y Albert (rol ventas) para asignarles sus moto
 - Mismo formato en el Filtro y en el Dashboard (`templates/crm/_funnel.html`). "Mi filtro" de ventas muestra solo conteos y tasas.
 - Cuando el piloto dé las tasas reales, se puede volver a poner metas en las etapas intermedias calculándolas hacia atrás desde la meta de Ganado.
 
+## Metas en colones, cobertura y origen (29/09/2026, migración 0013)
+
+- **Metas en colones** (`MONEY_GOALS` en `crm_goals`): `monto_licitaciones` (oportunidades con motor `sector_publico`, que en TOMATO son licitaciones) y `monto_puntuales` (los demás motores). Cuentan las oportunidades en `ganado` con `won_at` dentro del periodo, aunque se hayan creado antes: una licitación tarda meses. `won_at` lo pone `change_stage` al pasar a Ganado y lo borra si sale de Ganado.
+- **Monto ganado** (`won_amount`): lo adjudicado en Presupuestos del proyecto ligado (líneas con impuesto más la prórroga activa, igual que `/finance`); si no hay proyecto o presupuesto, la cotización más reciente en colones o el monto estimado.
+- **Cobertura** (`money_progress`): lo que está en Propuesta del mismo grupo ÷ lo que falta para la meta. Verde desde 3×, ámbar de 1× a 3×, rojo por debajo de 1×. Referencia usada al proponer las metas: con 30–40 % de cierre de propuestas se necesitan unas 3 veces lo que falta.
+- **Origen** (`opportunities.origin`): `web`, `referido`, `prospeccion`, `sicop`, `cliente_actual`, `otro`. El formulario y la API ponen `web`; las renovaciones, `cliente_actual`; la importación del tablero lo toma de `fuente`; el vendedor lo elige al crear o editar. La migración llena los existentes desde `source`, el tipo y el motor. El Filtro filtra por origen (también "Sin origen") y aplica a las cajas, las metas y la lista.
+- Los próximos pasos y los montos en propuesta dejan fuera las cuentas descartadas (antes una cuenta descartada con el botón viejo seguía en "Para hoy").
+- Contexto de las metas (Presupuestos al 29/09/2026): licitaciones de ₡15,5 M y ₡19,1 M, un contrato privado de ₡9,4 M y propuestas abiertas de ₡40 mil a ₡270 mil. Por eso se separan las metas: son ventas de tamaño y ritmo muy distintos.
+

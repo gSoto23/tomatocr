@@ -18,6 +18,7 @@
     (2, "<strong>Próximos pasos vencidos</strong> y <strong>Para hoy</strong>."),
     (3, "La lista de oportunidades, <strong>la más nueva arriba</strong>. Se busca por texto, motor, vendedor y etapa con <em>Buscar</em>."),
     (4, "<strong>Nueva cuenta</strong> para registrar una oportunidad. Las pestañas de arriba son <strong>Filtro</strong>, <strong>Cuentas</strong> y <strong>Descartados</strong>."),
+    (5, "<strong>Licitaciones</strong> y <strong>Trabajos puntuales</strong>: lo ganado en el periodo en colones contra la meta, y cuánto hay en propuesta (ver Qué cuenta para las metas)."),
 ]) }}
 {% endcall %}
 
@@ -35,7 +36,7 @@
     (None, "<strong>Buscá primero</strong> en <a href='/clientes/cuentas' class='text-indigo-600 hover:underline'>Cuentas</a>: la empresa puede existir ya (como cliente, ex-cliente u oportunidad de otro), o estar en <strong>Descartados</strong>."),
     (None, "Si no está: <strong>Nueva cuenta</strong>. Si el sistema avisa que hay cuentas parecidas, revisalas antes de crear otra."),
     (None, "En la cuenta, pestaña <strong>Contactos</strong>: agregá a la persona con su cargo, correo y teléfono."),
-    (None, "Pestaña <strong>Oportunidades</strong>: creá la oportunidad con su <strong>motor</strong>, tipo <strong>Nuevo</strong> y el próximo paso con fecha."),
+    (None, "Pestaña <strong>Oportunidades</strong>: creá la oportunidad con su <strong>motor</strong>, tipo <strong>Nuevo</strong>, el <strong>origen</strong> (formulario web, referido, prospección, SICOP, cliente actual u otro) y el próximo paso con fecha. El origen se puede cambiar después en la oportunidad; las que llegan por el formulario y las renovaciones lo traen puesto."),
 ]) }}
 {{ m.shot("clientes/cuenta.webp", "Ficha de una cuenta", "La ficha de una cuenta.") }}
 {{ m.steps([
@@ -104,6 +105,15 @@
         ({{ funnel[4].target or 'sin meta' }}) llevan meta, para todo el equipo y todo el periodo. Nueva, Respuesta y Reunión
         muestran el <strong>% que pasó de la caja anterior</strong>: así se ve dónde se traba la venta sin inventar números.
         Cuando el piloto dé las tasas reales, se pueden poner metas con más sentido.</li>
+    <li><strong>Metas en colones</strong>, separadas: <strong>Licitaciones</strong> (oportunidades con motor Sector público) y
+        <strong>Trabajos puntuales</strong> (los demás motores). Cuenta lo <strong>ganado dentro del periodo</strong>, aunque la
+        oportunidad venga de antes (una licitación tarda meses). El monto es lo adjudicado en Presupuestos si ya tiene
+        proyecto; si no, el de la cotización o el monto estimado.</li>
+    <li><strong>Cobertura:</strong> debajo de cada meta, lo que hay <em>en propuesta</em> y cuántas veces cubre lo que falta
+        ganar. Lo sano es <strong>3×</strong> o más (en verde); entre 1× y 3× en ámbar; menos de 1× en rojo, porque aunque
+        se ganaran todas las propuestas no se llega.</li>
+    <li>Con <strong>Origen</strong> en la lista se filtra todo el Filtro (cajas, metas y lista), para ver por separado lo que
+        llega solo por la web y lo que se busca con prospección: sus tasas son muy distintas.</li>
     <li>Cuentan las <strong>cuentas</strong> con una oportunidad de tipo <strong>Nuevo</strong> creada dentro del periodo ({{ period.label }}).</li>
     <li>Cuenta la <strong>etapa más alta alcanzada</strong>: si una oportunidad llegó a Reunión y después se perdió, sigue contando hasta Reunión.</li>
     <li>Las <strong>renovaciones y ampliaciones</strong> de clientes actuales no cuentan para las metas; igual se trabajan y aparecen en la lista.</li>
@@ -122,7 +132,7 @@
         llega un correo. La asignación automática de lo que entra por el formulario está en
         <a href="/clientes/asignacion" class="text-indigo-600 hover:underline">Asignación de oportunidades</a>.</li>
     <li><strong>Dueño de una cuenta:</strong> en la ficha de la cuenta, <em>Dueño</em> → <em>Reasignar</em>.</li>
-    <li><strong>Metas y periodo:</strong> en el Filtro, <em>Editar metas y periodo</em>: la meta de Propuesta y de Ganado (vacío = sin meta), el nombre del periodo y sus fechas. Se calcula al momento, así que cambiar las fechas recalcula todo.</li>
+    <li><strong>Metas y periodo:</strong> en el Filtro, <em>Editar metas y periodo</em>: la meta de Propuesta y de Ganado (vacío = sin meta), las metas en colones de Licitaciones y de Trabajos puntuales, el nombre del periodo y sus fechas. Se calcula al momento, así que cambiar las fechas recalcula todo.</li>
     <li><strong>Marcar ganada:</strong> en la oportunidad, crea el proyecto ya ligado a la cuenta o liga uno existente.</li>
     <li><strong>Renovaciones:</strong> en el Filtro, <em>Contratos por vencer</em> muestra los contratos que terminan en
         90 días (en rojo, menos de 60). <em>Crear renovación</em> abre la oportunidad para el dueño de la cuenta.</li>

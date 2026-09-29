@@ -11,7 +11,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.db.models.activity import ActivityLog
-from app.db.models.crm import (DEFAULT_GOALS, FUNNEL_STAGES, GOAL_STAGES, LABELS, STAGES, Account, AccountNotDuplicate, Contact,
+from app.db.models.crm import (DEFAULT_GOALS, FUNNEL_STAGES, GOAL_STAGES, MONEY_GOALS, ORIGINS, TENDER_MOTOR, LABELS, STAGES, Account, AccountNotDuplicate, Contact,
                                 CrmActivity, CrmGoal, CrmSetting, Opportunity, ProjectContactRole, stage_index)
 from app.db.models.finance import ProjectBudget
 from app.db.models.project_details import ProjectContact
@@ -347,8 +347,13 @@ def goals(db: Session) -> Dict[str, int]:
     return {stage: stored.get(stage, DEFAULT_GOALS[stage]) if stage in GOAL_STAGES else 0 for stage in FUNNEL_STAGES}
 
 
+def money_goals(db: Session) -> Dict[str, int]:
+    stored = {g.stage: g.target for g in db.query(CrmGoal).filter(CrmGoal.stage.in_(MONEY_GOALS))}
+    return {key: stored.get(key, 0) for key in MONEY_GOALS}
+
+
 def set_goals(db: Session, targets: Dict[str, int]):
-    for stage in GOAL_STAGES:
+    for stage in GOAL_STAGES + MONEY_GOALS:
         if stage in targets:
             goal = db.get(CrmGoal, stage) or CrmGoal(stage=stage)
             goal.target = max(0, int(targets[stage]))
@@ -366,7 +371,11 @@ def quote_amount(db: Session, opportunity: Opportunity) -> Optional[float]:
 
 
 def filter_opportunities(query, motor: Optional[str] = None, owner_id: Optional[int] = None,
-                         stage: Optional[str] = None, search: Optional[str] = None):
+                         stage: Optional[str] = None, search: Optional[str] = None, origin: Optional[str] = None):
+    if origin == "sin_origen":
+        query = query.filter(Opportunity.origin.is_(None))
+    elif origin in ORIGINS:
+        query = query.filter(Opportunity.origin == origin)
     if motor:
         query = query.filter(Opportunity.motor == motor)
     if owner_id:
@@ -424,12 +433,18 @@ def set_funnel_period(db: Session, name: str, start: date, end: date):
     db.commit()
 
 
+def live(query):
+    """Leaves out the opportunities of discarded accounts."""
+    return query.filter(~Opportunity.account.has(Account.discarded_at.isnot(None)))
+
+
 def funnel(db: Session, motor: Optional[str] = None, owner_id: Optional[int] = None,
-           period: Optional[FunnelPeriod] = None) -> List[Dict]:
+           period: Optional[FunnelPeriod] = None, origin: Optional[str] = None) -> List[Dict]:
     """Accounts that reached each stage (by the highest stage of any of their opportunities).
     With a period, only new-business opportunities (kind "nuevo") created inside it count:
     renewals and extensions are existing clients, not the pilot's new ones."""
-    query = filter_opportunities(db.query(Opportunity.account_id, Opportunity.max_stage), motor, owner_id)
+    query = filter_opportunities(db.query(Opportunity.account_id, Opportunity.max_stage), motor, owner_id,
+                                 origin=origin)
     if period:
         start, end = period.utc_bounds()
         query = query.filter(Opportunity.kind == "nuevo", Opportunity.created_at >= start, Opportunity.created_at < end)
@@ -452,7 +467,7 @@ def funnel(db: Session, motor: Optional[str] = None, owner_id: Optional[int] = N
 
 def proposal_amounts(db: Session, owner_id: Optional[int] = None) -> Dict[str, float]:
     """Amount in open proposals by motor, taken from the linked quotes."""
-    query = db.query(Opportunity).filter(Opportunity.stage == "propuesta")
+    query = live(db.query(Opportunity).filter(Opportunity.stage == "propuesta"))
     if owner_id:
         query = query.filter(Opportunity.owner_id == owner_id)
     totals: Dict[str, float] = {}
@@ -464,11 +479,63 @@ def proposal_amounts(db: Session, owner_id: Optional[int] = None) -> Dict[str, f
     return totals
 
 
+def adjudicated(budget: ProjectBudget) -> float:
+    """Same total as Presupuestos: lines with tax plus the active extension."""
+    total = sum(line.subtotal * (1 + (line.tax_percentage or 0) / 100.0) for line in budget.lines)
+    if budget.is_prorrogable and budget.active_prorogue:
+        total += budget.prorrogable_amount or 0.0
+    return total
+
+
+def won_amount(db: Session, opportunity: Opportunity) -> Optional[float]:
+    """What a won opportunity is worth: the adjudicated amount of its project in Presupuestos,
+    or else its quote (or typed amount)."""
+    project = db.get(Project, opportunity.project_id) if opportunity.project_id else \
+        db.query(Project).filter(Project.opportunity_id == opportunity.id).first()
+    budget = db.query(ProjectBudget).filter(ProjectBudget.project_id == project.id).first() if project else None
+    if budget is not None and budget.lines:
+        return adjudicated(budget)
+    return quote_amount(db, opportunity)
+
+
+def money_group(opportunity: Opportunity) -> str:
+    return "monto_licitaciones" if opportunity.motor == TENDER_MOTOR else "monto_puntuales"
+
+
+# Proposals should cover at least this many times what is still missing (pipeline coverage).
+COVERAGE_TARGET = 3
+
+
+def money_progress(db: Session, period: FunnelPeriod, motor: Optional[str] = None, owner_id: Optional[int] = None,
+                   origin: Optional[str] = None) -> List[Dict]:
+    """Per money goal: won inside the period against the target, and how many times the open
+    proposals cover what is still missing."""
+    start, end = period.utc_bounds()
+    won = filter_opportunities(db.query(Opportunity), motor, owner_id, origin=origin).filter(
+        Opportunity.stage == "ganado", Opportunity.won_at >= start, Opportunity.won_at < end)
+    proposals = live(filter_opportunities(db.query(Opportunity), motor, owner_id, origin=origin).filter(
+        Opportunity.stage == "propuesta"))
+    rows = {key: {"key": key, "won": 0.0, "count": 0, "proposals": 0.0} for key in MONEY_GOALS}
+    for opportunity in won:
+        row = rows[money_group(opportunity)]
+        row["won"] += won_amount(db, opportunity) or 0.0
+        row["count"] += 1
+    for opportunity in proposals:
+        rows[money_group(opportunity)]["proposals"] += quote_amount(db, opportunity) or 0.0
+    targets = money_goals(db)
+    for key, row in rows.items():
+        target = targets[key]
+        missing = max(0.0, target - row["won"])
+        row.update(target=target, missing=missing, pct=round(100 * row["won"] / target) if target else None,
+                   coverage=round(row["proposals"] / missing, 1) if missing else None)
+    return [rows[key] for key in MONEY_GOALS]
+
+
 def next_steps(db: Session, owner_id: Optional[int] = None, today: Optional[date] = None) -> Dict[str, List[Opportunity]]:
     """Open opportunities with a next-step date: overdue, today and the next 7 days."""
     today = today or date.today()
-    query = db.query(Opportunity).filter(Opportunity.stage.notin_(CLOSED_STAGES),
-                                         Opportunity.next_step_date.isnot(None))
+    query = live(db.query(Opportunity).filter(Opportunity.stage.notin_(CLOSED_STAGES),
+                                              Opportunity.next_step_date.isnot(None)))
     if owner_id:
         query = query.filter(Opportunity.owner_id == owner_id)
     result = {"vencidos": [], "hoy": [], "semana": []}
@@ -492,6 +559,7 @@ def change_stage(db: Session, opportunity: Opportunity, stage: str, user: User, 
         return
     previous = opportunity.stage
     opportunity.stage = stage
+    opportunity.won_at = datetime.utcnow() if stage == "ganado" else None
     if stage != "perdido":
         opportunity.max_stage = max(opportunity.max_stage or 0, stage_index(stage))
         opportunity.lost_reason = None
@@ -695,6 +763,7 @@ def create_renewal(db: Session, project: Project, user: User, today: Optional[da
     opportunity = Opportunity(
         account_id=account.id, title=f"Renovación: {project.name}", kind="renovacion", stage="prospecto",
         max_stage=0, owner_id=account.owner_id or user.id, project_id=project.id, source="renovacion",
+        origin="cliente_actual",
         next_step="Contactar para la renovación", next_step_date=today,
         expected_close_date=budget.end_date if budget else None, created_by_id=user.id,
     )

@@ -88,6 +88,7 @@ def dashboard(
         data["filtered"] = bool(start_date or end_date or invoice_status)
         data["crm_period"] = crm.funnel_period(db)
         data["crm_funnel"] = crm.funnel(db, period=data["crm_period"])
+        data["crm_money"] = crm.money_progress(db, data["crm_period"])
         today = today_cr()
         period = data["crm_period"]
         data["crm_running"] = period.start <= today <= period.end

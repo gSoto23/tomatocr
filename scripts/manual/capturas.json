@@ -554,7 +554,7 @@
    "name": "clientes/embudo",
    "path": "/clientes",
    "as": "admin",
-   "height": 1100,
+   "height": 1350,
    "markers": [
     {
      "n": 1,
@@ -576,6 +576,11 @@
      "n": 4,
      "text": "Nueva cuenta",
      "tags": "a"
+    },
+    {
+     "n": 5,
+     "text": "Licitaciones",
+     "tags": "h3"
     }
    ]
   },

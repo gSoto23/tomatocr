@@ -151,7 +151,7 @@ def intake_lead(db: Session, lead: Dict, source: str) -> LeadResult:
         owner_id = owner.id if owner else None
         opportunity = Opportunity(
             account_id=account.id, title=f"{LABELS['motor'][lead['motor']]} · {SOURCES[source]}",
-            motor=lead["motor"], stage="prospecto", max_stage=0, owner_id=owner_id, source=source,
+            motor=lead["motor"], stage="prospecto", max_stage=0, owner_id=owner_id, source=source, origin="web",
             next_step="Responder la solicitud", next_step_date=date.today(),
         )
         db.add(opportunity)

@@ -6,7 +6,23 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-29
 
-### Filtro: metas solo en Propuesta y Ganado (esta rama)
+### Filtro: metas en colones, cobertura y origen (esta rama)
+- **Metas en colones por separado**: *Licitaciones* (motor Sector público) y *Trabajos
+  puntuales* (los demás motores). Cuenta lo **ganado dentro del periodo**, con el monto
+  adjudicado en Presupuestos o, si todavía no hay proyecto, la cotización. Se ponen en
+  *Editar metas y periodo*; el Dashboard del admin muestra lo ganado contra la meta.
+- **Cobertura**: bajo cada meta, lo que hay en propuesta y cuántas veces cubre lo que
+  falta (verde desde 3×).
+- **Origen** de cada oportunidad (formulario web, referido, prospección, SICOP, cliente
+  actual, otro): se elige al crearla o editarla, el formulario y las renovaciones lo
+  ponen solos, y el Filtro filtra por origen.
+- Corrección: una cuenta descartada con el botón anterior ya no aparece en *Para hoy*
+  ni en los montos en propuesta.
+- Manual (Clientes, Dashboard) y capturas al día.
+- Despliegue: **migración 0013** (`opportunities.won_at` y `origin`, llenados desde los
+  datos actuales). Snapshot, `alembic upgrade head` y reiniciar.
+
+### Filtro: metas solo en Propuesta y Ganado (#93)
 - Nueva, Respuesta y Reunión ya no tienen meta (150, 60 y 25 venían del plan, no de datos
   reales): muestran el **% que pasó de la caja anterior** ("50 % de Respuesta").
   Propuesta y Ganado mantienen su meta (10 y 4) con la barra de avance.
