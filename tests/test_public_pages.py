@@ -118,3 +118,52 @@ def test_share_image_and_click_tracking(path):
     assert "js/analytics.js" in html
     assert new_client().get("/static/images/og-tomato-2026-09.jpg").status_code == 200
     assert new_client().get("/static/js/analytics.js").status_code == 200
+
+
+# --- SEO quick wins ----------------------------------------------------------------------
+
+import re
+
+
+@pytest.mark.parametrize("path, keyword", [("/", "Costa Rica"), ("/programas/darboles", "empresas"),
+                                           ("/proyectos-reforestacion", "GPS")])
+def test_titles_and_descriptions_fit_in_search_results(path, keyword):
+    html = new_client().get(path).text
+    title = re.search(r"<title>(.*?)</title>", html).group(1)
+    description = re.search(r'<meta name="description"\s+content="(.*?)"', html, re.S).group(1)
+    assert len(title) <= 60 and keyword in title
+    assert len(description) <= 155
+
+
+def test_map_page_is_readable_without_javascript(db):
+    add_project(db, "institucional", [("Cedro", 10.0), ("Roble", 10.1)])
+    html = new_client().get("/proyectos-reforestacion").text
+    h1 = re.search(r"<h1[^>]*>(.*?)</h1>", html, re.S).group(1)
+    assert "Mapa de reforestación" in h1
+    assert "Cómo funciona la trazabilidad de cada árbol" in html
+    assert re.search(r'x-text="totalTrees">2<', html)  # server figure, not a 0 placeholder
+    words = len(re.findall(r"\w+", re.sub(r"<script.*?</script>|<[^>]+>", " ", html, flags=re.S)))
+    assert words > 300
+
+
+def test_home_structured_data_describes_the_business():
+    import json
+    html = new_client().get("/").text
+    data = json.loads(re.search(r'<script type="application/ld\+json">(.*?)</script>', html, re.S).group(1))
+    assert data["@type"] == "LocalBusiness" and data["logo"].startswith("https://tomatocr.com/")
+    assert len(data["hasOfferCatalog"]["itemListElement"]) == 4
+    assert data["areaServed"]["name"] == "Costa Rica"
+
+
+def test_public_trailing_slash_redirects_for_good_and_internal_ones_keep_theirs():
+    client = new_client()
+    response = client.get("/programas/darboles/", follow_redirects=False)
+    assert response.status_code == 308 and response.headers["location"].endswith("/programas/darboles")
+    assert client.get("/dashboard/", follow_redirects=False).status_code != 308
+
+
+def test_security_and_cache_headers():
+    client = new_client()
+    assert "max-age=31536000" in client.get("/").headers["strict-transport-security"]
+    assert "immutable" in client.get("/static/css/tailwind.css?v=1").headers["cache-control"]
+    assert client.get("/static/images/og-tomato-2026-09.jpg").headers["cache-control"] == "public, max-age=604800"

@@ -281,6 +281,11 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
    registrá `location` como dimensión personalizada.
    **Imagen para compartir** (Open Graph): `static/images/og-tomato-2026-09.jpg`, 1200×628.
    Si se cambia, usá un nombre nuevo: WhatsApp y Facebook guardan la anterior por URL.
+   **SEO**: título ≤ 60 y descripción ≤ 155 caracteres por página pública
+   (`tests/test_public_pages.py` lo revisa); el mapa lleva texto y cifras renderizados en
+   el servidor para que Google lo lea sin JavaScript. Caché: CSS/JS con `?v=` 1 año,
+   imágenes 7 días (una imagen que cambia lleva nombre nuevo). Auditoría y plan en el
+   documento "Auditoría SEO tomatocr.com".
 
 ---
 
