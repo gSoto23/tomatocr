@@ -108,8 +108,8 @@ def test_worker_sees_today_first_as_cards(db, login_as, users):
         db.add(ScheduleTask(schedule_id=s.id, title='Tarea "con comillas"', description="<b>ok</b>"))
     db.commit()
     html = login_as("worker").get("/dashboard").text
-    assert "Hoy y próximos días" in html.replace("hoy y próximos días", "Hoy y próximos días")
-    assert html.index("Hoy · ") < html.index("Anteriores")
+    # Today's work is in the "Hoy" block at the top; the list below shows the next days, then the past ones.
+    assert html.index("Mi trabajo de hoy") < html.index("Mis próximas asignaciones") < html.index("Anteriores")
     assert "Gestionar tareas" in html  # the phone card button
     assert "<b>ok</b>" not in html  # task text escaped
 

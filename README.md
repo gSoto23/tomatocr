@@ -24,14 +24,26 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
   siguen mostrando. Una línea del presupuesto con facturas no se puede quitar.
 
 ### Dashboard (`/dashboard`)
-- Primero **Requiere atención** (facturas vencidas, días sin bitácora, horas sin
-  confirmar, planillas en borrador, pasos atrasados en Clientes, personas sin correo),
-  luego **Hoy en campo** y **Dinero** (por cobrar, vencido, facturado del mes, por
-  facturar). Lo calcula `app/utils/admin_overview.py`.
-- Los otros roles: el supervisor ve lo pendiente del equipo y *Hoy en campo*; el
-  trabajador, sus días sin bitácora con el botón para registrarlos; el cliente, una
-  tarjeta por proyecto (última y próxima visita, reportes del mes); ventas, sus pasos
-  atrasados y su embudo.
+- Mismo orden para todos (de más a menos importante): **Hoy** (mis tareas de hoy y
+  atrasadas, y al lado lo del día: *Hoy en campo* para admin y supervisor, *Mi trabajo
+  de hoy* para el trabajador, *Próximos pasos de hoy* para ventas), **Requiere
+  atención** y los números del rol (admin: Dinero, Filtro comercial, Facturas).
+- **Tareas** (`tasks`, migración 0014; `app/utils/tasks.py`): título, fecha, prioridad
+  (alta, normal, baja) y descripción, donde los enlaces se pueden abrir (filtro
+  `linkify`, que escapa el texto). Admin y supervisor pueden asignar una tarea a
+  cualquier persona activa del equipo; la ven quien la tiene, quien la creó y el admin.
+  El cliente no tiene tareas. Rutas `POST /dashboard/tareas`, `/tareas/{id}/hecha`,
+  `/editar` y `/borrar`.
+- **Alertas** con clave y nivel (`urgente`, `importante`, `revisar`) en
+  `app/utils/admin_overview.py`, ordenadas por nivel. Admin: facturas vencidas, horas
+  sin confirmar, días sin bitácora, planillas en borrador, pasos atrasados en Clientes,
+  contratos por vencer sin renovación y personas sin correo; supervisor: las del equipo;
+  trabajador: sus días sin bitácora (un enlace por día); ventas: sus pasos atrasados.
+- **"Ya lo vi"** (`alert_acks`, por persona): la alerta pasa a la pestaña *Pendientes*
+  con la lista de elementos que tenía; vuelve a *Nuevas* si aparece uno nuevo
+  (empeoró) y la marca se borra sola cuando la alerta se resuelve.
+- El cliente ve una tarjeta por proyecto (última y próxima visita, reportes del mes) y
+  su bitácora.
 
 ### 2. Módulo Financiero
 - **Facturación**: Control al momento de ingresos adjudicados vs facturados, y saldo pendiente real

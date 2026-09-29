@@ -6,7 +6,27 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-29
 
-### Filtro: metas en colones, cobertura y origen (esta rama)
+### Dashboard: Hoy, tareas y alertas con "Ya lo vi" (esta rama)
+- **Mismo orden en cada perfil**, de lo más importante a lo menos: **Hoy**, **Requiere
+  atención** y los números del rol. Arriba, junto a la fecha, cuántas tareas hay hoy y
+  cuántas alertas urgentes.
+- **Mis tareas**: pendientes que no genera el sistema, con título, fecha, prioridad y
+  descripción (los enlaces se abren). Salen en Hoy el día que les toca; las atrasadas
+  primero, en rojo. Se marcan hechas con un clic, se editan y se borran. Admin y
+  supervisor las pueden asignar a alguien del equipo (*te la asignó…* / *Que asigné a
+  otros*). El cliente no tiene tareas.
+- **Hoy**, al lado de las tareas: *Hoy en campo* (admin, supervisor), *Mi trabajo de
+  hoy* con *Registrar bitácora de hoy* (trabajador) y *Próximos pasos de hoy* (ventas).
+- **Alertas por importancia**: Urgente, Importante y Para revisar. Nuevas: contratos
+  por vencer sin renovación (admin); el trabajador y ventas tienen su propio
+  *Requiere atención* (días sin bitácora, pasos atrasados).
+- **✓ Ya lo vi**: la alerta pasa a la pestaña *Pendientes* solo para esa persona;
+  vuelve a *Nuevas* si empeora y desaparece sola cuando se resuelve.
+- Manual (Dashboard: *Mis tareas*, *Alertas*, cada rol) con 7 capturas.
+- Despliegue: **migración 0014** (`tasks`, `alert_acks`). Snapshot, `alembic upgrade
+  head` y reiniciar.
+
+### Filtro: metas en colones, cobertura y origen (#94)
 - **Metas en colones por separado**: *Licitaciones* (motor Sector público) y *Trabajos
   puntuales* (los demás motores). Cuenta lo **ganado dentro del periodo**, con el monto
   adjudicado en Presupuestos o, si todavía no hay proyecto, la cotización. Se ponen en

@@ -1,3 +1,6 @@
+import re
+
+from markupsafe import Markup, escape
 from fastapi.templating import Jinja2Templates
 from datetime import datetime
 
@@ -88,3 +91,21 @@ def _today_cr():
 
 
 templates.env.globals["today_cr"] = _today_cr
+
+
+# Runs on the escaped text: a link stops at spaces and at escaped quotes or brackets.
+_URL = re.compile(r"(https?://(?:(?!&#39;|&#34;|&quot;|&lt;|&gt;)\S)+)")
+
+
+def linkify_filter(value) -> Markup:
+    """Plain text with its links clickable (task descriptions). The text is escaped first."""
+    def link(match):
+        url = match.group(1)
+        tail = len(url) - len(url.rstrip(".,;:!?)"))  # punctuation right after the link isn't part of it
+        url, rest = (url[:-tail], url[-tail:]) if tail else (url, "")
+        return (f'<a href="{url}" target="_blank" rel="noopener noreferrer" '
+                f'class="text-indigo-600 underline break-all">{url}</a>{rest}')
+    return Markup(_URL.sub(link, str(escape(value or ""))))
+
+
+templates.env.filters["linkify"] = linkify_filter
