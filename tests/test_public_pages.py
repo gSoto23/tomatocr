@@ -210,3 +210,13 @@ def test_reforestation_service_shows_live_figures(db):
     html = new_client().get("/servicios/reforestacion-para-empresas").text
     assert "Cada árbol, en un mapa público" in html
     assert "Cada árbol, en un mapa público" not in new_client().get("/servicios/jardineria").text
+
+
+def test_darboles_page_shows_the_catalog_trees_and_campaign_photos():
+    html = new_client().get("/programas/darboles").text
+    species = re.findall(r'src="(/static/images/darboles/especies/[^"]+)"', html)
+    assert len(set(species)) == 12
+    assert 'id="especies"' in html and 'href="#especies"' in html
+    for src in set(species) | set(re.findall(r'src="(/static/images/darboles/[^"/]+\.jpg)"', html)):
+        assert new_client().get(src).status_code == 200
+    assert "Compra en la tienda" not in html
