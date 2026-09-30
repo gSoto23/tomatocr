@@ -4,17 +4,20 @@ from datetime import date
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from sqlalchemy.orm import Session
 
 from app.core.templates import templates
 from app.db.models.crm import Account, Opportunity
 from app.db.models.user import User
-from app.db.models.quote import Quote
+from app.db.models.quote import Quote, QuoteEmail
 from app.routers import deps
-from app.core.roles import ADMIN, CLIENT, QUOTES_ROLES
+from app.core.roles import ADMIN, CLIENT, QUOTES_ROLES, VENTAS
 from app.utils.activity import log_activity
-from app.utils.crm import account_of_client_user, advance_to_proposal
+from app.utils.crm import CLOSED_STAGES, account_of_client_user, advance_to_proposal
+from app.utils.email import send_quote_email
+from app.utils.quote_pdf import default_email, pdf_filename, quote_pdf
+from app.utils.timecr import CR_OFFSET, today_cr
 
 router = APIRouter(
     tags=["quotes"],
@@ -68,7 +71,17 @@ def serialize(q: Quote, account_names: dict) -> dict:
         "account_name": account_names.get(q.account_id),
         "opportunity_id": q.opportunity_id,
         "opportunity_title": opportunity_title(q),
+        "last_sent_at": last_sent_at(q),
     }
+
+
+def last_sent_at(q: Quote):
+    from sqlalchemy.orm import object_session
+    session = object_session(q)
+    if session is None:
+        return None
+    row = session.query(QuoteEmail.sent_at).filter(QuoteEmail.quote_id == q.id).order_by(QuoteEmail.sent_at.desc()).first()
+    return (row[0] - CR_OFFSET).date().isoformat() if row else None
 
 
 def number(value, default: float) -> float:
@@ -89,6 +102,7 @@ def view_cotizador(request: Request, user: User = Depends(deps.get_current_user)
     return templates.TemplateResponse("cotizador/index.html", {"request": request, "user": user,
                                                              "picks_account": user.role != CLIENT,
                                                              "can_delete": user.role == ADMIN,
+                                                             "can_send": user.role in SENDERS,
                                                              "asset_version": ASSET_VERSION})
 
 @router.get("/api/quotes/next-number")
@@ -142,6 +156,7 @@ def delete_quote(id: int, db: Session = Depends(deps.get_db), user: User = Depen
     if not q:
         raise HTTPException(status_code=404, detail="Cotización no encontrada")
     number, client = q.numero_cotizacion, q.cliente_nombre
+    db.query(QuoteEmail).filter(QuoteEmail.quote_id == q.id).delete()
     db.delete(q)
     db.commit()
     log_activity(db, user=user, action="DELETE", entity_type="QUOTE", entity_id=id,
@@ -248,3 +263,133 @@ async def upsert_quote(request: Request, db: Session = Depends(deps.get_db), use
     return {"status": "success", "id": quote.id, "numero_cotizacion": quote.numero_cotizacion,
             "renumbered_from": renumbered_from, "account_id": quote.account_id,
             "opportunity_id": quote.opportunity_id}
+
+
+
+# --- Sending a quote by e-mail --------------------------------------------------------
+
+SENDERS = (ADMIN, VENTAS)
+MAX_RECIPIENTS = 5
+EMAIL_RE = re.compile(r"^[^@\s,;]+@[^@\s,;]+\.[^@\s,;]+$")
+
+
+def own_quote(db: Session, user: User, id: int) -> Quote:
+    q = visible_quotes(db, user).filter(Quote.id == id).first()
+    if not q:
+        raise HTTPException(status_code=404, detail="Cotización no encontrada")
+    return q
+
+
+def make_pdf(q: Quote) -> bytes:
+    try:
+        return quote_pdf(q)
+    except Exception as e:  # WeasyPrint missing or failing: say it instead of a blank error
+        import logging
+        logging.getLogger(__name__).error(f"PDF of {q.numero_cotizacion} failed: {e}")
+        raise HTTPException(status_code=503, detail="No se pudo generar el PDF de la cotización. Avisale al admin.")
+
+
+@router.get("/api/quotes/{id}/pdf")
+def quote_pdf_file(id: int, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
+    """The PDF that the e-mail attaches (preview and download)."""
+    check_quotes_access(user)
+    q = own_quote(db, user, id)
+    return Response(content=make_pdf(q), media_type="application/pdf",
+                    headers={"Content-Disposition": f'inline; filename="{pdf_filename(q)}"'})
+
+
+def history(db: Session, q: Quote):
+    rows = db.query(QuoteEmail).filter(QuoteEmail.quote_id == q.id).order_by(QuoteEmail.sent_at.desc()).all()
+    names = {u.id: (u.full_name or u.username) for u in db.query(User).filter(User.id.in_({r.sent_by_id for r in rows}))}
+    return [{"sent_at": r.sent_at.isoformat() + "Z", "by": names.get(r.sent_by_id, ""), "to": r.recipients} for r in rows]
+
+
+def sender_only(user: User):
+    if user.role not in SENDERS:
+        raise HTTPException(status_code=403, detail="Solo el admin y ventas envían cotizaciones")
+
+
+@router.get("/api/quotes/{id}/email")
+def quote_email_form(id: int, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
+    """What the send window starts with, and the previous sends."""
+    sender_only(user)
+    q = own_quote(db, user, id)
+    opportunity = db.get(Opportunity, q.opportunity_id) if q.opportunity_id else None
+    data = default_email(q, user, today_cr(), account_contact_emails(db, q.account_id))
+    data.update(history=history(db, q), filename=pdf_filename(q), reply_to=user.email or "",
+                opportunity={"id": opportunity.id, "title": opportunity.title,
+                             "open": opportunity.stage not in CLOSED_STAGES} if opportunity else None)
+    return data
+
+
+def account_contact_emails(db: Session, account_id) -> list:
+    """The account's main contact with an e-mail (primary first, then commercial ones)."""
+    from app.db.models.crm import Contact
+    if not account_id:
+        return []
+    contacts = db.query(Contact).filter(Contact.account_id == account_id, Contact.email.isnot(None), Contact.email != "")
+    ranked = sorted(contacts, key=lambda c: (not c.is_primary, not c.is_commercial, c.id))
+    return [ranked[0].email] if ranked else []
+
+
+def recipients_of(value) -> list:
+    items = value if isinstance(value, list) else re.split(r"[,;\s]+", str(value or ""))
+    emails = []
+    for item in items:
+        email = str(item).strip().lower()
+        if email and email not in emails:
+            emails.append(email)
+    return emails
+
+
+@router.post("/api/quotes/{id}/email")
+async def send_quote(id: int, request: Request, db: Session = Depends(deps.get_db),
+                     user: User = Depends(deps.get_current_user)):
+    """Sends the quote's PDF from the notifications account; replies go to the person who sends.
+    Records the send in the quote and in Clientes (follow-up, Propuesta stage, next step)."""
+    sender_only(user)
+    q = own_quote(db, user, id)
+    data = await request.json()
+    to = recipients_of(data.get("to"))
+    wrong = [e for e in to if not EMAIL_RE.match(e)]
+    if not to:
+        raise HTTPException(status_code=400, detail="Escribí al menos un correo")
+    if wrong:
+        raise HTTPException(status_code=400, detail=f"Revisá este correo: {wrong[0]}")
+    if len(to) > MAX_RECIPIENTS:
+        raise HTTPException(status_code=400, detail=f"Máximo {MAX_RECIPIENTS} destinatarios por envío")
+    subject = (data.get("subject") or "").strip()[:200] or f"Cotización {q.numero_cotizacion} · TOMATO"
+    message = (data.get("message") or "").strip()
+    if not message:
+        raise HTTPException(status_code=400, detail="Escribí el mensaje del correo")
+    next_step_date = None
+    if data.get("next_step_date"):
+        try:
+            next_step_date = date.fromisoformat(str(data.get("next_step_date")))
+        except ValueError:
+            raise HTTPException(status_code=400, detail="La fecha del próximo paso no es válida")
+
+    pdf = make_pdf(q)
+    opportunity = db.get(Opportunity, q.opportunity_id) if q.opportunity_id else None
+    owner = db.get(User, opportunity.owner_id) if opportunity and opportunity.owner_id else None
+    reply_to = [user.email or (owner.email if owner else None)]
+    if not await send_quote_email(to, subject, message, pdf, pdf_filename(q), reply_to):
+        raise HTTPException(status_code=502, detail="No se pudo enviar el correo. Intentá de nuevo en un momento.")
+
+    from datetime import datetime
+    from app.db.models.crm import CrmActivity
+    now = datetime.utcnow()
+    db.add(QuoteEmail(quote_id=q.id, sent_at=now, sent_by_id=user.id, recipients=", ".join(to), subject=subject,
+                      message=message))
+    if q.account_id:
+        db.add(CrmActivity(account_id=q.account_id, opportunity_id=q.opportunity_id, type="correo", happened_at=now,
+                           user_id=user.id, notes=f"Cotización {q.numero_cotizacion} enviada por correo a {', '.join(to)}"))
+    if opportunity is not None and opportunity.stage not in CLOSED_STAGES:
+        advance_to_proposal(db, opportunity, user)
+        if next_step_date:
+            opportunity.next_step = f"Dar seguimiento a la cotización {q.numero_cotizacion}"
+            opportunity.next_step_date = next_step_date
+    db.commit()
+    log_activity(db, user=user, action="UPDATE", entity_type="QUOTE", entity_id=q.id,
+                 details=f"Envió la cotización {q.numero_cotizacion} a {', '.join(to)}")
+    return {"ok": True, "message": f"Cotización enviada a {', '.join(to)}", "history": history(db, q)}

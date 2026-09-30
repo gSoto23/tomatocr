@@ -16,7 +16,7 @@ from app.db.models.login_attempt import LoginAttempt
 from app.db.models.payroll import PayrollPeriod, PayrollEntry
 from app.db.models.payment import PayrollPayment
 from app.db.models.liquidation import Liquidation
-from app.db.models.quote import Quote
+from app.db.models.quote import Quote, QuoteEmail
 from app.db.models.reforestation import ReforestationProject, ReforestationTree, TreeCheck
 from app.db.models.crm import Account, Contact, Opportunity, CrmActivity, AccountNotDuplicate, ProjectContactRole, CrmGoal, CrmAssignment, CrmSetting, LeadSubmission
 from app.db.models.task import Task, AlertAck

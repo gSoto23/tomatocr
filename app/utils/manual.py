@@ -86,11 +86,12 @@ CHAPTERS: List[Chapter] = [
     ),
     Chapter(
         "cotizador", "Cotizador",
-        "Armar una cotización profesional, revisarla y exportarla en PDF.",
+        "Armar una cotización profesional, revisarla, exportarla en PDF y enviarla por correo.",
         (ADMIN, VENTAS, CLIENT), ("/cotizador",),
         (("que-es", "Qué es"), ("nueva", "Hacer una cotización"), ("revision", "La revisión antes del PDF"),
-         ("pdf", "Exportar el PDF"), ("guardadas", "Cotizaciones guardadas"), ("preguntas", "Preguntas frecuentes")),
-        "cotización presupuesto pdf descuento iva ítems alcance términos número",
+         ("pdf", "Exportar el PDF"), ("correo", "Enviar por correo"), ("guardadas", "Cotizaciones guardadas"),
+         ("preguntas", "Preguntas frecuentes")),
+        "cotización presupuesto pdf descuento iva ítems alcance términos número enviar correo adjunto",
     ),
 ]
 

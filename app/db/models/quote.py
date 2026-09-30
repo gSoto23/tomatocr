@@ -33,3 +33,16 @@ class Quote(Base):
     # CRM (docs/DISENO_CRM.md). cliente_nombre stays as the text shown today.
     account_id = Column(Integer, ForeignKey("accounts.id"), nullable=True, index=True)
     opportunity_id = Column(Integer, ForeignKey("opportunities.id"), nullable=True)
+
+
+class QuoteEmail(Base):
+    """Each time a quote was sent by e-mail from the quote tool, with its PDF attached."""
+    __tablename__ = "quote_emails"
+
+    id = Column(Integer, primary_key=True, index=True)
+    quote_id = Column(Integer, ForeignKey("quotes.id", ondelete="CASCADE"), nullable=False, index=True)
+    sent_at = Column(DateTime, nullable=False)
+    sent_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    recipients = Column(Text, nullable=False)  # comma separated
+    subject = Column(String(200), nullable=False)
+    message = Column(Text, nullable=True)

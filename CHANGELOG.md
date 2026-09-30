@@ -6,7 +6,24 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-29
 
-### Dashboard: Hoy, tareas y alertas con "Ya lo vi" (esta rama)
+### Cotizador: enviar la cotización por correo con el PDF (esta rama)
+- Botón **Enviar por correo** (admin y ventas) en el cotizador y en el Historial. La
+  ventana trae el destinatario, el asunto, un mensaje con el total y la validez, la
+  **vista previa del PDF** y la fecha del próximo paso; todo se puede cambiar.
+- Sale de notificaciones@tomatocr.com como «TOMATO»; si el cliente responde, le llega
+  a quien la envió. Sin copia a info@.
+- El **PDF lo genera el servidor** (WeasyPrint) con el mismo diseño del PDF del
+  navegador, más "página X de Y" en el pie.
+- Queda registrado: *✉ Enviada* en el Historial, los envíos anteriores en la ventana,
+  un seguimiento *Correo* en Clientes, la oportunidad en Propuesta y el próximo paso
+  "Dar seguimiento a la cotización" (3 días hábiles por defecto).
+- Remitente con nombre: `MAIL_FROM_NAME` (por defecto "TOMATO"), para todos los correos.
+- Manual (Cotizador: *Enviar por correo*) con capturas nuevas.
+- Despliegue: **instalar Pango una vez** (README, *Cotizaciones por correo*),
+  `pip install -r requirements.txt` (WeasyPrint 62.3) y **migración 0015**
+  (`quote_emails`). Snapshot, `alembic upgrade head` y reiniciar.
+
+### Dashboard: Hoy, tareas y alertas con "Ya lo vi" (#95)
 - **Mismo orden en cada perfil**, de lo más importante a lo menos: **Hoy**, **Requiere
   atención** y los números del rol. Arriba, junto a la fecha, cuántas tareas hay hoy y
   cuántas alertas urgentes.

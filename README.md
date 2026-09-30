@@ -90,6 +90,20 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
   filas partidas, Subtotal − Descuento + IVA = Total, alcance, términos y
   aceptación del cliente, que no se separan. Sin la URL ni la fecha del
   navegador.
+- **Enviar por correo** (admin y ventas): con la cotización guardada y sin cambios
+  pendientes, o desde el Historial. La ventana trae el correo del cliente (o del
+  contacto principal de la cuenta), el asunto y el mensaje con total y validez,
+  la vista previa del PDF y la fecha del próximo paso (3 días hábiles). Sale de
+  `MAIL_FROM` con el nombre `MAIL_FROM_NAME` ("TOMATO"), con **Reply-To** al correo
+  de quien envía (o del dueño de la oportunidad), sin copia. Guarda cada envío en
+  `quote_emails` (migración 0015), un seguimiento *Correo* en la cuenta, la etapa
+  Propuesta y el próximo paso "Dar seguimiento a la cotización …". Máximo 5
+  destinatarios. Rutas: `GET /api/quotes/{id}/pdf`, `GET|POST /api/quotes/{id}/email`.
+- **PDF del servidor** (`app/utils/quote_pdf.py`, plantilla `templates/quotes/pdf.html`):
+  mismo contenido y cálculos que el del navegador, con WeasyPrint. Necesita Pango
+  en el servidor (ver *Cotizaciones por correo* en Producción). En macOS, para
+  probarlo localmente: `DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib` (con
+  `brew install pango`); sin eso la prueba del PDF real se salta.
 
 ### 5. Reforestación y supervivencia
 - **Inventario** (`/dashboard/reforestacion`, solo admin): un solo formato de
@@ -380,6 +394,23 @@ consola de Workspace → Gmail → Autenticar correo electrónico); DMARC en `_d
 Si la contraseña de la cuenta cambia o se desactiva la verificación en dos pasos, la
 contraseña de aplicación deja de servir y no sale ningún correo: generar una nueva,
 ponerla en `MAIL_PASSWORD` y reiniciar `tomato`.
+
+### Cotizaciones por correo (WeasyPrint)
+
+El PDF que se adjunta lo genera el servidor con WeasyPrint, que usa Pango. Se
+instala una vez en el servidor, antes del primer despliegue que lo trae:
+
+```bash
+sudo apt-get update && sudo apt-get install -y libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz0b fonts-dejavu-core
+```
+
+Comprobar (debe decir `ok`):
+
+```bash
+cd ~/tomatocr && .venv/bin/python -c "import weasyprint; weasyprint.HTML(string='ok').write_pdf('/tmp/prueba.pdf'); print('ok')"
+```
+
+Si falta, el cotizador sigue funcionando y el envío dice "No se pudo generar el PDF".
 
 ### Cómo desplegar
 
