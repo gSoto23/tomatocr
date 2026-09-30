@@ -6,7 +6,12 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-29
 
-### Cotizador: enviar la cotización por correo con el PDF (esta rama)
+### Corrección: PDF de las cotizaciones en el servidor (esta rama)
+- En producción (Python 3.10) pip instalaba pydyf 0.12, que no funciona con WeasyPrint
+  62.3 (`'super' object has no attribute 'transform'`). Se fija `pydyf==0.11.0`.
+- Despliegue: `pip install -r requirements.txt` y reiniciar; sin migraciones.
+
+### Cotizador: enviar la cotización por correo con el PDF (#96)
 - Botón **Enviar por correo** (admin y ventas) en el cotizador y en el Historial. La
   ventana trae el destinatario, el asunto, un mensaje con el total y la validez, la
   **vista previa del PDF** y la fecha del próximo paso; todo se puede cambiar.
