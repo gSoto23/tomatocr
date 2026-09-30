@@ -12,10 +12,12 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
   la foto). Ahora usa `static_url` como el resto; una prueba revisa que ninguna página
   pública cargue CSS o JS sin versión.
 - **El proceso, en 4 pasos**: las fotos genéricas pasan a ilustraciones propias con la caja
-  cuadrada Dárboles (`static/images/darboles/pasos/*.svg`): 1) la caja sumergida en un
-  recipiente con agua 10 a 15 minutos, 2) el hueco hecho con pala, 3) la caja mojada bajando
-  al hueco, 4) *Ingresa y cuida*: el árbol sembrado y el celular con su ficha en la
-  plataforma (mapa, especie, estado). Textos de los pasos ajustados a esas instrucciones.
+  cuadrada Dárboles (`static/images/darboles/pasos/*.svg`): 1) *Hidrata*: la caja sumergida
+  en agua 10 a 15 minutos, 2) *Prepara la tierra*: el hueco hecho y humedecido, 3) *Siembra*:
+  la caja mojada al hueco, cubierta totalmente con tierra, 4) *Registra y cuida*: el árbol en
+  el mapa de la plataforma Dárboles, con su estado y su historia de crecimiento.
+- El hidrokeeper viene dentro de la caja: la tarjeta *Hidrokeeper* y la pregunta frecuente
+  (también en los datos estructurados) ya no dicen que se prepara la tierra con él.
 - Despliegue: sin migraciones; reiniciar.
 
 ### Dárboles: imágenes de los productos
