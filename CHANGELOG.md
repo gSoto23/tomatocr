@@ -6,6 +6,13 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-29
 
+### Formulario de contacto: sin la opción de la tienda
+- *¿Qué te interesa?* ya no ofrece "Compra en la tienda Dárboles": las compras de la tienda
+  se hacen en darboles.com, no se cotizan. Quedan reforestación para empresa, para
+  institución pública, mantenimiento/jardinería/paisajismo y regalo corporativo.
+- El CRM sigue aceptando el motor `tienda` por la API de darboles.com.
+- Despliegue: sin migraciones; reiniciar.
+
 ### Cotizador: plantilla del correo, firma de TOMATO e historial con filtros (esta rama)
 - **Mensaje nuevo** de la cotización: "Buenos días" o "Buenas tardes" según la hora,
   el servicio que se cotizó, la validez y el aviso de seguimiento en 3 días hábiles,
