@@ -99,13 +99,13 @@ async def darboles_lead(request: Request, background: BackgroundTasks, db: Sessi
 
 
 # What visitors see in "¿Qué te interesa?". Same motor values as the CRM (so lead routing
-# doesn't change), but in the client's words instead of the internal names.
+# doesn't change), but in the client's words instead of the internal names. "tienda" is not
+# offered: store purchases happen on darboles.com, which sends those leads through the API.
 PUBLIC_MOTOR_LABELS = {
     "esg": "Reforestación para mi empresa (ESG)",
     "sector_publico": "Reforestación para una institución pública",
     "mantenimiento": "Mantenimiento, jardinería o paisajismo",
     "regalo_corporativo": "Árboles como regalo corporativo",
-    "tienda": "Compra en la tienda Dárboles",
 }
 
 

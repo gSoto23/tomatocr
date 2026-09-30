@@ -314,7 +314,8 @@ def test_public_texts_use_vos():
 def test_form_options_speak_the_clients_language_and_keep_the_motors():
     from app.db.models.crm import MOTORS
     from app.routers.leads import PUBLIC_MOTOR_LABELS
-    assert set(PUBLIC_MOTOR_LABELS) == set(MOTORS)  # every CRM motor, nothing more
+    # every CRM motor except the store, whose purchases happen on darboles.com
+    assert set(PUBLIC_MOTOR_LABELS) == set(MOTORS) - {"tienda"}
     client = new_client()
     home = client.get("/").text
     assert "Mantenimiento, jardinería o paisajismo" in home and "Reforestación para mi empresa (ESG)" in home
@@ -329,3 +330,11 @@ def test_success_promises_the_24_hour_answer(db, sellers):
     answer = post_form(FORM).json()
     assert answer["ok"] and "24 horas" in answer["message"]
     assert "24 horas" in new_client().get("/contacto/gracias").text
+
+
+def test_form_does_not_offer_the_store_but_the_api_still_accepts_it(db, sellers, monkeypatch):
+    monkeypatch.setattr(settings, "DARBOLES_API_KEY", KEY)
+    for path in ("/", "/programas/darboles", "/servicios/mantenimiento-de-zonas-verdes"):
+        html = new_client().get(path).text
+        assert 'value="tienda"' not in html and "Compra en la tienda" not in html
+    assert api({**FORM, "email": "tienda@x.cr", "motor": "tienda"}).status_code == 200
