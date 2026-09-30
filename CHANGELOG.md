@@ -6,6 +6,18 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-29
 
+### Dárboles: CSS versionado e ilustraciones del proceso
+- Arreglado: la página cargaba `tailwind.css` sin `?v=`, así que el navegador guardaba el CSS
+  viejo 7 días y el hero se veía mal (las tarjetas de mango y calistemo quedaban debajo de
+  la foto). Ahora usa `static_url` como el resto; una prueba revisa que ninguna página
+  pública cargue CSS o JS sin versión.
+- **El proceso, en 4 pasos**: las fotos genéricas pasan a ilustraciones propias con la caja
+  cuadrada Dárboles (`static/images/darboles/pasos/*.svg`): 1) la caja sumergida en un
+  recipiente con agua 10 a 15 minutos, 2) el hueco hecho con pala, 3) la caja mojada bajando
+  al hueco, 4) *Ingresa y cuida*: el árbol sembrado y el celular con su ficha en la
+  plataforma (mapa, especie, estado). Textos de los pasos ajustados a esas instrucciones.
+- Despliegue: sin migraciones; reiniciar.
+
 ### Dárboles: imágenes de los productos
 - **Hero** con arte nuevo: un árbol de mandarina en la caja cuadrada Dárboles y dos árboles del catálogo
   (mango y calistemo) como tarjetas flotantes.
