@@ -73,10 +73,12 @@
 {{ m.shot("cotizador/enviar.webp", "Enviar una cotización por correo", "La ventana de envío.") }}
 {{ m.steps([
     (1, "<strong>Para</strong>: viene el correo del cliente de la cotización o, si no tiene, el del contacto principal de la cuenta. Podés poner varios separados por coma (máximo 5)."),
-    (2, "<strong>Asunto</strong> y <strong>Mensaje</strong> vienen escritos, con el número, el total y la validez. Cambialos si querés."),
+    (2, "<strong>Asunto</strong> y <strong>Mensaje</strong> vienen escritos: el saludo según la hora (buenos días o buenas tardes), el servicio cotizado, la validez y el aviso de que le daremos seguimiento en 3 días hábiles. <strong>No lleva el monto</strong>: el cliente lo ve en el PDF. Podés cambiar todo antes de enviar."),
     (3, "<strong>Vista previa del PDF</strong>: es exactamente el archivo que se adjunta."),
     (4, "<strong>Próximo paso</strong>: al enviar, la oportunidad queda con <em>Dar seguimiento a la cotización</em> para esa fecha (3 días hábiles después, si no la cambiás)."),
 ]) }}
+<p>Al final del mensaje se agrega sola la firma de la empresa: <strong>TOMATO CR</strong>, Tel. +506 7080 8613, Web
+    www.tomatocr.com y el logo. No lleva el nombre del vendedor: el contacto con el vendedor empieza cuando el cliente responde.</p>
 <ul class="list-disc space-y-1 pl-5">
     <li>El botón <strong>Enviar por correo</strong> se activa cuando la cotización está <strong>guardada y sin cambios pendientes</strong>: el PDF se arma con lo guardado.</li>
     <li>También se envía desde el <strong>Historial</strong>, con el botón <em>Enviar</em>, sin cargarla.</li>
@@ -97,7 +99,13 @@
     (4, "<strong>Nueva</strong>: empieza una en blanco. Si hay cambios sin guardar, te pregunta antes."),
 ]) }}
 <p><strong>Descartar cambios</strong> borra lo que está en pantalla y empieza de cero.</p>
-<p>Abajo, en <strong>Historial</strong>, están las últimas 20 cotizaciones guardadas{% if user.role == 'client' %} de tu empresa{% endif %}.
+{{ m.shot("cotizador/historial.webp", "Historial de cotizaciones", "El historial con sus filtros.") }}
+{{ m.steps([
+    (1, "<strong>Buscar</strong> por número, cliente o cuenta."),
+    (2, "<strong>Envío</strong> (admin y ventas): todas, solo las enviadas por correo o las que faltan por enviar."),
+    (3, "<strong>Emitida desde / hasta</strong>: por fecha de la cotización. <em>Buscar</em> aplica los filtros y <em>Limpiar</em> los quita."),
+]) }}
+<p>Abajo, en <strong>Historial</strong>, están las cotizaciones guardadas{% if user.role == 'client' %} de tu empresa{% endif %}, la más reciente primero, de 10 en 10 (<em>Anterior</em> y <em>Siguiente</em>).
     <strong>Cargar</strong> abre una para verla o cambiarla (si tenés cambios sin guardar, te pregunta antes).
     <strong>PDF</strong> abre su PDF sin cargarla.{% if user.role in ['admin', 'ventas'] %} <strong>Enviar</strong> la manda por correo.{% endif %}{% if user.role == 'admin' %} <strong>Borrar</strong> la elimina para
     siempre (solo el admin; queda en Actividad).{% endif %}</p>

@@ -635,7 +635,7 @@
    "viewport": "mobile",
    "height": 1250,
    "before": [
-    "openEmail(document.querySelector('#recentBody button[onclick^=openEmail]').getAttribute('onclick').match(/\\d+/)[0]); await new Promise(r => setTimeout(r, 900))"
+    "openEmail('1'); await new Promise(r => setTimeout(r, 900))"
    ],
    "markers": [
     {
@@ -653,6 +653,31 @@
     {
      "n": 4,
      "selector": "#emailNextDate"
+    }
+   ]
+  },
+  {
+   "name": "cotizador/historial",
+   "path": "/cotizador",
+   "as": "ventas",
+   "wait": 1500,
+   "clip": "#historialSection",
+   "height": 1600,
+   "before": [
+    "document.querySelector('#recentFilters').closest('section').id='historialSection'"
+   ],
+   "markers": [
+    {
+     "n": 1,
+     "selector": "#recentQ"
+    },
+    {
+     "n": 2,
+     "selector": "#recentEstado"
+    },
+    {
+     "n": 3,
+     "selector": "#recentDesde"
     }
    ]
   },

@@ -17,7 +17,7 @@ from app.utils.activity import log_activity
 from app.utils.crm import CLOSED_STAGES, account_of_client_user, advance_to_proposal
 from app.utils.email import send_quote_email
 from app.utils.quote_pdf import default_email, pdf_filename, quote_pdf
-from app.utils.timecr import CR_OFFSET, today_cr
+from app.utils.timecr import CR_OFFSET, now_cr, today_cr
 
 router = APIRouter(
     tags=["quotes"],
@@ -138,6 +138,41 @@ def list_quotes(
     quotes = visible_quotes(db, user).order_by(Quote.created_at.desc()).limit(limit).all()
     names = account_names(db, quotes)
     return [serialize(q, names) for q in quotes]
+
+HISTORY_PAGE_SIZE = 10
+
+
+@router.get("/api/quotes/historial")
+def quote_history(q: str = "", estado: str = "", desde: str = "", hasta: str = "", page: int = 1,
+                  db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
+    """The quote tool's history: search by number, client or account, sent or not, issue dates,
+    newest first, 10 per page."""
+    check_quotes_access(user)
+    query = visible_quotes(db, user)
+    text = q.strip()
+    if text:
+        like = f"%{text}%"
+        matching_accounts = db.query(Account.id).filter(Account.name.ilike(like))
+        query = query.filter((Quote.numero_cotizacion.ilike(like)) | (Quote.cliente_nombre.ilike(like))
+                             | (Quote.account_id.in_(matching_accounts)))
+    sent_ids = db.query(QuoteEmail.quote_id)
+    if estado == "enviadas":
+        query = query.filter(Quote.id.in_(sent_ids))
+    elif estado == "sin_enviar":
+        query = query.filter(~Quote.id.in_(sent_ids))
+    for value, compare in ((desde, Quote.fecha_emision.__ge__), (hasta, Quote.fecha_emision.__le__)):
+        try:
+            query = query.filter(compare(date.fromisoformat(value))) if value else query
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Fecha no válida")
+    total = query.count()
+    pages = max(1, -(-total // HISTORY_PAGE_SIZE))
+    page = min(max(1, page), pages)
+    quotes = query.order_by(Quote.fecha_emision.desc(), Quote.id.desc()).offset(
+        (page - 1) * HISTORY_PAGE_SIZE).limit(HISTORY_PAGE_SIZE).all()
+    names = account_names(db, quotes)
+    return {"items": [serialize(x, names) for x in quotes], "total": total, "page": page, "pages": pages}
+
 
 @router.get("/api/quotes/{id}")
 def get_quote(id: int, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
@@ -315,7 +350,7 @@ def quote_email_form(id: int, db: Session = Depends(deps.get_db), user: User = D
     sender_only(user)
     q = own_quote(db, user, id)
     opportunity = db.get(Opportunity, q.opportunity_id) if q.opportunity_id else None
-    data = default_email(q, user, today_cr(), account_contact_emails(db, q.account_id))
+    data = default_email(q, user, today_cr(), account_contact_emails(db, q.account_id), hour=now_cr().hour)
     data.update(history=history(db, q), filename=pdf_filename(q), reply_to=user.email or "",
                 opportunity={"id": opportunity.id, "title": opportunity.title,
                              "open": opportunity.stage not in CLOSED_STAGES} if opportunity else None)

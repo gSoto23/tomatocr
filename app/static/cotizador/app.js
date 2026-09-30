@@ -132,10 +132,26 @@ async function saveToSQL() {
   }
 }
 
+// History: filters and page kept while working; "Actualizar" and saving reload the current page.
+const recentFilters = { q: "", estado: "", desde: "", hasta: "", page: 1 };
+
 async function renderRecent() {
-  const response = await fetch(API_URL);
-  if (!response.ok) return;
-  const data = await response.json();
+  const params = new URLSearchParams(Object.entries(recentFilters).filter(([, v]) => v !== "" && v !== null));
+  const response = await fetch(`${API_URL}historial?${params}`);
+  if (!response.ok) {
+    let detail = "No se pudo cargar el historial.";
+    try { detail = (await response.json()).detail || detail; } catch (e) {}
+    return showToast(detail, "error");
+  }
+  const result = await response.json();
+  const data = result.items;
+  recentFilters.page = result.page;
+  const filtered = recentFilters.q || recentFilters.estado || recentFilters.desde || recentFilters.hasta;
+  $("recentSummary").textContent = `${result.total} cotizaci${result.total === 1 ? "ón" : "ones"}${filtered ? " con estos filtros" : " guardadas"}, la más reciente primero.`;
+  $("recentPage").textContent = `Página ${result.page} de ${result.pages}`;
+  $("recentPrev").disabled = result.page <= 1;
+  $("recentNext").disabled = result.page >= result.pages;
+  $("recentPager").style.display = result.pages > 1 ? "" : "none";
 
   $("recentBody").innerHTML = data.map(r => `
     <tr>
@@ -153,7 +169,7 @@ async function renderRecent() {
         </div>
       </td>
     </tr>
-  `).join("") || `<tr><td colspan='${PICKS_ACCOUNT ? 6 : 5}' class='text-center muted'>No hay historial en la nube</td></tr>`;
+  `).join("") || `<tr><td colspan='${PICKS_ACCOUNT ? 6 : 5}' class='text-center muted'>${filtered ? "Ninguna cotización con estos filtros." : "No hay historial en la nube"}</td></tr>`;
 }
 
 function quoteFromData(data) {
@@ -610,6 +626,19 @@ async function loadOpportunityFromUrl() {
 function wireListeners() {
   initTheme();
   $("btnSave").onclick = saveToSQL;
+  $("recentFilters").onsubmit = (e) => {
+    e.preventDefault();
+    Object.assign(recentFilters, { q: $("recentQ").value.trim(), estado: $("recentEstado") ? $("recentEstado").value : "",
+                                   desde: $("recentDesde").value, hasta: $("recentHasta").value, page: 1 });
+    renderRecent();
+  };
+  $("recentClear").onclick = () => {
+    $("recentFilters").reset();
+    Object.assign(recentFilters, { q: "", estado: "", desde: "", hasta: "", page: 1 });
+    renderRecent();
+  };
+  $("recentPrev").onclick = () => { recentFilters.page -= 1; renderRecent(); };
+  $("recentNext").onclick = () => { recentFilters.page += 1; renderRecent(); };
   if (CAN_SEND) {
     $("btnEmail").onclick = () => state.quoteId && openEmail(state.quoteId);
     $("emailForm").onsubmit = sendEmail;
