@@ -4,6 +4,27 @@ Cambios en el sistema y en el sitio público, del más reciente al más antiguo.
 Cada entrada indica el PR y si necesitó migración o pasos especiales al
 desplegar. Hora de Costa Rica salvo que diga UTC.
 
+## 2026-09-30
+
+### Reforestación: visitas con fotos en el mapa y sincronización con darboles.com (esta rama)
+- **Monitoreo**: nota interna (no se publica) separada del **comentario público**,
+  hasta 6 **fotos** por visita (1600 px, sin EXIF) y **ubicación GPS** de la visita;
+  con un solo árbol, "Usar esta ubicación como la del árbol".
+- **Ficha del árbol en el mapa público**: al tocar un árbol muestra sus visitas
+  (fecha, estado, altura) y, en proyectos con el nombre autorizado, el comentario y
+  las fotos. Sin visitas, la ficha queda como antes. `map-data` suma el campo `uid`
+  (los demás no cambian).
+- **Nuevo `GET /api/darboles/trees`** para darboles.com, con clave de solo lectura
+  `DARBOLES_SYNC_API_KEY`, páginas por cursor y `updated_since`. Contrato en
+  `docs/INTEGRACION_DARBOLES.md`.
+- **Acentos**: el importador reconoce los CSV de Excel de Mac; nuevo
+  `scripts/reparar_codificacion.py` para los nombres ya rotos ("Guachipel\x92n" →
+  "Guachipelín") y para unificar "Guachipelin" / "Guachipelín".
+- Corregido: la ficha del mapa ahora escapa el texto (especie, sector, comentarios).
+- Manual (Reforestación) con capturas nuevas.
+- Despliegue: snapshot, **migración 0016**, reinicio, reparación de nombres (primero
+  sin `--apply`) y `DARBOLES_SYNC_API_KEY` en el `.env` (ver el PR).
+
 ## 2026-09-29
 
 ### Dárboles: CSS versionado e ilustraciones del proceso
@@ -39,7 +60,7 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 - El CRM sigue aceptando el motor `tienda` por la API de darboles.com.
 - Despliegue: sin migraciones; reiniciar.
 
-### Cotizador: plantilla del correo, firma de TOMATO e historial con filtros (esta rama)
+### Cotizador: plantilla del correo, firma de TOMATO e historial con filtros (#98)
 - **Mensaje nuevo** de la cotización: "Buenos días" o "Buenas tardes" según la hora,
   el servicio que se cotizó, la validez y el aviso de seguimiento en 3 días hábiles,
   cerrando con "Quedamos atentos a cualquier consulta…". **Ya no muestra el monto**: el

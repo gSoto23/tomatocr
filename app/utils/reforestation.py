@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.db.models.reforestation import (
     CHECK_STATUSES, KIND_INSTITUCIONAL, STATUS_ALIVE, STATUS_DEAD, STATUS_REPLACED, STATUS_UNVERIFIED,
-    ReforestationProject, ReforestationTree, TreeCheck,
+    LOCATION_TREE, PUBLIC_COMMENT_MAX, ReforestationProject, ReforestationTree, TreeCheck, TreeCheckPhoto,
 )
 
 # One format for download and import: download, fill in or correct, import again.
@@ -31,15 +31,63 @@ class CsvRejected(Exception):
         self.errors = errors
 
 
-def decode_csv(content: bytes) -> csv.DictReader:
+# --- Text encoding ------------------------------------------------------------------
+# A CSV saved by Excel is UTF-8, Windows (cp1252) or, from Excel on a Mac, Mac Roman. Mac Roman
+# read as cp1252 does not fail: it gives "monta–a" instead of "montaña". So when the file is not
+# UTF-8, every candidate is read and the one that looks like Spanish wins.
+SPANISH = set("áéíóúñüÁÉÍÓÚÑÜ¿¡")
+C1 = re.compile("[\u0080-\u009f]")
+
+
+def spanish_score(text: str) -> int:
+    odd = sum(1 for ch in text if ord(ch) > 127 and ch not in SPANISH and ch not in "°ºª€·")
+    return 2 * sum(1 for ch in text if ch in SPANISH) - 3 * odd - 5 * len(C1.findall(text))
+
+
+def decode_text(content: bytes) -> str:
     try:
-        text = content.decode("utf-8-sig")  # Handle BOM if present
+        return content.decode("utf-8-sig")  # Handle BOM if present
     except UnicodeDecodeError:
+        pass
+    candidates = []
+    for encoding in ("cp1252", "mac_roman", "latin-1"):
         try:
-            text = content.decode("cp1252")  # Excel on Windows (most common source of broken tildes/ñ)
+            candidates.append(content.decode(encoding))
         except UnicodeDecodeError:
-            text = content.decode("latin-1", errors="replace")  # Last resort, never raises
-    return csv.DictReader(StringIO(text))
+            continue
+    return max(candidates, key=spanish_score)  # latin-1 never fails, so there is always one
+
+
+def decode_csv(content: bytes) -> csv.DictReader:
+    return csv.DictReader(StringIO(decode_text(content)))
+
+
+def repair_mojibake(text: Optional[str]) -> Optional[str]:
+    """Undoes a Mac Roman file read as latin-1 (e.g. "Guachipel\\x92n" -> "Guachipelín"). Only
+    texts with C1 control characters are touched; anything else comes back as it was."""
+    if not text or not C1.search(text):
+        return text
+    try:
+        fixed = text.encode("latin-1").decode("mac_roman")
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        return text
+    return fixed if not C1.search(fixed) else text
+
+
+def preferred_spelling(names: Iterable[str]) -> Dict[str, str]:
+    """For names that differ only in accents or case ("Guachipelin" / "Guachipelín"): each one
+    mapped to the spelling to keep, the one with accents (and, on a tie, the most used)."""
+    from collections import Counter
+    counts = Counter(n for n in names if n)
+    groups: Dict[str, List[str]] = {}
+    for name in counts:
+        groups.setdefault(name_key(name), []).append(name)
+    result = {}
+    for variants in groups.values():
+        best = max(variants, key=lambda n: (sum(1 for ch in n if ord(ch) > 127), counts[n]))
+        for name in variants:
+            result[name] = best
+    return result
 
 
 def parse_date(value: str) -> date:
@@ -88,13 +136,27 @@ def _raise_if_errors(errors: List[str]):
 
 def record_check(tree: ReforestationTree, checked_at: date, status: str, *, height_cm: Optional[float] = None,
                  notes: Optional[str] = None, photo_path: Optional[str] = None, user_id: Optional[int] = None,
-                 daily_log_id: Optional[int] = None, replaced_by: Optional[ReforestationTree] = None) -> TreeCheck:
-    """Adds a check; the tree takes its status only if it is the latest one."""
+                 daily_log_id: Optional[int] = None, replaced_by: Optional[ReforestationTree] = None,
+                 public_comment: Optional[str] = None, photos: Optional[List[tuple]] = None,
+                 location: Optional[tuple] = None, use_as_tree_location: bool = False) -> TreeCheck:
+    """Adds a check; the tree takes its status only if it is the latest one. photos: (url, width,
+    height); location: (lat, lng, accuracy_m) of the visit, and with use_as_tree_location the tree
+    takes it as its own coordinate (instead of its sector's)."""
     if status not in CHECK_STATUSES:
         raise ValueError(f"estado no válido '{status}'")
+    lat, lng, accuracy = location or (None, None, None)
+    # The first photo also in photo_path, for whatever still reads the single photo.
+    photo_path = photo_path or (photos[0][0] if photos else None)
     check = TreeCheck(checked_at=checked_at, status=status, height_cm=height_cm, notes=notes or None,
-                      photo_path=photo_path, user_id=user_id, daily_log_id=daily_log_id)
+                      public_comment=((public_comment or "").strip()[:PUBLIC_COMMENT_MAX] or None),
+                      photo_path=photo_path, user_id=user_id, daily_log_id=daily_log_id,
+                      lat=lat, lng=lng, accuracy_m=accuracy)
+    for position, (url, width, height) in enumerate(photos or []):
+        check.photos.append(TreeCheckPhoto(url=url, width=width, height=height, position=position))
     tree.checks.append(check)
+    tree.updated_at = datetime.utcnow()
+    if use_as_tree_location and lat is not None and lng is not None:
+        tree.lat, tree.lng, tree.location_source = lat, lng, LOCATION_TREE
     if tree.last_checked_at is None or checked_at >= tree.last_checked_at:
         tree.status = status
         tree.last_checked_at = checked_at
@@ -126,6 +188,7 @@ def refresh_tree_status(tree: ReforestationTree):
         tree.status, tree.last_checked_at = check.status, check.checked_at
     if tree.status != STATUS_REPLACED:
         tree.replaced_by = None
+    tree.updated_at = datetime.utcnow()
 
 
 def name_key(name: str) -> str:
@@ -370,3 +433,34 @@ def public_stats(db: Session) -> PublicStats:
             .with_entities(func.count(distinct(func.lower(func.trim(ReforestationTree.species))))).scalar() or 0,
         projects=trees.with_entities(func.count(distinct(ReforestationTree.project_id))).scalar() or 0,
     )
+
+
+# --- What the public sees of a visit --------------------------------------------------
+# Photos and the public comment only of public projects (the client authorized it); the
+# internal note, the user and the crew never leave tomatocr.com.
+PUBLIC_BASE_URL = "https://tomatocr.com"
+
+
+def absolute_url(url: str) -> str:
+    return url if url.startswith("http") else f"{PUBLIC_BASE_URL}{url}"
+
+
+def shows_visit_details(project: ReforestationProject) -> bool:
+    return bool(project.is_public and project.public_name)
+
+
+def public_visits(tree: ReforestationTree, absolute: bool = True) -> List[Dict]:
+    """The tree's visits, newest first, as the public map and darboles.com show them. Photos
+    saved on this server get the full https://tomatocr.com URL (darboles.com), or stay relative
+    for the map on this same site (absolute=False)."""
+    details = shows_visit_details(tree.project)
+    visits = []
+    for check in sorted(tree.checks, key=lambda c: (c.checked_at, c.id or 0), reverse=True):
+        visit = {"id": check.id, "date": check.checked_at.isoformat(), "status": check.status,
+                 "height_cm": check.height_cm, "public_comment": None, "photos": []}
+        if details:
+            visit["public_comment"] = check.public_comment
+            visit["photos"] = [{"url": absolute_url(url) if absolute else url, "width": w, "height": h}
+                               for url, w, h in check.photo_list()]
+        visits.append(visit)
+    return visits

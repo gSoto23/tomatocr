@@ -140,6 +140,21 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
   falla, la tarjeta no aparece y el inicio carga igual. La supervivencia no se
   muestra ahí hasta que haya árboles verificados.
 
+- **Visitas con fotos** (migración 0016): cada monitoreo guarda una nota interna
+  (`notes`, nunca sale del sistema), un **comentario público** (500 caracteres),
+  hasta 6 **fotos** (`tree_check_photos`, 1600 px, sin EXIF) y la **ubicación GPS**
+  de la visita. Con un solo árbol, "Usar esta ubicación como la del árbol" le da su
+  propia coordenada (`location_source = tree`).
+- **Ficha del árbol en el mapa**: al tocarlo carga `GET /api/reforestation/trees/{uid}/visits`
+  (`uid` = id del árbol, nuevo en `map-data`); muestra fecha, estado y altura, y el
+  comentario y las fotos solo en proyectos con el nombre autorizado.
+- **darboles.com** copia los árboles con `GET /api/darboles/trees`
+  (`DARBOLES_SYNC_API_KEY`); contrato en `docs/INTEGRACION_DARBOLES.md`,
+  "Sincronización de árboles".
+- **Codificación del CSV**: si no es UTF-8, se elige entre Windows (cp1252), Mac
+  Roman y latin-1 la lectura que da español. `scripts/reparar_codificacion.py`
+  repara lo ya importado (sin `--apply` solo muestra los cambios).
+
 ### 6. Clientes / CRM (`docs/DISENO_CRM.md` y `docs/ANALISIS_ENCAJE_CRM.md`)
 - **Menú "Clientes"** (admin y ventas):
   - **Filtro** (`/clientes`; en el código y en las URL sigue llamándose

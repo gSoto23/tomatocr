@@ -49,6 +49,13 @@ def is_photo(content_type: str, filename: str) -> bool:
 
 def process_photo(contents: bytes, content_type: str, filename: str) -> bytes:
     """Validated, upright, resized JPEG bytes. Raises HTTPException(400) naming the file."""
+    return process_photo_sized(contents, content_type, filename)[0]
+
+
+def process_photo_sized(contents: bytes, content_type: str, filename: str,
+                        max_side: int = PHOTO_MAX_SIDE) -> tuple:
+    """Like process_photo, with its own maximum side, returning (jpeg, width, height). The JPEG
+    is written again from the pixels, so it carries no EXIF metadata (no GPS, no camera)."""
     from io import BytesIO
 
     from PIL import Image, ImageOps, UnidentifiedImageError
@@ -70,9 +77,10 @@ def process_photo(contents: bytes, content_type: str, filename: str) -> bytes:
                 else:
                     background.paste(image.convert("RGB"))
                 image = background
-            image.thumbnail((PHOTO_MAX_SIDE, PHOTO_MAX_SIDE))
+            image.thumbnail((max_side, max_side))
             out = BytesIO()
-            image.convert("RGB").save(out, "JPEG", quality=PHOTO_QUALITY, optimize=True)
-            return out.getvalue()
+            image = image.convert("RGB")
+            image.save(out, "JPEG", quality=PHOTO_QUALITY, optimize=True)
+            return out.getvalue(), image.width, image.height
     except (UnidentifiedImageError, OSError, ValueError):
         raise HTTPException(status_code=400, detail=f"No se pudo leer «{name}» como foto. {PHOTO_RULES}.")

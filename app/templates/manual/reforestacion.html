@@ -50,7 +50,13 @@
 {% call m.section("mapa", "El mapa público y la autorización del cliente") %}
 <p>En <a href="/proyectos-reforestacion" target="_blank" class="text-indigo-600 hover:underline">tomatocr.com/proyectos-reforestacion</a>
     aparecen <strong>todos los árboles con coordenadas</strong> de los proyectos institucionales, con su especie, sector,
-    estado y fecha de siembra, y la supervivencia a 12 meses. Nunca se publican notas, fotos, alturas ni personas.</p>
+    estado y fecha de siembra, y la supervivencia a 12 meses.</p>
+<p>Al tocar un árbol, su ficha muestra también sus <strong>visitas</strong>, de la más reciente a la más vieja: fecha,
+    estado y altura. En los proyectos con el nombre autorizado muestra además el <strong>comentario público</strong> y las
+    <strong>fotos</strong> de cada visita (se abren en grande al tocarlas). Un árbol sin visitas muestra la ficha sin esa
+    parte. Nunca se publican las notas internas ni quién hizo la visita. Lo mismo se ve en darboles.com, que copia los
+    árboles de los proyectos institucionales varias veces al día.</p>
+{{ m.shot("reforestacion/ficha.webp", "Ficha de un árbol en el mapa", "La ficha de un árbol con sus visitas.") }}
 <p>El <strong>nombre</strong> del proyecto solo se muestra si el cliente lo autorizó. Sin autorización, el mapa dice
     <em>Proyecto institucional</em>.</p>
 {{ m.steps([
@@ -71,11 +77,14 @@
     (1, "<strong>Fecha del monitoreo</strong> (hoy, o un día anterior; no se aceptan fechas futuras)."),
     (2, "<strong>¿Qué árboles?</strong> <em>Por número</em> (ej. <code>1-20, 35, 40</code>) o <em>Todo un sector</em>."),
     (3, "<strong>Estado</strong>: Vivo, Muerto o Reemplazado. Si reemplazaste <em>un</em> árbol, escribí el número del árbol nuevo (tiene que estar en el inventario)."),
-    (4, "Opcional: altura, notas y una foto (de uso interno; no se publica)."),
-    (5, "Tocá <strong>Guardar monitoreo</strong>. Si ya registraste la bitácora de ese proyecto ese día, el monitoreo queda ligado a ella."),
+    (4, "Opcional: la <strong>altura</strong>, una <strong>nota interna</strong> (no se publica nunca), un <strong>comentario público</strong> de hasta 500 caracteres y hasta 6 <strong>fotos</strong>. El comentario y las fotos se ven en la ficha del árbol en el mapa y en darboles.com, solo si el proyecto tiene el nombre autorizado; el formulario lo avisa."),
+    (5, "Opcional: <strong>Tomar mi ubicación</strong>, parado junto al árbol. Si marcás un solo árbol, podés elegir <em>Usar esta ubicación como la del árbol</em>: el punto del árbol en el mapa deja de ser el del sector y pasa a ser el suyo."),
+    (6, "Tocá <strong>Guardar monitoreo</strong>. Si ya registraste la bitácora de ese proyecto ese día, el monitoreo queda ligado a ella."),
 ]) }}
 <p>El estado de cada árbol es el de su monitoreo <strong>más reciente</strong>; registrar uno de una fecha anterior solo
-    se agrega al historial. La altura, las notas y la foto se aplican a todos los árboles marcados en ese registro.</p>
+    se agrega al historial. La altura, la nota, el comentario y las fotos se aplican a todos los árboles marcados en ese
+    registro (con <em>Todo un sector</em>, a todos los del sector).</p>
+<p>Las fotos se achican a 1600 px y se les borra la ubicación del celular y los datos de la cámara antes de guardarlas.</p>
 {% endcall %}
 
 {% call m.section("corregir", "Corregir errores") %}

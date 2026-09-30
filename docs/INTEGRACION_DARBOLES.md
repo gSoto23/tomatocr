@@ -127,3 +127,115 @@ final lo decide Gerardo.
    Las dos salidas deben ser idénticas. Después de corregir el `.env`,
    `sudo systemctl restart tomato`: el comando lee el archivo, no el servicio
    en marcha.
+
+# Sincronización de árboles (tomatocr.com → darboles.com)
+
+darboles.com muestra en su mapa los árboles de los proyectos de reforestación
+institucionales de TOMATO, con una ficha por árbol y su historial de visitas.
+Los copia de servidor a servidor cada pocas horas. **tomatocr.com es la fuente
+de verdad**: darboles.com solo lee y nunca escribe aquí.
+
+## Endpoint
+
+`GET https://tomatocr.com/api/darboles/trees`
+
+- **Autenticación:** encabezado `X-API-Key` con `DARBOLES_SYNC_API_KEY` (clave de
+  **solo lectura**, distinta de `DARBOLES_API_KEY`, que es la de prospectos).
+  - Sin la variable configurada en tomatocr.com: `503`.
+  - Clave ausente o inválida: `401` (comparación con `hmac.compare_digest`).
+  - Sin CORS: solo lo puede llamar un servidor que tenga la clave.
+- **Parámetros:**
+  - `limit`: de 1 a 1000, por defecto 500 (fuera de rango: `422`).
+  - `cursor`: el `next_cursor` de la página anterior (texto con un número;
+    otro valor: `400`).
+  - `updated_since`: opcional, fecha ISO en UTC (`2026-10-12T15:00:00Z`);
+    devuelve los árboles con `updated_at` desde ese momento. Mal formada: `400`.
+- **Orden y páginas:** por `id` ascendente. `next_cursor` es `null` en la última
+  página. darboles.com hace siempre una **foto completa** (recorre todas las
+  páginas sin `updated_since`) y da de baja lo que ya no aparezca; los árboles
+  borrados no se devuelven.
+- **Alcance:** árboles de proyectos institucionales **con coordenadas** (los
+  mismos del mapa de tomatocr.com).
+
+## Respuesta
+
+```json
+{
+  "generated_at": "2026-10-12T15:04:05Z",
+  "next_cursor": "1234",
+  "trees": [
+    {
+      "id": 1234,
+      "project": { "id": 7, "name": "Municipalidad de Alajuela", "public": true },
+      "tree_number": 15,
+      "species": "Guachipelín",
+      "sector": "Parque Lisboa",
+      "lat": 10.003501,
+      "lng": -84.244167,
+      "location_precision": "sector",
+      "date_planted": "2024-06-01",
+      "status": "vivo",
+      "last_checked_at": "2026-10-12",
+      "replaced_by_id": null,
+      "updated_at": "2026-10-12T15:00:00Z",
+      "visits": [
+        {
+          "id": 88,
+          "date": "2026-10-12",
+          "status": "vivo",
+          "height_cm": 85.0,
+          "public_comment": "Buen crecimiento, se retiró maleza alrededor.",
+          "photos": [
+            { "url": "https://tomato-prod-media-cr.s3.us-east-1.amazonaws.com/uploads/2026/10/abc_monitoreo.jpg",
+              "width": 1600, "height": 1200 }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+| Campo | Qué es |
+|---|---|
+| `id` | Id estable del árbol en tomatocr.com (no cambia). |
+| `project.id` | Id estable del proyecto. |
+| `project.name` | `public_name` si el cliente autorizó mostrarlo; si no, `"Proyecto institucional"`. |
+| `project.public` | `true` si el nombre está autorizado (`is_public` y `public_name`). |
+| `tree_number` | Número del árbol dentro de su proyecto. |
+| `species`, `sector` | Texto; puede ser `null`. |
+| `lat`, `lng` | Coordenada del árbol. |
+| `location_precision` | `"sector"`: la coordenada es la del sector (varios árboles comparten el punto). `"tree"`: se tomó con GPS junto al árbol en una visita. |
+| `date_planted` | Fecha de siembra o `null`. **Ojo:** en Municipalidad de Alajuela, `2024-06-01` es el valor que puso la primera importación, no la fecha real; no mostrarla como fecha exacta. |
+| `status` | `sin_verificar`, `vivo`, `muerto` o `reemplazado` (el de la visita más reciente). |
+| `last_checked_at` | Fecha de la visita más reciente o `null`. |
+| `replaced_by_id` | En un árbol `reemplazado`, el `id` del árbol que lo reemplazó; si no, `null`. |
+| `updated_at` | Último cambio del árbol o de sus visitas, y también cuando cambia la autorización del proyecto (UTC). |
+| `visits` | De la más reciente a la más antigua; `[]` si no tiene. |
+| `visits[].height_cm` | Número (cm) o `null`. |
+| `visits[].public_comment` | Hasta 500 caracteres o `null`. |
+| `visits[].photos` | URL públicas y permanentes (bucket S3 público; si una foto se guardó en el servidor, `https://tomatocr.com/static/…`), JPEG sin EXIF, de 1600 px de lado máximo. `width`/`height` pueden ser `null` en fotos anteriores a este cambio. |
+
+## Privacidad
+
+- **Fotos y comentario público solo de proyectos con el nombre autorizado**
+  (`project.public = true`). En los demás, `public_comment` es `null` y
+  `photos` es `[]`, aunque existan (confirmado con Gerardo el 30/09/2026).
+- **Nunca** salen las notas internas de las visitas, los usuarios o cuadrillas,
+  la bitácora ni el `client_name` del proyecto.
+- El mismo criterio usa la ficha del mapa de tomatocr.com
+  (`GET /api/reforestation/trees/{uid}/visits`).
+
+## Datos del lado tomatocr.com
+
+- Visitas (`tree_checks`): `public_comment` (público) separado de `notes`
+  (interna); `lat`, `lng`, `accuracy_m` de la visita; fotos en
+  `tree_check_photos` (varias por visita). El `photo_path` anterior se sigue
+  mostrando como una foto más.
+- Árboles: `location_source` (`sector` o `tree`) y `updated_at`.
+- El formulario de monitoreo (`/projects/{id}/monitoreo`) permite hasta 6 fotos,
+  el comentario público, "Tomar mi ubicación" y, con un solo árbol, "Usar esta
+  ubicación como la del árbol".
+- Nombres con acentos rotos del inventario de Alajuela (Excel de Mac leído como
+  latin-1): se reparan con `scripts/reparar_codificacion.py` (modo de prueba sin
+  `--apply`); el importador ahora reconoce Mac Roman.
