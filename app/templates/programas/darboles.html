@@ -57,6 +57,7 @@
                     <a href="#solucion" class="hover:opacity-70">La solución</a>
                     <a href="#respaldo" class="hover:opacity-70">Respaldo</a>
                     <a href="#modalidades" class="hover:opacity-70">Modalidades</a>
+                    <a href="#especies" class="hover:opacity-70">Especies</a>
                     <a href="#contacto" class="hover:opacity-70">Contacto</a>
                 </nav>
                 <a href="https://darboles.com" target="_blank" rel="noopener noreferrer"
@@ -68,7 +69,7 @@
     </header>
 
     <!-- HERO -->
-    <section class="relative border-b border-black/10 dark:border-white/10 text-white"
+    <section class="relative overflow-x-clip border-b border-black/10 dark:border-white/10 text-white"
         style="background-color:#0a0f0a; background-image: url('/static/images/hero-darboles.svg'); background-size: cover; background-position: center bottom;">
         <div class="relative mx-auto max-w-6xl px-4 py-16 md:py-24">
             <div class="grid md:grid-cols-12 gap-10 items-center">
@@ -103,6 +104,23 @@
                             Ver reporte en vivo →
                         </a>
                     </div>
+                </div>
+
+                <!-- Art: a tree in the current square Dárboles box, with two more from the catalog floating over it -->
+                <div class="md:col-span-4 relative mx-auto w-full max-w-sm md:max-w-none">
+                    <img src="/static/images/darboles/hero-mandarina.jpg" width="900" height="900" fetchpriority="high"
+                        alt="Árbol de mandarina clementina con frutos en su caja cuadrada Dárboles"
+                        class="aspect-square w-full rounded-3xl object-cover object-center ring-1 ring-white/10 shadow-2xl" />
+                    <figure class="absolute left-2 bottom-8 w-24 rotate-[-6deg] rounded-2xl bg-white p-1.5 shadow-xl md:-left-10 md:bottom-10 md:w-32">
+                        <img src="/static/images/darboles/especies/mango.jpg" width="480" height="480" alt="Árbol de mango en su caja Dárboles"
+                            class="aspect-square w-full rounded-xl object-cover" />
+                        <figcaption class="px-1 pb-0.5 pt-1 text-center text-[11px] font-semibold text-black">Mango</figcaption>
+                    </figure>
+                    <figure class="absolute right-2 top-6 w-20 rotate-[5deg] rounded-2xl bg-white p-1.5 shadow-xl md:-right-6 md:top-8 md:w-28">
+                        <img src="/static/images/darboles/especies/calistemo.jpg" width="480" height="480" alt="Árbol de calistemo con flores rojas en su caja Dárboles"
+                            class="aspect-square w-full rounded-xl object-cover" />
+                        <figcaption class="px-1 pb-0.5 pt-1 text-center text-[11px] font-semibold text-black">Calistemo</figcaption>
+                    </figure>
                 </div>
             </div>
 
@@ -179,25 +197,33 @@
                 </div>
                 <div class="mt-5 grid sm:grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
-                        <div class="text-3xl font-semibold text-green-600">1</div>
+                        <img src="/static/images/darboles/tip-water.jpg" width="640" height="640" loading="lazy" decoding="async"
+                            alt="Regadera de cobre regando un árbol recién sembrado en el bosque" class="aspect-[4/3] w-full rounded-xl object-cover" />
+                        <div class="mt-3 text-3xl font-semibold text-green-600">1</div>
                         <div class="mt-1 font-semibold">Hidrata</div>
                         <div class="mt-1 text-sm text-black/60 dark:text-white/60">El árbol llega preparado para
                             resistir el trasplante.</div>
                     </div>
                     <div>
-                        <div class="text-3xl font-semibold text-green-600">2</div>
+                        <img src="/static/images/darboles/planting-hands.jpg" width="640" height="640" loading="lazy" decoding="async"
+                            alt="Manos preparando la tierra alrededor de un árbol joven" class="aspect-[4/3] w-full rounded-xl object-cover" />
+                        <div class="mt-3 text-3xl font-semibold text-green-600">2</div>
                         <div class="mt-1 font-semibold">Prepara</div>
                         <div class="mt-1 text-sm text-black/60 dark:text-white/60">Sitio y suelo listos con hidrokeeper
                             para el trasplante.</div>
                     </div>
                     <div>
-                        <div class="text-3xl font-semibold text-green-600">3</div>
+                        <img src="/static/images/darboles/tip-transplant.jpg" width="640" height="640" loading="lazy" decoding="async"
+                            alt="Manos trasplantando un árbol con su pilón de tierra al suelo del bosque" class="aspect-[4/3] w-full rounded-xl object-cover" />
+                        <div class="mt-3 text-3xl font-semibold text-green-600">3</div>
                         <div class="mt-1 font-semibold">Siembra</div>
                         <div class="mt-1 text-sm text-black/60 dark:text-white/60">Se registra con coordenadas GPS en el
                             momento de sembrar.</div>
                     </div>
                     <div>
-                        <div class="text-3xl font-semibold text-green-600">4</div>
+                        <img src="/static/images/darboles/tip-love.jpg" width="640" height="640" loading="lazy" decoding="async"
+                            alt="Persona sonriendo mientras revisa las hojas de un árbol recién sembrado" class="aspect-[4/3] w-full rounded-xl object-cover" />
+                        <div class="mt-3 text-3xl font-semibold text-green-600">4</div>
                         <div class="mt-1 font-semibold">Cuida</div>
                         <div class="mt-1 text-sm text-black/60 dark:text-white/60">Seguimiento y reporte de
                             supervivencia en el tiempo.</div>
@@ -315,6 +341,146 @@
                     <div class="mt-5 text-xs text-black/50 dark:text-white/50">Cotización a la medida del proyecto</div>
                 </div>
             </div>
+        </div>
+    </section>
+
+    <!-- ESPECIES: trees from the darboles.com catalog (images from the darboles repo) -->
+    <section id="especies" class="border-b border-black/10 bg-[#f5f6f1] dark:border-white/10 dark:bg-neutral-950">
+        <div class="mx-auto max-w-6xl px-4 py-14">
+            <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                <div>
+                    <div class="text-xs font-bold uppercase tracking-[0.2em] text-green-700 dark:text-green-400">El árbol Dárboles</div>
+                    <h2 class="mt-2 text-2xl md:text-3xl font-semibold tracking-tight">Especies del catálogo</h2>
+                    <p class="mt-3 max-w-2xl text-black/70 dark:text-white/70 leading-relaxed">
+                        Cada árbol llega en su caja Dárboles, listo para sembrar. Estas son algunas de las especies de
+                        darboles.com, para jornadas de siembra y regalos corporativos.
+                    </p>
+                </div>
+                <a href="https://darboles.com" target="_blank" rel="noopener noreferrer"
+                    class="text-sm font-semibold text-green-700 hover:underline dark:text-green-400">Ver el catálogo en darboles.com →</a>
+            </div>
+            <ul class="mt-8 -mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pb-2 sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 sm:pb-0 md:grid-cols-4 lg:grid-cols-6">
+                <li class="w-40 shrink-0 snap-start sm:w-auto">
+                    <figure class="h-full overflow-hidden rounded-2xl border border-black/10 bg-white dark:border-white/10">
+                        <img src="/static/images/darboles/especies/aguacate.jpg" width="480" height="480" loading="lazy" decoding="async"
+                            alt="Árbol de aguacate en su caja Dárboles" class="aspect-square w-full object-cover" />
+                        <figcaption class="border-t border-black/5 px-3 py-2.5 text-black">
+                            <div class="text-sm font-semibold">Aguacate</div>
+                            <div class="text-xs italic text-black/60">Persea americana</div>
+                        </figcaption>
+                    </figure>
+                </li>
+                <li class="w-40 shrink-0 snap-start sm:w-auto">
+                    <figure class="h-full overflow-hidden rounded-2xl border border-black/10 bg-white dark:border-white/10">
+                        <img src="/static/images/darboles/especies/aromo.jpg" width="480" height="480" loading="lazy" decoding="async"
+                            alt="Árbol de aromo en su caja Dárboles" class="aspect-square w-full object-cover" />
+                        <figcaption class="border-t border-black/5 px-3 py-2.5 text-black">
+                            <div class="text-sm font-semibold">Aromo</div>
+                            <div class="text-xs italic text-black/60">Acacia farnesiana</div>
+                        </figcaption>
+                    </figure>
+                </li>
+                <li class="w-40 shrink-0 snap-start sm:w-auto">
+                    <figure class="h-full overflow-hidden rounded-2xl border border-black/10 bg-white dark:border-white/10">
+                        <img src="/static/images/darboles/especies/calistemo.jpg" width="480" height="480" loading="lazy" decoding="async"
+                            alt="Árbol de calistemo en su caja Dárboles" class="aspect-square w-full object-cover" />
+                        <figcaption class="border-t border-black/5 px-3 py-2.5 text-black">
+                            <div class="text-sm font-semibold">Calistemo</div>
+                            <div class="text-xs italic text-black/60">Callistemon viminalis</div>
+                        </figcaption>
+                    </figure>
+                </li>
+                <li class="w-40 shrink-0 snap-start sm:w-auto">
+                    <figure class="h-full overflow-hidden rounded-2xl border border-black/10 bg-white dark:border-white/10">
+                        <img src="/static/images/darboles/especies/cas.jpg" width="480" height="480" loading="lazy" decoding="async"
+                            alt="Árbol de cas en su caja Dárboles" class="aspect-square w-full object-cover" />
+                        <figcaption class="border-t border-black/5 px-3 py-2.5 text-black">
+                            <div class="text-sm font-semibold">Cas</div>
+                            <div class="text-xs italic text-black/60">Psidium friedrichsthalianum</div>
+                        </figcaption>
+                    </figure>
+                </li>
+                <li class="w-40 shrink-0 snap-start sm:w-auto">
+                    <figure class="h-full overflow-hidden rounded-2xl border border-black/10 bg-white dark:border-white/10">
+                        <img src="/static/images/darboles/especies/franjipani.jpg" width="480" height="480" loading="lazy" decoding="async"
+                            alt="Árbol de franjipani en su caja Dárboles" class="aspect-square w-full object-cover" />
+                        <figcaption class="border-t border-black/5 px-3 py-2.5 text-black">
+                            <div class="text-sm font-semibold">Franjipani</div>
+                            <div class="text-xs italic text-black/60">Plumeria rubra</div>
+                        </figcaption>
+                    </figure>
+                </li>
+                <li class="w-40 shrink-0 snap-start sm:w-auto">
+                    <figure class="h-full overflow-hidden rounded-2xl border border-black/10 bg-white dark:border-white/10">
+                        <img src="/static/images/darboles/especies/guayaba.jpg" width="480" height="480" loading="lazy" decoding="async"
+                            alt="Árbol de guayaba en su caja Dárboles" class="aspect-square w-full object-cover" />
+                        <figcaption class="border-t border-black/5 px-3 py-2.5 text-black">
+                            <div class="text-sm font-semibold">Guayaba</div>
+                            <div class="text-xs italic text-black/60">Psidium guajava</div>
+                        </figcaption>
+                    </figure>
+                </li>
+                <li class="w-40 shrink-0 snap-start sm:w-auto">
+                    <figure class="h-full overflow-hidden rounded-2xl border border-black/10 bg-white dark:border-white/10">
+                        <img src="/static/images/darboles/especies/limon-mandarina.jpg" width="480" height="480" loading="lazy" decoding="async"
+                            alt="Árbol de limón mandarina en su caja Dárboles" class="aspect-square w-full object-cover" />
+                        <figcaption class="border-t border-black/5 px-3 py-2.5 text-black">
+                            <div class="text-sm font-semibold">Limón mandarina</div>
+                            <div class="text-xs italic text-black/60">Citrus × taitensis</div>
+                        </figcaption>
+                    </figure>
+                </li>
+                <li class="w-40 shrink-0 snap-start sm:w-auto">
+                    <figure class="h-full overflow-hidden rounded-2xl border border-black/10 bg-white dark:border-white/10">
+                        <img src="/static/images/darboles/especies/limon-mesino.jpg" width="480" height="480" loading="lazy" decoding="async"
+                            alt="Árbol de limón mesino en su caja Dárboles" class="aspect-square w-full object-cover" />
+                        <figcaption class="border-t border-black/5 px-3 py-2.5 text-black">
+                            <div class="text-sm font-semibold">Limón mesino</div>
+                            <div class="text-xs italic text-black/60">Citrus × aurantiifolia</div>
+                        </figcaption>
+                    </figure>
+                </li>
+                <li class="w-40 shrink-0 snap-start sm:w-auto">
+                    <figure class="h-full overflow-hidden rounded-2xl border border-black/10 bg-white dark:border-white/10">
+                        <img src="/static/images/darboles/especies/mandarina-clementina.jpg" width="480" height="480" loading="lazy" decoding="async"
+                            alt="Árbol de mandarina clementina en su caja Dárboles" class="aspect-square w-full object-cover" />
+                        <figcaption class="border-t border-black/5 px-3 py-2.5 text-black">
+                            <div class="text-sm font-semibold">Mandarina clementina</div>
+                            <div class="text-xs italic text-black/60">Citrus × clementina</div>
+                        </figcaption>
+                    </figure>
+                </li>
+                <li class="w-40 shrink-0 snap-start sm:w-auto">
+                    <figure class="h-full overflow-hidden rounded-2xl border border-black/10 bg-white dark:border-white/10">
+                        <img src="/static/images/darboles/especies/mango.jpg" width="480" height="480" loading="lazy" decoding="async"
+                            alt="Árbol de mango en su caja Dárboles" class="aspect-square w-full object-cover" />
+                        <figcaption class="border-t border-black/5 px-3 py-2.5 text-black">
+                            <div class="text-sm font-semibold">Mango</div>
+                            <div class="text-xs italic text-black/60">Mangifera indica</div>
+                        </figcaption>
+                    </figure>
+                </li>
+                <li class="w-40 shrink-0 snap-start sm:w-auto">
+                    <figure class="h-full overflow-hidden rounded-2xl border border-black/10 bg-white dark:border-white/10">
+                        <img src="/static/images/darboles/especies/manzana-agua.jpg" width="480" height="480" loading="lazy" decoding="async"
+                            alt="Árbol de manzana de agua en su caja Dárboles" class="aspect-square w-full object-cover" />
+                        <figcaption class="border-t border-black/5 px-3 py-2.5 text-black">
+                            <div class="text-sm font-semibold">Manzana de agua</div>
+                            <div class="text-xs italic text-black/60">Syzygium malaccense</div>
+                        </figcaption>
+                    </figure>
+                </li>
+                <li class="w-40 shrink-0 snap-start sm:w-auto">
+                    <figure class="h-full overflow-hidden rounded-2xl border border-black/10 bg-white dark:border-white/10">
+                        <img src="/static/images/darboles/especies/naranja.jpg" width="480" height="480" loading="lazy" decoding="async"
+                            alt="Árbol de naranja en su caja Dárboles" class="aspect-square w-full object-cover" />
+                        <figcaption class="border-t border-black/5 px-3 py-2.5 text-black">
+                            <div class="text-sm font-semibold">Naranja</div>
+                            <div class="text-xs italic text-black/60">Citrus × sinensis</div>
+                        </figcaption>
+                    </figure>
+                </li>
+            </ul>
         </div>
     </section>
 

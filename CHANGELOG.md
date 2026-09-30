@@ -6,6 +6,18 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-29
 
+### Dárboles: imágenes de los productos
+- **Hero** con arte nuevo: un árbol de mandarina en la caja cuadrada Dárboles y dos árboles del catálogo
+  (mango y calistemo) como tarjetas flotantes.
+- **El proceso en 4 pasos** con una foto por paso (hidrata, prepara, siembra, cuida).
+- Sección nueva **Especies del catálogo** (`#especies`, también en el menú): los 12 árboles
+  de darboles.com en su caja, con nombre y nombre científico, y enlace al catálogo. Sin
+  precios, porque cambian en la tienda. En el celular se desliza con el dedo.
+- Imágenes tomadas del repositorio de darboles.com (`backend/uploads/trees`,
+  `public/images`), optimizadas en `static/images/darboles/` (unos 790 KB en total, carga
+  diferida salvo el hero).
+- Despliegue: sin migraciones; reiniciar.
+
 ### Formulario de contacto: sin la opción de la tienda
 - *¿Qué te interesa?* ya no ofrece "Compra en la tienda Dárboles": las compras de la tienda
   se hacen en darboles.com, no se cotizan. Quedan reforestación para empresa, para
