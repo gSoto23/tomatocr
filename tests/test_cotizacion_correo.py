@@ -55,8 +55,11 @@ def test_the_window_starts_filled_in(login_as, quote):
     data = login_as("ventas").get(f"/api/quotes/{quote.id}/email").json()
     assert data["to"] == ["laura@hotelbosque.cr"]  # the account's main contact: the quote had no e-mail
     assert data["subject"] == "Cotización TCR-2026-0300 · TOMATO" and data["filename"] == "TCR-2026-0300.pdf"
-    assert data["message"].startswith("Hola Laura:") and "₡1 017 000,00" in data["message"]
-    assert "válida hasta el 14/10/2026" in data["message"]
+    message = data["message"]
+    assert message.startswith(("Buenos días, Laura:", "Buenas tardes, Laura:"))
+    assert "del servicio de jardinería que nos solicitó" in message and "válida hasta el 14/10/2026" in message
+    assert "₡" not in message and "017" not in message  # no amount: the client opens the PDF
+    assert "seguimiento en 3 días hábiles" in message and "Quedamos atentos a cualquier consulta" in message
     assert data["opportunity"]["open"] and data["history"] == []
 
 
@@ -131,3 +134,16 @@ def test_pdf_is_a_real_pdf(quote):
 
 def test_follow_up_skips_the_weekend():
     assert business_days_after(date(2026, 10, 2), 3) == date(2026, 10, 7)  # Friday + 3 business days
+
+
+def test_greeting_follows_the_time_of_day(quote, users):
+    assert default_email(quote, users["ventas"], date(2026, 9, 29), hour=9)["message"].startswith("Buenos días")
+    assert default_email(quote, users["ventas"], date(2026, 9, 29), hour=15)["message"].startswith("Buenas tardes")
+
+
+def test_signature_and_quote_number_in_the_email():
+    from app.utils.email import message_html
+    html = message_html("Buenos días:\n\nAdjuntamos la cotización TCR-2026-0010.\n<script>")
+    assert "TOMATO CR" in html and "+506 7080 8613" in html and "cid:firma_tomato" in html
+    assert "TCR‑2026‑0010" in html  # Gmail doesn't turn it into a phone link
+    assert "<script>" not in html and "&lt;script&gt;" in html

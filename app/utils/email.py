@@ -1,3 +1,4 @@
+import re
 
 from typing import List
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
@@ -178,10 +179,16 @@ async def send_plain_email(recipients: List[str], subject: str, body: str):
         logger.error(f"Error sending notification '{subject}': {e}")
 
 
+# The signature of every quote e-mail: the company, not the seller (the seller takes over
+# when the client replies). Same look as the TOMATO mail signature.
+SIGNATURE = {"name": "TOMATO CR", "phone": "+506 7080 8613", "web": "www.tomatocr.com"}
+SIGNATURE_LOGO = Path(__file__).parent.parent / "static" / "cotizador" / "LogoTomatoB.png"
+
+
 async def send_quote_email(recipients: List[str], subject: str, message: str, pdf: bytes, filename: str,
                            reply_to: List[str]) -> bool:
-    """A quote to the client, with its PDF attached; the client's reply goes to the seller
-    (reply_to). Returns True only when the mail server accepted it."""
+    """A quote to the client, with its PDF attached and the TOMATO signature; the client's
+    reply goes to the seller (reply_to). Returns True only when the mail server accepted it."""
     if not settings.MAIL_USERNAME:
         logger.error("Quote e-mail not sent: mail is not configured")
         return False
@@ -190,10 +197,14 @@ async def send_quote_email(recipients: List[str], subject: str, message: str, pd
     try:
         with open(path, "wb") as f:
             f.write(pdf)
-        body = message_html(message)
-        email = MessageSchema(subject=subject, recipients=recipients, body=body, subtype=MessageType.html,
-                              reply_to=[r for r in reply_to if r],
-                              attachments=[{"file": path, "mime_type": "application", "mime_subtype": "pdf"}])
+        attachments = [{"file": path, "mime_type": "application", "mime_subtype": "pdf"}]
+        if SIGNATURE_LOGO.exists():
+            attachments.append({"file": str(SIGNATURE_LOGO), "mime_type": "image", "mime_subtype": "png",
+                                "headers": {"Content-ID": "<firma_tomato>",
+                                            "Content-Disposition": 'inline; filename="tomato.png"'}})
+        email = MessageSchema(subject=subject, recipients=recipients, body=message_html(message),
+                              subtype=MessageType.html, reply_to=[r for r in reply_to if r],
+                              attachments=attachments)
         await FastMail(conf).send_message(email)
         return True
     except Exception as e:
@@ -207,10 +218,24 @@ async def send_quote_email(recipients: List[str], subject: str, message: str, pd
             pass
 
 
+QUOTE_NUMBER = re.compile(r"\b(TCR)-(\d{4})-(\d+)\b")
+
+
 def message_html(message: str) -> str:
-    """The seller's text as simple HTML (escaped), with line breaks kept."""
+    """The text the seller wrote (escaped, line breaks kept) and the TOMATO signature with its
+    logo. Quote numbers use non-breaking hyphens so Gmail doesn't turn them into phone links."""
     from html import escape
-    paragraphs = "".join(f"<p style=\"margin:0 0 12px\">{escape(block).replace(chr(10), '<br>')}</p>"
-                         for block in message.strip().split("\n\n"))
-    return (f"<div style=\"font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:#1f2937\">"
-            f"{paragraphs}</div>")
+    text = QUOTE_NUMBER.sub("\\1\u2011\\2\u2011\\3", message.strip())
+    paragraphs = "".join(f'<p style="margin:0 0 12px">{escape(block).replace(chr(10), "<br>")}</p>'
+                         for block in text.split("\n\n"))
+    s = SIGNATURE
+    label = 'style="font-weight:700"'
+    signature = (
+        '<div style="margin-top:20px;color:#222">--'
+        f'<p style="margin:12px 0 6px;font-weight:700">{s["name"]}</p>'
+        f'<p style="margin:0 0 6px"><span {label}>Tel.</span> {s["phone"]}</p>'
+        f'<p style="margin:0 0 12px"><span {label}>Web:</span> <a href="https://{s["web"]}" style="color:#1a56db">{s["web"]}</a></p>'
+        '<img src="cid:firma_tomato" alt="TOMATO" width="180" style="display:block;width:180px;height:auto"></div>'
+    )
+    return ('<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:#1f2937">'
+            f"{paragraphs}{signature}</div>")

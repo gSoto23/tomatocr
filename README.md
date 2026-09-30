@@ -81,7 +81,10 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
   (`TCR-AAAA-NNNN`) sigue al más alto del año, así nunca se repite. Guardar una
   cotización cargada la actualiza por su id; una nueva con un número ya usado
   recibe el siguiente libre.
-- Historial: Cargar, PDF (sin cargarla) y Borrar (solo admin, queda en Actividad).
+- Historial (`GET /api/quotes/historial`): búsqueda por número, cliente o cuenta,
+  envío (enviadas / sin enviar, admin y ventas) y fechas de emisión, de 10 en 10, la
+  más reciente primero. Acciones: Cargar, PDF (sin cargarla), Enviar y Borrar (solo
+  admin, queda en Actividad).
 - El borrador sin guardar queda en el navegador y se ofrece recuperarlo al
   volver a abrir el cotizador.
 - **PDF** (impresión del navegador → "Guardar como PDF", tamaño Carta):
@@ -92,8 +95,13 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
   navegador.
 - **Enviar por correo** (admin y ventas): con la cotización guardada y sin cambios
   pendientes, o desde el Historial. La ventana trae el correo del cliente (o del
-  contacto principal de la cuenta), el asunto y el mensaje con total y validez,
-  la vista previa del PDF y la fecha del próximo paso (3 días hábiles). Sale de
+  contacto principal de la cuenta), el asunto y el mensaje de la plantilla
+  (`default_email` en `app/utils/quote_pdf.py`: saludo según la hora de Costa Rica,
+  servicio, validez y seguimiento en 3 días hábiles, **sin el monto**), editable
+  antes de enviar; la vista previa del PDF y la fecha del próximo paso. Al enviar se
+  agrega la firma de la empresa (TOMATO CR, teléfono, web y el logo incrustado;
+  `message_html` en `app/utils/email.py`), sin el nombre del vendedor; los números
+  TCR llevan guiones que Gmail no convierte en enlace de teléfono. Sale de
   `MAIL_FROM` con el nombre `MAIL_FROM_NAME` ("TOMATO"), con **Reply-To** al correo
   de quien envía (o del dueño de la oportunidad), sin copia. Guarda cada envío en
   `quote_emails` (migración 0015), un seguimiento *Correo* en la cuenta, la etapa

@@ -6,7 +6,20 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-29
 
-### Corrección: PDF de las cotizaciones en el servidor (esta rama)
+### Cotizador: plantilla del correo, firma de TOMATO e historial con filtros (esta rama)
+- **Mensaje nuevo** de la cotización: "Buenos días" o "Buenas tardes" según la hora,
+  el servicio que se cotizó, la validez y el aviso de seguimiento en 3 días hábiles,
+  cerrando con "Quedamos atentos a cualquier consulta…". **Ya no muestra el monto**: el
+  cliente abre el PDF. Se puede cambiar antes de enviar.
+- **Firma de la empresa** al final de cada correo: TOMATO CR, Tel. +506 7080 8613, Web
+  www.tomatocr.com y el logo (sin el nombre del vendedor).
+- El número de cotización ya no aparece en Gmail como enlace de teléfono.
+- **Historial** con búsqueda (número, cliente o cuenta), filtro de enviadas o sin
+  enviar, fechas de emisión y páginas de 10.
+- Manual (Cotizador) y capturas al día.
+- Despliegue: sin migraciones; reiniciar.
+
+### Corrección: PDF de las cotizaciones en el servidor (#97)
 - En producción (Python 3.10) pip instalaba pydyf 0.12, que no funciona con WeasyPrint
   62.3 (`'super' object has no attribute 'transform'`). Se fija `pydyf==0.11.0`.
 - Despliegue: `pip install -r requirements.txt` y reiniciar; sin migraciones.

@@ -82,30 +82,39 @@ def business_days_after(start: date, days: int) -> date:
     return current
 
 
-def default_email(quote: Quote, user: User, today: date, fallback_to: Optional[List[str]] = None) -> Dict:
-    """What the send window shows before the person edits it. Without an e-mail in the quote,
-    `fallback_to` (the account's main contact)."""
+def greeting(now_cr_hour: int) -> str:
+    return "Buenos días" if now_cr_hour < 12 else "Buenas tardes"
+
+
+FOLLOW_UP_BUSINESS_DAYS = 3
+
+
+def default_email(quote: Quote, user: User, today: date, fallback_to: Optional[List[str]] = None,
+                  hour: int = 9) -> Dict:
+    """What the send window shows before the person edits it. No amount: the client opens the
+    PDF. The TOMATO signature (with the logo) is added when sending, not here. Without an
+    e-mail in the quote, `fallback_to` (the account's main contact)."""
     client = quote.cliente_datos or {}
     contact = str(client.get("id") or "").strip()  # the contact's name (the client's name is a company)
     first_name = contact.split()[0] if contact else ""
-    until = valid_until(quote)
     service = (quote.tipo_servicio or "").strip()
+    until = valid_until(quote)
     lines = [
-        f"Hola{' ' + first_name if first_name else ''}:",
+        f"{greeting(hour)}{', ' + first_name if first_name else ''}:",
         "",
-        f"Le adjuntamos la cotización {quote.numero_cotizacion}{' de ' + service.lower() if service else ''}, por un total de "
-        f"{money(totals(quote)['total'], quote.moneda or 'CRC')}."
-        + (f" Es válida hasta el {until:%d/%m/%Y}." if until else ""),
+        f"Adjuntamos la cotización {quote.numero_cotizacion}"
+        + (f" del servicio de {service.lower()} que nos solicitó." if service else " que nos solicitó.")
+        + (f" La propuesta es válida hasta el {until:%d/%m/%Y}." if until else ""),
         "",
-        "Si tiene alguna consulta o quiere ajustar algo, puede responder este correo.",
+        "Estaremos a la espera de sus comentarios; como parte de nuestro proceso, le daremos seguimiento "
+        f"en {FOLLOW_UP_BUSINESS_DAYS} días hábiles.",
         "",
-        "Saludos,",
-        user.full_name or user.username,
-        "TOMATO Costa Rica",
-        f"{ISSUER['phone']} · {ISSUER['web']}",
+        "Quedamos atentos a cualquier consulta, ajuste o solicitud adicional.",
+        "",
+        "Saludos cordiales,",
     ]
     email = str(client.get("email") or "").strip()
     return {"to": [email] if email else list(fallback_to or []),
             "subject": f"Cotización {quote.numero_cotizacion} · TOMATO",
             "message": "\n".join(lines),
-            "next_step_date": business_days_after(today, 3).isoformat()}
+            "next_step_date": business_days_after(today, FOLLOW_UP_BUSINESS_DAYS).isoformat()}
