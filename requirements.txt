@@ -45,3 +45,5 @@ alembic==1.14.1
 Mako==1.3.12
 psycopg2-binary==2.9.11
 weasyprint==62.3
+# WeasyPrint 62 needs pydyf < 0.12 (0.12 removed Stream.transform; pip picks it on Python 3.10+).
+pydyf==0.11.0
