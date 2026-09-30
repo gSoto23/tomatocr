@@ -220,3 +220,15 @@ def test_darboles_page_shows_the_catalog_trees_and_campaign_photos():
     for src in set(species) | set(re.findall(r'src="(/static/images/darboles/[^"/]+\.jpg)"', html)):
         assert new_client().get(src).status_code == 200
     assert "Compra en la tienda" not in html
+    steps = re.findall(r'src="(/static/images/darboles/pasos/[^"]+\.svg)"', html)
+    assert len(steps) == 4
+    for src in steps:
+        assert new_client().get(src).status_code == 200
+
+
+@pytest.mark.parametrize("path", PAGES)
+def test_css_and_js_links_are_versioned(path):
+    # Unversioned /static links are cached for 7 days, so a deploy wouldn't reach browsers.
+    html = new_client().get(path).text
+    for link in re.findall(r'(?:href|src)="(/static/(?:css|js)/[^"]+)"', html):
+        assert "?v=" in link, link
