@@ -8,16 +8,18 @@ from app.core.storage import s3_service
 from app.db.models.log import DailyLog
 from app.db.models.project import Project
 from app.db.models.reforestation import (
-    CHECK_STATUSES, KIND_INSTITUCIONAL, STATUS_REPLACED, ReforestationProject, ReforestationTree, TreeCheck,
+    CHECK_STATUSES, KIND_INSTITUCIONAL, PUBLIC_COMMENT_MAX, STATUS_REPLACED, ReforestationProject, ReforestationTree,
+    TreeCheck,
 )
 from app.db.models.user import User
 from app.core.templates import templates
 from app.utils.activity import log_activity
 from app.utils.reforestation import (
     CSV_COLUMNS, CsvRejected, decode_csv, import_inventory_csv, inventory_rows, name_key, parse_date,
-    parse_tree_numbers, record_check, refresh_tree_status, survival_summary,
+    parse_tree_numbers, public_visits, record_check, refresh_tree_status, survival_summary,
 )
-from app.utils.uploads import PHOTO_RULES, process_photo
+from app.utils.uploads import PHOTO_RULES, process_photo_sized
+from typing import List
 from datetime import date
 from io import BytesIO
 import csv
@@ -31,6 +33,8 @@ router = APIRouter(
 )
 
 MONITORING_ROLES = (ADMIN, SUPERVISOR, WORKER)
+MAX_VISIT_PHOTOS = 6
+VISIT_PHOTO_MAX_SIDE = 1600
 # Who can remove a wrong monitoring entry (trees and whole projects: admin only).
 CHECK_DELETE_ROLES = (ADMIN, SUPERVISOR)
 
@@ -145,6 +149,10 @@ def update_settings(
     project.is_public = is_public
     project.public_name = public_name
     project.consent_date = consent
+    # What darboles.com may show changes with the authorization: its next sync must see it.
+    from datetime import datetime as _dt
+    for tree in project.trees:
+        tree.updated_at = _dt.utcnow()
     db.commit()
     log_activity(db, current_user, "UPDATE", "REFORESTATION", project.id,
                  f"Configuración: nombre público {'autorizado' if is_public else 'no autorizado'}")
@@ -285,6 +293,8 @@ def monitoring_form(
         "request": request, "user": user, "project": project, "reforestation": reforestation,
         "sectors": sectors, "statuses": CHECK_STATUSES, "today": date.today(),
         "summary": survival_summary(reforestation.trees), "recent": recent,
+        "public_project": bool(reforestation.is_public and reforestation.public_name),
+        "max_photos": MAX_VISIT_PHOTOS, "comment_max": PUBLIC_COMMENT_MAX,
     })
 
 
@@ -319,8 +329,14 @@ async def save_monitoring(
     check_status: str = Form(..., alias="status"),
     height_cm: Optional[str] = Form(None),
     notes: Optional[str] = Form(None),
+    public_comment: Optional[str] = Form(None),
     replaced_by: Optional[str] = Form(None),
+    photos: List[UploadFile] = File(default=[]),
     photo: Optional[UploadFile] = File(None),
+    visit_lat: Optional[str] = Form(None),
+    visit_lng: Optional[str] = Form(None),
+    visit_accuracy: Optional[str] = Form(None),
+    use_as_tree_location: bool = Form(False),
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
@@ -359,24 +375,45 @@ async def save_monitoring(
             replacement = trees_by_number.get(int(replaced_by)) if replaced_by.strip().isdigit() else None
             if replacement is None or replacement is selected[0]:
                 raise ValueError("'reemplazado por' debe ser otro árbol de este proyecto")
+        location = None
+        if (visit_lat or "").strip() and (visit_lng or "").strip():
+            try:
+                lat, lng = float(visit_lat), float(visit_lng)
+                accuracy = float(visit_accuracy) if (visit_accuracy or "").strip() else None
+            except ValueError:
+                raise ValueError("la ubicación del celular no es válida; volvé a tomarla")
+            if not (-90 <= lat <= 90 and -180 <= lng <= 180):
+                raise ValueError("la ubicación del celular no es válida; volvé a tomarla")
+            location = (lat, lng, accuracy)
+        if use_as_tree_location and (location is None or len(selected) != 1):
+            raise ValueError("'usar como ubicación del árbol' necesita la ubicación y un solo árbol")
+        uploads = [f for f in list(photos or []) + ([photo] if photo is not None else []) if f is not None and f.filename]
+        if len(uploads) > MAX_VISIT_PHOTOS:
+            raise ValueError(f"máximo {MAX_VISIT_PHOTOS} fotos por visita")
     except ValueError as e:
         return toast_redirect(url, f"No se guardó: {e}", error=True)
 
-    photo_path = None
-    if photo is not None and photo.filename:
+    # Each photo: upright, at most 1600 px, without EXIF (no GPS of the phone), uploaded once
+    # and shared by every tree of this visit.
+    saved_photos = []
+    for upload in uploads:
         try:
-            contents = process_photo(await photo.read(), photo.content_type, photo.filename)
+            # photo_w/photo_h: never "height", which is the tree's height of this visit.
+            contents, photo_w, photo_h = process_photo_sized(await upload.read(), upload.content_type,
+                                                             upload.filename, max_side=VISIT_PHOTO_MAX_SIDE)
         except HTTPException as e:
             return toast_redirect(url, f"No se guardó: {e.detail}", error=True)
-        photo_path = s3_service.upload_file(BytesIO(contents), "monitoreo.jpg", "image/jpeg")
-        if not photo_path:
-            return toast_redirect(url, "No se guardó: no se pudo subir la foto. Intente de nuevo.", error=True)
+        photo_url = s3_service.upload_file(BytesIO(contents), "monitoreo.jpg", "image/jpeg")
+        if not photo_url:
+            return toast_redirect(url, "No se guardó: no se pudo subir la foto. Intentá de nuevo.", error=True)
+        saved_photos.append((photo_url, photo_w, photo_h))
 
     daily_log = db.query(DailyLog).filter(
         DailyLog.project_id == project.id, DailyLog.user_id == user.id, DailyLog.date == day
     ).order_by(DailyLog.id.desc()).first()
     for tree in selected:
-        record_check(tree, day, check_status, height_cm=height, notes=notes, photo_path=photo_path,
+        record_check(tree, day, check_status, height_cm=height, notes=notes, public_comment=public_comment,
+                     photos=saved_photos, location=location, use_as_tree_location=use_as_tree_location,
                      user_id=user.id, daily_log_id=daily_log.id if daily_log else None, replaced_by=replacement)
     db.commit()
     log_activity(db, user, "CREATE", "TREE_CHECKS", reforestation.id,
@@ -416,6 +453,7 @@ def get_map_data(db: Session = Depends(deps.get_db)):
             if t.lat is None or t.lng is None:
                 continue  # coordinates not loaded yet
             trees.append({
+                "uid": t.id,  # stable id, for the tree card (/api/reforestation/trees/{uid}/visits)
                 "id": t.tree_number,
                 "project": name,
                 "sector": t.sector_name,
@@ -426,3 +464,13 @@ def get_map_data(db: Session = Depends(deps.get_db)):
                 "status": t.status,
             })
     return {"trees": trees, "projects": summaries}
+
+
+@public_router.get("/trees/{tree_id}/visits")
+def get_tree_visits(tree_id: int, db: Session = Depends(deps.get_db)):
+    """The visits shown in the map's tree card: date, status and height; the public comment and
+    the photos only for public projects. Never the internal note or who made the visit."""
+    tree = db.get(ReforestationTree, tree_id)
+    if tree is None or tree.project is None or tree.project.kind != KIND_INSTITUCIONAL:
+        raise HTTPException(status_code=404, detail="Árbol no encontrado")
+    return {"visits": public_visits(tree, absolute=False)}

@@ -366,7 +366,7 @@ def test_map_shows_only_institutional_projects_and_authorized_names(db, admin, p
     assert names == {"Municipalidad de Alajuela", "Proyecto institucional"}
     assert "Empresa X" not in str(data) and "Otro municipio" not in str(data)
     assert "nota interna" not in str(data)
-    assert set(data["trees"][0]) == {"id", "project", "sector", "species", "lat", "lng", "date", "status"}
+    assert set(data["trees"][0]) == {"uid", "id", "project", "sector", "species", "lat", "lng", "date", "status"}
 
     assert 99 not in {t["id"] for t in data["trees"]}
     summary = next(p for p in data["projects"] if p["project"] == "Municipalidad de Alajuela")

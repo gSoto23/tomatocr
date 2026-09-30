@@ -1261,11 +1261,31 @@
    ]
   },
   {
+   "name": "reforestacion/ficha",
+   "path": "/proyectos-reforestacion",
+   "as": "admin",
+   "wait": 3000,
+   "width": 1100,
+   "height": 900,
+   "before": [
+    "const el=[...document.querySelectorAll('[x-data]')].find(e=>e._x_dataStack && e._x_dataStack[0].markerClusterGroup); const comp=el._x_dataStack[0]; comp.map.getContainer().scrollIntoView({block:'center'}); const m=comp.markerClusterGroup.getLayers().find(l=>l.getPopup().getContent().includes('Árbol #1<')); comp.map.setView(m.getLatLng(), 18); await new Promise(r=>setTimeout(r,1500)); m.openPopup(); await new Promise(r=>setTimeout(r,2000))"
+   ],
+   "clip": ".leaflet-container",
+   "markers": [
+    {
+     "n": 1,
+     "text": "Visitas",
+     "exact": false,
+     "tags": "div"
+    }
+   ]
+  },
+  {
    "name": "reforestacion/monitoreo",
    "path": "/projects/3/monitoreo",
    "as": "worker",
    "viewport": "mobile",
-   "height": 1180,
+   "height": 1950,
    "markers": [
     {
      "n": 1,
@@ -1282,10 +1302,15 @@
     },
     {
      "n": 4,
-     "selector": "input[name=height_cm]"
+     "selector": "textarea[name=public_comment]"
     },
     {
      "n": 5,
+     "text": "Tomar mi ubicación",
+     "tags": "button"
+    },
+    {
+     "n": 6,
      "text": "Guardar monitoreo",
      "tags": "button"
     }

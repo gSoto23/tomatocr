@@ -112,7 +112,7 @@ CHAPTERS += [
         (("que-es", "Qué es"), ("panel", "El panel de reforestación"), ("importar", "Cargar y actualizar el inventario (CSV)"),
          ("mapa", "El mapa público y la autorización del cliente"), ("monitoreo", "Registrar un monitoreo en campo"),
          ("corregir", "Corregir errores"), ("preguntas", "Preguntas frecuentes")),
-        "reforestación árboles inventario csv monitoreo supervivencia mapa vivo muerto reemplazado borrar renombrar",
+        "reforestación árboles inventario csv monitoreo supervivencia mapa vivo muerto reemplazado borrar renombrar fotos visitas comentario público ubicación gps darboles",
         patterns=(r"/projects/\d+/monitoreo",),
     ),
     Chapter(
