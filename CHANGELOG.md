@@ -6,7 +6,16 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-09-30
 
-### Reforestación: visitas con fotos en el mapa y sincronización con darboles.com (esta rama)
+### Mapa de reforestación: los grupos grandes se abren como lista (esta rama)
+- Un grupo de **más de 30 árboles** (por ejemplo, los que comparten el punto de su sector)
+  se abre como **lista** con buscador por número, especie o sector; cada árbol abre su
+  ficha con sus visitas y *Volver a la lista* regresa. Si el grupo ocupa una zona, trae
+  *Acercar el mapa*. Los grupos de 30 o menos se acercan o se abren en abanico como antes.
+- La ficha del árbol es la misma en el mapa y en la lista.
+- Manual (Reforestación) con captura nueva.
+- Despliegue: sin migraciones; reiniciar.
+
+### Reforestación: visitas con fotos en el mapa y sincronización con darboles.com (#103)
 - **Monitoreo**: nota interna (no se publica) separada del **comentario público**,
   hasta 6 **fotos** por visita (1600 px, sin EXIF) y **ubicación GPS** de la visita;
   con un solo árbol, "Usar esta ubicación como la del árbol".

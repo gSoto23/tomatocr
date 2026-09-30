@@ -148,6 +148,7 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
 - **Ficha del árbol en el mapa**: al tocarlo carga `GET /api/reforestation/trees/{uid}/visits`
   (`uid` = id del árbol, nuevo en `map-data`); muestra fecha, estado y altura, y el
   comentario y las fotos solo en proyectos con el nombre autorizado.
+  Los grupos de más de 30 árboles (`listThreshold`) se abren como lista con buscador.
 - **darboles.com** copia los árboles con `GET /api/darboles/trees`
   (`DARBOLES_SYNC_API_KEY`); contrato en `docs/INTEGRACION_DARBOLES.md`,
   "Sincronización de árboles".

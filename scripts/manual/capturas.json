@@ -1281,6 +1281,30 @@
    ]
   },
   {
+   "name": "reforestacion/grupo",
+   "path": "/proyectos-reforestacion",
+   "as": "admin",
+   "wait": 3000,
+   "width": 1100,
+   "height": 900,
+   "before": [
+    "const el=[...document.querySelectorAll('[x-data]')].find(e=>e._x_dataStack && e._x_dataStack[0].markerClusterGroup); const comp=el._x_dataStack[0]; comp.map.getContainer().scrollIntoView({block:'center'}); const m=comp.markerClusterGroup.getLayers().find(l=>l.tree && l.tree.id===1); comp.map.setView(m.getLatLng(), 18); await new Promise(r=>setTimeout(r,1500)); comp.onClusterClick(comp.markerClusterGroup.getVisibleParent(m)); await new Promise(r=>setTimeout(r,800))"
+   ],
+   "clip": ".leaflet-container",
+   "markers": [
+    {
+     "n": 1,
+     "selector": ".tree-list-popup input[type=search]"
+    },
+    {
+     "n": 2,
+     "text": "#1 · ",
+     "exact": false,
+     "tags": "span"
+    }
+   ]
+  },
+  {
    "name": "reforestacion/monitoreo",
    "path": "/projects/3/monitoreo",
    "as": "worker",

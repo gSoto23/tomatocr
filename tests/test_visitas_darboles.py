@@ -234,3 +234,9 @@ def test_repair_script_fixes_and_unifies(db, admin):
     assert new[("ReforestationTree", 1, "sector_name")] == "Parque Próspero Fernández"
     assert new[("ReforestationTree", 3, "species")] == "Almendro de montaña"
     assert db.query(ReforestationTree).filter_by(tree_number=1).one().species == broken[1]  # dry run: nothing saved
+
+
+def test_big_groups_open_as_a_list():
+    html = new_client().get("/proyectos-reforestacion").text
+    assert "listThreshold: 30" in html and "openList(cluster)" in html and "zoomToBoundsOnClick: false" in html
+    assert "Volver a la lista" in html and "Buscar número, especie o sector" in html
