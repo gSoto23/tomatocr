@@ -6,7 +6,14 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-10-04
 
-### Formulario de contacto: antispam (esta rama)
+### Antispam: empresas con números (esta rama)
+- Una empresa escrita junto con números ("Soluciones360Group", "Servicios2024CR") ya no
+  basta para marcar spam: solo suma si hay otra señal (texto sin sentido en el nombre o
+  el mensaje, correo desechable o envío demasiado rápido). Esas solicitudes llegan al
+  vendedor como cualquier otra.
+- Despliegue: sin migraciones; reiniciar.
+
+### Formulario de contacto: antispam (#105)
 - **Teléfono real**: 8 dígitos de Costa Rica (con o sin +506) o con `+` y código de país;
   **nombre sin números**. Si no, el formulario lo marca y dice qué corregir.
 - **Filtro de bots**: texto sin sentido ("NAYUYUTY410456…"), correos desechables o envíos
