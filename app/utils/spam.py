@@ -99,10 +99,14 @@ def spam_reasons(lead: Dict, token: str, now: Optional[float] = None) -> List[st
     problem = token_problem(token, now)
     if problem:
         reasons.append(problem)
-    for field, label in (("name", "nombre"), ("company", "empresa"), ("message", "mensaje")):
+    for field, label in (("name", "nombre"), ("message", "mensaje")):
         if GIBBERISH.search(lead.get(field) or ""):
             reasons.append(f"texto sin sentido en {label}")
     domain = (lead.get("email") or "").rpartition("@")[2]
     if domain in DISPOSABLE_DOMAINS:
         reasons.append(f"correo desechable ({domain})")
+    # Real companies can be written all together with numbers ("Soluciones360Group"): the
+    # company only counts when something else already gave the bot away.
+    if reasons and GIBBERISH.search(lead.get("company") or ""):
+        reasons.append("texto sin sentido en empresa")
     return reasons

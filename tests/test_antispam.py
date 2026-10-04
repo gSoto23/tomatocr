@@ -102,3 +102,21 @@ def test_real_ip_behind_nginx(db, sellers, mails):  # noqa: F811
     outsider.post("/contacto", json={**FORM, "email": "otra@x.cr", "form_token": form_token(time.time() - 60)},
                   headers={"Accept": "application/json", "X-Forwarded-For": "8.8.8.8"})
     assert {s.ip_address for s in db.query(LeadSubmission)} == {"200.9.9.9", "190.1.1.1"}  # faked header ignored
+
+
+@pytest.mark.parametrize("company", ["Soluciones360Group", "Servicios2024CR", "3M Costa Rica", "Grupo 506 S.A.",
+                                     "3-101-123456 S.A.", "Constructora MV2020"])
+def test_companies_with_numbers_are_not_spam_on_their_own(company):
+    lead = {"name": "Ana Mora", "company": company, "email": "ana@empresa.cr", "message": "Necesito mantenimiento."}
+    assert spam_reasons(lead, form_token(time.time() - 30)) == []
+
+
+def test_company_adds_to_other_signs():
+    lead = {"name": "Ana Mora", "company": "Servicios2024CR", "email": "x@belettersmail.com", "message": ""}
+    assert spam_reasons(lead, form_token(time.time() - 30)) == ["correo desechable (belettersmail.com)",
+                                                                  "texto sin sentido en empresa"]
+
+
+def test_real_company_with_numbers_reaches_the_seller(db, sellers, mails):  # noqa: F811
+    assert post_form({**FORM, "company": "Soluciones360Group"}).json()["ok"]
+    assert db.query(Account).one().discarded_at is None and len(mails) == 1
