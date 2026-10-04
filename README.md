@@ -244,7 +244,13 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
 - **Entradas de prospectos** (Fase 2D, detalle en `docs/DISENO_CRM.md`,
   sección 6):
   - Formulario de contacto en la portada y en /programas/darboles
-    (`POST /contacto`), con consentimiento, honeypot y límite por hora. Crea
+    (`POST /contacto`), con consentimiento, honeypot y límite por hora (por IP
+    real detrás de nginx: `client_ip` lee `X-Real-IP`/`X-Forwarded-For` solo si la
+    conexión viene de 127.0.0.1). **Antispam** (`app/utils/spam.py`): teléfono real
+    (Costa Rica, 8 dígitos; o con `+` y código) y nombre sin números, con error
+    visible; y señales de bot (texto sin sentido, correo desechable, enviado en menos
+    de 3 s o sin la marca firmada del formulario) que reciben el "gracias" de siempre
+    pero quedan en Descartados como *Spam automático* y sin correo. Crea
     o encuentra la cuenta sin duplicarla y abre la oportunidad para el
     vendedor del motor; avisa por correo al dueño y a `LEADS_NOTIFY_EMAIL`.
   - API para darboles.com: `POST /api/crm/leads` con la clave

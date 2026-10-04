@@ -37,6 +37,28 @@ def trackable_ip(ip: Optional[str]) -> Optional[str]:
     return ip
 
 
+def client_ip(request) -> Optional[str]:
+    """The visitor's IP. Behind nginx (on this same server) every request comes from
+    127.0.0.1, so then the IP nginx passes on is used: X-Real-IP, or the last entry of
+    X-Forwarded-For (the one nginx adds; earlier entries can be typed by anyone). From any
+    other address those headers are ignored: they could be faked."""
+    peer = request.client.host if request.client else None
+    try:
+        from_proxy = peer is not None and ipaddress.ip_address(peer).is_loopback
+    except ValueError:
+        from_proxy = False
+    if from_proxy:
+        real = (request.headers.get("x-real-ip") or "").strip()
+        forwarded = [part.strip() for part in (request.headers.get("x-forwarded-for") or "").split(",") if part.strip()]
+        for candidate in (real, forwarded[-1] if forwarded else ""):
+            try:
+                ipaddress.ip_address(candidate)
+                return candidate
+            except ValueError:
+                continue
+    return peer
+
+
 def _username_failures(db: Session, username: str, since: datetime) -> int:
     last_success = db.query(func.max(LoginAttempt.created_at)).filter(
         LoginAttempt.username == username,

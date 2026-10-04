@@ -23,7 +23,7 @@ def login(
     if not user or not pass_:
         return RedirectResponse(url="/?error=invalid_credentials", status_code=status.HTTP_303_SEE_OTHER)
 
-    client_ip = request.client.host if request.client else None
+    client_ip = login_throttle.client_ip(request)
     if login_throttle.is_locked(db, user, client_ip):
         return RedirectResponse(url="/?error=too_many_attempts", status_code=status.HTTP_303_SEE_OTHER)
 

@@ -12,8 +12,10 @@ from app.core.templates import templates
 from app.db.models.user import User
 from app.routers import deps
 from app.utils.email import send_plain_email
-from app.utils.leads import (CONSENT_TEXT_VERSION, LeadRejected, clean_lead, intake_lead, notification,
-                             rate_limited, record_submission)
+from app.utils.leads import (CONSENT_TEXT_VERSION, LeadRejected, clean_lead, intake_lead, lead_fields, notification,
+                             rate_limited, record_spam, record_submission)
+from app.utils.login_throttle import client_ip
+from app.utils.spam import form_token, spam_reasons
 
 router = APIRouter(tags=["leads"])
 
@@ -61,11 +63,17 @@ async def contact(request: Request, background: BackgroundTasks, db: Session = D
     if str(data.get("website") or "").strip():
         return answer(True, "¡Gracias! Te contactamos pronto.")
 
-    ip = request.client.host if request.client else None
+    ip = client_ip(request)
     if rate_limited(db, "web", ip, settings.LEADS_PER_IP_PER_HOUR, settings.LEADS_PER_HOUR):
         return answer(False, TOO_MANY, 429)
+    # Bots first: they get the usual answer and land in Descartados, without e-mail.
+    reasons = spam_reasons(lead_fields(data), str(data.get("form_token") or ""))
+    if reasons:
+        record_submission(db, "web", ip)
+        record_spam(db, lead_fields(data), reasons)
+        return answer(True, "Recibimos tu solicitud. Te respondemos en menos de 24 horas.")
     try:
-        lead = clean_lead(data)
+        lead = clean_lead(data, strict=True)
     except LeadRejected as e:
         return answer(False, ". ".join(e.errors) + ".", 400)
     record_submission(db, "web", ip)
@@ -111,7 +119,7 @@ PUBLIC_MOTOR_LABELS = {
 
 def contact_form_context(default_motor: Optional[str] = None):
     """Options for the form partial (templates/components/contact_form.html)."""
-    return {"motors": list(PUBLIC_MOTOR_LABELS.items()), "default_motor": default_motor}
+    return {"motors": list(PUBLIC_MOTOR_LABELS.items()), "default_motor": default_motor, "token": form_token()}
 
 
 templates.env.globals["contact_form_context"] = contact_form_context
