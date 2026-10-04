@@ -24,9 +24,13 @@
             </label>
             <p id="contact-error-email" class="{{ error }}"></p>
         </div>
-        <label class="block text-sm font-medium">Teléfono
-            <input name="phone" type="tel" maxlength="30" autocomplete="tel" aria-describedby="contact-hint-reach" class="{{ field }}">
-        </label>
+        <div>
+            <label class="block text-sm font-medium">Teléfono
+                <input name="phone" type="tel" maxlength="30" autocomplete="tel" inputmode="tel" placeholder="8888 8888"
+                    aria-describedby="contact-hint-reach contact-error-phone" class="{{ field }}">
+            </label>
+            <p id="contact-error-phone" class="{{ error }}"></p>
+        </div>
     </div>
     <p id="contact-hint-reach" class="-mt-2 text-xs text-black/60 dark:text-white/60">Dejanos al menos un correo o un teléfono.</p>
     <div>
@@ -44,6 +48,8 @@
         <textarea name="message" rows="4" maxlength="3000" class="{{ field }}"
             placeholder="Ubicación, área aproximada, frecuencia o fechas…"></textarea>
     </label>
+    {# When the form was shown, signed (app/utils/spam.py): a bot that posts at once is caught. #}
+    <input type="hidden" name="form_token" value="{{ ctx.token }}">
     {# Honeypot: hidden from people, bots fill it. #}
     <div aria-hidden="true" style="position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden">
         <label>No llenar <input name="website" tabindex="-1" autocomplete="off"></label>
@@ -102,14 +108,30 @@
             // The email error already says it; don't repeat the "correo o teléfono" hint under it.
             if (name === 'email') document.getElementById('contact-hint-reach').classList.toggle('hidden', !!text);
         }
+        // Same rule as the server (app/utils/spam.py, phone_problem).
+        function checkPhone(phone) {
+            var text = (phone || '').trim();
+            if (!text) return '';
+            if (!/^\+?[\d\s\-().]+$/.test(text)) return 'Revisá el teléfono: solo números (ej. 8888 8888).';
+            var digits = text.replace(/\D/g, '');
+            if (text.charAt(0) === '+') {
+                if (digits.indexOf('506') === 0) return /^[245678]\d{7}$/.test(digits.slice(3)) ? '' : 'Revisá el teléfono: en Costa Rica son 8 dígitos después de +506.';
+                return digits.length >= 8 && digits.length <= 15 ? '' : 'Revisá el teléfono: con código de país, de 8 a 15 dígitos.';
+            }
+            if (digits.length === 11 && digits.indexOf('506') === 0) digits = digits.slice(3);
+            return /^[245678]\d{7}$/.test(digits) ? '' : 'Revisá el teléfono: 8 dígitos (ej. 8888 8888), o con + y el código si es de otro país.';
+        }
         function check(data) {
             var errors = {};
             if (!data.name.trim()) errors.name = 'Escribí tu nombre.';
+            else if (/\d/.test(data.name)) errors.name = 'Escribí tu nombre sin números.';
+            var phoneProblem = checkPhone(data.phone);
+            if (phoneProblem) errors.phone = phoneProblem;
             if (!data.email.trim() && !data.phone.trim()) errors.email = 'Dejanos un correo o un teléfono.';
             else if (data.email.trim() && form.elements.email.validity.typeMismatch) errors.email = 'Revisá el correo: le falta algo (ej. nombre@empresa.com).';
             if (!data.motor) errors.motor = 'Elegí qué te interesa.';
             if (!data.consent) errors.consent = 'Aceptá la política de privacidad para que podamos contactarte.';
-            ['name', 'email', 'motor', 'consent'].forEach(function (name) { mark(name, errors[name]); });
+            ['name', 'email', 'phone', 'motor', 'consent'].forEach(function (name) { mark(name, errors[name]); });
             return Object.keys(errors);
         }
         // "Cotizar este servicio" and similar links preselect what the visitor is interested in.

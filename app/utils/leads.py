@@ -37,15 +37,28 @@ class LeadResult:
     new_opportunity: bool
 
 
-def clean_lead(data: Dict) -> Dict:
-    """Validates the fields shared by the web form and the darboles.com API."""
+def lead_fields(data: Dict) -> Dict:
+    """The fields as sent, trimmed and cut to their limits (nothing validated yet)."""
     get = lambda key: str(data.get(key) or "").strip()
     lead = {key: get(key)[:limit] for key, limit in LIMITS.items()}
     lead["email"] = lead["email"].lower()
     lead["motor"] = get("motor")
+    return lead
+
+
+def clean_lead(data: Dict, strict: bool = False) -> Dict:
+    """Validates the fields shared by the web form and the darboles.com API. strict (the web
+    form): the phone must be a real one and the name can't have numbers (app/utils/spam.py)."""
+    from app.utils.spam import name_problem, phone_problem
+    get = lambda key: str(data.get(key) or "").strip()
+    lead = lead_fields(data)
     errors = []
     if not lead["name"]:
         errors.append("Escribí tu nombre")
+    elif strict and name_problem(lead["name"]):
+        errors.append(name_problem(lead["name"]))
+    if strict and phone_problem(lead["phone"]):
+        errors.append(phone_problem(lead["phone"]))
     if not lead["email"] and not lead["phone"]:
         errors.append("Dejanos un correo o un teléfono")
     if lead["email"] and not EMAIL_RE.match(lead["email"]):
@@ -185,3 +198,32 @@ def notification(result: LeadResult, lead: Dict, source: str) -> Dict:
         f"Ver en el sistema: https://tomatocr.com/clientes/oportunidades/{result.opportunity.id}",
     ]
     return {"subject": f"Nueva oportunidad: {result.account.name} ({motor})", "body": "\n".join(lines)}
+
+
+def record_spam(db: Session, lead: Dict, reasons: List[str], source: str = "web") -> Account:
+    """A request that looks like a bot: kept as a new, already discarded account (Clientes →
+    Descartados, "Spam automático: …") with its contact and a lost opportunity, and no e-mail.
+    Always a new account: never matched to an existing client, so a bot that types a real
+    client's name or e-mail can't discard that client."""
+    now = datetime.utcnow()
+    reason = "Spam automático: " + ", ".join(reasons)
+    motor = lead.get("motor") if lead.get("motor") in MOTORS else None
+    account = Account(name=(lead.get("company") or lead.get("name") or "Sin nombre")[:200], kind="otro", source=source,
+                      discarded_at=now, discard_reason=reason, origin_ref=f"{source}-spam:{now:%Y%m%d%H%M%S}")
+    db.add(account)
+    db.flush()
+    contact = Contact(account_id=account.id, name=(lead.get("name") or "Sin nombre")[:150],
+                      email=lead.get("email") or None, phone=lead.get("phone") or None, origin_ref=source)
+    db.add(contact)
+    db.flush()
+    opportunity = Opportunity(account_id=account.id, title=f"{LABELS['motor'].get(motor, 'Sin motor')} · {SOURCES[source]}",
+                              motor=motor, stage="perdido", max_stage=0, source=source, origin="web",
+                              lost_reason=reason)
+    db.add(opportunity)
+    db.flush()
+    db.add(CrmActivity(account_id=account.id, opportunity_id=opportunity.id, contact_id=contact.id, type="nota",
+                       happened_at=now, notes=f"{reason}.\n{lead.get('message') or ''}".strip()))
+    db.add(ActivityLog(action="CREATE", entity_type="LEAD", entity_id=opportunity.id,
+                       details=f"Spam bloqueado del {SOURCES[source]}: {account.name} ({', '.join(reasons)})"))
+    db.commit()
+    return account

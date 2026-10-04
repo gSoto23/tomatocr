@@ -162,3 +162,10 @@ Por confirmar: usuarios de Melina y Albert (rol ventas) para asignarles sus moto
 - Los próximos pasos y los montos en propuesta dejan fuera las cuentas descartadas (antes una cuenta descartada con el botón viejo seguía en "Para hoy").
 - Contexto de las metas (Presupuestos al 29/09/2026): licitaciones de ₡15,5 M y ₡19,1 M, un contrato privado de ₡9,4 M y propuestas abiertas de ₡40 mil a ₡270 mil. Por eso se separan las metas: son ventas de tamaño y ritmo muy distintos.
 
+## Antispam del formulario (04/10/2026)
+
+- **Errores visibles** (la persona corrige): teléfono de Costa Rica de 8 dígitos que empiece en 2, 4, 5, 6, 7 u 8 (acepta +506, espacios y guiones) o internacional con `+` y 8 a 15 dígitos; nombre sin números. Solo en el formulario web (`clean_lead(strict=True)`); la API de darboles.com mantiene sus reglas.
+- **Señales de bot** (`spam_reasons`), revisadas antes que los errores: palabras de 10+ caracteres que mezclan 3+ letras y 3+ dígitos en nombre, empresa o mensaje; dominio de correo desechable (`DISPOSABLE_DOMAINS`); `form_token` ausente, alterado o con menos de 3 s desde que se mostró el formulario (marca de tiempo firmada con `SECRET_KEY`). El bot recibe la respuesta normal; la solicitud se guarda con `record_spam` como **cuenta nueva** ya descartada ("Spam automático: …") con su contacto y una oportunidad perdida, sin correo, y una línea en Actividad. Nunca se liga a una cuenta existente.
+- **IP real:** detrás de nginx, `client_ip` usa `X-Real-IP` o la última entrada de `X-Forwarded-For`, solo si la conexión viene de 127.0.0.1; también la usa el bloqueo de inicio de sesión.
+- No se rechaza a quien no tiene JavaScript: el formulario funciona sin él y la marca de tiempo va en un campo oculto.
+

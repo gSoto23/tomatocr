@@ -4,9 +4,23 @@ Cambios en el sistema y en el sitio público, del más reciente al más antiguo.
 Cada entrada indica el PR y si necesitó migración o pasos especiales al
 desplegar. Hora de Costa Rica salvo que diga UTC.
 
+## 2026-10-04
+
+### Formulario de contacto: antispam (esta rama)
+- **Teléfono real**: 8 dígitos de Costa Rica (con o sin +506) o con `+` y código de país;
+  **nombre sin números**. Si no, el formulario lo marca y dice qué corregir.
+- **Filtro de bots**: texto sin sentido ("NAYUYUTY410456…"), correos desechables o envíos
+  en menos de 3 segundos reciben el "gracias" de siempre, pero **no avisan a nadie**:
+  quedan en Clientes → Descartados como *Spam automático: motivo*, en una cuenta nueva
+  (nunca se mezclan con un cliente existente).
+- **Límite por IP real**: detrás de nginx ahora cuenta la IP del visitante (antes todo
+  llegaba como 127.0.0.1); también en el bloqueo del inicio de sesión.
+- Manual (Clientes) al día.
+- Despliegue: sin migraciones; revisar que nginx mande la IP real (ver el PR) y reiniciar.
+
 ## 2026-09-30
 
-### Mapa de reforestación: los grupos grandes se abren como lista (esta rama)
+### Mapa de reforestación: los grupos grandes se abren como lista (#104)
 - Un grupo de **más de 30 árboles** (por ejemplo, los que comparten el punto de su sector)
   se abre como **lista** con buscador por número, especie o sector; cada árbol abre su
   ficha con sus visitas y *Volver a la lista* regresa. Si el grupo ocupa una zona, trae

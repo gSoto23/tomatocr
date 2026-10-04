@@ -39,6 +39,10 @@ def sellers(db, users):
 
 
 def post_form(data, ip="200.1.113.10", json_body=True):
+    """Like the page: with the hidden form token of a page shown a minute ago."""
+    import time
+    from app.utils.spam import form_token
+    data = {"form_token": form_token(time.time() - 60), **data}
     client = new_client(ip)
     if json_body:
         return client.post("/contacto", json=data, headers={"Accept": "application/json"})
