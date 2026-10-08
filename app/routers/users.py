@@ -11,7 +11,7 @@ from sqlalchemy import or_, func
 
 from app.db.models.user import User
 from app.routers import deps
-from app.core.roles import CLIENT, ADMIN, ALL_ROLES, ROLE_LABELS
+from app.core.roles import CLIENT, ADMIN, ALL_ROLES, ROLE_LABELS, SUPERVISOR
 from app.core.security import get_password_hash
 from sqlalchemy.exc import IntegrityError
 from app.utils.activity import log_activity
@@ -147,6 +147,7 @@ def create_user(
     monthly_salary: Optional[float] = Form(None),
     vacation_days_taken: Optional[float] = Form(None),
     is_active: bool = Form(False),
+    also_sells: bool = Form(False),
     apply_deductions: bool = Form(False),
     payment_method: str = Form("Efectivo"),
     account_number: Optional[str] = Form(None),
@@ -196,6 +197,7 @@ def create_user(
         monthly_salary=monthly_salary,
         vacation_days_taken=max(0.0, vacation_days_taken or 0.0),
         is_active=is_active,
+        also_sells=also_sells and role == SUPERVISOR,
         apply_deductions=apply_deductions,
         payment_method=payment_method,
         account_number=account_number if payment_method in ["Transferencia", "Sinpe"] else None
@@ -236,6 +238,7 @@ def update_user(
     monthly_salary: Optional[float] = Form(None),
     vacation_days_taken: Optional[float] = Form(None),
     is_active: bool = Form(False),
+    also_sells: bool = Form(False),
     apply_deductions: bool = Form(False),
     payment_method: str = Form("Efectivo"),
     account_number: Optional[str] = Form(None),
@@ -289,6 +292,7 @@ def update_user(
         if vacation_days_taken is not None:
             edit_user.vacation_days_taken = max(0.0, vacation_days_taken)
         edit_user.is_active = is_active
+        edit_user.also_sells = also_sells and role == SUPERVISOR  # only supervisors "also sell"
         edit_user.apply_deductions = apply_deductions
         
         # Update Payment Info

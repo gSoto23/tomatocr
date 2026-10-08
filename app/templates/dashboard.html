@@ -39,6 +39,63 @@
 {% endif %}
 {% endmacro %}
 
+{# A seller's next steps of today ("Hoy") and their pipeline: ventas, and a supervisor who also sells. #}
+{% macro today_steps(data) %}
+<div class="flex items-baseline justify-between gap-3">
+    <h3 class="font-bold text-gray-900">Próximos pasos de hoy</h3>
+    <a href="/clientes" class="text-sm font-semibold text-black hover:text-gray-600">Clientes &rarr;</a>
+</div>
+<ul class="mt-2 divide-y divide-gray-100 text-sm">
+    {% for o in data.next_steps['hoy'] %}
+    <li class="py-2"><a href="/clientes/oportunidades/{{ o.id }}" class="font-medium text-gray-900 hover:underline">{{ o.account.name }}</a>
+        <div class="text-gray-600">{{ o.next_step or o.title }}</div></li>
+    {% else %}
+    <li class="py-2 text-gray-500">Nada para hoy en Clientes.</li>
+    {% endfor %}
+</ul>
+{% endmacro %}
+
+{% macro sales_blocks(data) %}
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+        <h3 class="font-bold text-gray-900">Mis próximos pasos</h3>
+        <a href="/cotizador"
+            class="inline-flex items-center justify-center rounded-md bg-black px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800">
+            Abrir Cotizador
+        </a>
+    </div>
+    {% set steps = data.next_steps %}
+    <div class="grid gap-4 p-6 md:grid-cols-3">
+        {% for key, title, color in [('vencidos', 'Vencidos', 'text-red-700'), ('hoy', 'Para hoy', 'text-gray-900'), ('semana', 'Próximos 7 días', 'text-gray-900')] %}
+        <div>
+            <h4 class="text-sm font-semibold {{ color }}">{{ title }} ({{ steps[key]|length }})</h4>
+            <ul class="mt-2 space-y-2 text-sm">
+                {% for o in steps[key] %}
+                <li><a href="/clientes/oportunidades/{{ o.id }}" class="font-medium text-gray-900 hover:underline">{{ o.account.name }}</a>
+                    <div class="text-gray-600">{{ o.next_step or o.title }} · {{ o.next_step_date|format_date }}</div></li>
+                {% else %}
+                <li class="text-gray-500 italic">Nada pendiente.</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endfor %}
+    </div>
+    <div class="border-t border-gray-100 px-6 py-3 text-sm"><a href="/clientes" class="font-semibold text-black hover:text-gray-600">Ir a Clientes &rarr;</a></div>
+</div>
+<div class="mt-6 rounded-xl border border-gray-100 bg-white {{ 'p-6' if data.crm_running else 'px-6 py-4' }} shadow-sm">
+    <h3 class="font-bold text-gray-900">Mi filtro</h3>
+    <p class="text-xs text-gray-500">{{ data.crm_period.label }} · tus oportunidades nuevas{% if not data.crm_running %} · el periodo no está en curso{% endif %}</p>
+    {% if data.crm_running %}
+    <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
+        {% from "crm/_funnel.html" import funnel_box %}
+        {% for row in data.crm_funnel %}{{ funnel_box(row, data.crm_funnel, loop.index0, show_target=False) }}{% endfor %}
+    </div>
+    {% else %}
+    <p class="mt-2 text-sm text-gray-600">{% for row in data.crm_funnel %}{{ crm_labels.stage[row.stage] }} {{ row.reached }}{{ ' · ' if not loop.last }}{% endfor %}</p>
+    {% endif %}
+</div>
+{% endmacro %}
+
 <!-- ADMIN VIEW -->
 {% if user.role == 'admin' %}
 {% set ov = data.overview %}
@@ -443,7 +500,7 @@
 {% endmacro %}
 
 {% if user.role == 'supervisor' %}
-{% call today_block(data, priorities, priority_labels, user) %}{{ field_today(data.overview) }}{% endcall %}
+{% call today_block(data, priorities, priority_labels, user) %}{{ field_today(data.overview) }}{% if user.sells %}<div class="mt-4 border-t border-gray-100 pt-4">{{ today_steps(data) }}</div>{% endif %}{% endcall %}
 {{ attention(data.alerts, data.pending_alerts, level_labels, 'Todo al día: no hay horas por confirmar ni días sin bitácora.') }}
 {% else %}
 {% call today_block(data, priorities, priority_labels, user) %}
@@ -479,63 +536,14 @@
     {{ assignments("Mis asignaciones: hoy y próximos días", data.upcoming, "No tenés asignaciones para hoy ni para los próximos días.") }}
     {% endif %}
     {% if data.past %}{{ assignments("Anteriores", data.past, "") }}{% endif %}
+    {% if user.role == 'supervisor' and user.sells %}<div>{{ sales_blocks(data) }}</div>{% endif %}
 </div>
 
 <!-- VENTAS VIEW -->
 {% elif user.role == 'ventas' %}
-{% call today_block(data, priorities, priority_labels, user) %}
-<div class="flex items-baseline justify-between gap-3">
-    <h3 class="font-bold text-gray-900">Próximos pasos de hoy</h3>
-    <a href="/clientes" class="text-sm font-semibold text-black hover:text-gray-600">Clientes &rarr;</a>
-</div>
-<ul class="mt-2 divide-y divide-gray-100 text-sm">
-    {% for o in data.next_steps['hoy'] %}
-    <li class="py-2"><a href="/clientes/oportunidades/{{ o.id }}" class="font-medium text-gray-900 hover:underline">{{ o.account.name }}</a>
-        <div class="text-gray-600">{{ o.next_step or o.title }}</div></li>
-    {% else %}
-    <li class="py-2 text-gray-500">Nada para hoy en Clientes.</li>
-    {% endfor %}
-</ul>
-{% endcall %}
+{% call today_block(data, priorities, priority_labels, user) %}{{ today_steps(data) }}{% endcall %}
 {{ attention(data.alerts, data.pending_alerts, level_labels, 'Todo al día: no tenés próximos pasos atrasados.') }}
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-    <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-        <h3 class="font-bold text-gray-900">Mis próximos pasos</h3>
-        <a href="/cotizador"
-            class="inline-flex items-center justify-center rounded-md bg-black px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800">
-            Abrir Cotizador
-        </a>
-    </div>
-    {% set steps = data.next_steps %}
-    <div class="grid gap-4 p-6 md:grid-cols-3">
-        {% for key, title, color in [('vencidos', 'Vencidos', 'text-red-700'), ('hoy', 'Para hoy', 'text-gray-900'), ('semana', 'Próximos 7 días', 'text-gray-900')] %}
-        <div>
-            <h4 class="text-sm font-semibold {{ color }}">{{ title }} ({{ steps[key]|length }})</h4>
-            <ul class="mt-2 space-y-2 text-sm">
-                {% for o in steps[key] %}
-                <li><a href="/clientes/oportunidades/{{ o.id }}" class="font-medium text-gray-900 hover:underline">{{ o.account.name }}</a>
-                    <div class="text-gray-600">{{ o.next_step or o.title }} · {{ o.next_step_date|format_date }}</div></li>
-                {% else %}
-                <li class="text-gray-500 italic">Nada pendiente.</li>
-                {% endfor %}
-            </ul>
-        </div>
-        {% endfor %}
-    </div>
-    <div class="border-t border-gray-100 px-6 py-3 text-sm"><a href="/clientes" class="font-semibold text-black hover:text-gray-600">Ir a Clientes &rarr;</a></div>
-</div>
-<div class="mt-6 rounded-xl border border-gray-100 bg-white {{ 'p-6' if data.crm_running else 'px-6 py-4' }} shadow-sm">
-    <h3 class="font-bold text-gray-900">Mi filtro</h3>
-    <p class="text-xs text-gray-500">{{ data.crm_period.label }} · tus oportunidades nuevas{% if not data.crm_running %} · el periodo no está en curso{% endif %}</p>
-    {% if data.crm_running %}
-    <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
-        {% from "crm/_funnel.html" import funnel_box %}
-        {% for row in data.crm_funnel %}{{ funnel_box(row, data.crm_funnel, loop.index0, show_target=False) }}{% endfor %}
-    </div>
-    {% else %}
-    <p class="mt-2 text-sm text-gray-600">{% for row in data.crm_funnel %}{{ crm_labels.stage[row.stage] }} {{ row.reached }}{{ ' · ' if not loop.last }}{% endfor %}</p>
-    {% endif %}
-</div>
+{{ sales_blocks(data) }}
 {% endif %}
 
 <!-- Worker Modal & Scripts -->

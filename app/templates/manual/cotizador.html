@@ -5,13 +5,13 @@
 <p>El <strong>Cotizador</strong> arma cotizaciones con el formato de TOMATO: datos del cliente, ítems, IVA, descuento,
     alcance y términos. Revisa que no falte nada y las exporta en PDF, listas para enviar. Cada cotización queda
     guardada en la nube con su número (TCR-año-número).</p>
-<p>Quién lo usa: {{ m.roles(["admin", "ventas", "client"]) }}. Se abre con el botón <strong>Cotizador</strong> arriba a
+<p>Quién lo usa: {{ m.roles(["admin", "ventas", "client"]) }} (y los supervisores con <em>También vende</em>). Se abre con el botón <strong>Cotizador</strong> arriba a
     la derecha (en el celular, <strong>Cotizar</strong>), o con <strong>Crear cotización</strong> desde una oportunidad en Clientes.</p>
 {% endcall %}
 
 {% call m.section("nueva", "Hacer una cotización") %}
 {{ m.shot("cotizador/cliente.webp", "Cotizador: cliente y servicio", "Arriba, el cliente y el servicio; a la derecha, el resumen.") }}
-{% if user.role in ['admin', 'ventas'] %}
+{% if user.sells %}
 {{ m.steps([
     (1, "<strong>Cuenta del cliente</strong> (obligatoria): buscá por nombre o cédula. Si no existe, tocá <em>+ Crear cuenta</em>; si hay cuentas parecidas, el sistema te las muestra para que no dupliques."),
     (2, "<strong>Contacto de la cuenta</strong>: viene puesto el contacto principal. Correo y teléfono se llenan solos."),
@@ -67,7 +67,7 @@
 {% endcall %}
 
 {% call m.section("correo", "Enviar por correo") %}
-{% if user.role in ['admin', 'ventas'] %}
+{% if user.sells %}
 <p>La cotización se envía al cliente desde el sistema, con el PDF adjunto. Sale de <strong>notificaciones@tomatocr.com</strong>
     con el nombre «TOMATO»; si el cliente responde, la respuesta te llega <strong>a tu correo</strong>.</p>
 {{ m.shot("cotizador/enviar.webp", "Enviar una cotización por correo", "La ventana de envío.") }}
@@ -107,7 +107,7 @@
 ]) }}
 <p>Abajo, en <strong>Historial</strong>, están las cotizaciones guardadas{% if user.role == 'client' %} de tu empresa{% endif %}, la más reciente primero, de 10 en 10 (<em>Anterior</em> y <em>Siguiente</em>).
     <strong>Cargar</strong> abre una para verla o cambiarla (si tenés cambios sin guardar, te pregunta antes).
-    <strong>PDF</strong> abre su PDF sin cargarla.{% if user.role in ['admin', 'ventas'] %} <strong>Enviar</strong> la manda por correo.{% endif %}{% if user.role == 'admin' %} <strong>Borrar</strong> la elimina para
+    <strong>PDF</strong> abre su PDF sin cargarla.{% if user.sells %} <strong>Enviar</strong> la manda por correo.{% endif %}{% if user.role == 'admin' %} <strong>Borrar</strong> la elimina para
     siempre (solo el admin; queda en Actividad).{% endif %}</p>
 {% endcall %}
 
@@ -127,7 +127,7 @@
 <p>Si los términos tienen la línea «Validez: N días», se actualiza sola al cambiar la validez. Si la escribiste de otra
     forma, corregila a mano.</p>
 {% endcall %}
-{% if user.role in ['admin', 'ventas'] %}
+{% if user.sells %}
 {% call m.faq("Toqué «Cambiar» la cuenta y se perdió la oportunidad") %}
 <p>Al cambiar de cuenta la cotización deja de estar ligada a la oportunidad; el cotizador te pide confirmar antes. Si
     fue un error, abrí de nuevo desde la oportunidad con <em>Crear cotización</em>.</p>

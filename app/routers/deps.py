@@ -3,7 +3,7 @@ from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 from app.db.session import SessionLocal
 from app.core.config import settings
-from app.core.roles import ALL_ROLES
+from app.core.roles import ALL_ROLES, CLIENT
 from app.db.models.user import User
 
 def get_db():
@@ -69,6 +69,24 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
         )
 
     return user
+
+def require_sales(user: User = Depends(get_current_user)) -> User:
+    """Clientes and the Cotizador's sales side: admin, ventas, or a supervisor marked "También vende"."""
+    if not user.sells:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
+    return user
+
+
+def can_quote(user: User) -> bool:
+    """The Cotizador: whoever sells, and the client (its own quotes)."""
+    return user.sells or user.role == CLIENT
+
+
+def require_quotes(user: User = Depends(get_current_user)) -> User:
+    if not can_quote(user):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
+    return user
+
 
 def require_roles(*roles: str):
     """Dependency that answers 403 unless the current user has one of `roles`."""

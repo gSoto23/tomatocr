@@ -18,7 +18,7 @@ from app.db.models.schedule import ProjectSchedule
 from app.db.models.associations import project_users
 from app.db.models.task import PRIORITIES, PRIORITY_LABELS, Task
 from app.utils.activity import log_activity
-from app.utils.admin_overview import (LEVEL_LABELS, admin_overview, client_projects, sales_alerts, supervisor_overview,
+from app.utils.admin_overview import (LEVEL_LABELS, by_importance, admin_overview, client_projects, sales_alerts, supervisor_overview,
                                       worker_alerts)
 from app.utils.tasks import (assignable_users, can_manage, mark_seen, my_tasks, parse_task_form, split_alerts, unmark,
                              uses_tasks)
@@ -177,16 +177,16 @@ def dashboard(
         if user.role == SUPERVISOR:
             # The team alert already covers the supervisor's own days without report.
             data["overview"] = supervisor_overview(db, today, user)
-            data["alerts"] = data["overview"].alerts
+            data["alerts"] = list(data["overview"].alerts)
+            if user.sells:  # "También vende": their sales too
+                sales_data(db, user, today, data)
+                data["alerts"] = by_importance(data["alerts"] + sales_alerts(data["next_steps"]))
         else:
             data["alerts"] = worker_alerts(db, today, user)
 
     elif user.role == VENTAS:
         today = today_cr()
-        data["next_steps"] = crm.next_steps(db, owner_id=user.id, today=today)
-        data["crm_period"] = crm.funnel_period(db)
-        data["crm_running"] = data["crm_period"].start <= today <= data["crm_period"].end
-        data["crm_funnel"] = crm.funnel(db, owner_id=user.id, period=data["crm_period"])
+        sales_data(db, user, today, data)
         data["alerts"] = sales_alerts(data["next_steps"])
 
     data["alerts"], data["pending_alerts"] = split_alerts(db, user, data.get("alerts", []))
@@ -202,6 +202,14 @@ def dashboard(
     })
 
 
+def sales_data(db: Session, user: User, today, data: dict):
+    """A seller's own next steps and funnel (ventas, and a supervisor who also sells)."""
+    data["next_steps"] = crm.next_steps(db, owner_id=user.id, today=today)
+    data["crm_period"] = crm.funnel_period(db)
+    data["crm_running"] = data["crm_period"].start <= today <= data["crm_period"].end
+    data["crm_funnel"] = crm.funnel(db, owner_id=user.id, period=data["crm_period"])
+
+
 def current_alerts(db: Session, user: User):
     """The alerts of this person's Dashboard, computed the same way as the page."""
     today = today_cr()
@@ -209,7 +217,10 @@ def current_alerts(db: Session, user: User):
         check_update_overdue_invoices(db)
         return admin_overview(db, today, crm.next_steps(db, today=today), crm.expiring_contracts(db, today)).alerts
     if user.role == SUPERVISOR:
-        return supervisor_overview(db, today, user).alerts
+        alerts = list(supervisor_overview(db, today, user).alerts)
+        if user.sells:
+            alerts = by_importance(alerts + sales_alerts(crm.next_steps(db, owner_id=user.id, today=today)))
+        return alerts
     if user.role == WORKER:
         return worker_alerts(db, today, user)
     if user.role == VENTAS:

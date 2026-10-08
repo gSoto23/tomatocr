@@ -7,7 +7,7 @@ from fastapi import APIRouter, BackgroundTasks, Body, Depends, Form, HTTPExcepti
 from fastapi.responses import JSONResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
-from app.core.roles import ADMIN, VENTAS
+from app.core.roles import ADMIN, SUPERVISOR, VENTAS
 from app.core.templates import templates
 from app.db.models.crm import (ACCOUNT_KINDS, ACTIVITY_TYPES, ASSIGNMENT_DEFAULT, FUNNEL_STAGES, GOAL_STAGES, LABELS, MONEY_GOALS,
                                MOTORS, ORIGINS,
@@ -33,7 +33,7 @@ from app.utils.reforestation import parse_date
 router = APIRouter(prefix="/clientes", tags=["clientes"])
 templates.env.globals["crm_labels"] = LABELS
 
-view_roles = deps.require_roles(ADMIN, VENTAS)
+view_roles = deps.require_sales  # admin, ventas and a supervisor marked "También vende"
 admin_only = deps.require_roles(ADMIN)
 
 
@@ -46,7 +46,9 @@ def toast_redirect(url: str, message: str, error: bool = False) -> RedirectRespo
 
 
 def sellers(db: Session):
-    return db.query(User).filter(User.role.in_([ADMIN, VENTAS]), User.is_active != False).order_by(User.full_name).all()  # noqa: E712
+    """Who can own accounts and opportunities: admin, ventas and supervisors who also sell."""
+    return db.query(User).filter((User.role.in_([ADMIN, VENTAS])) | ((User.role == SUPERVISOR) & (User.also_sells == True)),  # noqa: E712
+                                 User.is_active != False).order_by(User.full_name).all()  # noqa: E712
 
 
 def assignment_email(opportunity: Opportunity):
@@ -328,7 +330,7 @@ def reassign_owner(account_id: int, owner_id: str = Form(""), db: Session = Depe
                    user: User = Depends(admin_only)):
     account = get_active_account(db, account_id)
     new_owner = db.get(User, int(owner_id)) if owner_id.isdigit() else None
-    if owner_id and (new_owner is None or new_owner.role not in (ADMIN, VENTAS)):
+    if owner_id and (new_owner is None or not new_owner.sells):
         return toast_redirect(f"/clientes/cuentas/{account.id}", "Ese usuario no puede ser dueño", error=True)
     account.owner_id = new_owner.id if new_owner else None
     db.commit()

@@ -220,6 +220,11 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
 - **Permisos**: ventas ve todas las cuentas sin finanzas y edita las suyas y
   las que no tienen dueño (al editarlas queda como dueño). Solo admin
   reasigna dueños, edita metas y fusiona. Los demás roles reciben 403.
+- **"También vende"** (`users.also_sells`, migración 0017): un supervisor con esa casilla
+  (Empleados) trabaja Clientes y el Cotizador como ventas, sin perder nada de supervisor:
+  puede ser dueño de cuentas y oportunidades, recibir prospectos en la asignación y enviar
+  cotizaciones; su Dashboard suma sus próximos pasos y su Filtro. El permiso se revisa
+  con `user.sells` (admin, ventas o supervisor con la casilla).
 - **Cuentas**: prospectos y clientes actuales en una sola tabla, con sus
   contactos, oportunidades y actividades. Los proyectos, cotizaciones y
   proyectos de reforestación se ligan a su cuenta (`account_id`); los nombres
