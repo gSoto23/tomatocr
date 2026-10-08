@@ -17,7 +17,7 @@
 <p class="text-sm text-gray-600">Cómo se conectan las partes del sistema en el trabajo de todos los días. Cada paso dice quién
     lo hace y enlaza al capítulo donde está explicado.</p>
 
-{% if user.role in ['admin', 'ventas'] %}
+{% if user.sells %}
 {% call m.section("prospecto-a-proyecto", "De una oportunidad a un proyecto ganado") %}
 {% call flow() %}
 {{ step("Cliente potencial", "Pide información en el formulario de tomatocr.com, o el vendedor lo encuentra (LinkedIn, SICOP, referido).") }}
@@ -49,7 +49,7 @@
 {% endcall %}
 {% endif %}
 
-{% if user.role in ['admin', 'ventas'] %}
+{% if user.sells %}
 {% call m.section("renovacion", "Renovar un contrato") %}
 {% call flow() %}
 {{ step("Sistema", "90 días antes de que termine un contrato de Presupuestos, aparece en <strong>Contratos por vencer</strong> en el Filtro (en rojo si faltan menos de 60).", "/manual/clientes#admin") }}

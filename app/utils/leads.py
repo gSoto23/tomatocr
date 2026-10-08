@@ -95,7 +95,7 @@ def assigned_owner(db: Session, motor: str) -> Optional[User]:
         row = db.get(CrmAssignment, key)
         if row and row.user_id:
             user = db.get(User, row.user_id)
-            if user and user.is_active is not False and user.role in ("admin", "ventas"):
+            if user and user.is_active is not False and user.sells:
                 return user
     return db.query(User).filter(User.role == "admin", User.is_active != False).order_by(User.id).first()  # noqa: E712
 

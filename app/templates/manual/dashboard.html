@@ -76,7 +76,7 @@
 ]) }}
 {% endif %}
 
-{% if user.role in ['admin', 'ventas'] %}
+{% if user.sells %}
 <h3 class="mt-4 font-semibold text-gray-900">Ventas</h3>
 {{ m.shot("dashboard/ventas.webp", "Dashboard de ventas", "Dashboard de un vendedor.") }}
 {{ m.steps([
@@ -98,6 +98,9 @@
     (3, "<strong>Requiere atención</strong>: las jornadas del equipo con horas sin confirmar (las tuyas las confirma el admin) y los días trabajados sin bitácora de los últimos 7 días."),
     (4, "<strong>Gestionar Calendario</strong>: para organizar el equipo de cada proyecto y confirmar sus horas. Debajo están tus propias asignaciones, igual que las de un trabajador."),
 ]) }}
+<p>Si en Empleados tenés marcado <strong>También vende</strong>, el Dashboard suma lo de un vendedor: <em>Próximos pasos de
+    hoy</em> debajo de Hoy en campo, tus pasos atrasados en Requiere atención y, al final, <em>Mis próximos pasos</em> y
+    <em>Mi filtro</em>. En el menú aparecen Clientes y el Cotizador.</p>
 {% endif %}
 
 {% if user.role in ['admin', 'supervisor', 'worker'] %}

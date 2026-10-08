@@ -25,8 +25,9 @@ class Chapter:
     # Full-path regular expressions that win over prefixes (e.g. /projects/5/monitoreo).
     patterns: Tuple[str, ...] = ()
 
-    def allowed(self, role: Optional[str]) -> bool:
-        return role in self.roles
+    def allowed(self, role: Optional[str], sells: bool = False) -> bool:
+        """sells: a supervisor marked "También vende" also reads the sales chapters."""
+        return role in self.roles or (sells and VENTAS in self.roles)
 
 
 CHAPTERS: List[Chapter] = [
@@ -143,14 +144,14 @@ CHAPTERS += [
 BY_SLUG = {c.slug: c for c in CHAPTERS}
 
 
-def chapters_for(role: Optional[str]) -> List[Chapter]:
-    return [c for c in CHAPTERS if c.allowed(role)]
+def chapters_for(role: Optional[str], sells: bool = False) -> List[Chapter]:
+    return [c for c in CHAPTERS if c.allowed(role, sells)]
 
 
-def chapter_for_path(path: str, role: Optional[str]) -> Optional[Chapter]:
+def chapter_for_path(path: str, role: Optional[str], sells: bool = False) -> Optional[Chapter]:
     """Chapter that the "?" of this page opens, if the user can read it."""
     best, best_len = None, -1
-    for chapter in chapters_for(role):
+    for chapter in chapters_for(role, sells):
         if any(re.fullmatch(pattern, path) for pattern in chapter.patterns):
             return chapter
         for prefix in chapter.paths:
@@ -159,6 +160,6 @@ def chapter_for_path(path: str, role: Optional[str]) -> Optional[Chapter]:
     return best
 
 
-def help_url(path: str, role: Optional[str]) -> str:
-    chapter = chapter_for_path(path, role)
+def help_url(path: str, role: Optional[str], sells: bool = False) -> str:
+    chapter = chapter_for_path(path, role, sells)
     return f"/manual/{chapter.slug}" if chapter else "/manual"

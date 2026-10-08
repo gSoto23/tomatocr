@@ -25,7 +25,7 @@ def chapter_context(db: Session, slug: str) -> dict:
 @router.get("/")
 def index(request: Request, user: User = Depends(deps.get_current_user)):
     return templates.TemplateResponse("manual/index.html", {
-        "request": request, "user": user, "chapters": chapters_for(user.role), "current": None,
+        "request": request, "user": user, "chapters": chapters_for(user.role, user.sells), "current": None,
     })
 
 
@@ -33,9 +33,9 @@ def index(request: Request, user: User = Depends(deps.get_current_user)):
 def chapter(slug: str, request: Request, db: Session = Depends(deps.get_db),
             user: User = Depends(deps.get_current_user)):
     item = BY_SLUG.get(slug)
-    if item is None or not item.allowed(user.role):
+    if item is None or not item.allowed(user.role, user.sells):
         raise HTTPException(status_code=404, detail="Capítulo no encontrado")
-    chapters = chapters_for(user.role)
+    chapters = chapters_for(user.role, user.sells)
     position = chapters.index(item)
     return templates.TemplateResponse(f"manual/{slug}.html", {
         "request": request, "user": user, "chapters": chapters, "current": item,

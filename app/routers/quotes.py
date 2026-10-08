@@ -21,13 +21,12 @@ from app.utils.timecr import CR_OFFSET, now_cr, today_cr
 
 router = APIRouter(
     tags=["quotes"],
-    dependencies=[Depends(deps.require_roles(*QUOTES_ROLES))]
+    dependencies=[Depends(deps.require_quotes)]
 )
 
 def check_quotes_access(user: User):
-    # El "Cotizador" solo se muestra en la UI a admin, client y ventas
-    # (ver base_dashboard.html) — replicamos esa misma regla acá.
-    if user.role not in QUOTES_ROLES:
+    # Same rule as the menu (base_dashboard.html): whoever sells, and the client.
+    if not deps.can_quote(user):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
 
 
@@ -102,7 +101,7 @@ def view_cotizador(request: Request, user: User = Depends(deps.get_current_user)
     return templates.TemplateResponse("cotizador/index.html", {"request": request, "user": user,
                                                              "picks_account": user.role != CLIENT,
                                                              "can_delete": user.role == ADMIN,
-                                                             "can_send": user.role in SENDERS,
+                                                             "can_send": user.sells,
                                                              "asset_version": ASSET_VERSION})
 
 @router.get("/api/quotes/next-number")
@@ -303,7 +302,7 @@ async def upsert_quote(request: Request, db: Session = Depends(deps.get_db), use
 
 # --- Sending a quote by e-mail --------------------------------------------------------
 
-SENDERS = (ADMIN, VENTAS)
+
 MAX_RECIPIENTS = 5
 EMAIL_RE = re.compile(r"^[^@\s,;]+@[^@\s,;]+\.[^@\s,;]+$")
 
@@ -340,7 +339,7 @@ def history(db: Session, q: Quote):
 
 
 def sender_only(user: User):
-    if user.role not in SENDERS:
+    if not user.sells:
         raise HTTPException(status_code=403, detail="Solo el admin y ventas envían cotizaciones")
 
 

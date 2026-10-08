@@ -327,18 +327,18 @@ def can_edit_account(user: User, account: Account) -> bool:
     """Admin edits everything; ventas edits its own accounts and unowned ones."""
     if user.role == "admin":
         return True
-    return user.role == "ventas" and account.owner_id in (None, user.id)
+    return user.sells and account.owner_id in (None, user.id)
 
 
 def can_edit_opportunity(user: User, opportunity: Opportunity) -> bool:
     if user.role == "admin":
         return True
-    return user.role == "ventas" and opportunity.owner_id in (None, user.id)
+    return user.sells and opportunity.owner_id in (None, user.id)
 
 
 def claim_if_unowned(entity, user: User):
     """A seller who edits an unowned account or opportunity becomes its owner."""
-    if entity.owner_id is None and user.role == "ventas":
+    if entity.owner_id is None and user.sells and user.role != "admin":
         entity.owner_id = user.id
 
 

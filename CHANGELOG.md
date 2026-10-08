@@ -6,7 +6,17 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-10-07
 
-### Inicio de sesión: sin bloquear la oficina y usuario sin espacios (esta rama)
+### Empleados: supervisor que "También vende" (esta rama)
+- Casilla **También vende** en el perfil de un supervisor: además de todo lo de
+  supervisor, ve **Clientes** y el **Cotizador** como un vendedor (cuentas y oportunidades
+  a su nombre, asignación de prospectos, cotizar y enviar cotizaciones).
+- Su Dashboard suma *Próximos pasos de hoy*, los pasos atrasados en *Requiere atención*,
+  *Mis próximos pasos* y *Mi filtro*; el manual le muestra Clientes y Cotizador.
+- Manual (Empleados, Dashboard, Clientes, Cotizador) al día.
+- Despliegue: **migración 0017** (`users.also_sells`). Snapshot, `alembic upgrade head`
+  y reiniciar.
+
+### Inicio de sesión: sin bloquear la oficina y usuario sin espacios (#107)
 - El **bloqueo por IP** necesita 20 fallos en 15 minutos (antes 5): desde el 04/10 el
   sistema ve la IP real y toda una oficina comparte la misma. El bloqueo por usuario sigue
   en 5.
