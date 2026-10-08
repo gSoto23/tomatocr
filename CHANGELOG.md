@@ -4,9 +4,20 @@ Cambios en el sistema y en el sitio público, del más reciente al más antiguo.
 Cada entrada indica el PR y si necesitó migración o pasos especiales al
 desplegar. Hora de Costa Rica salvo que diga UTC.
 
+## 2026-10-07
+
+### Inicio de sesión: con el correo y sin bloquear la oficina (esta rama)
+- Se puede entrar con el **usuario o con el correo** del perfil. Dos usuarios nuevos
+  escribían su correo y quedaban bloqueados tras 5 intentos.
+- El **bloqueo por IP** necesita 20 fallos en 15 minutos (antes 5): desde el 04/10 el
+  sistema ve la IP real y toda una oficina comparte la misma. El bloqueo por cuenta sigue
+  en 5 y cuenta igual si se escribió el usuario o el correo.
+- Manual (Primeros pasos) al día.
+- Despliegue: sin migraciones; reiniciar. Al desplegar se liberan los bloqueos actuales.
+
 ## 2026-10-04
 
-### Antispam: empresas con números (esta rama)
+### Antispam: empresas con números (#106)
 - Una empresa escrita junto con números ("Soluciones360Group", "Servicios2024CR") ya no
   basta para marcar spam: solo suma si hay otra señal (texto sin sentido en el nombre o
   el mensaje, correo desechable o envío demasiado rápido). Esas solicitudes llegan al

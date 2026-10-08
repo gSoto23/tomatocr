@@ -117,15 +117,45 @@ def test_blocked_attempts_do_not_extend_the_lock(db):
     assert db.query(LoginAttempt).filter(LoginAttempt.username == "insiste").count() == 5
 
 
-def test_five_failures_from_one_public_ip_lock_that_ip(db):
+def test_a_shared_office_ip_is_not_locked_by_a_few_typos(db):
+    # A whole office shares one public IP: 5 failures of other people don't lock it.
     make_user(db, "otro", "admin")
-    attacker = "200.1.113.99"
+    office = "200.1.113.99"
     for i in range(5):
-        login(new_client(attacker), f"inexistente{i}", "x")
+        login(new_client(office), f"inexistente{i}", "x")
+    assert login(new_client(office), "otro").headers["location"] == "/dashboard"
 
+
+def test_twenty_failures_from_one_public_ip_lock_that_ip(db):
+    from app.utils.login_throttle import MAX_IP_FAILURES
+    make_user(db, "otro", "admin")
+    attacker = "200.1.113.98"
+    for i in range(MAX_IP_FAILURES):
+        login(new_client(attacker), f"inexistente{i}", "x")
     assert login(new_client(attacker), "otro").headers["location"] == "/?error=too_many_attempts"
     # Another IP is not affected.
     assert login(new_client("200.1.113.100"), "otro").headers["location"] == "/dashboard"
+
+
+def test_login_with_the_email_too(db):
+    user = make_user(db, "melina", "ventas", email="Melina@TomatoCR.com")
+    assert login(new_client(), " melina@tomatocr.com ").headers["location"] == "/dashboard"
+    assert login(new_client(), "melina ").headers["location"] == "/dashboard"
+    assert login(new_client(), "melina@tomatocr.com", "mala").headers["location"] == "/?error=invalid_credentials"
+    assert user.username == "melina"
+
+
+def test_a_shared_email_does_not_log_in(db):
+    make_user(db, "uno", "worker", email="equipo@tomatocr.com")
+    make_user(db, "dos", "worker", email="equipo@tomatocr.com")
+    assert login(new_client(), "equipo@tomatocr.com").headers["location"] == "/?error=invalid_credentials"
+
+
+def test_email_and_username_share_the_failure_count(db):
+    make_user(db, "melina", "ventas", email="melina@tomatocr.com")
+    for typed in ["melina", "melina@tomatocr.com"] * 3:
+        login(new_client("200.1.113.50"), typed, "mala")
+    assert login(new_client("200.1.113.51"), "melina").headers["location"] == "/?error=too_many_attempts"
 
 
 def test_private_ip_is_not_locked(db):

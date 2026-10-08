@@ -16,7 +16,10 @@ from app.db.models.user import User
 
 logger = logging.getLogger(__name__)
 
-MAX_FAILURES = 5
+MAX_FAILURES = 5  # per account
+# Per IP: much higher, because a whole office shares one public IP and one person's typos
+# must not lock everyone out (the real IP is seen since nginx passes it on).
+MAX_IP_FAILURES = 20
 WINDOW = timedelta(minutes=15)
 
 
@@ -86,7 +89,7 @@ def is_locked(db: Session, username: str, ip: Optional[str]) -> bool:
     if _username_failures(db, username, since) >= MAX_FAILURES:
         return True
     ip = trackable_ip(ip)
-    return bool(ip) and _ip_failures(db, ip, since) >= MAX_FAILURES
+    return bool(ip) and _ip_failures(db, ip, since) >= MAX_IP_FAILURES
 
 
 def record_attempt(db: Session, username: str, ip: Optional[str], success: bool) -> None:
@@ -100,9 +103,9 @@ def record_attempt(db: Session, username: str, ip: Optional[str], success: bool)
     since = datetime.utcnow() - WINDOW
     locked = []
     if _username_failures(db, username, since) == MAX_FAILURES:
-        locked.append(f"usuario '{username}'")
-    if ip_tracked and _ip_failures(db, ip_tracked, since) == MAX_FAILURES:
-        locked.append(f"IP {ip_tracked}")
+        locked.append(f"usuario '{username}' ({MAX_FAILURES} intentos)")
+    if ip_tracked and _ip_failures(db, ip_tracked, since) == MAX_IP_FAILURES:
+        locked.append(f"IP {ip_tracked} ({MAX_IP_FAILURES} intentos)")
     if not locked:
         return
 
@@ -112,7 +115,7 @@ def record_attempt(db: Session, username: str, ip: Optional[str], success: bool)
             user_id=user.id if user else None,
             action="LOGIN_BLOCKED",
             entity_type="SISTEMA",
-            details=f"Login bloqueado 15 minutos tras {MAX_FAILURES} intentos fallidos: {', '.join(locked)}.",
+            details=f"Login bloqueado 15 minutos por intentos fallidos: {', '.join(locked)}.",
             ip_address=ip_tracked,
         ))
         db.commit()
