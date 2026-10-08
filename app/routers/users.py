@@ -155,6 +155,7 @@ def create_user(
     user: User = Depends(deps.get_current_user)
 ):
     check_admin(user)
+    username = username.strip()  # a space at either end would make the user impossible to log in with
 
     if role not in ALL_ROLES:
         return error_redirect("/users/new", "Rol no válido")
@@ -243,6 +244,7 @@ def update_user(
     user: User = Depends(deps.get_current_user)
 ):
     check_admin(user)
+    username = username.strip()  # a space at either end would make the user impossible to log in with
 
     if role not in ALL_ROLES:
         return error_redirect(f"/users/{id}/edit", "Rol no válido")

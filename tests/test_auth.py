@@ -117,15 +117,38 @@ def test_blocked_attempts_do_not_extend_the_lock(db):
     assert db.query(LoginAttempt).filter(LoginAttempt.username == "insiste").count() == 5
 
 
-def test_five_failures_from_one_public_ip_lock_that_ip(db):
+def test_a_shared_office_ip_is_not_locked_by_a_few_typos(db):
+    # A whole office shares one public IP: 5 failures of other people don't lock it.
     make_user(db, "otro", "admin")
-    attacker = "200.1.113.99"
+    office = "200.1.113.99"
     for i in range(5):
-        login(new_client(attacker), f"inexistente{i}", "x")
+        login(new_client(office), f"inexistente{i}", "x")
+    assert login(new_client(office), "otro").headers["location"] == "/dashboard"
 
+
+def test_twenty_failures_from_one_public_ip_lock_that_ip(db):
+    from app.utils.login_throttle import MAX_IP_FAILURES
+    make_user(db, "otro", "admin")
+    attacker = "200.1.113.98"
+    for i in range(MAX_IP_FAILURES):
+        login(new_client(attacker), f"inexistente{i}", "x")
     assert login(new_client(attacker), "otro").headers["location"] == "/?error=too_many_attempts"
     # Another IP is not affected.
     assert login(new_client("200.1.113.100"), "otro").headers["location"] == "/dashboard"
+
+
+def test_login_is_with_the_username_not_the_email(db):
+    make_user(db, "melina", "ventas", email="melina@tomatocr.com")
+    assert login(new_client(), "melina@tomatocr.com").headers["location"] == "/?error=invalid_credentials"
+    assert login(new_client(), " melina ").headers["location"] == "/dashboard"  # spaces at the ends don't count
+    assert login(new_client(), "Melina").headers["location"] == "/?error=invalid_credentials"
+
+
+def test_new_user_is_saved_without_spaces(db, admin_client):
+    from app.db.models.user import User
+    client, _ = admin_client
+    client.post("/users/new", data=user_form(username="  nuevo  "), follow_redirects=False)
+    assert db.query(User).filter(User.username == "nuevo").count() == 1
 
 
 def test_private_ip_is_not_locked(db):

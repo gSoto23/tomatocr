@@ -13,6 +13,13 @@ from app.utils import login_throttle
 
 router = APIRouter()
 
+def find_login_user(db: Session, typed: str):
+    """The user for what was typed in "Usuario": the username, letter by letter (a space at
+    either end doesn't count). The e-mail is not a way in."""
+    typed = (typed or "").strip()
+    return db.query(User).filter(User.username == typed).first() if typed else None
+
+
 @router.post("/login")
 def login(
     request: Request,
@@ -24,20 +31,21 @@ def login(
         return RedirectResponse(url="/?error=invalid_credentials", status_code=status.HTTP_303_SEE_OTHER)
 
     client_ip = login_throttle.client_ip(request)
-    if login_throttle.is_locked(db, user, client_ip):
+    db_user = find_login_user(db, user)
+    key = db_user.username if db_user else user.strip()
+    if login_throttle.is_locked(db, key, client_ip):
         return RedirectResponse(url="/?error=too_many_attempts", status_code=status.HTTP_303_SEE_OTHER)
 
     # Authenticate. A wrong password never reveals whether the account exists or is
     # active; only someone who knows the password learns that the user is deactivated.
-    db_user = db.query(User).filter(User.username == user).first()
     if not db_user or not verify_password(pass_, db_user.hashed_password):
-        login_throttle.record_attempt(db, user, client_ip, success=False)
+        login_throttle.record_attempt(db, key, client_ip, success=False)
         return RedirectResponse(url="/?error=invalid_credentials", status_code=status.HTTP_303_SEE_OTHER)
     if not deps.can_log_in(db_user):
-        login_throttle.record_attempt(db, user, client_ip, success=False)
+        login_throttle.record_attempt(db, key, client_ip, success=False)
         return RedirectResponse(url="/?error=inactive", status_code=status.HTTP_303_SEE_OTHER)
 
-    login_throttle.record_attempt(db, user, client_ip, success=True)
+    login_throttle.record_attempt(db, key, client_ip, success=True)
 
     # Create Token
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)

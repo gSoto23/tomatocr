@@ -529,9 +529,13 @@ públicas.
   es obligatorio en el perfil. Mínimo 8 caracteres.
 - **Usuarios inactivos**: si `is_active` es falso o `status` es `inactive` o
   `liquidated`, no pueden entrar y su sesión abierta deja de servir.
+- **Inicio de sesión**: solo con el nombre de usuario (no el correo), letra por
+  letra; los espacios al inicio o al final no cuentan y no se guardan.
 - **Límite de intentos en `/login`**: 5 fallos en 15 minutos bloquean ese
-  usuario (o esa IP pública) por 15 minutos. Los intentos quedan en la tabla
-  `login_attempts` y cada bloqueo en Actividad (`LOGIN_BLOCKED`).
+  usuario y 20 fallos
+  bloquean esa IP pública, por 15 minutos: una oficina comparte la IP y los
+  errores de una persona no deben dejar afuera a todos. Los intentos quedan en
+  la tabla `login_attempts` y cada bloqueo en Actividad (`LOGIN_BLOCKED`).
 - **`/api/quotes/*`** (Cotizador): solo accesible para roles `admin`,
   `client` y `ventas` (igual que la UI en `base_dashboard.html`). El rol
   `client` solo ve y edita las cotizaciones de su propia cuenta.
