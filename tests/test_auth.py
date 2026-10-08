@@ -137,25 +137,18 @@ def test_twenty_failures_from_one_public_ip_lock_that_ip(db):
     assert login(new_client("200.1.113.100"), "otro").headers["location"] == "/dashboard"
 
 
-def test_login_with_the_email_too(db):
-    user = make_user(db, "melina", "ventas", email="Melina@TomatoCR.com")
-    assert login(new_client(), " melina@tomatocr.com ").headers["location"] == "/dashboard"
-    assert login(new_client(), "melina ").headers["location"] == "/dashboard"
-    assert login(new_client(), "melina@tomatocr.com", "mala").headers["location"] == "/?error=invalid_credentials"
-    assert user.username == "melina"
-
-
-def test_a_shared_email_does_not_log_in(db):
-    make_user(db, "uno", "worker", email="equipo@tomatocr.com")
-    make_user(db, "dos", "worker", email="equipo@tomatocr.com")
-    assert login(new_client(), "equipo@tomatocr.com").headers["location"] == "/?error=invalid_credentials"
-
-
-def test_email_and_username_share_the_failure_count(db):
+def test_login_is_with_the_username_not_the_email(db):
     make_user(db, "melina", "ventas", email="melina@tomatocr.com")
-    for typed in ["melina", "melina@tomatocr.com"] * 3:
-        login(new_client("200.1.113.50"), typed, "mala")
-    assert login(new_client("200.1.113.51"), "melina").headers["location"] == "/?error=too_many_attempts"
+    assert login(new_client(), "melina@tomatocr.com").headers["location"] == "/?error=invalid_credentials"
+    assert login(new_client(), " melina ").headers["location"] == "/dashboard"  # spaces at the ends don't count
+    assert login(new_client(), "Melina").headers["location"] == "/?error=invalid_credentials"
+
+
+def test_new_user_is_saved_without_spaces(db, admin_client):
+    from app.db.models.user import User
+    client, _ = admin_client
+    client.post("/users/new", data=user_form(username="  nuevo  "), follow_redirects=False)
+    assert db.query(User).filter(User.username == "nuevo").count() == 1
 
 
 def test_private_ip_is_not_locked(db):

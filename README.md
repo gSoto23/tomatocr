@@ -529,10 +529,10 @@ públicas.
   es obligatorio en el perfil. Mínimo 8 caracteres.
 - **Usuarios inactivos**: si `is_active` es falso o `status` es `inactive` o
   `liquidated`, no pueden entrar y su sesión abierta deja de servir.
-- **Inicio de sesión**: con el usuario o con el correo del perfil (sin importar
-  mayúsculas del correo; si dos usuarios comparten el correo, solo con el usuario).
-- **Límite de intentos en `/login`**: 5 fallos en 15 minutos bloquean esa
-  cuenta (se cuenta igual si se escribió el usuario o el correo) y 20 fallos
+- **Inicio de sesión**: solo con el nombre de usuario (no el correo), letra por
+  letra; los espacios al inicio o al final no cuentan y no se guardan.
+- **Límite de intentos en `/login`**: 5 fallos en 15 minutos bloquean ese
+  usuario y 20 fallos
   bloquean esa IP pública, por 15 minutos: una oficina comparte la IP y los
   errores de una persona no deben dejar afuera a todos. Los intentos quedan en
   la tabla `login_attempts` y cada bloqueo en Actividad (`LOGIN_BLOCKED`).

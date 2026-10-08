@@ -14,18 +14,10 @@ from app.utils import login_throttle
 router = APIRouter()
 
 def find_login_user(db: Session, typed: str):
-    """The user for what was typed in "Usuario": the exact username (a space at either end
-    doesn't count) or, with an @, the profile e-mail without regard to case, when only one
-    user has it."""
+    """The user for what was typed in "Usuario": the username, letter by letter (a space at
+    either end doesn't count). The e-mail is not a way in."""
     typed = (typed or "").strip()
-    if not typed:
-        return None
-    found = db.query(User).filter(User.username == typed).first()
-    if found is None and "@" in typed:
-        from sqlalchemy import func
-        matches = db.query(User).filter(func.lower(User.email) == typed.lower()).limit(2).all()
-        found = matches[0] if len(matches) == 1 else None
-    return found
+    return db.query(User).filter(User.username == typed).first() if typed else None
 
 
 @router.post("/login")
@@ -39,11 +31,8 @@ def login(
         return RedirectResponse(url="/?error=invalid_credentials", status_code=status.HTTP_303_SEE_OTHER)
 
     client_ip = login_throttle.client_ip(request)
-    # The username or the e-mail of the profile: people type their e-mail.
     db_user = find_login_user(db, user)
-    # Failures count per account (whichever way it was typed), so typing the e-mail and the
-    # username in turns doesn't double the attempts.
-    key = db_user.username if db_user else user.strip().lower()
+    key = db_user.username if db_user else user.strip()
     if login_throttle.is_locked(db, key, client_ip):
         return RedirectResponse(url="/?error=too_many_attempts", status_code=status.HTTP_303_SEE_OTHER)
 

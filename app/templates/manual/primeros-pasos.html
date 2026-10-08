@@ -8,7 +8,7 @@
 {% call m.section("entrar", "Entrar y salir") %}
 <p>El acceso está en la página de inicio de <strong>tomatocr.com</strong>, arriba a la derecha.</p>
 {{ m.shot("primeros-pasos/login.webp", "Acceso en la página de inicio", "En la computadora, el acceso se abre desde Ingresar, en la barra de arriba.") }}
-{{ m.steps([(1, "Tocá <strong>Ingresar</strong>, arriba a la derecha: se abre el acceso."), (2, "Escribí tu <strong>usuario o tu correo</strong> (el del perfil)."), (3, "Escribí tu <strong>Contraseña</strong>."), (4, "Tocá <strong>Ingresar</strong>. Entrás al Dashboard.")]) }}
+{{ m.steps([(1, "Tocá <strong>Ingresar</strong>, arriba a la derecha: se abre el acceso."), (2, "Escribí tu <strong>Usuario</strong> (el nombre de usuario que te dio el admin, no tu correo)."), (3, "Escribí tu <strong>Contraseña</strong>."), (4, "Tocá <strong>Ingresar</strong>. Entrás al Dashboard.")]) }}
 <p>En el celular o la tablet, tocá <strong>Ingresar</strong> arriba a la derecha (o el botón de tres rayas): se abre el
     menú y, debajo de las secciones de la página, <strong>Acceso al sistema interno</strong> (1 a 3). Debajo está <strong>¿Olvidaste tu contraseña?</strong> (4).</p>
 {{ m.shot("primeros-pasos/login-celular.webp", "Acceso desde el menú en el celular", "En el celular, el acceso está en el menú ☰.", mobile=True) }}
@@ -73,8 +73,8 @@
 {% call m.section("problemas", "Si no podés entrar") %}
 <div class="space-y-2">
 {% call m.faq("Me sale «Usuario o contraseña incorrectos»") %}
-<p>Podés entrar con tu usuario o con el correo de tu perfil. La contraseña distingue mayúsculas y minúsculas. Si
-    no te acordás, usá <em>¿Olvidaste tu contraseña?</em>.</p>
+<p>Se entra con el <strong>nombre de usuario</strong>, no con el correo. Usuario y contraseña distinguen mayúsculas y
+    minúsculas. Si no te acordás, usá <em>¿Olvidaste tu contraseña?</em> (ahí sí podés escribir tu correo).</p>
 {% endcall %}
 {% call m.faq("Me sale «Tu usuario está desactivado»") %}
 <p>La contraseña es correcta, pero el admin desactivó tu usuario (por ejemplo, al terminar un contrato). Preguntale al admin.</p>
