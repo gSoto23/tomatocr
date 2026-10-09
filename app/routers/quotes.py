@@ -14,7 +14,7 @@ from app.db.models.quote import Quote, QuoteEmail
 from app.routers import deps
 from app.core.roles import ADMIN, CLIENT, QUOTES_ROLES, VENTAS
 from app.utils.activity import log_activity
-from app.utils.crm import CLOSED_STAGES, account_of_client_user, advance_to_proposal
+from app.utils.crm import CLOSED_STAGES, account_of_client_user, advance_to_proposal, opportunity_for_quote
 from app.utils.email import send_quote_email
 from app.utils.quote_pdf import default_email, pdf_filename, quote_pdf
 from app.utils.timecr import CR_OFFSET, now_cr, today_cr
@@ -288,15 +288,25 @@ async def upsert_quote(request: Request, db: Session = Depends(deps.get_db), use
         )
         db.add(quote)
 
+    if opportunity is None and quote.opportunity_id and quote.account_id == account_id:
+        # Edited without saying which opportunity (an old tab): it keeps the one it had.
+        opportunity = db.get(Opportunity, quote.opportunity_id)
     quote.account_id = account_id
+    created_opportunity = None
     if user.role != CLIENT:
         quote.opportunity_id = opportunity.id if opportunity else None
+        if opportunity is None:
+            # Made straight in the Cotizador: it gets its opportunity, so it shows in Clientes.
+            db.flush()
+            created_opportunity = opportunity_for_quote(db, quote, account, user)
     if opportunity is not None:
         advance_to_proposal(db, opportunity, user)
     db.commit()
     return {"status": "success", "id": quote.id, "numero_cotizacion": quote.numero_cotizacion,
             "renumbered_from": renumbered_from, "account_id": quote.account_id,
-            "opportunity_id": quote.opportunity_id}
+            "opportunity_id": quote.opportunity_id,
+            "opportunity_title": (created_opportunity or opportunity).title if (created_opportunity or opportunity) else None,
+            "opportunity_created": created_opportunity is not None}
 
 
 

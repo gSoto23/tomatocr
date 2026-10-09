@@ -41,7 +41,7 @@
 {{ m.shot("clientes/cuenta.webp", "Ficha de una cuenta", "La ficha de una cuenta.") }}
 {{ m.steps([
     (1, "<strong>Registrar seguimiento</strong>: cada llamada, correo, WhatsApp, visita o reunión."),
-    (2, "Las pestañas: <strong>Seguimientos</strong>, <strong>Contactos</strong>, <strong>Oportunidades</strong>, <strong>Cotizaciones</strong> y <strong>Proyectos</strong> de la cuenta."),
+    (2, "Las pestañas: <strong>Seguimientos</strong>, <strong>Contactos</strong>, <strong>Oportunidades</strong>, <strong>Cotizaciones</strong> y <strong>Proyectos</strong> de la cuenta. En <em>Cotizaciones</em>, una cotización sin oportunidad (de antes de octubre 2026) tiene el botón <strong>Crear oportunidad</strong>: la crea en <em>Propuesta</em> y la liga."),
     (3, "El <strong>estado</strong> (Oportunidad, Cliente o Ex-cliente) se calcula solo según sus proyectos. <em>Descartar</em> es lo único manual: ver Descartar y borrar."),
 ]) }}
 {% endcall %}
@@ -158,6 +158,10 @@
 
 {% call m.section("preguntas", "Preguntas frecuentes") %}
 <div class="space-y-2">
+{% call m.faq("Hice una cotización y no aparece en Oportunidades") %}
+<p>Desde octubre 2026 toda cotización guardada en el Cotizador crea su oportunidad. Las anteriores no la tienen: abrí la
+    cuenta, pestaña <em>Cotizaciones</em>, y tocá <strong>Crear oportunidad</strong> en la cotización.</p>
+{% endcall %}
 {% call m.faq("Una oportunidad no aparece en mis próximos pasos") %}
 <p>Solo aparecen las oportunidades abiertas que son tuyas y tienen fecha de próximo paso. Ponele fecha.</p>
 {% endcall %}

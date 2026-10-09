@@ -681,6 +681,33 @@ def advance_to_proposal(db: Session, opportunity: Opportunity, user: User):
         change_stage(db, opportunity, "propuesta", user)
 
 
+def opportunity_for_quote(db: Session, quote: Quote, account: Account, user: User) -> Opportunity:
+    """A quote saved in the Cotizador without an opportunity gets one, already in Propuesta, so
+    it shows up in Clientes (Filtro, next steps, coverage). New business for an account that is
+    not a client yet; an extension (ampliación) for a current or past client."""
+    from app.utils.quote_pdf import business_days_after
+    from app.utils.timecr import today_cr
+    service = (quote.tipo_servicio or "").strip()
+    status = account_status(db, account)
+    opportunity = Opportunity(
+        account_id=account.id, title=f"{service or 'Cotización'} · {quote.numero_cotizacion}"[:200],
+        kind="ampliacion" if status in ("cliente", "ex_cliente") else "nuevo",
+        stage="propuesta", max_stage=stage_index("propuesta"), owner_id=account.owner_id or user.id,
+        created_by_id=user.id, source="cotizador",
+        next_step=f"Dar seguimiento a la cotización {quote.numero_cotizacion}",
+        next_step_date=business_days_after(today_cr(), 3),
+        origin="cliente_actual" if status in ("cliente", "ex_cliente") else None,
+    )  # No amount_crc: while a quote is linked, the amount comes from the quote.
+    db.add(opportunity)
+    db.flush()
+    quote.opportunity_id = opportunity.id
+    db.add(CrmActivity(account_id=account.id, opportunity_id=opportunity.id, type="nota", happened_at=datetime.utcnow(),
+                       user_id=user.id, notes=f"Oportunidad creada al guardar la cotización {quote.numero_cotizacion}"))
+    db.add(ActivityLog(user_id=user.id, action="CREATE", entity_type="OPPORTUNITY", entity_id=opportunity.id,
+                       details=f"{opportunity.title} ({account.name}), desde el Cotizador"))
+    return opportunity
+
+
 def win_opportunity(db: Session, opportunity: Opportunity, project: Project, user: User):
     """Marks the opportunity as won and links it with its project (same account)."""
     if project.account_id not in (None, opportunity.account_id):

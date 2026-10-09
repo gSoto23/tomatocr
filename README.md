@@ -212,7 +212,12 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
   el rol cliente escribe el nombre como antes, su cotización queda en su
   cuenta y **solo ve sus propias cotizaciones**. "Crear cotización" desde una
   oportunidad abre el cotizador ya ligado, y al guardar la oportunidad pasa a
-  "propuesta".
+  "propuesta". Una cotización guardada **sin oportunidad** crea una sola en
+  "propuesta" (título "Servicio · número", dueño el de la cuenta, `kind`
+  ampliación si la cuenta es cliente o ex-cliente, próximo paso a 3 días
+  hábiles); las viejas sin oportunidad tienen **Crear oportunidad** en la
+  pestaña Cotizaciones de la cuenta
+  (`POST /clientes/cuentas/{id}/cotizaciones/{quote_id}/oportunidad`).
 - **Marcar ganada** (admin): crea el proyecto desde la oportunidad o liga uno
   existente de la misma cuenta.
 - **Contratos por vencer** (en el Filtro): contratos de Presupuestos que

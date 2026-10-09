@@ -121,12 +121,17 @@ async function saveToSQL() {
     const saved = await response.json();
     state.quoteId = saved.id;
     state.quoteNumber = saved.numero_cotizacion || state.quoteNumber;
+    if (saved.opportunity_id) {
+      state.opportunityId = saved.opportunity_id;
+      state.opportunityTitle = saved.opportunity_title || state.opportunityTitle;
+      $("opportunityBadge").textContent = `Oportunidad: ${state.opportunityTitle || "#" + state.opportunityId}`;
+    }
     $("quoteNumberPill").textContent = state.quoteNumber;
     markSaved();
     if (saved.renumbered_from) {
       showToast(`El número ${saved.renumbered_from} ya lo había usado otra cotización: esta se guardó como ${state.quoteNumber}.`, "success");
     } else {
-      showToast("Guardada: " + state.quoteNumber, "success");
+      showToast("Guardada: " + state.quoteNumber + (saved.opportunity_created ? " · se creó la oportunidad en Clientes" : ""), "success");
     }
     renderRecent();
   }
