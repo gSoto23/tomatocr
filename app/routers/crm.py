@@ -24,7 +24,7 @@ from app.utils.crm import (account_payload, account_status, active_accounts, ano
                            can_edit_opportunity, delete_account, delete_blockers, discard_account, reactivate_account,
                            change_stage, claim_if_unowned, create_renewal, dismiss_duplicate, expiring_contracts,
                            filter_opportunities, find_duplicates, funnel, funnel_period, last_followups, merge_accounts,
-                           money_progress, next_steps, set_funnel_period,
+                           money_progress, next_steps, opportunity_for_quote, set_funnel_period,
                            proposal_amounts, quote_amount, rename_account_projects, search_accounts, set_goals,
                            similar_accounts, win_opportunity)
 from app.utils.reforestation import parse_date
@@ -465,6 +465,22 @@ def create_opportunity(account_id: int, title: str = Form(...), motor: Optional[
     db.commit()
     log_activity(db, user, "CREATE", "OPPORTUNITY", opportunity.id, f"{opportunity.title} ({account.name})")
     return toast_redirect(f"/clientes/oportunidades/{opportunity.id}", "Oportunidad creada")
+
+
+@router.post("/cuentas/{account_id}/cotizaciones/{quote_id}/oportunidad")
+def opportunity_from_quote(account_id: int, quote_id: int, db: Session = Depends(deps.get_db),
+                           user: User = Depends(view_roles)):
+    """A quote saved before the Cotizador created opportunities gets its own, in Propuesta."""
+    account = editable_account(db, account_id, user)
+    quote = db.query(Quote).filter(Quote.id == quote_id, Quote.account_id == account.id).first()
+    if quote is None:
+        raise HTTPException(status_code=404, detail="Cotización no encontrada")
+    if quote.opportunity_id:
+        return toast_redirect(f"/clientes/oportunidades/{quote.opportunity_id}", "La cotización ya tiene oportunidad")
+    claim_if_unowned(account, user)
+    opportunity = opportunity_for_quote(db, quote, account, user)
+    db.commit()
+    return toast_redirect(f"/clientes/oportunidades/{opportunity.id}", "Oportunidad creada en Propuesta")
 
 
 @router.get("/oportunidades/{opportunity_id}")

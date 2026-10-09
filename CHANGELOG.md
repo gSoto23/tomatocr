@@ -4,9 +4,24 @@ Cambios en el sistema y en el sitio público, del más reciente al más antiguo.
 Cada entrada indica el PR y si necesitó migración o pasos especiales al
 desplegar. Hora de Costa Rica salvo que diga UTC.
 
+## 2026-10-09
+
+### Cotizaciones siempre en Oportunidades y enlaces de Dinero (esta rama)
+- Una cotización guardada en el Cotizador **sin oportunidad** crea una en *Propuesta*
+  ("Servicio · número", a nombre del vendedor de la cuenta, próximo paso "Dar seguimiento
+  a la cotización" a 3 días hábiles, ampliación si la cuenta ya es cliente). El aviso de
+  guardado lo dice. Antes quedaba solo en la pestaña Cotizaciones y no aparecía en el Filtro.
+- En la cuenta, pestaña **Cotizaciones**: botón **Crear oportunidad** para las que no
+  tienen (las de antes de este cambio) y enlace *Ver oportunidad* para las que sí.
+- Dashboard, **Dinero**: los cuadros *Por cobrar*, *Vencido* y *Por facturar* llevaban a
+  una página inexistente (`/dashboard/"/dashboard?…"`); ahora van a las facturas, a las
+  vencidas y a Presupuestos.
+- Manual (Cotizador, Clientes, Dashboard) al día.
+- Despliegue: sin migraciones; reiniciar.
+
 ## 2026-10-07
 
-### Empleados: supervisor que "También vende" (esta rama)
+### Empleados: supervisor que "También vende" (#108)
 - Casilla **También vende** en el perfil de un supervisor: además de todo lo de
   supervisor, ve **Clientes** y el **Cotizador** como un vendedor (cuentas y oportunidades
   a su nombre, asignación de prospectos, cotizar y enviar cotizaciones).

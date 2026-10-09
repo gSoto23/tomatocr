@@ -106,15 +106,16 @@
 <section class="mb-6" aria-labelledby="dinero">
     <h2 id="dinero" class="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">Dinero</h2>
     {% macro money(label, value, hint, color='text-gray-900', url=None) %}
-    <{{ 'a href="' ~ url ~ '"' if url else 'div' }} class="block rounded-xl border border-gray-200 bg-white p-4 shadow-sm {{ 'hover:border-gray-400' if url }}">
+    {% set box = 'block rounded-xl border border-gray-200 bg-white p-4 shadow-sm' %}
+    {% if url %}<a href="{{ url }}" class="{{ box }} hover:border-gray-400">{% else %}<div class="{{ box }}">{% endif %}
         <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ label }}</p>
         <p class="mt-1 text-xl font-bold {{ color }}">{{ value | crc }}</p>
         <p class="mt-1 text-xs text-gray-500">{{ hint }}</p>
-    </{{ 'a' if url else 'div' }}>
+    {% if url %}</a>{% else %}</div>{% endif %}
     {% endmacro %}
     <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {{ money("Por cobrar", ov.money.receivable, "Facturado que falta pagar", url="#facturas") }}
-        {{ money("Vencido", ov.money.overdue, ("1 factura con la fecha pasada" if ov.counts.overdue == 1 else ov.counts.overdue ~ " facturas con la fecha pasada"), "text-red-600" if ov.money.overdue else "text-gray-900", "/dashboard?invoice_status=vencida") }}
+        {{ money("Vencido", ov.money.overdue, ("1 factura con la fecha pasada" if ov.counts.overdue == 1 else ov.counts.overdue ~ " facturas con la fecha pasada"), "text-red-600" if ov.money.overdue else "text-gray-900", "/dashboard?invoice_status=vencida#facturas") }}
         {{ money("Facturado este mes", ov.money.invoiced_month, "Facturas emitidas desde el día 1") }}
         {{ money("Por facturar", ov.money.to_invoice, "Adjudicado que falta facturar", url="/finance") }}
     </div>

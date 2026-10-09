@@ -225,7 +225,17 @@
             <li class="flex justify-between gap-2 py-3">
                 <div><span class="font-semibold text-gray-900">{{ q.numero_cotizacion }}</span> · {{ q.fecha_emision|format_date }}
                     <div class="text-gray-600">{{ q.tipo_servicio or '' }}</div></div>
-                <div class="text-right">{{ (q.moneda or 'CRC') }} {{ '{:,.2f}'.format(q.total or 0) }}</div>
+                <div class="text-right">{{ (q.moneda or 'CRC') }} {{ '{:,.2f}'.format(q.total or 0) }}
+                    {% if q.opportunity_id %}
+                    <a href="/clientes/oportunidades/{{ q.opportunity_id }}" class="block text-xs text-blue-700 hover:underline">Ver oportunidad</a>
+                    {% elif can_edit %}
+                    <form method="post" action="/clientes/cuentas/{{ account.id }}/cotizaciones/{{ q.id }}/oportunidad" class="mt-1">
+                        <button class="rounded-md border border-gray-300 px-2 py-1 text-xs font-semibold text-gray-800 hover:bg-gray-50">Crear oportunidad</button>
+                    </form>
+                    {% else %}
+                    <span class="block text-xs text-gray-500">Sin oportunidad</span>
+                    {% endif %}
+                </div>
             </li>
             {% else %}
             <li class="py-2 text-gray-500 italic">Sin cotizaciones.</li>
