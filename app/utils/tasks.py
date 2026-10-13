@@ -7,7 +7,7 @@ from typing import Dict, List, Optional, Tuple
 from sqlalchemy.orm import Session
 
 from app.core.roles import ADMIN, CLIENT, SUPERVISOR
-from app.db.models.task import PRIORITIES, AlertAck, Task
+from app.db.models.task import PRIORITIES, AlertAck, Task, TaskAssignee
 from app.db.models.user import User
 from app.utils.admin_overview import Alert
 from app.utils.timecr import CR_OFFSET
@@ -68,17 +68,24 @@ def assignable_users(db: Session, user: User) -> List[User]:
     """Admin and supervisor can give a task to any active member of the team; the rest, to themselves."""
     if user.role not in ASSIGNERS:
         return [user]
-    return db.query(User).filter(User.is_active == True, User.role != CLIENT).order_by(  # noqa: E712
+    team = db.query(User).filter(User.is_active == True, User.role != CLIENT).order_by(  # noqa: E712
         User.full_name, User.username).all()
+    return sorted(team, key=lambda u: u.id != user.id)  # "Mí" first
 
 
 def can_manage(user: User, task: Task) -> bool:
-    return user.role == ADMIN or user.id in (task.assignee_id, task.created_by_id)
+    """Edit or delete: admin, whoever created it, or its only person (a task shared by several
+    is changed only by who assigned it)."""
+    if user.role == ADMIN or user.id == task.created_by_id:
+        return True
+    return [a.user_id for a in task.assignees] == [user.id]
 
 
 def parse_task_form(db: Session, user: User, title: str, due_date: str, priority: Optional[str],
-                    description: Optional[str], assignee_id: Optional[str]) -> Dict:
-    """The fields of a task, checked. Raises ValueError with a message for the person."""
+                    description: Optional[str], assignee_ids: Optional[List[str]], current: List[int] = ()) -> Dict:
+    """The fields of a task, checked. assignee_ids None means the form had no "Para" (keep who
+    it has, or the person themselves for a new one); current: who the task already has, who can
+    stay even if no longer assignable (deactivated). Raises ValueError with a message."""
     title = (title or "").strip()
     if not title:
         raise ValueError("Escribí qué hay que hacer")
@@ -86,14 +93,34 @@ def parse_task_form(db: Session, user: User, title: str, due_date: str, priority
         due = date.fromisoformat((due_date or "").strip())
     except ValueError:
         raise ValueError("Elegí la fecha de la tarea")
-    assignee = user
-    if (assignee_id or "").strip().isdigit() and int(assignee_id) != user.id:
-        allowed = {u.id: u for u in assignable_users(db, user)}
-        assignee = allowed.get(int(assignee_id))
-        if assignee is None:
+    fields = {"title": title[:200], "due_date": due, "priority": priority if priority in PRIORITIES else "normal",
+              "description": (description or "").strip() or None}
+    if assignee_ids is not None:
+        ids = list(dict.fromkeys(int(i) for i in assignee_ids if str(i).strip().isdigit()))
+        if not ids:
+            raise ValueError("Elegí al menos una persona para la tarea")
+        allowed = {u.id for u in assignable_users(db, user)} | set(current)
+        if any(i not in allowed for i in ids):
             raise ValueError("No podés asignarle tareas a esa persona")
-    return {"title": title[:200], "due_date": due, "priority": priority if priority in PRIORITIES else "normal",
-            "description": (description or "").strip() or None, "assignee_id": assignee.id}
+        fields["assignee_ids"] = ids
+    return fields
+
+
+def set_assignees(task: Task, user_ids: List[int]):
+    """Who has to do it. Who stays keeps their done mark; who is removed loses it."""
+    keep = set(user_ids)
+    for part in list(task.assignees):
+        if part.user_id not in keep:
+            task.assignees.remove(part)
+    have = {a.user_id for a in task.assignees}
+    for user_id in user_ids:
+        if user_id not in have:
+            task.assignees.append(TaskAssignee(user_id=user_id))
+
+
+def names(task: Task, user: User) -> str:
+    """The people of a task, with "vos" for the one looking."""
+    return ", ".join("vos" if a.user_id == user.id else (a.user.full_name or a.user.username) for a in task.assignees)
 
 
 def _order(tasks: List[Task]) -> List[Task]:
@@ -101,17 +128,27 @@ def _order(tasks: List[Task]) -> List[Task]:
 
 
 def my_tasks(db: Session, user: User, today: date) -> Dict[str, List[Task]]:
-    """today: due today or late (late first); upcoming: the next 7 days; done: done today;
-    assigned: open tasks this person gave to someone else."""
-    open_tasks = db.query(Task).filter(Task.assignee_id == user.id, Task.done_at.is_(None),
-                                       Task.due_date <= today + timedelta(days=UPCOMING_DAYS)).all()
+    """today: due today or late (late first); upcoming: the next 7 days; done: the ones this
+    person marked done today; assigned: tasks this person gave to others (without being one of
+    them) that not everybody finished. Each task carries `mine`, this person's part."""
+    mine = Task.assignees.any(TaskAssignee.user_id == user.id)
     start_of_day = datetime.combine(today, datetime.min.time()) + CR_OFFSET  # Costa Rica midnight, in UTC
-    done = db.query(Task).filter(Task.assignee_id == user.id, Task.done_at >= start_of_day).all()
-    assigned = db.query(Task).filter(Task.created_by_id == user.id, Task.assignee_id != user.id,
-                                     Task.done_at.is_(None)).all()
+    parts = db.query(TaskAssignee).join(Task).filter(
+        TaskAssignee.user_id == user.id,
+        ((TaskAssignee.done_at.is_(None)) & (Task.due_date <= today + timedelta(days=UPCOMING_DAYS)))
+        | (TaskAssignee.done_at >= start_of_day)).all()
+    for part in parts:
+        part.task.mine = part
+    open_tasks = [p.task for p in parts if p.done_at is None]
+    assigned = [t for t in db.query(Task).filter(Task.created_by_id == user.id, ~mine)
+                if t.done_count < len(t.assignees)]
+    for task in assigned:
+        task.mine = None
+    for task in open_tasks + assigned + [p.task for p in parts if p.done_at]:
+        task.can_edit = can_manage(user, task)
     return {
         "today": _order([t for t in open_tasks if t.due_date <= today]),
         "upcoming": _order([t for t in open_tasks if t.due_date > today]),
-        "done": sorted(done, key=lambda t: t.done_at, reverse=True),
+        "done": sorted([p.task for p in parts if p.done_at], key=lambda t: t.mine.done_at, reverse=True),
         "assigned": _order(assigned),
     }

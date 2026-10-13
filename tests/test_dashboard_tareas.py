@@ -13,10 +13,17 @@ from app.utils.timecr import today_cr
 TODAY = today_cr()
 
 
-def add_task(client, **fields):
+def add_task(client, people=None, **fields):
+    """people: the ids ticked in "Para" (only who can assign has that field)."""
     data = {"title": "Llamar al vivero", "due_date": TODAY.isoformat(), "priority": "normal"}
+    if people is not None:
+        data.update(assignees_sent="1", assignee_ids=[str(i) for i in people])
     data.update(fields)
     return client.post("/dashboard/tareas", data=data, follow_redirects=False)
+
+
+def people_of(task):
+    return [a.user_id for a in task.assignees]
 
 
 # --- Tareas ----------------------------------------------------------------------
@@ -28,7 +35,7 @@ def test_a_task_needs_a_title_and_a_date(db, login_as):
     assert db.query(Task).count() == 0
     assert add_task(client).status_code == 303
     task = db.query(Task).one()
-    assert task.assignee_id == task.created_by_id and task.priority == "normal"
+    assert people_of(task) == [task.created_by_id] and task.priority == "normal"
 
 
 def test_today_shows_late_and_today_tasks_first(db, login_as, users):
@@ -50,12 +57,12 @@ def test_done_moves_to_done_today_and_back(db, login_as):
     add_task(client)
     task = db.query(Task).one()
     client.post(f"/dashboard/tareas/{task.id}/hecha")
-    db.refresh(task)
-    assert task.done_at is not None
+    db.refresh(task.assignees[0])
+    assert task.assignees[0].done_at is not None
     assert "Hechas hoy (1)" in client.get("/dashboard/").text
     client.post(f"/dashboard/tareas/{task.id}/hecha")
-    db.refresh(task)
-    assert task.done_at is None
+    db.refresh(task.assignees[0])
+    assert task.assignees[0].done_at is None
 
 
 def test_edit_and_delete_only_by_the_owner(db, login_as):
@@ -72,16 +79,16 @@ def test_edit_and_delete_only_by_the_owner(db, login_as):
 
 
 def test_admin_and_supervisor_assign_tasks_the_rest_cannot(db, login_as, users):
-    add_task(login_as("supervisor"), title="Revisar la motoguadaña", assignee_id=users["worker"].id)
+    add_task(login_as("supervisor"), [users["worker"].id], title="Revisar la motoguadaña")
     task = db.query(Task).one()
-    assert task.assignee_id == users["worker"].id and task.created_by_id == users["supervisor"].id
+    assert people_of(task) == [users["worker"].id] and task.created_by_id == users["supervisor"].id
     worker_page = login_as("worker").get("/dashboard/").text
     assert "Revisar la motoguadaña" in worker_page and "te la asignó" in worker_page
     assert "Que asigné a otros (1)" in login_as("supervisor").get("/dashboard/").text
-    add_task(login_as("worker"), title="Para el admin", assignee_id=users["admin"].id)
+    add_task(login_as("worker"), [users["admin"].id], title="Para el admin")
     assert db.query(Task).filter(Task.title == "Para el admin").count() == 0
-    assert 'name="assignee_id"' not in worker_page
-    assert add_task(login_as("admin"), title="Para cliente", assignee_id=users["client"].id).status_code == 303
+    assert 'name="assignee_ids"' not in worker_page
+    assert add_task(login_as("admin"), [users["client"].id], title="Para cliente").status_code == 303
     assert db.query(Task).filter(Task.title == "Para cliente").count() == 0
 
 

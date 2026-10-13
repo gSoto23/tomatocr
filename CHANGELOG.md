@@ -4,9 +4,21 @@ Cambios en el sistema y en el sitio público, del más reciente al más antiguo.
 Cada entrada indica el PR y si necesitó migración o pasos especiales al
 desplegar. Hora de Costa Rica salvo que diga UTC.
 
+## 2026-10-13
+
+### Dashboard: una tarea para varias personas (esta rama)
+- En **+ Tarea**, admin y supervisor marcan en **Para** una o varias personas. Es una sola
+  tarea: cada persona la marca hecha por su lado, se ve quién ya la hizo (✓) y cuántas van
+  ("1 de 3 hecha"); en *Que asigné a otros* sigue hasta que todos terminan.
+- Una tarea de varias personas solo la edita o borra quien la asignó (y el admin); al
+  quitar a alguien deja de verla y quien sigue conserva su marca.
+- Manual (Dashboard) y capturas al día.
+- Despliegue: **migración 0018** (`task_assignees`; las tareas actuales pasan con su
+  persona y su marca de hecha). Snapshot, `alembic upgrade head` y reiniciar.
+
 ## 2026-10-09
 
-### Cotizaciones siempre en Oportunidades y enlaces de Dinero (esta rama)
+### Cotizaciones siempre en Oportunidades y enlaces de Dinero (#109)
 - Una cotización guardada en el Cotizador **sin oportunidad** crea una en *Propuesta*
   ("Servicio · número", a nombre del vendedor de la cuenta, próximo paso "Dar seguimiento
   a la cotización" a 3 días hábiles, ampliación si la cuenta ya es cliente). El aviso de

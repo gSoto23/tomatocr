@@ -72,31 +72,62 @@
 <label class="block"><span class="text-xs font-medium text-gray-700">Prioridad</span>
     <select name="priority" class="{{ input }}">{% for p in priorities %}<option value="{{ p }}" {% if (t.priority if t else 'normal') == p %}selected{% endif %}>{{ priority_labels[p] }}</option>{% endfor %}</select></label>
 {% if data.assignable|length > 1 %}
-<label class="block sm:col-span-2"><span class="text-xs font-medium text-gray-700">Para</span>
-    <select name="assignee_id" class="{{ input }}">{% for u in data.assignable %}<option value="{{ u.id }}" {% if (t.assignee_id if t else user.id) == u.id %}selected{% endif %}>{{ 'Mí' if u.id == user.id else (u.full_name or u.username) }}</option>{% endfor %}</select></label>
+{% set chosen = t.assignees|map(attribute='user_id')|list if t else [user.id] %}
+{% set listed = data.assignable|map(attribute='id')|list %}
+<fieldset class="sm:col-span-2" x-data="{ q: '' }">
+    <legend class="text-xs font-medium text-gray-700">Para (podés marcar varias personas; cada una la marca hecha por su lado)</legend>
+    <input type="hidden" name="assignees_sent" value="1">
+    {% if data.assignable|length > 8 %}<input type="search" x-model="q" placeholder="Buscar persona" class="{{ input }}">{% endif %}
+    <div class="mt-1 grid max-h-40 gap-1 overflow-y-auto rounded-md border border-gray-300 bg-white p-2 sm:grid-cols-2">
+        {% for u in data.assignable %}{% set label = 'Mí' if u.id == user.id else (u.full_name or u.username) %}
+        <label class="flex items-center gap-2 text-sm" x-show="!q || {{ label|lower|tojson|forceescape }}.includes(q.toLowerCase())">
+            <input type="checkbox" name="assignee_ids" value="{{ u.id }}" {% if u.id in chosen %}checked{% endif %} class="rounded border-gray-300">{{ label }}</label>
+        {% endfor %}
+        {% for a in (t.assignees if t else []) if a.user_id not in listed %}
+        <label class="flex items-center gap-2 text-sm text-gray-500">
+            <input type="checkbox" name="assignee_ids" value="{{ a.user_id }}" checked class="rounded border-gray-300">{{ a.user.full_name or a.user.username }} (inactivo)</label>
+        {% endfor %}
+    </div>
+</fieldset>
 {% endif %}
 <label class="block sm:col-span-2"><span class="text-xs font-medium text-gray-700">Descripción o enlace</span>
     <textarea name="description" rows="2" placeholder="Detalles; los enlaces (https://…) se pueden abrir desde la tarea" class="{{ input }}">{{ (t.description or '') if t else '' }}</textarea></label>
 {% endmacro %}
 
+{% macro people(parts) %}{% for a in parts %}{{ a.user.full_name or a.user.username }}{{ ', ' if not loop.last }}{% endfor %}{% endmacro %}
+
 {% macro task_item(t, data, priorities, priority_labels, user) %}
-{% set late = t.due_date < data.today and not t.done_at %}
+{% set done = t.mine and t.mine.done_at %}
+{% set late = t.due_date < data.today and not done %}
+{% set others = t.assignees|rejectattr('user_id', 'equalto', user.id)|list %}
 <li class="py-3" x-data="{ edit: false, more: false }">
     <div class="flex items-start gap-3">
+        {% if t.mine %}
         <form method="post" action="/dashboard/tareas/{{ t.id }}/hecha" class="pt-0.5">
-            <button class="flex h-5 w-5 items-center justify-center rounded border {{ 'border-green-600 bg-green-600 text-white' if t.done_at else 'border-gray-400 bg-white hover:border-black' }}"
-                    aria-label="{{ 'Marcar pendiente' if t.done_at else 'Marcar hecha' }}: {{ t.title }}">{% if t.done_at %}<span class="text-xs">✓</span>{% endif %}</button>
+            <button class="flex h-5 w-5 items-center justify-center rounded border {{ 'border-green-600 bg-green-600 text-white' if done else 'border-gray-400 bg-white hover:border-black' }}"
+                    aria-label="{{ 'Marcar pendiente' if done else 'Marcar hecha' }}: {{ t.title }}">{% if done %}<span class="text-xs">✓</span>{% endif %}</button>
         </form>
+        {% else %}
+        <span class="mt-0.5 flex h-5 min-w-5 items-center justify-center rounded border border-dashed border-gray-300 px-1 text-[10px] font-semibold text-gray-500" title="Hechas">{{ t.done_count }}/{{ t.assignees|length }}</span>
+        {% endif %}
         <div class="min-w-0 flex-1">
             <div class="flex flex-wrap items-center gap-2">
-                <button type="button" @click="more = !more" class="text-left text-sm font-semibold {{ 'text-gray-400 line-through' if t.done_at else 'text-gray-900' }}">{{ t.title }}</button>
+                <button type="button" @click="more = !more" class="text-left text-sm font-semibold {{ 'text-gray-400 line-through' if done else 'text-gray-900' }}">{{ t.title }}</button>
                 {% if t.priority != 'normal' %}<span class="rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset {{ priority_style[t.priority] }}">{{ priority_labels[t.priority] }}</span>{% endif %}
             </div>
             <p class="text-xs {{ 'font-semibold text-red-700' if late else 'text-gray-500' }}">
                 {% if late %}Atrasada · {{ t.due_date|format_date }}{% elif t.due_date == data.today %}Hoy{% else %}{{ long_date(t.due_date)|capitalize }}{% endif %}
-                {% if t.assignee_id != user.id %} · para {{ t.assignee.full_name or t.assignee.username }}{% elif t.created_by_id and t.created_by_id != user.id %} · te la asignó {{ t.created_by.full_name or t.created_by.username }}{% endif %}
+                {% if not t.mine %} · para {{ people(t.assignees) }}{% elif others %} · con {{ people(others) }}{% endif %}
+                {% if t.assignees|length > 1 %} · {{ t.done_count }} de {{ t.assignees|length }} hecha{{ 's' if t.done_count != 1 }}{% endif %}
+                {% if t.mine and t.created_by_id and t.created_by_id != user.id %} · te la asignó {{ t.created_by.full_name or t.created_by.username }}{% endif %}
             </p>
             {% if t.description %}<p class="mt-1 whitespace-pre-line break-words text-sm text-gray-600" :class="more ? '' : 'line-clamp-2'">{{ t.description|linkify }}</p>{% endif %}
+            {% if t.assignees|length > 1 %}
+            <p class="mt-1 flex flex-wrap gap-1 text-xs">{% for a in t.assignees %}
+                <span class="rounded-full px-2 py-0.5 ring-1 ring-inset {{ 'bg-green-50 text-green-700 ring-green-600/20' if a.done_at else 'bg-white text-gray-600 ring-gray-300' }}">{{ '✓ ' if a.done_at }}{{ 'Vos' if a.user_id == user.id else (a.user.full_name or a.user.username) }}</span>
+            {% endfor %}</p>
+            {% endif %}
+            {% if t.can_edit %}
             <button type="button" @click="edit = !edit" class="mt-1 text-xs font-semibold text-gray-500 hover:text-black">Editar</button>
             <div x-show="edit" x-cloak class="mt-2 rounded-lg border border-gray-200 bg-gray-50 p-3">
                 <form method="post" action="/dashboard/tareas/{{ t.id }}/editar" class="grid gap-2 sm:grid-cols-2">
@@ -107,9 +138,10 @@
                     </div>
                 </form>
                 <form method="post" action="/dashboard/tareas/{{ t.id }}/borrar" class="mt-2" onsubmit="return confirm('¿Borrar la tarea?')">
-                    <button class="text-xs font-semibold text-red-700 hover:underline">Borrar tarea</button>
+                    <button class="text-xs font-semibold text-red-700 hover:underline">Borrar tarea{{ ' (para todos)' if t.assignees|length > 1 }}</button>
                 </form>
             </div>
+            {% endif %}
         </div>
     </div>
 </li>

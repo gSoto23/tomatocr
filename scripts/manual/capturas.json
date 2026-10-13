@@ -256,7 +256,7 @@
    "name": "dashboard/tareas",
    "path": "/dashboard",
    "as": "admin",
-   "height": 1300,
+   "height": 1500,
    "before": [
     "document.querySelector('section[aria-labelledby=hoy] button').click()",
     "await new Promise(r => setTimeout(r, 300))"
@@ -281,8 +281,9 @@
     },
     {
      "n": 4,
-     "text": "Para",
-     "tags": "span"
+     "text": "Para (podés marcar",
+     "tags": "legend",
+     "exact": false
     },
     {
      "n": 5,
