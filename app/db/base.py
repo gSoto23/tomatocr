@@ -19,4 +19,4 @@ from app.db.models.liquidation import Liquidation
 from app.db.models.quote import Quote, QuoteEmail
 from app.db.models.reforestation import ReforestationProject, ReforestationTree, TreeCheck, TreeCheckPhoto
 from app.db.models.crm import Account, Contact, Opportunity, CrmActivity, AccountNotDuplicate, ProjectContactRole, CrmGoal, CrmAssignment, CrmSetting, LeadSubmission
-from app.db.models.task import Task, AlertAck
+from app.db.models.task import Task, TaskAssignee, AlertAck

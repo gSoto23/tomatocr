@@ -20,15 +20,36 @@ class Task(Base):
     description = Column(Text, nullable=True)
     due_date = Column(Date, nullable=False, index=True)
     priority = Column(String(10), nullable=False, default="normal", server_default="normal")
-    # Who has to do it. Admin and supervisor can assign tasks to someone else.
-    assignee_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     created_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    done_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    assignee = relationship("User", foreign_keys=[assignee_id])
+    # Who has to do it: one or more people (admin and supervisor can assign to others).
+    assignees = relationship("TaskAssignee", back_populates="task", cascade="all, delete-orphan",
+                             order_by="TaskAssignee.id")
     created_by = relationship("User", foreign_keys=[created_by_id])
+
+    def part_of(self, user_id: int):
+        return next((a for a in self.assignees if a.user_id == user_id), None)
+
+    @property
+    def done_count(self) -> int:
+        return sum(1 for a in self.assignees if a.done_at)
+
+
+class TaskAssignee(Base):
+    """One person who has to do a task. Each one marks it done on their own; the task is
+    finished when all of them did."""
+    __tablename__ = "task_assignees"
+    __table_args__ = (UniqueConstraint("task_id", "user_id", name="uq_task_assignee"),)
+
+    id = Column(Integer, primary_key=True)
+    task_id = Column(Integer, ForeignKey("tasks.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    done_at = Column(DateTime, nullable=True)
+
+    task = relationship("Task", back_populates="assignees")
+    user = relationship("User")
 
 
 class AlertAck(Base):

@@ -25,13 +25,14 @@
     (1, "<strong>+ Tarea</strong> abre el formulario."),
     (2, "<strong>Qué hay que hacer</strong> y la <strong>fecha</strong> (viene puesta la de hoy). Son obligatorios."),
     (3, "<strong>Prioridad</strong>: alta, normal o baja. En cada día, las de prioridad alta van primero."),
-    (4, "<strong>Para</strong> (solo admin y supervisor): a quién le toca. La tarea le aparece a esa persona con <em>te la asignó</em> y tu nombre, y a vos en <em>Que asigné a otros</em>."),
+    (4, "<strong>Para</strong> (solo admin y supervisor): a quién le toca. Podés marcar <strong>varias personas</strong>: es una sola tarea y a cada una le aparece con <em>te la asignó</em> y tu nombre, y a vos en <em>Que asigné a otros</em>."),
     (5, "Las <strong>atrasadas</strong> salen primero, en rojo, con su fecha."),
 ]) }}
 <ul class="list-disc space-y-1 pl-5">
     <li>En <strong>Descripción o enlace</strong> podés poner detalles; los enlaces (https://…) se abren desde la tarea.</li>
     <li>El cuadrito de la izquierda la marca <strong>hecha</strong>: pasa a <em>Hechas hoy</em>. Si te equivocaste, tocalo otra vez.</li>
-    <li><strong>Editar</strong> cambia cualquier dato o la borra. Una tarea la pueden cambiar quien la tiene y quien la creó.</li>
+    <li>Si la tarea es de <strong>varias personas</strong>, cada una marca la suya. Debajo se ve quién ya la hizo (✓) y cuántas van (<em>1 de 3 hecha</em>); en <em>Que asigné a otros</em> sigue hasta que todos la terminan.</li>
+    <li><strong>Editar</strong> cambia cualquier dato o la borra. Una tarea de una sola persona la pueden cambiar esa persona y quien la creó; una de varias, solo quien la asignó (y el admin). Si quitás a alguien de <em>Para</em>, deja de verla; quien sigue conserva su marca.</li>
     <li>Debajo están <em>Próximos 7 días</em> y, si asignás tareas, <em>Que asigné a otros</em>.</li>
 </ul>
 {% endif %}
@@ -161,8 +162,8 @@
     bitácora). Revisala y, si querés, marcala de nuevo.</p>
 {% endcall %}
 {% call m.faq("¿Quién ve mis tareas?") %}
-<p>Solo vos. Si la tarea te la asignó alguien, también la ve esa persona en <em>Que asigné a otros</em>. El admin puede
-    abrir y cambiar cualquier tarea.</p>
+<p>Solo vos. Si la tarea te la asignó alguien, también la ve esa persona en <em>Que asigné a otros</em>, y si es de
+    varias personas la ven todas (con quién ya la hizo). El admin puede abrir y cambiar cualquier tarea.</p>
 {% endcall %}
 {% endif %}
 {% call m.faq("No veo algo que otra persona sí ve") %}

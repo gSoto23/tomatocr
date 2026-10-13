@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
@@ -20,8 +20,8 @@ from app.db.models.task import PRIORITIES, PRIORITY_LABELS, Task
 from app.utils.activity import log_activity
 from app.utils.admin_overview import (LEVEL_LABELS, by_importance, admin_overview, client_projects, sales_alerts, supervisor_overview,
                                       worker_alerts)
-from app.utils.tasks import (assignable_users, can_manage, mark_seen, my_tasks, parse_task_form, split_alerts, unmark,
-                             uses_tasks)
+from app.utils.tasks import (assignable_users, can_manage, mark_seen, my_tasks, names, parse_task_form, set_assignees,
+                             split_alerts, unmark, uses_tasks)
 from app.routers.crm import toast_redirect
 from app.routers.finance import check_update_overdue_invoices, get_project_budget_status
 
@@ -263,43 +263,61 @@ def managed_task(db: Session, task_id: int, user: User) -> Task:
     return task
 
 
+def form_assignees(assignee_ids: List[str], assignees_sent: Optional[str]) -> Optional[List[str]]:
+    """The people ticked in "Para", or None when the form had no "Para" (who can't assign)."""
+    return assignee_ids if assignees_sent else None
+
+
 @router.post("/tareas")
 def create_task(title: str = Form(""), due_date: str = Form(""), priority: Optional[str] = Form(None),
-                description: Optional[str] = Form(None), assignee_id: Optional[str] = Form(None),
+                description: Optional[str] = Form(None), assignee_ids: List[str] = Form([]),
+                assignees_sent: Optional[str] = Form(None),
                 db: Session = Depends(deps.get_db), user: User = Depends(task_user)):
     try:
-        fields = parse_task_form(db, user, title, due_date, priority, description, assignee_id)
+        fields = parse_task_form(db, user, title, due_date, priority, description,
+                                 form_assignees(assignee_ids, assignees_sent))
     except ValueError as e:
         return toast_redirect("/dashboard/", str(e), error=True)
+    people = fields.pop("assignee_ids", [user.id])
     task = Task(created_by_id=user.id, **fields)
+    set_assignees(task, people)
     db.add(task)
     db.commit()
-    if task.assignee_id != user.id:
-        log_activity(db, user, "CREATE", "TASK", task.id, f"Tarea para {task.assignee.full_name or task.assignee.username}: {task.title}")
-        return toast_redirect("/dashboard/", f"Tarea asignada a {task.assignee.full_name or task.assignee.username}")
+    if people != [user.id]:
+        who = names(task, user)
+        log_activity(db, user, "CREATE", "TASK", task.id, f"Tarea para {who}: {task.title}")
+        return toast_redirect("/dashboard/", f"Tarea asignada a {who}")
     return toast_redirect("/dashboard/", "Tarea agregada")
 
 
 @router.post("/tareas/{task_id}/hecha")
 def toggle_task(task_id: int, db: Session = Depends(deps.get_db), user: User = Depends(task_user)):
-    task = managed_task(db, task_id, user)
-    task.done_at = None if task.done_at else datetime.utcnow()
+    """Each person marks their own part."""
+    task = db.get(Task, task_id)
+    part = task.part_of(user.id) if task else None
+    if part is None:
+        raise HTTPException(status_code=404 if task is None else 403, detail="Esa tarea no es tuya")
+    part.done_at = None if part.done_at else datetime.utcnow()
     db.commit()
-    return toast_redirect("/dashboard/", "Tarea hecha" if task.done_at else "Tarea pendiente otra vez")
+    return toast_redirect("/dashboard/", "Tarea hecha" if part.done_at else "Tarea pendiente otra vez")
 
 
 @router.post("/tareas/{task_id}/editar")
 def edit_task(task_id: int, title: str = Form(""), due_date: str = Form(""), priority: Optional[str] = Form(None),
-              description: Optional[str] = Form(None), assignee_id: Optional[str] = Form(None),
+              description: Optional[str] = Form(None), assignee_ids: List[str] = Form([]),
+              assignees_sent: Optional[str] = Form(None),
               db: Session = Depends(deps.get_db), user: User = Depends(task_user)):
     task = managed_task(db, task_id, user)
     try:
         fields = parse_task_form(db, user, title, due_date, priority, description,
-                                 assignee_id if assignee_id is not None else str(task.assignee_id))
+                                 form_assignees(assignee_ids, assignees_sent), [a.user_id for a in task.assignees])
     except ValueError as e:
         return toast_redirect("/dashboard/", str(e), error=True)
+    people = fields.pop("assignee_ids", None)
     for name, value in fields.items():
         setattr(task, name, value)
+    if people is not None:
+        set_assignees(task, people)
     db.commit()
     return toast_redirect("/dashboard/", "Tarea guardada")
 

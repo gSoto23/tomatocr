@@ -31,8 +31,13 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
 - **Tareas** (`tasks`, migración 0014; `app/utils/tasks.py`): título, fecha, prioridad
   (alta, normal, baja) y descripción, donde los enlaces se pueden abrir (filtro
   `linkify`, que escapa el texto). Admin y supervisor pueden asignar una tarea a
-  cualquier persona activa del equipo; la ven quien la tiene, quien la creó y el admin.
-  El cliente no tiene tareas. Rutas `POST /dashboard/tareas`, `/tareas/{id}/hecha`,
+  **una o varias** personas activas del equipo (casillas "Para"); cada persona es una
+  fila de `task_assignees` (migración 0018) con su propio `done_at`: cada una la marca
+  hecha por su lado y la tarea termina cuando todas la hicieron. Quien la asignó la ve
+  en "Que asigné a otros" con "k de n hechas" hasta que todos terminan. Editar o borrar:
+  admin, quien la creó o su única persona (una compartida solo la cambia quien la
+  asignó); al editar, quien sigue conserva su marca. El cliente no tiene tareas. Rutas
+  `POST /dashboard/tareas`, `/tareas/{id}/hecha` (la parte de quien la toca),
   `/editar` y `/borrar`.
 - **Alertas** con clave y nivel (`urgente`, `importante`, `revisar`) en
   `app/utils/admin_overview.py`, ordenadas por nivel. Admin: facturas vencidas, horas
