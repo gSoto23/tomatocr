@@ -1,0 +1,84 @@
+{% extends "base_dashboard.html" %}
+{% from "suppliers/_macros.html" import contact_links, supplier_form %}
+
+{% block title %}Proveedores | TOMATO{% endblock %}
+{% block header_title %}Proveedores{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-5" x-data="{ add: {{ 'true' if error else 'false' }} }">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+        <p class="text-sm text-gray-600">A quién le compramos y a quién llamar. {{ total }} proveedor{{ 'es' if total != 1 }}.</p>
+        <button type="button" @click="add = !add" class="rounded-md bg-black px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800">+ Proveedor</button>
+    </div>
+
+    <div x-show="add" {% if not error %}x-cloak{% endif %} class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+        <h2 class="mb-3 font-bold text-gray-900">Nuevo proveedor</h2>
+        {% if error %}<p class="mb-3 rounded-md bg-red-50 px-3 py-2 text-sm font-semibold text-red-700" role="alert">{{ error }}</p>{% endif %}
+        <form method="post" action="/proveedores/nuevo" class="grid gap-3 text-sm sm:grid-cols-2">
+            {{ supplier_form(form, payment_terms) }}
+            <fieldset class="grid gap-3 rounded-lg border border-gray-200 p-3 sm:col-span-2 sm:grid-cols-2">
+                <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-gray-500">Contacto (opcional, se pueden agregar más después)</legend>
+                {% set input = "mt-1 block w-full rounded-md border border-gray-300 p-2" %}
+                <label class="block"><span class="font-medium text-gray-700">Nombre</span><input type="text" name="contact_name" value="{{ form.contact_name or '' }}" maxlength="120" class="{{ input }}"></label>
+                <label class="block"><span class="font-medium text-gray-700">Puesto</span><input type="text" name="contact_role" value="{{ form.contact_role or '' }}" maxlength="80" placeholder="Ventas, dueño, bodega…" class="{{ input }}"></label>
+                <label class="block"><span class="font-medium text-gray-700">Teléfono / WhatsApp</span><input type="tel" name="contact_phone" value="{{ form.contact_phone or '' }}" maxlength="30" placeholder="8888 8888" class="{{ input }}"></label>
+                <label class="block"><span class="font-medium text-gray-700">Correo</span><input type="email" name="contact_email" value="{{ form.contact_email or '' }}" maxlength="120" class="{{ input }}"></label>
+            </fieldset>
+            <div class="flex gap-2 sm:col-span-2">
+                <button class="rounded-md bg-black px-4 py-2 font-semibold text-white hover:bg-gray-800">Guardar proveedor</button>
+                <button type="button" @click="add = false" class="rounded-md px-4 py-2 font-semibold text-gray-600">Cancelar</button>
+            </div>
+        </form>
+    </div>
+
+    <form method="get" action="/proveedores" class="flex flex-col gap-2 sm:flex-row">
+        <input type="search" name="q" value="{{ q }}" placeholder="Buscar por nombre, contacto, teléfono, cédula o nota" aria-label="Buscar proveedores"
+               class="block w-full rounded-md border border-gray-300 p-2 text-sm">
+        <select name="categoria" aria-label="Categoría" onchange="this.form.submit()" class="rounded-md border border-gray-300 p-2 text-sm">
+            <option value="">Todas las categorías</option>
+            {% for key, label in supplier_categories.items() if counts[key] %}
+            <option value="{{ key }}" {% if categoria == key %}selected{% endif %}>{{ label }} ({{ counts[key] }})</option>
+            {% endfor %}
+        </select>
+        <button class="rounded-md bg-white px-4 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Buscar</button>
+    </form>
+    {% if q or categoria %}
+    <p class="text-sm text-gray-600">{{ found }} resultado{{ 's' if found != 1 }}{% if q %} para «{{ q }}»{% endif %}{% if categoria %} en {{ supplier_categories[categoria] }}{% endif %}. <a href="/proveedores" class="font-semibold text-blue-700 hover:underline">Ver todos</a></p>
+    {% endif %}
+
+    {% if suppliers %}
+    <ul class="divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white shadow-sm">
+        {% for s in suppliers %}
+        <li class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
+            <div class="min-w-0">
+                <a href="/proveedores/{{ s.id }}" class="font-semibold text-gray-900 hover:underline">{{ s.name }}</a>
+                <span class="ml-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600">{{ supplier_categories.get(s.category, 'Otro') }}</span>
+                {% if s.payment_terms %}<span class="ml-1 text-xs text-gray-500">{{ s.payment_terms }}</span>{% endif %}
+                {% if s.notes %}<p class="mt-0.5 line-clamp-1 text-xs text-gray-500">{{ s.notes }}</p>{% endif %}
+            </div>
+            <div class="space-y-1 text-sm sm:text-right">
+                {% for c in s.contacts[:2] %}
+                <div class="flex flex-wrap items-center gap-x-2 gap-y-1 sm:justify-end"><span class="text-gray-700">{{ c.name }}{% if c.role %} <span class="text-gray-400">· {{ c.role }}</span>{% endif %}</span>{{ contact_links(c) }}</div>
+                {% else %}
+                <span class="text-xs italic text-gray-400">Sin contactos</span>
+                {% endfor %}
+                {% if s.contacts|length > 2 %}<a href="/proveedores/{{ s.id }}" class="text-xs font-semibold text-gray-500 hover:text-black">y {{ s.contacts|length - 2 }} más</a>{% endif %}
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+    {% if pages > 1 %}
+    <nav class="flex items-center justify-between text-sm" aria-label="Páginas de proveedores">
+        {% set base = '/proveedores?q=' ~ (q|urlencode) ~ '&categoria=' ~ categoria ~ '&page=' %}
+        {% if page > 1 %}<a href="{{ base }}{{ page - 1 }}" class="rounded-md px-3 py-1.5 font-semibold text-gray-700 hover:bg-gray-100">‹ Anterior</a>{% else %}<span></span>{% endif %}
+        <span class="text-gray-500">Página {{ page }} de {{ pages }}</span>
+        {% if page < pages %}<a href="{{ base }}{{ page + 1 }}" class="rounded-md px-3 py-1.5 font-semibold text-gray-700 hover:bg-gray-100">Siguiente ›</a>{% else %}<span></span>{% endif %}
+    </nav>
+    {% endif %}
+    {% elif total %}
+    <p class="rounded-xl border border-dashed border-gray-300 bg-white p-6 text-center text-sm text-gray-500">Ningún proveedor coincide con la búsqueda.</p>
+    {% else %}
+    <p class="rounded-xl border border-dashed border-gray-300 bg-white p-6 text-center text-sm text-gray-500">Todavía no hay proveedores. Agregá el primero con <strong>+ Proveedor</strong>: el vivero, la ferretería, quien hace el transporte…</p>
+    {% endif %}
+</div>
+{% endblock %}

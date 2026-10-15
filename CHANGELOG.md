@@ -4,9 +4,24 @@ Cambios en el sistema y en el sitio público, del más reciente al más antiguo.
 Cada entrada indica el PR y si necesitó migración o pasos especiales al
 desplegar. Hora de Costa Rica salvo que diga UTC.
 
+## 2026-10-15
+
+### Proveedores y tareas en pestañas (esta rama)
+- **Proveedores** (menú lateral, admin y supervisor): empresas a las que se les compra,
+  con categoría (vivero, abonos, herramientas, mantenimiento, transporte, materiales,
+  otro), cédula, condiciones de pago, SINPE Móvil, IBAN (con botón Copiar) y notas, y sus
+  contactos con botones de llamar, WhatsApp y correo. Búsqueda, filtro por categoría y
+  páginas de 20.
+- **Mis tareas** en el Dashboard: pestañas *Hoy y atrasadas*, *Próximas*, *Que asigné* y
+  *Hechas hoy*, 5 por página con Anterior/Siguiente, búsqueda cuando hay más de 5, filas
+  compactas (el detalle al tocar) y, al marcar o editar, se vuelve a la misma pestaña.
+- Manual: capítulo nuevo *Proveedores* y Dashboard al día, con capturas.
+- Despliegue: **migración 0019** (`suppliers`, `supplier_contacts`). Snapshot,
+  `alembic upgrade head` y reiniciar.
+
 ## 2026-10-13
 
-### Dashboard: una tarea para varias personas (esta rama)
+### Dashboard: una tarea para varias personas (#110)
 - En **+ Tarea**, admin y supervisor marcan en **Para** una o varias personas. Es una sola
   tarea: cada persona la marca hecha por su lado, se ve quién ya la hizo (✓) y cuántas van
   ("1 de 3 hecha"); en *Que asigné a otros* sigue hasta que todos terminan.

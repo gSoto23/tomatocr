@@ -362,6 +362,23 @@ def fill():
                      terminos="1. Validez: 15 días.\n2. Incluye mano de obra.", subtotal=round(total / 1.13),
                      iva=total - round(total / 1.13), total=total, tax_rate=13, items=items, account_id=acc.id,
                      opportunity_id=opportunity.id if opportunity else None))
+    # --- Proveedores ------------------------------------------------------------------------
+    from app.db.models.supplier import Supplier, SupplierContact
+    for name, category, terms, notes, people in (
+            ("Vivero Los Ángeles", "vivero", "Crédito 30 días", "Guayacanes, cortesas y ornamentales. Entregan en la GAM.",
+             [("Marta Solís", "Ventas", "8765 4321", "ventas@viveroejemplo.cr"), ("Luis Rojas", "Bodega", "7012 3456", None)]),
+            ("Abonos del Valle", "abonos", "Contado", "Abono orgánico y compost por saco.",
+             [("Andrea Mora", "Dueña", "6011 2233", "andrea@abonosejemplo.cr")]),
+            ("Ferretería El Roble", "herramientas", "Crédito 15 días", "Motoguadañas, repuestos y herramienta manual.",
+             [("Pablo Castro", "Mostrador", "2440 1122", None)]),
+            ("Transportes Mora", "transporte", "Contado", "Camión de 3 toneladas para árboles grandes.",
+             [("José Mora", None, "8899 0011", None)]),
+            ("Taller Motosierras CR", "mantenimiento", "Contado", None, [])):
+        db.add(Supplier(name=name, category=category, payment_terms=terms, notes=notes, tax_id="3-101-000000",
+                        sinpe="8888 0000" if terms == "Contado" else None,
+                        iban="CR05015202001026284066" if terms != "Contado" else None, created_by_id=admin.id,
+                        contacts=[SupplierContact(name=n, role=r, phone=ph, email=e) for n, r, ph, e in people]))
+
     db.add(ActivityLog(user_id=admin.id, action="IMPORT", entity_type="MANUAL", details="Datos de ejemplo del manual"))
     db.commit()
     db.close()

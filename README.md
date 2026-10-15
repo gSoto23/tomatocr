@@ -39,6 +39,17 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
   asignó); al editar, quien sigue conserva su marca. El cliente no tiene tareas. Rutas
   `POST /dashboard/tareas`, `/tareas/{id}/hecha` (la parte de quien la toca),
   `/editar` y `/borrar`.
+  "Mis tareas" va en pestañas (Hoy y atrasadas, Próximas, Que asigné, Hechas hoy) con
+  5 por página y búsqueda sin acentos, todo en el navegador (Alpine `taskTabs`); los
+  formularios mandan `tab` y la respuesta vuelve a `/dashboard/?tareas=<pestaña>`.
+- **Proveedores** (`/proveedores`, `app/routers/suppliers.py`, migración 0019): solo
+  admin y supervisor. Nombre (único sin importar mayúsculas ni acentos), categoría,
+  cédula, condiciones de pago, SINPE Móvil, IBAN (validado y guardado sin espacios) y
+  notas; contactos (`supplier_contacts`) con puesto, teléfono (validado como el
+  formulario público) y correo, al menos uno de los dos. Lista con búsqueda (también por
+  contacto y teléfono sin guiones), filtro por categoría y 20 por página; enlaces de
+  llamada, WhatsApp (`wa.me`, +506 si son 8 dígitos) y correo. Crear, editar y borrar
+  queda en Actividad.
 - **Alertas** con clave y nivel (`urgente`, `importante`, `revisar`) en
   `app/utils/admin_overview.py`, ordenadas por nivel. Admin: facturas vencidas, horas
   sin confirmar, días sin bitácora, planillas en borrador, pasos atrasados en Clientes,

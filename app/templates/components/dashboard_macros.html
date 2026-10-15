@@ -94,16 +94,18 @@
     <textarea name="description" rows="2" placeholder="Detalles; los enlaces (https://…) se pueden abrir desde la tarea" class="{{ input }}">{{ (t.description or '') if t else '' }}</textarea></label>
 {% endmacro %}
 
+{% macro tab_field() %}<input type="hidden" name="tab" :value="typeof tab === 'undefined' ? '' : tab">{% endmacro %}
+
 {% macro people(parts) %}{% for a in parts %}{{ a.user.full_name or a.user.username }}{{ ', ' if not loop.last }}{% endfor %}{% endmacro %}
 
-{% macro task_item(t, data, priorities, priority_labels, user) %}
+{% macro task_item(t, data, priorities, priority_labels, user, show=None) %}
 {% set done = t.mine and t.mine.done_at %}
 {% set late = t.due_date < data.today and not done %}
 {% set others = t.assignees|rejectattr('user_id', 'equalto', user.id)|list %}
-<li class="py-3" x-data="{ edit: false, more: false }">
+<li class="py-2.5" x-data="{ edit: false, more: false }"{% if show %} x-show="{{ show }}"{% endif %}>
     <div class="flex items-start gap-3">
         {% if t.mine %}
-        <form method="post" action="/dashboard/tareas/{{ t.id }}/hecha" class="pt-0.5">
+        <form method="post" action="/dashboard/tareas/{{ t.id }}/hecha" class="pt-0.5">{{ tab_field() }}
             <button class="flex h-5 w-5 items-center justify-center rounded border {{ 'border-green-600 bg-green-600 text-white' if done else 'border-gray-400 bg-white hover:border-black' }}"
                     aria-label="{{ 'Marcar pendiente' if done else 'Marcar hecha' }}: {{ t.title }}">{% if done %}<span class="text-xs">✓</span>{% endif %}</button>
         </form>
@@ -114,6 +116,7 @@
             <div class="flex flex-wrap items-center gap-2">
                 <button type="button" @click="more = !more" class="text-left text-sm font-semibold {{ 'text-gray-400 line-through' if done else 'text-gray-900' }}">{{ t.title }}</button>
                 {% if t.priority != 'normal' %}<span class="rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset {{ priority_style[t.priority] }}">{{ priority_labels[t.priority] }}</span>{% endif %}
+                {% if t.assignees|length > 1 and t.mine %}<span class="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600" title="Hechas">{{ t.done_count }}/{{ t.assignees|length }}</span>{% endif %}
             </div>
             <p class="text-xs {{ 'font-semibold text-red-700' if late else 'text-gray-500' }}">
                 {% if late %}Atrasada · {{ t.due_date|format_date }}{% elif t.due_date == data.today %}Hoy{% else %}{{ long_date(t.due_date)|capitalize }}{% endif %}
@@ -121,7 +124,8 @@
                 {% if t.assignees|length > 1 %} · {{ t.done_count }} de {{ t.assignees|length }} hecha{{ 's' if t.done_count != 1 }}{% endif %}
                 {% if t.mine and t.created_by_id and t.created_by_id != user.id %} · te la asignó {{ t.created_by.full_name or t.created_by.username }}{% endif %}
             </p>
-            {% if t.description %}<p class="mt-1 whitespace-pre-line break-words text-sm text-gray-600" :class="more ? '' : 'line-clamp-2'">{{ t.description|linkify }}</p>{% endif %}
+            {% if t.description %}<p class="mt-1 whitespace-pre-line break-words text-sm text-gray-600" :class="more ? '' : 'line-clamp-1'">{{ t.description|linkify }}</p>{% endif %}
+            <div x-show="more || edit" x-cloak>
             {% if t.assignees|length > 1 %}
             <p class="mt-1 flex flex-wrap gap-1 text-xs">{% for a in t.assignees %}
                 <span class="rounded-full px-2 py-0.5 ring-1 ring-inset {{ 'bg-green-50 text-green-700 ring-green-600/20' if a.done_at else 'bg-white text-gray-600 ring-gray-300' }}">{{ '✓ ' if a.done_at }}{{ 'Vos' if a.user_id == user.id else (a.user.full_name or a.user.username) }}</span>
@@ -129,15 +133,23 @@
             {% endif %}
             {% if t.can_edit %}
             <button type="button" @click="edit = !edit" class="mt-1 text-xs font-semibold text-gray-500 hover:text-black">Editar</button>
+            {% endif %}
+            </div>
+            {% if t.description or t.assignees|length > 1 %}
+            <button type="button" x-show="!more && !edit" @click="more = true" class="mt-0.5 text-xs font-semibold text-gray-400 hover:text-black">Detalle{{ ' y editar' if t.can_edit }}</button>
+            {% elif t.can_edit %}
+            <button type="button" x-show="!edit" @click="edit = true" class="mt-0.5 text-xs font-semibold text-gray-400 hover:text-black">Editar</button>
+            {% endif %}
+            {% if t.can_edit %}
             <div x-show="edit" x-cloak class="mt-2 rounded-lg border border-gray-200 bg-gray-50 p-3">
-                <form method="post" action="/dashboard/tareas/{{ t.id }}/editar" class="grid gap-2 sm:grid-cols-2">
+                <form method="post" action="/dashboard/tareas/{{ t.id }}/editar" class="grid gap-2 sm:grid-cols-2">{{ tab_field() }}
                     {{ task_fields(t, data, priorities, priority_labels, user) }}
                     <div class="flex gap-2 sm:col-span-2">
                         <button class="rounded-md bg-black px-3 py-2 text-sm font-semibold text-white hover:bg-gray-800">Guardar</button>
                         <button type="button" @click="edit = false" class="rounded-md px-3 py-2 text-sm font-semibold text-gray-600">Cancelar</button>
                     </div>
                 </form>
-                <form method="post" action="/dashboard/tareas/{{ t.id }}/borrar" class="mt-2" onsubmit="return confirm('¿Borrar la tarea?')">
+                <form method="post" action="/dashboard/tareas/{{ t.id }}/borrar" class="mt-2" onsubmit="return confirm('¿Borrar la tarea?')">{{ tab_field() }}
                     <button class="text-xs font-semibold text-red-700 hover:underline">Borrar tarea{{ ' (para todos)' if t.assignees|length > 1 }}</button>
                 </form>
             </div>
@@ -150,33 +162,62 @@
 {# "Hoy": the person's tasks on the left; what the caller puts (the day's work) on the right. #}
 {% macro today_block(data, priorities, priority_labels, user) %}
 {% set tasks = data.tasks %}
+{% set per_page = 5 %}
+<script>
+// "Mis tareas": tabs, search (without accents) and pages of a few tasks, all in the page.
+function taskTabs(items, perPage) {
+    const plain = s => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const start = new URLSearchParams(location.search).get("tareas");
+    return {
+        add: false, q: "", page: 0,
+        tab: items[start] && items[start].length ? start : "today",
+        go(tab) { this.tab = tab; this.page = 0; },
+        found(tab) { const q = plain(this.q.trim()); return items[tab].map((t, i) => [t, i]).filter(([t]) => !q || t.includes(q)).map(([, i]) => i); },
+        pages() { return Math.max(1, Math.ceil(this.found(this.tab).length / perPage)); },
+        shown(tab, i) { const at = this.found(tab).indexOf(i); return at >= this.page * perPage && at < (this.page + 1) * perPage; },
+    };
+}
+</script>
 <section class="mb-8" aria-labelledby="hoy">
     <h2 id="hoy" class="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">Hoy</h2>
     <div class="grid gap-4 lg:grid-cols-2">
-        <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm" x-data="{ add: false }">
+        <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm" x-data="taskTabs({{ {'today': tasks.today|map(attribute='search')|list, 'upcoming': tasks.upcoming|map(attribute='search')|list, 'assigned': tasks.assigned|map(attribute='search')|list, 'done': tasks.done|map(attribute='search')|list}|tojson|forceescape }}, {{ per_page }})">
             <div class="flex items-center justify-between gap-2">
                 <h3 class="font-bold text-gray-900">Mis tareas <span class="text-sm font-normal text-gray-500">({{ tasks.today|length }})</span></h3>
                 <button type="button" @click="add = !add" class="rounded-md bg-black px-3 py-1.5 text-sm font-semibold text-white hover:bg-gray-800">+ Tarea</button>
             </div>
-            <form x-show="add" x-cloak method="post" action="/dashboard/tareas" class="mt-3 grid gap-2 rounded-lg border border-gray-200 bg-gray-50 p-3 sm:grid-cols-2">
+            <form x-show="add" x-cloak method="post" action="/dashboard/tareas" class="mt-3 grid gap-2 rounded-lg border border-gray-200 bg-gray-50 p-3 sm:grid-cols-2">{{ tab_field() }}
                 {{ task_fields(None, data, priorities, priority_labels, user) }}
                 <div class="sm:col-span-2"><button class="rounded-md bg-black px-3 py-2 text-sm font-semibold text-white hover:bg-gray-800">Agregar tarea</button></div>
             </form>
-            {% if tasks.today %}
-            <ul class="mt-2 divide-y divide-gray-100">{% for t in tasks.today %}{{ task_item(t, data, priorities, priority_labels, user) }}{% endfor %}</ul>
-            {% else %}
-            <p class="mt-3 text-sm text-gray-500">No tenés tareas para hoy. Agregá lo que no genera el sistema: una llamada, una compra, un pendiente.</p>
-            {% endif %}
-            {% if tasks.upcoming or tasks.done or tasks.assigned %}
-            <div class="mt-3 space-y-2 border-t border-gray-100 pt-3 text-sm">
-                {% for key, title in [('upcoming', 'Próximos 7 días'), ('assigned', 'Que asigné a otros'), ('done', 'Hechas hoy')] if tasks[key] %}
-                <details>
-                    <summary class="cursor-pointer py-1 font-semibold text-gray-700">{{ title }} ({{ tasks[key]|length }})</summary>
-                    <ul class="divide-y divide-gray-100">{% for t in tasks[key] %}{{ task_item(t, data, priorities, priority_labels, user) }}{% endfor %}</ul>
-                </details>
+            {% set tabs = [('today', 'Hoy y atrasadas'), ('upcoming', 'Próximas'), ('assigned', 'Que asigné'), ('done', 'Hechas hoy')] %}
+            {% set total = tasks.today|length + tasks.upcoming|length + tasks.assigned|length + tasks.done|length %}
+            <div class="mt-3 -mx-1 flex gap-1 overflow-x-auto px-1 pb-1 text-sm" role="tablist">
+                {% for key, title in tabs if key == 'today' or tasks[key] %}
+                <button type="button" role="tab" @click="go('{{ key }}')" :aria-selected="tab === '{{ key }}'"
+                        :class="tab === '{{ key }}' ? 'bg-black text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+                        class="shrink-0 rounded-full px-3 py-1 font-semibold">{{ title }} <span class="font-normal opacity-80" x-text="found('{{ key }}').length">{{ tasks[key]|length }}</span></button>
                 {% endfor %}
             </div>
+            {% if total > per_page %}
+            <input type="search" x-model="q" @input="page = 0" placeholder="Buscar en mis tareas" aria-label="Buscar en mis tareas"
+                   class="mt-2 block w-full rounded-md border border-gray-300 p-2 text-sm">
             {% endif %}
+            {% for key, title in tabs %}
+            <div x-show="tab === '{{ key }}'" {% if key != 'today' %}x-cloak{% endif %} role="tabpanel">
+                {% if tasks[key] %}
+                <ul class="mt-1 divide-y divide-gray-100">{% for t in tasks[key] %}{{ task_item(t, data, priorities, priority_labels, user, "shown('" ~ key ~ "', " ~ loop.index0 ~ ")") }}{% endfor %}</ul>
+                <p x-show="q && !found('{{ key }}').length" x-cloak class="mt-3 text-sm text-gray-500">Ninguna tarea con «<span x-text="q"></span>».</p>
+                {% elif key == 'today' %}
+                <p class="mt-3 text-sm text-gray-500">No tenés tareas para hoy. Agregá lo que no genera el sistema: una llamada, una compra, un pendiente.</p>
+                {% endif %}
+            </div>
+            {% endfor %}
+            <nav x-show="pages() > 1" x-cloak class="mt-2 flex items-center justify-between border-t border-gray-100 pt-2 text-sm" aria-label="Páginas de tareas">
+                <button type="button" @click="page--" :disabled="page === 0" class="rounded-md px-2 py-1 font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-30">‹ Anterior</button>
+                <span class="text-gray-500"><span x-text="page + 1"></span> de <span x-text="pages()"></span></span>
+                <button type="button" @click="page++" :disabled="page >= pages() - 1" class="rounded-md px-2 py-1 font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-30">Siguiente ›</button>
+            </nav>
         </div>
         <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
             {{ caller() }}

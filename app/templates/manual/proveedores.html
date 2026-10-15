@@ -1,0 +1,54 @@
+{% extends "manual/_layout.html" %}
+
+{% block manual %}
+{% call m.section("que-es", "Qué es") %}
+<p><strong>Proveedores</strong> es la libreta de las empresas a las que TOMATO les compra: viveros, abonos, ferreterías,
+    transporte, mantenimiento de equipo. Cada proveedor tiene su categoría, sus datos de pago y las personas a las que
+    se les llama, con su teléfono, WhatsApp y correo.</p>
+<p>Quién lo usa: {{ m.roles(["admin", "supervisor"]) }}. Los dos ven y editan todo.</p>
+{% endcall %}
+
+{% call m.section("lista", "Buscar y llamar") %}
+{{ m.shot("proveedores/lista.webp", "Lista de proveedores", "Proveedores, con datos de ejemplo.") }}
+{{ m.steps([
+    (1, "<strong>+ Proveedor</strong> abre el formulario para agregar uno."),
+    (2, "<strong>Buscar</strong> por nombre, contacto, teléfono, cédula o lo que dicen las notas, y filtrar por <strong>categoría</strong>."),
+    (3, "Cada proveedor muestra sus dos primeros contactos: tocá <strong>☎</strong> para llamar o <strong>WhatsApp</strong> para escribirle."),
+]) }}
+<p>La lista va en orden alfabético, de 20 en 20; abajo están <em>Anterior</em> y <em>Siguiente</em>.</p>
+{% endcall %}
+
+{% call m.section("nuevo", "Agregar un proveedor") %}
+<ul class="list-disc space-y-1 pl-5">
+    <li>Solo el <strong>nombre</strong> es obligatorio. Si ya existe uno con el mismo nombre, el sistema avisa.</li>
+    <li><strong>Categoría</strong>: vivero y plantas, abonos y agroquímicos, herramientas y maquinaria, mantenimiento de
+        equipo, transporte, materiales u otro.</li>
+    <li><strong>Datos de pago</strong>: cédula jurídica o física, condiciones (contado, crédito 30 días…), SINPE Móvil y
+        cuenta IBAN.</li>
+    <li>Podés poner el <strong>primer contacto</strong> en el mismo formulario; los demás se agregan en la ficha. Cada
+        contacto necesita al menos un teléfono o un correo.</li>
+</ul>
+{% endcall %}
+
+{% call m.section("ficha", "La ficha: datos y contactos") %}
+{{ m.shot("proveedores/ficha.webp", "Ficha de un proveedor", "La ficha de un proveedor.") }}
+{{ m.steps([
+    (1, "<strong>Editar datos</strong> cambia el nombre, la categoría, los datos de pago o las notas; abajo está <em>Borrar proveedor</em>."),
+    (2, "<strong>Copiar</strong> copia la cuenta IBAN para pegarla en el banco."),
+    (3, "<strong>+ Contacto</strong> agrega otra persona; cada contacto tiene su <em>Editar</em> para cambiarlo o borrarlo."),
+]) }}
+{% endcall %}
+
+{% call m.section("preguntas", "Preguntas frecuentes") %}
+{% call m.faq("¿Un vendedor o un trabajador ve los proveedores?") %}
+<p>No. Solo el admin y los supervisores. Si alguien del equipo necesita un número, pedíselo a ellos.</p>
+{% endcall %}
+{% call m.faq("El botón de WhatsApp no aparece") %}
+<p>Aparece cuando el teléfono tiene 8 dígitos (Costa Rica) o empieza con + y el código del país. Revisá el número en
+    <em>Editar</em> del contacto.</p>
+{% endcall %}
+{% call m.faq("¿Se puede recuperar un proveedor borrado?") %}
+<p>No: se borra con sus contactos. Queda registrado en Actividad quién lo borró y cuándo.</p>
+{% endcall %}
+{% endcall %}
+{% endblock %}
