@@ -1,0 +1,37 @@
+{# Proveedores: the supplier fields (new and edit) and a contact's call / WhatsApp / e-mail links. #}
+
+{% macro supplier_form(s, payment_terms) %}
+{% set input = "mt-1 block w-full rounded-md border border-gray-300 p-2" %}
+<label class="block sm:col-span-2"><span class="font-medium text-gray-700">Nombre *</span>
+    <input type="text" name="name" required maxlength="200" value="{{ s.name or '' }}" placeholder="Ej.: Vivero Los Ángeles" class="{{ input }}"></label>
+<label class="block"><span class="font-medium text-gray-700">Categoría</span>
+    <select name="category" class="{{ input }}">{% for key, label in supplier_categories.items() %}<option value="{{ key }}" {% if (s.category or 'otro') == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+<label class="block"><span class="font-medium text-gray-700">Condiciones de pago</span>
+    <input type="text" name="payment_terms" list="payment-terms" maxlength="60" value="{{ s.payment_terms or '' }}" placeholder="Contado, crédito 30 días…" class="{{ input }}">
+    <datalist id="payment-terms">{% for t in payment_terms %}<option value="{{ t }}">{% endfor %}</datalist></label>
+<label class="block"><span class="font-medium text-gray-700">Cédula jurídica / física</span>
+    <input type="text" name="tax_id" maxlength="30" value="{{ s.tax_id or '' }}" placeholder="3-101-123456" class="{{ input }}"></label>
+<label class="block"><span class="font-medium text-gray-700">SINPE Móvil</span>
+    <input type="tel" name="sinpe" maxlength="30" value="{{ s.sinpe or '' }}" placeholder="8888 8888" class="{{ input }}"></label>
+<label class="block sm:col-span-2"><span class="font-medium text-gray-700">Cuenta IBAN</span>
+    <input type="text" name="iban" maxlength="40" value="{{ s.iban or '' }}" placeholder="CR05 0152 0200 1026 2840 66" class="{{ input }} font-mono"></label>
+<label class="block sm:col-span-2"><span class="font-medium text-gray-700">Notas</span>
+    <textarea name="notes" rows="2" placeholder="Qué les compramos, horarios, si hacen entrega…" class="{{ input }}">{{ s.notes or '' }}</textarea></label>
+{% endmacro %}
+
+{% macro contact_links(c) %}
+{% set link = "inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold ring-1 ring-inset" %}
+{% if c.phone %}
+<a href="tel:{{ c.phone|replace(' ', '')|replace('-', '') }}" class="{{ link }} text-gray-700 ring-gray-300 hover:bg-gray-50" title="Llamar"><svg class="mr-1 h-3.5 w-3.5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>{{ c.phone }}</a>
+{% set wa = whatsapp_url(c.phone) %}
+{% if wa %}<a href="{{ wa }}" target="_blank" rel="noopener" class="{{ link }} bg-green-50 text-green-700 ring-green-600/20 hover:bg-green-100">WhatsApp</a>{% endif %}
+{% endif %}
+{% if c.email %}<a href="mailto:{{ c.email }}" class="{{ link }} text-blue-700 ring-blue-600/20 hover:bg-blue-50">{{ c.email }}</a>{% endif %}
+{% endmacro %}
+
+{% macro contact_fields(c, input) %}
+<label class="block"><span class="font-medium text-gray-700">Nombre *</span><input type="text" name="name" required maxlength="120" value="{{ c.name if c else '' }}" class="{{ input }}"></label>
+<label class="block"><span class="font-medium text-gray-700">Puesto</span><input type="text" name="role" maxlength="80" value="{{ (c.role or '') if c else '' }}" placeholder="Ventas, dueño, bodega…" class="{{ input }}"></label>
+<label class="block"><span class="font-medium text-gray-700">Teléfono / WhatsApp</span><input type="tel" name="phone" maxlength="30" value="{{ (c.phone or '') if c else '' }}" placeholder="8888 8888" class="{{ input }}"></label>
+<label class="block"><span class="font-medium text-gray-700">Correo</span><input type="email" name="email" maxlength="120" value="{{ (c.email or '') if c else '' }}" class="{{ input }}"></label>
+{% endmacro %}

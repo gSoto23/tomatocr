@@ -13,9 +13,10 @@ STATIC = ROOT / "app" / "static" / "manual"
 
 VISIBLE = {
     "admin": {"primeros-pasos", "dashboard", "proyectos", "calendario", "planilla", "clientes", "cotizador",
-              "presupuestos", "reforestacion", "empleados", "actividad", "recorridos"},
+              "presupuestos", "reforestacion", "empleados", "actividad", "recorridos", "proveedores"},
     "ventas": {"primeros-pasos", "dashboard", "clientes", "cotizador", "recorridos"},
-    "supervisor": {"primeros-pasos", "dashboard", "proyectos", "calendario", "planilla", "reforestacion", "recorridos"},
+    "supervisor": {"primeros-pasos", "dashboard", "proyectos", "calendario", "planilla", "reforestacion", "recorridos",
+                   "proveedores"},
     "worker": {"primeros-pasos", "dashboard", "proyectos", "calendario", "planilla", "reforestacion", "recorridos"},
     "client": {"primeros-pasos", "dashboard", "proyectos", "cotizador", "presupuestos", "recorridos"},
 }

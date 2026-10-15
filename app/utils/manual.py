@@ -66,6 +66,14 @@ CHAPTERS: List[Chapter] = [
         "calendario asignación asignar trabajador tareas día semana horas",
     ),
     Chapter(
+        "proveedores", "Proveedores",
+        "A quién le compramos y a quién llamar: contactos, datos de pago y categorías.",
+        (ADMIN, SUPERVISOR), ("/proveedores",),
+        (("que-es", "Qué es"), ("lista", "Buscar y llamar"), ("nuevo", "Agregar un proveedor"),
+         ("ficha", "La ficha: datos y contactos"), ("preguntas", "Preguntas frecuentes")),
+        "proveedor proveedores vivero ferretería abono transporte contacto teléfono whatsapp iban sinpe cédula pago crédito compra",
+    ),
+    Chapter(
         "planilla", "Planilla",
         "De las horas confirmadas al pago: aprobar horas, generar la planilla, pagos y liquidaciones.",
         (ADMIN, SUPERVISOR, WORKER), ("/payroll", "/payments", "/liquidation"),

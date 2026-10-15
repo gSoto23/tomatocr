@@ -5,7 +5,7 @@ from datetime import timedelta
 import pytest
 
 from app.db.models.task import Task, TaskAssignee
-from tests.test_dashboard_tareas import TODAY, add_task, people_of
+from tests.test_dashboard_tareas import TODAY, add_task, people_of, tab
 
 
 @pytest.fixture
@@ -27,14 +27,14 @@ def test_each_one_marks_their_part(db, login_as, users, shared):
     db.expire_all()
     done = {a.user_id: a.done_at for a in db.get(Task, shared.id).assignees}
     assert done[users["worker"].id] and done[users["ventas"].id] is None
-    assert "Hechas hoy (1)" in login_as("worker").get("/dashboard/").text
+    assert tab(login_as("worker").get("/dashboard/").text, "Hechas hoy") == 1
     ventas = login_as("ventas").get("/dashboard/").text
-    assert "1 de 2 hecha" in ventas and "Hechas hoy" not in ventas
+    assert "1 de 2 hecha" in ventas and tab(ventas, "Hechas hoy") is None
     supervisor = login_as("supervisor").get("/dashboard/").text
-    assert "Que asigné a otros (1)" in supervisor and "1 de 2 hecha" in supervisor
+    assert tab(supervisor, "Que asigné") == 1 and "1 de 2 hecha" in supervisor
 
     login_as("ventas").post(f"/dashboard/tareas/{shared.id}/hecha")
-    assert "Que asigné a otros" not in login_as("supervisor").get("/dashboard/").text  # everybody did it
+    assert tab(login_as("supervisor").get("/dashboard/").text, "Que asigné") is None  # everybody did it
 
 
 def test_only_the_people_of_the_task_mark_it(db, login_as, shared):
@@ -84,7 +84,7 @@ def test_editing_without_para_keeps_the_people(db, login_as, users):
 def test_the_assigner_can_be_one_of_them(db, login_as, users):
     add_task(login_as("admin"), [users["admin"].id, users["supervisor"].id], title="Reunión de equipo")
     html = login_as("admin").get("/dashboard/").text
-    assert "Reunión de equipo" in html and "Que asigné a otros" not in html  # in Mis tareas, not twice
+    assert "Reunión de equipo" in html and tab(html, "Que asigné") is None  # in Mis tareas, not twice
 
 
 def test_deleting_removes_everybody_part(db, login_as, shared):

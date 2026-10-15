@@ -1,5 +1,6 @@
 """The Dashboard's to-do list and the "ya lo vi" marks on alerts (app/db/models/task.py)."""
 import json
+import unicodedata
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from typing import Dict, List, Optional, Tuple
@@ -11,6 +12,19 @@ from app.db.models.task import PRIORITIES, AlertAck, Task, TaskAssignee
 from app.db.models.user import User
 from app.utils.admin_overview import Alert
 from app.utils.timecr import CR_OFFSET
+
+# The tabs of "Mis tareas" (the Dashboard opens on the one a form came from).
+TABS = ("today", "upcoming", "assigned", "done")
+
+
+def plain(text: str) -> str:
+    """Lower case without accents, for the search box (the page does the same)."""
+    return "".join(c for c in unicodedata.normalize("NFD", text.lower()) if not unicodedata.combining(c))
+
+
+def tasks_url(tab: Optional[str]) -> str:
+    return f"/dashboard/?tareas={tab}#hoy" if tab in TABS and tab != "today" else "/dashboard/"
+
 
 # Who can hand a task to someone else.
 ASSIGNERS = (ADMIN, SUPERVISOR)
@@ -146,6 +160,7 @@ def my_tasks(db: Session, user: User, today: date) -> Dict[str, List[Task]]:
         task.mine = None
     for task in open_tasks + assigned + [p.task for p in parts if p.done_at]:
         task.can_edit = can_manage(user, task)
+        task.search = plain(" ".join([task.title, task.description or "", names(task, user)]))
     return {
         "today": _order([t for t in open_tasks if t.due_date <= today]),
         "upcoming": _order([t for t in open_tasks if t.due_date > today]),

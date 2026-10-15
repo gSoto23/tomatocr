@@ -1340,6 +1340,49 @@
      "tags": "button"
     }
    ]
+  },
+  {
+   "name": "proveedores/lista",
+   "path": "/proveedores",
+   "as": "admin",
+   "markers": [
+    {
+     "n": 1,
+     "text": "+ Proveedor",
+     "tags": "button"
+    },
+    {
+     "n": 2,
+     "selector": "input[name=q]"
+    },
+    {
+     "n": 3,
+     "text": "WhatsApp",
+     "tags": "a"
+    }
+   ]
+  },
+  {
+   "name": "proveedores/ficha",
+   "path": "/proveedores/1",
+   "as": "supervisor",
+   "markers": [
+    {
+     "n": 1,
+     "text": "Editar datos",
+     "tags": "button"
+    },
+    {
+     "n": 2,
+     "text": "Copiar",
+     "tags": "button"
+    },
+    {
+     "n": 3,
+     "text": "+ Contacto",
+     "tags": "button"
+    }
+   ]
   }
  ]
 }

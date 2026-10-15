@@ -22,6 +22,13 @@ def add_task(client, people=None, **fields):
     return client.post("/dashboard/tareas", data=data, follow_redirects=False)
 
 
+def tab(html, label):
+    """The number on a tab of "Mis tareas", or None when the tab isn't there."""
+    import re
+    found = re.search(rf'>{label} <span[^>]*>(\d+)</span></button>', html)
+    return int(found.group(1)) if found else None
+
+
 def people_of(task):
     return [a.user_id for a in task.assignees]
 
@@ -48,7 +55,7 @@ def test_today_shows_late_and_today_tasks_first(db, login_as, users):
     html = client.get("/dashboard/").text
     hoy = html.split('aria-labelledby="hoy"', 1)[1].split('aria-labelledby="atencion"', 1)[0]
     assert hoy.index("Tarea atrasada") < hoy.index("Tarea urgente de hoy") < hoy.index("Tarea de hoy")
-    assert "Atrasada" in hoy and "Próximos 7 días (1)" in hoy and "Tarea lejana" not in hoy
+    assert "Atrasada" in hoy and tab(hoy, "Próximas") == 1 and "Tarea lejana" not in hoy
     assert "3 tareas para hoy" in html
 
 
@@ -59,7 +66,7 @@ def test_done_moves_to_done_today_and_back(db, login_as):
     client.post(f"/dashboard/tareas/{task.id}/hecha")
     db.refresh(task.assignees[0])
     assert task.assignees[0].done_at is not None
-    assert "Hechas hoy (1)" in client.get("/dashboard/").text
+    assert tab(client.get("/dashboard/").text, "Hechas hoy") == 1
     client.post(f"/dashboard/tareas/{task.id}/hecha")
     db.refresh(task.assignees[0])
     assert task.assignees[0].done_at is None
@@ -84,7 +91,7 @@ def test_admin_and_supervisor_assign_tasks_the_rest_cannot(db, login_as, users):
     assert people_of(task) == [users["worker"].id] and task.created_by_id == users["supervisor"].id
     worker_page = login_as("worker").get("/dashboard/").text
     assert "Revisar la motoguadaña" in worker_page and "te la asignó" in worker_page
-    assert "Que asigné a otros (1)" in login_as("supervisor").get("/dashboard/").text
+    assert tab(login_as("supervisor").get("/dashboard/").text, "Que asigné") == 1
     add_task(login_as("worker"), [users["admin"].id], title="Para el admin")
     assert db.query(Task).filter(Task.title == "Para el admin").count() == 0
     assert 'name="assignee_ids"' not in worker_page
@@ -175,3 +182,29 @@ def test_worker_and_sales_have_their_own_alerts(db, login_as, users):
     assert "Pendientes (1)" in attention(worker.get("/dashboard/").text)
     admin = attention(login_as("admin").get("/dashboard/").text)
     assert "día trabajado sin bitácora" in admin and "Pendientes (0)" in admin  # the worker's mark is only theirs
+
+
+# --- Pestañas y páginas ------------------------------------------------------------
+
+def test_tabs_pages_and_search(db, login_as):
+    client = login_as("worker")
+    for i in range(7):
+        add_task(client, title=f"Tarea número {i}", description="Llamar al señor Pérez" if i == 3 else "")
+    html = client.get("/dashboard/").text
+    assert tab(html, "Hoy y atrasadas") == 7 and tab(html, "Próximas") is None  # empty tabs are not shown
+    assert all(f"Tarea número {i}" in html for i in range(7))  # all in the page; the browser shows 5 at a time
+    assert "shown(&#39;today&#39;, 6)" in html and 'aria-label="Páginas de tareas"' in html
+    assert 'placeholder="Buscar en mis tareas"' in html  # more than one page: search box
+    assert "senor perez" in html  # what the search looks into, without accents
+    assert 'placeholder="Buscar en mis tareas"' not in login_as("ventas").get("/dashboard/").text
+
+
+def test_forms_come_back_to_their_tab(db, login_as):
+    client = login_as("worker")
+    add_task(client, due_date=(TODAY + timedelta(days=2)).isoformat())
+    task = db.query(Task).one()
+    response = client.post(f"/dashboard/tareas/{task.id}/hecha", data={"tab": "upcoming"}, follow_redirects=False)
+    assert response.headers["location"] == "/dashboard/?tareas=upcoming#hoy"
+    response = client.post(f"/dashboard/tareas/{task.id}/hecha", data={"tab": "nada"}, follow_redirects=False)
+    assert response.headers["location"] == "/dashboard/"
+    assert 'name="tab"' in client.get("/dashboard/").text
