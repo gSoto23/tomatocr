@@ -6,6 +6,12 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-10-27
 
+### Cotizar en el menú del celular (esta rama)
+- En el celular, **Cotizar** pasa del encabezado al menú ☰ (debajo de Dashboard): el
+  encabezado quedaba apretado con la campana. En la computadora sigue el botón
+  *Cotizador* arriba a la derecha. Manual al día.
+- Despliegue: sin migración; reiniciar.
+
 ### App para celular y avisos al teléfono (esta rama)
 - TOMATO se **instala como app** en el celular (iPhone: Safari → Compartir → Agregar a
   pantalla de inicio; Android: Chrome → Instalar app): ícono propio, pantalla completa y
