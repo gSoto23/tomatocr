@@ -31,12 +31,32 @@
 <ul class="list-disc space-y-1 pl-5">
     <li>En <strong>Descripción o enlace</strong> podés poner detalles; los enlaces (https://…) se abren desde la tarea.</li>
     <li>El cuadrito de la izquierda la marca <strong>hecha</strong>: pasa a <em>Hechas hoy</em>. Si te equivocaste, tocalo otra vez.</li>
-    <li>A quien le asignás una tarea le llega un <strong>correo</strong> con el detalle y el enlace al Dashboard. Si después la pasás a <strong>prioridad alta</strong>, también les avisa por correo a quienes todavía no la hicieron. A vos no te llega correo de lo que vos mismo hacés.</li>
+    <li>A quien le asignás una tarea le llega un <strong>aviso</strong> (en la campana y por correo) con el detalle. Si después la pasás a <strong>prioridad alta</strong>, también les avisa a quienes todavía no la hicieron, y cuando la terminan todos te avisa a vos. Ver <a href="#notificaciones" class="font-semibold text-blue-700 hover:underline">Notificaciones</a>.</li>
     <li>Si la tarea es de <strong>varias personas</strong>, cada una marca la suya. Debajo se ve quién ya la hizo (✓) y cuántas van (<em>1 de 3 hecha</em>); en <em>Que asigné a otros</em> sigue hasta que todos la terminan.</li>
     <li><strong>Editar</strong> cambia cualquier dato o la borra. Una tarea de una sola persona la pueden cambiar esa persona y quien la creó; una de varias, solo quien la asignó (y el admin). Si quitás a alguien de <em>Para</em>, deja de verla; quien sigue conserva su marca.</li>
     <li>Las tareas van en <strong>pestañas</strong>: <em>Hoy y atrasadas</em>, <em>Próximas</em> (los próximos 7 días), <em>Que asigné</em> (si asignás tareas) y <em>Hechas hoy</em>, cada una con cuántas tiene. Se ven de 5 en 5, con <em>Anterior</em> y <em>Siguiente</em> abajo.</li>
     <li>Si tenés más de 5, aparece <strong>Buscar en mis tareas</strong>: busca en el título, la descripción y las personas, en todas las pestañas a la vez (el número de cada pestaña muestra cuántas coinciden).</li>
     <li>Cada tarea se ve en una línea; tocá el título o <em>Detalle</em> para ver la descripción completa, quién la tiene y <em>Editar</em>. Al marcar, editar o borrar volvés a la misma pestaña.</li>
+</ul>
+{% endif %}
+{% endcall %}
+
+{% call m.section("notificaciones", "Notificaciones") %}
+{% if user.role == 'client' %}
+<p>Las notificaciones son para el equipo de TOMATO; en el portal del cliente no aparecen.</p>
+{% else %}
+<p>La <strong>campana</strong> de arriba (junto al <strong>?</strong>) muestra con un número rojo los avisos que no leíste. Tocala para ver la lista; tocá un aviso para ir a lo que dice (queda leído) o usá <em>Marcar todas como leídas</em>.</p>
+<p>Te avisa cuando:</p>
+<ul class="list-disc space-y-1 pl-5">
+    <li>Alguien te <strong>asigna una tarea</strong>, o pasa a <strong>prioridad alta</strong> una que tenés pendiente.</li>
+    <li>Todos terminan una <strong>tarea que asignaste</strong>.</li>
+    <li>Te asignan una <strong>oportunidad</strong> o entra un <strong>prospecto nuevo</strong> tuyo (si vendés).</li>
+</ul>
+<p>En la misma página, <strong>Qué te llega por correo</strong> tiene una casilla por tipo de aviso: marcada, además de la campana te llega al correo de tu usuario. Vienen marcadas todas menos <em>Terminan una tarea que asignaste</em>. Si tu usuario no tiene correo, solo los ves en la campana: pedile al admin que lo agregue.</p>
+<ul class="list-disc space-y-1 pl-5">
+    <li>De <strong>9 p.m. a 6 a.m.</strong> solo salen por correo los urgentes (prioridad alta y prospectos nuevos); el resto te llega a las 6 a.m.</li>
+    <li>A las <strong>7 a.m.</strong> llega el <strong>Resumen del día</strong>: tus tareas de hoy y atrasadas, y las alertas urgentes de tu Dashboard. Si no tenés nada, no llega. Se apaga con su casilla.</li>
+    <li>Si un correo no sale (falla el servidor de correo), el sistema lo vuelve a intentar solo cada 5 minutos.</li>
 </ul>
 {% endif %}
 {% endcall %}

@@ -1,4 +1,5 @@
 import os
+from datetime import date, datetime, time
 
 # Must be set before any app module is imported: config.py reads SECRET_KEY at
 # import time and load_dotenv() does not override variables already present.
@@ -55,6 +56,25 @@ def fresh_db():
     Base.metadata.create_all(bind=engine)
     yield
     Base.metadata.drop_all(bind=engine)
+
+
+# Notifications (app/utils/notifications.py) send from their own session, at a fixed daytime
+# hour (outside the night's quiet hours), and their e-mails land in this list.
+NOON_CR = datetime.combine(date.today(), time(10, 0))
+
+
+@pytest.fixture(autouse=True)
+def outbox(monkeypatch):
+    from app.utils import notifications
+    sent = []
+
+    async def fake_send(recipients, subject, body):
+        sent.append({"to": recipients, "subject": subject, "body": body})
+        return True
+    monkeypatch.setattr(notifications, "SessionLocal", TestingSessionLocal)
+    monkeypatch.setattr(notifications, "send_plain_email", fake_send)
+    monkeypatch.setattr(notifications, "now_cr", lambda: NOON_CR)
+    return sent
 
 
 @pytest.fixture

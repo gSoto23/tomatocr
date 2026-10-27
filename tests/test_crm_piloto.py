@@ -6,7 +6,6 @@ import pytest
 
 from app.db.models.activity import ActivityLog
 from app.db.models.crm import Account, CrmSetting, Opportunity, stage_index
-from app.routers import crm as crm_router
 from app.utils.crm import FunnelPeriod, funnel, funnel_period
 from tests.conftest import make_user
 
@@ -98,13 +97,8 @@ def test_dashboard_shows_the_period(login_as, users):
 # --- Admin assigns opportunities -------------------------------------------------------
 
 @pytest.fixture
-def mails(monkeypatch):
-    sent = []
-
-    async def fake_send(recipients, subject, body):
-        sent.append({"to": recipients, "subject": subject, "body": body})
-    monkeypatch.setattr(crm_router, "send_plain_email", fake_send)
-    return sent
+def mails(outbox):
+    return outbox
 
 
 def test_admin_assigns_an_opportunity_and_the_seller_gets_an_email(db, login_as, users, accounts, mails):

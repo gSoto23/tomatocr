@@ -15,6 +15,7 @@ from app.utils.email import send_plain_email
 from app.utils.leads import (CONSENT_TEXT_VERSION, LeadRejected, clean_lead, intake_lead, lead_fields, notification,
                              rate_limited, record_spam, record_submission)
 from app.utils.login_throttle import client_ip
+from app.utils.notifications import notify as add_notification, send_soon
 from app.utils.spam import form_token, spam_reasons
 
 router = APIRouter(tags=["leads"])
@@ -23,10 +24,16 @@ TOO_MANY = "Recibimos muchas solicitudes en poco tiempo. Intentá de nuevo en un
 
 
 def notify(background: BackgroundTasks, db: Session, result, lead, source):
+    """The seller who got it, in their notifications (urgent: a lead is answered fast), and
+    LEADS_NOTIFY_EMAIL by e-mail."""
     owner = db.get(User, result.opportunity.owner_id) if result.opportunity.owner_id else None
     message = notification(result, lead, source)
-    background.add_task(send_plain_email, [owner.email if owner else None, settings.LEADS_NOTIFY_EMAIL],
-                        message["subject"], message["body"])
+    background.add_task(send_plain_email, [settings.LEADS_NOTIFY_EMAIL], message["subject"],
+                        f"{message['body']}\n\nVer en el sistema: https://tomatocr.com{message['link']}")
+    if owner is not None:
+        notice = add_notification(db, owner, "new_lead", message["subject"], message["body"], message["link"], urgent=True)
+        db.commit()
+        send_soon(background, [notice])
 
 
 @router.api_route("/privacidad", methods=["GET", "HEAD"])

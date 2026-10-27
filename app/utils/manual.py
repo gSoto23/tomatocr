@@ -42,10 +42,12 @@ CHAPTERS: List[Chapter] = [
     Chapter(
         "dashboard", "Dashboard",
         "La pantalla de inicio: lo más importante de tu día según tu rol.",
-        ALL_ROLES, ("/dashboard",),
-        (("que-es", "Qué es"), ("tareas", "Mis tareas"), ("alertas", "Alertas: Requiere atención"),
+        ALL_ROLES, ("/dashboard", "/notificaciones"),
+        (("que-es", "Qué es"), ("tareas", "Mis tareas"), ("notificaciones", "Notificaciones"),
+         ("alertas", "Alertas: Requiere atención"),
          ("por-rol", "Qué ves según tu rol"), ("preguntas", "Preguntas frecuentes")),
-        "inicio resumen hoy tareas pendientes alertas ya lo vi prioridad facturas próximos pasos filtro bitácora",
+        "inicio resumen hoy tareas pendientes alertas ya lo vi prioridad facturas próximos pasos filtro bitácora "
+        "notificaciones campana avisos correo resumen diario",
     ),
     Chapter(
         "proyectos", "Proyectos y bitácora",

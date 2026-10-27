@@ -6,7 +6,25 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-10-27
 
-### Correo de tareas (esta rama)
+### Notificaciones: campana, preferencias, reintentos y resumen diario (esta rama)
+- **Campana** arriba (junto al ?) con los avisos sin leer, para todo el equipo (no el
+  cliente). La página **Notificaciones** lista los últimos 50: tocar uno lo marca leído y
+  lleva a lo que dice; *Marcar todas como leídas*.
+- Avisos: tarea asignada, tarea que pasa a prioridad alta, **tarea terminada por todos**
+  (nuevo, a quien la asignó), oportunidad asignada y prospecto nuevo al vendedor.
+- **Qué te llega por correo**: una casilla por tipo, por persona. Vienen marcadas todas
+  menos *tarea terminada*. Sin correo en el usuario, solo la campana.
+- **Resumen del día** a las 7 a.m. por correo: tareas de hoy y atrasadas y alertas urgentes
+  del Dashboard. Solo si hay algo; se apaga con su casilla.
+- El correo sale de una bandeja: si falla se reintenta cada 5 minutos (hasta 5 veces) y de
+  9 p.m. a 6 a.m. solo salen los urgentes (prioridad alta y prospectos); el resto, a las 6.
+- info@ sigue recibiendo los prospectos como antes.
+- Manual (Dashboard → Notificaciones) y `docs/NOTIFICACIONES.md`.
+- Despliegue: **migración 0020** (`notifications`, `notification_prefs`,
+  `notification_digests`). Snapshot, `alembic upgrade head`, reiniciar y **una vez** instalar
+  el timer `tomato-notificaciones` (comandos en `docs/NOTIFICACIONES.md`).
+
+### Correo de tareas (#112)
 - Quien recibe una tarea asignada por otra persona (al crearla o al agregarlo después)
   recibe un correo con el título, la fecha, la prioridad, con quién la comparte, la
   descripción y el enlace al Dashboard. Si es de prioridad alta, el asunto empieza con

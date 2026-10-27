@@ -19,7 +19,7 @@ from app.db.models.reforestation import ReforestationProject
 from app.db.models.user import User
 from app.routers import deps
 from app.utils.activity import log_activity
-from app.utils.email import send_plain_email
+from app.utils.notifications import notify, send_soon
 from app.utils.crm import (account_payload, account_status, active_accounts, anonymize_contact, can_edit_account,
                            can_edit_opportunity, delete_account, delete_blockers, discard_account, reactivate_account,
                            change_stage, claim_if_unowned, create_renewal, dismiss_duplicate, expiring_contracts,
@@ -51,15 +51,15 @@ def sellers(db: Session):
                                  User.is_active != False).order_by(User.full_name).all()  # noqa: E712
 
 
-def assignment_email(opportunity: Opportunity):
-    """Subject and body for the seller an admin just assigned an opportunity to."""
+def notify_assignment(db: Session, opportunity: Opportunity, seller: User):
+    """Tells the seller someone else just assigned an opportunity to."""
     account = opportunity.account
-    lines = [f"Te asignaron la oportunidad «{opportunity.title}» de {account.name}.", ""]
+    lines = [f"Te asignaron la oportunidad «{opportunity.title}» de {account.name}."]
     if opportunity.next_step:
         when = f" ({opportunity.next_step_date:%d/%m/%Y})" if opportunity.next_step_date else ""
-        lines.append(f"Próximo paso: {opportunity.next_step}{when}")
-    lines.append(f"Ver en el sistema: https://tomatocr.com/clientes/oportunidades/{opportunity.id}")
-    return f"Oportunidad asignada: {account.name}", "\n".join(lines)
+        lines += ["", f"Próximo paso: {opportunity.next_step}{when}"]
+    return notify(db, seller, "opportunity_assigned", f"Oportunidad asignada: {account.name}", "\n".join(lines),
+                  f"/clientes/oportunidades/{opportunity.id}")
 
 
 def optional_date(value: Optional[str]) -> Optional[date]:
@@ -538,7 +538,9 @@ def update_opportunity(opportunity_id: int, background: BackgroundTasks, title: 
         log_activity(db, user, "UPDATE", "OPPORTUNITY", opportunity.id,
                      f"Oportunidad {opportunity.title} asignada a {new_owner.full_name}")
         if new_owner.id != user.id:
-            background.add_task(send_plain_email, [new_owner.email], *assignment_email(opportunity))
+            notice = notify_assignment(db, opportunity, new_owner)
+            db.commit()
+            send_soon(background, [notice])
     return toast_redirect(url, "Oportunidad guardada")
 
 

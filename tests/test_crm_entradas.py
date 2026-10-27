@@ -5,6 +5,7 @@ import pytest
 from app.core.config import settings
 from app.db.models.activity import ActivityLog
 from app.db.models.crm import Account, Contact, CrmActivity, CrmAssignment, LeadSubmission, Opportunity, ProjectContactRole
+from app.db.models.notification import Notification
 from app.db.models.project import Project
 from app.db.models.project_details import ProjectContact
 from app.routers import leads as leads_router
@@ -68,6 +69,18 @@ def test_form_creates_account_contact_and_opportunity_for_the_motor_seller(db, s
     assert mails[0]["subject"] == "Nueva oportunidad: Hotel Bosque (Mantenimiento)"
     assert f"/clientes/oportunidades/{opp.id}" in mails[0]["body"]
 
+
+
+def test_the_seller_gets_an_urgent_notification(db, sellers, mails, outbox):
+    sellers["albert"].email = "albert@example.com"
+    db.commit()
+    post_form(FORM)
+    opp = db.query(Opportunity).one()
+    notice = db.query(Notification).one()
+    assert (notice.user_id, notice.kind, notice.urgent) == (sellers["albert"].id, "new_lead", True)
+    assert notice.link == f"/clientes/oportunidades/{opp.id}"
+    assert [m["to"] for m in outbox] == [["albert@example.com"]]
+    assert [m["to"] for m in mails] == [[settings.LEADS_NOTIFY_EMAIL]]  # info@, as before
 
 def test_form_without_javascript_redirects_to_thanks(db, sellers):
     data = {**FORM, "consent": "true"}
