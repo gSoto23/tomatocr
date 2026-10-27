@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Form, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
@@ -18,10 +18,11 @@ from app.db.models.schedule import ProjectSchedule
 from app.db.models.associations import project_users
 from app.db.models.task import PRIORITIES, PRIORITY_LABELS, Task
 from app.utils.activity import log_activity
+from app.utils.email import send_plain_email
 from app.utils.admin_overview import (LEVEL_LABELS, by_importance, admin_overview, client_projects, sales_alerts, supervisor_overview,
                                       worker_alerts)
 from app.utils.tasks import (assignable_users, can_manage, mark_seen, my_tasks, names, parse_task_form, set_assignees,
-                             split_alerts, tasks_url, unmark, uses_tasks)
+                             split_alerts, task_emails, tasks_url, unmark, uses_tasks)
 from app.routers.crm import toast_redirect
 from app.routers.finance import check_update_overdue_invoices, get_project_budget_status
 
@@ -268,8 +269,13 @@ def form_assignees(assignee_ids: List[str], assignees_sent: Optional[str]) -> Op
     return assignee_ids if assignees_sent else None
 
 
+def send_task_emails(background: BackgroundTasks, mails):
+    for to, subject, body in mails:
+        background.add_task(send_plain_email, [to], subject, body)
+
+
 @router.post("/tareas")
-def create_task(title: str = Form(""), due_date: str = Form(""), priority: Optional[str] = Form(None),
+def create_task(background: BackgroundTasks, title: str = Form(""), due_date: str = Form(""), priority: Optional[str] = Form(None),
                 description: Optional[str] = Form(None), assignee_ids: List[str] = Form([]),
                 assignees_sent: Optional[str] = Form(None), tab: Optional[str] = Form(None),
                 db: Session = Depends(deps.get_db), user: User = Depends(task_user)):
@@ -283,6 +289,7 @@ def create_task(title: str = Form(""), due_date: str = Form(""), priority: Optio
     set_assignees(task, people)
     db.add(task)
     db.commit()
+    send_task_emails(background, task_emails(task, user))
     if people != [user.id]:
         who = names(task, user)
         log_activity(db, user, "CREATE", "TASK", task.id, f"Tarea para {who}: {task.title}")
@@ -303,7 +310,7 @@ def toggle_task(task_id: int, tab: Optional[str] = Form(None), db: Session = Dep
 
 
 @router.post("/tareas/{task_id}/editar")
-def edit_task(task_id: int, title: str = Form(""), due_date: str = Form(""), priority: Optional[str] = Form(None),
+def edit_task(task_id: int, background: BackgroundTasks, title: str = Form(""), due_date: str = Form(""), priority: Optional[str] = Form(None),
               description: Optional[str] = Form(None), assignee_ids: List[str] = Form([]),
               assignees_sent: Optional[str] = Form(None), tab: Optional[str] = Form(None),
               db: Session = Depends(deps.get_db), user: User = Depends(task_user)):
@@ -314,11 +321,13 @@ def edit_task(task_id: int, title: str = Form(""), due_date: str = Form(""), pri
     except ValueError as e:
         return toast_redirect(tasks_url(tab), str(e), error=True)
     people = fields.pop("assignee_ids", None)
+    before, priority_before = tuple(a.user_id for a in task.assignees), task.priority
     for name, value in fields.items():
         setattr(task, name, value)
     if people is not None:
         set_assignees(task, people)
     db.commit()
+    send_task_emails(background, task_emails(task, user, before, priority_before))
     return toast_redirect(tasks_url(tab), "Tarea guardada")
 
 

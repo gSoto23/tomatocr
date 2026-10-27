@@ -4,6 +4,20 @@ Cambios en el sistema y en el sitio público, del más reciente al más antiguo.
 Cada entrada indica el PR y si necesitó migración o pasos especiales al
 desplegar. Hora de Costa Rica salvo que diga UTC.
 
+## 2026-10-27
+
+### Correo de tareas (esta rama)
+- Quien recibe una tarea asignada por otra persona (al crearla o al agregarlo después)
+  recibe un correo con el título, la fecha, la prioridad, con quién la comparte, la
+  descripción y el enlace al Dashboard. Si es de prioridad alta, el asunto empieza con
+  "[Alta]".
+- Cuando una tarea pasa a **prioridad alta**, se avisa a las personas que ya la tenían y
+  todavía no la hicieron.
+- No se manda a quien hizo el cambio (una tarea para uno mismo no manda nada) ni a quien
+  no tiene correo (esas personas ya salen en las alertas del admin).
+- Manual (Dashboard) al día.
+- Despliegue: sin migración. Usa la misma cuenta de correo de siempre; reiniciar.
+
 ## 2026-10-15
 
 ### Proveedores y tareas en pestañas (esta rama)

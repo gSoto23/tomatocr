@@ -39,6 +39,11 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
   asignó); al editar, quien sigue conserva su marca. El cliente no tiene tareas. Rutas
   `POST /dashboard/tareas`, `/tareas/{id}/hecha` (la parte de quien la toca),
   `/editar` y `/borrar`.
+  **Correo de tareas** (`task_emails` en `app/utils/tasks.py`, en segundo plano): a quien
+  otra persona le asigna una tarea (al crearla o al agregarlo al editar; "[Alta]" en el
+  asunto si es de prioridad alta) y, cuando una tarea pasa a prioridad alta, a las personas
+  que ya estaban y aún no la hicieron. Nunca a quien hizo el cambio ni a quien no tiene
+  correo.
   "Mis tareas" va en pestañas (Hoy y atrasadas, Próximas, Que asigné, Hechas hoy) con
   5 por página y búsqueda sin acentos, todo en el navegador (Alpine `taskTabs`); los
   formularios mandan `tab` y la respuesta vuelve a `/dashboard/?tareas=<pestaña>`.
@@ -438,8 +443,9 @@ formulario de la web, no por correo).
 | `LEADS_NOTIFY_EMAIL` | Aviso de prospecto nuevo, además del vendedor asignado: `info@tomatocr.com` |
 
 Correos que envía: reporte de bitácora (a los contactos elegidos, con la copia oculta),
-prospecto nuevo, oportunidad reasignada (al nuevo responsable) y recuperar contraseña
-(al correo del usuario). Estos dos últimos usan el correo guardado en cada usuario.
+prospecto nuevo, oportunidad reasignada (al nuevo responsable), tarea asignada o pasada a
+prioridad alta (a cada persona de la tarea) y recuperar contraseña (al correo del
+usuario). Estos tres últimos usan el correo guardado en cada usuario.
 
 DNS en Route 53 (`tomatocr.com`): MX `1 smtp.google.com`; en el TXT de la raíz,
 `v=spf1 include:_spf.google.com ~all`; DKIM en `google._domainkey` (activado en la
