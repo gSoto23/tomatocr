@@ -6,6 +6,10 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-10-27
 
+### El logo lleva al Dashboard (esta rama)
+- El logo de TOMATO (encabezado del celular y menú lateral) es un enlace al Dashboard.
+- Manual (Primeros pasos → El menú) al día. Despliegue: sin migración; reiniciar.
+
 ### La sesión ya no se cierra al salir de la app (esta rama)
 - La cookie de sesión ahora dura lo mismo que el token (`ACCESS_TOKEN_EXPIRE_MINUTES`, 24 h).
   Antes era de sesión, y la app instalada en iPhone la borraba cada vez que se cerraba:

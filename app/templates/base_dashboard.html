@@ -60,10 +60,10 @@
 
     <!-- Mobile Header -->
     <div class="md:hidden bg-black text-white p-4 flex items-center justify-between shrink-0">
-        <div class="flex items-center gap-2">
+        <a href="/dashboard" class="flex items-center gap-2" aria-label="Ir al Dashboard" data-logo-home>
             <img src="/static/images/LogoTomatoW.png" alt="TOMATO" class="h-6">
             <span class="font-bold tracking-wide text-sm">SISTEMA</span>
-        </div>
+        </a>
         <div class="flex items-center gap-3">
             <a href="{{ manual_help_url(request.url.path if request else '', user.role, user.sells) }}" title="Ayuda: abre el manual de esta pantalla" aria-label="Ayuda" data-help-button
                 class="flex h-7 w-7 items-center justify-center rounded-full border border-white/40 text-sm font-bold text-white hover:bg-white/20">?</a>
@@ -93,10 +93,10 @@
         class="-translate-x-full fixed inset-y-0 left-0 z-50 w-64 bg-black text-white transition-transform duration-300 ease-in-out md:translate-x-0 md:static md:inset-0 md:flex md:w-64 md:flex-col shadow-xl md:shadow-none">
 
         <div class="p-6 border-b border-white/10 flex items-center justify-between gap-3">
-            <div class="flex min-w-0 items-center gap-2">
+            <a href="/dashboard" class="flex min-w-0 items-center gap-2" aria-label="Ir al Dashboard" data-logo-home>
                 <img src="/static/images/LogoTomatoW.png" alt="TOMATO" class="h-7 shrink-0">
                 <span class="hidden text-sm font-bold tracking-wide md:inline">SISTEMA</span>
-            </div>
+            </a>
             <!-- Close Button (Mobile Only) -->
             <button @click="sidebarOpen = false" class="md:hidden shrink-0 -mr-2 p-2 text-gray-400 hover:text-white" aria-label="Cerrar menú">
                 <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">

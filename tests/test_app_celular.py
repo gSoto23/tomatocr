@@ -246,3 +246,10 @@ def test_cotizar_is_in_the_phone_menu_not_the_header(login_as, users):
     computer_header = page.split("<!-- Main Header (Desktop) -->")[1].split("<!-- Main Content -->")[0]
     assert 'href="/cotizador"' in computer_header
     assert "data-menu-cotizar" not in login_as("worker").get("/dashboard/").text
+
+
+def test_the_logo_goes_to_the_dashboard(login_as, users):
+    import re
+    page = login_as("worker").get("/projects").text
+    links = re.findall(r'<a href="([^"]+)"[^>]*data-logo-home>', page)
+    assert links == ["/dashboard", "/dashboard"]  # phone header and side menu
