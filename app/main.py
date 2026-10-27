@@ -167,7 +167,7 @@ app.include_router(liquidation.router)
 app.include_router(quotes.router)
 app.include_router(logs.router)
 
-from app.routers import reforestation, crm, leads, manual, account, darboles_sync, suppliers, notifications
+from app.routers import reforestation, crm, leads, manual, account, darboles_sync, suppliers, notifications, pwa
 app.include_router(reforestation.router)
 app.include_router(reforestation.public_router)
 app.include_router(crm.router)
@@ -177,6 +177,7 @@ app.include_router(manual.router)
 app.include_router(account.router)
 app.include_router(suppliers.router)
 app.include_router(notifications.router)
+app.include_router(pwa.router)
 
 # SQLite (local dev, and prod until it moves to PostgreSQL) still creates its
 # tables on startup. On PostgreSQL the schema is managed only by Alembic.

@@ -38,6 +38,37 @@
         {% endif %}
     </section>
 
+    <section class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm" x-data="phonePush('{{ push_key }}', {{ devices }})" x-init="init()" data-phone-push>
+        <h2 class="font-bold text-gray-900">Avisos en este teléfono</h2>
+        <p class="mt-1 text-sm text-gray-600">Que los avisos suenen en el celular (o la computadora) aunque no tengas TOMATO abierto. Se activa en cada dispositivo. De 9 p.m. a 6 a.m. solo suenan los urgentes.</p>
+        <div class="mt-3 text-sm">
+            <p x-show="state === 'loading'" class="text-gray-500">Revisando este dispositivo…</p>
+            <p x-show="state === 'off-server'" x-cloak class="text-gray-600">Los avisos al celular todavía no están activados en el sistema.</p>
+            <div x-show="state === 'ios-install'" x-cloak class="rounded-md bg-amber-50 px-3 py-2 text-amber-900">
+                <p class="font-semibold">En iPhone, primero instalá la app:</p>
+                <ol class="mt-1 list-decimal space-y-0.5 pl-5">
+                    <li>Abrí tomatocr.com en <strong>Safari</strong>.</li>
+                    <li>Tocá <strong>Compartir</strong> (el cuadrito con la flecha) → <strong>Agregar a pantalla de inicio</strong>.</li>
+                    <li>Entrá desde el ícono de TOMATO y volvé a esta página.</li>
+                </ol>
+                <p class="mt-1">Necesita iOS 16.4 o más nuevo.</p>
+            </div>
+            <p x-show="state === 'unsupported'" x-cloak class="text-gray-600">Este navegador no permite avisos. En Android usá Chrome; en iPhone, Safari con la app instalada.</p>
+            <p x-show="state === 'denied'" x-cloak class="rounded-md bg-red-50 px-3 py-2 font-semibold text-red-700">Los avisos están bloqueados para TOMATO en este dispositivo. Permitilos en los ajustes del navegador (o del teléfono, en Notificaciones) y volvé a esta página.</p>
+            <div x-show="state === 'off'" x-cloak>
+                <button type="button" @click="turnOn()" :disabled="busy" class="rounded-md bg-black px-4 py-2 font-semibold text-white hover:bg-gray-800 disabled:opacity-50">Activar avisos en este dispositivo</button>
+            </div>
+            <div x-show="state === 'on'" x-cloak class="flex flex-wrap items-center gap-3">
+                <span class="font-semibold text-green-700">✓ Activos en este dispositivo</span>
+                <button type="button" @click="test()" :disabled="busy" class="rounded-md bg-white px-3 py-1.5 font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:opacity-50">Enviar una prueba</button>
+                <button type="button" @click="turnOff()" :disabled="busy" class="font-semibold text-red-700 hover:underline disabled:opacity-50">Desactivar</button>
+            </div>
+            <p x-show="message" x-text="message" x-cloak class="mt-2 text-gray-700" role="status"></p>
+            <p x-show="devices > 0" x-cloak class="mt-2 text-xs text-gray-500" x-text="devices === 1 ? 'Tenés avisos activos en 1 dispositivo.' : 'Tenés avisos activos en ' + devices + ' dispositivos.'"></p>
+            <button type="button" x-show="installEvent" x-cloak @click="install()" class="mt-3 rounded-md bg-white px-3 py-1.5 font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Instalar la app en este dispositivo</button>
+        </div>
+    </section>
+
     <section class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
         <h2 class="font-bold text-gray-900">Qué te llega por correo</h2>
         <p class="mt-1 text-sm text-gray-600">
@@ -58,4 +89,73 @@
         </form>
     </section>
 </div>
+<script>
+    // "Avisos en este teléfono": web push with the browser's own permission (app/static/app/sw.js).
+    function phonePush(key, devices) {
+        const toKey = (b64) => {
+            const raw = atob((b64 + "=".repeat((4 - b64.length % 4) % 4)).replace(/-/g, "+").replace(/_/g, "/"));
+            return Uint8Array.from(raw, (c) => c.charCodeAt(0));
+        };
+        const post = (url, body) => fetch(url, {method: "POST", headers: {"Content-Type": "application/json"},
+                                                body: JSON.stringify(body || {})});
+        return {
+            state: "loading", devices: devices, busy: false, message: "", installEvent: null,
+            async init() {
+                window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); this.installEvent = e; });
+                const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+                const installed = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+                if (!key) { this.state = "off-server"; return; }
+                if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
+                    this.state = ios && !installed ? "ios-install" : "unsupported"; return;
+                }
+                if (Notification.permission === "denied") { this.state = "denied"; return; }
+                try {
+                    const registration = await navigator.serviceWorker.register("/sw.js");
+                    this.state = (await registration.pushManager.getSubscription()) ? "on" : "off";
+                } catch (e) { this.state = "unsupported"; }
+            },
+            async turnOn() {
+                this.busy = true; this.message = "";
+                try {
+                    const permission = await Notification.requestPermission();
+                    if (permission !== "granted") { this.state = permission === "denied" ? "denied" : "off"; return; }
+                    const registration = await navigator.serviceWorker.ready;
+                    const subscription = await registration.pushManager.subscribe({userVisibleOnly: true, applicationServerKey: toKey(key)});
+                    const response = await post("/notificaciones/push", subscription.toJSON());
+                    if (!response.ok) throw new Error(response.status);
+                    this.state = "on"; this.devices += 1;
+                    this.message = "Listo. Tocá «Enviar una prueba» para ver cómo llegan.";
+                } catch (e) {
+                    this.message = "No se pudieron activar los avisos. Intentá de nuevo.";
+                } finally { this.busy = false; }
+            },
+            async turnOff() {
+                this.busy = true; this.message = "";
+                try {
+                    const registration = await navigator.serviceWorker.ready;
+                    const subscription = await registration.pushManager.getSubscription();
+                    if (subscription) {
+                        await post("/notificaciones/push/quitar", {endpoint: subscription.endpoint});
+                        await subscription.unsubscribe();
+                    }
+                    this.state = "off"; this.devices = Math.max(0, this.devices - 1);
+                    this.message = "Avisos desactivados en este dispositivo.";
+                } finally { this.busy = false; }
+            },
+            async test() {
+                this.busy = true;
+                try {
+                    const response = await post("/notificaciones/push/prueba");
+                    const data = response.ok ? await response.json() : {};
+                    this.message = data.ok ? "Enviada: te debería llegar en unos segundos." : "No se pudo enviar la prueba. Desactivá y volvé a activar los avisos.";
+                } finally { this.busy = false; }
+            },
+            async install() {
+                this.installEvent.prompt();
+                await this.installEvent.userChoice;
+                this.installEvent = null;
+            },
+        };
+    }
+</script>
 {% endblock %}

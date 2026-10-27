@@ -50,6 +50,11 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
   las 7 a.m. El correo sale de una bandeja (`email_status`): se intenta al momento, se
   reintenta cada 5 minutos (`scripts/notificaciones.py`, timer `tomato-notificaciones`) y de
   9 p.m. a 6 a.m. solo salen los urgentes.
+- **App para celular** (`app/routers/pwa.py`, migración 0021): el sistema se instala como
+  app (PWA: `/manifest.webmanifest`, service worker `/sw.js` con página `/offline`). En
+  `/notificaciones`, *Avisos en este teléfono* activa los avisos al celular (web push,
+  `app/utils/push.py`, tabla `push_subscriptions`, claves `VAPID_*`); salen por la misma
+  bandeja que el correo, con los mismos reintentos y horario de silencio.
   "Mis tareas" va en pestañas (Hoy y atrasadas, Próximas, Que asigné, Hechas hoy) con
   5 por página y búsqueda sin acentos, todo en el navegador (Alpine `taskTabs`); los
   formularios mandan `tab` y la respuesta vuelve a `/dashboard/?tareas=<pestaña>`.

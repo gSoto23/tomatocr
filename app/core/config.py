@@ -45,6 +45,11 @@ class Settings(BaseSettings):
     # Blind copy of every report sent to a client (they never see it).
     REPORT_BCC_EMAIL: str = os.getenv("REPORT_BCC_EMAIL", "info@tomatocr.com")
 
+    # Phone notifications (web push). Keys made once with scripts/vapid_keys.py; empty = no push.
+    VAPID_PUBLIC_KEY: str = os.getenv("VAPID_PUBLIC_KEY", "")
+    VAPID_PRIVATE_KEY: str = os.getenv("VAPID_PRIVATE_KEY", "")
+    VAPID_SUBJECT: str = os.getenv("VAPID_SUBJECT", "mailto:info@tomatocr.com")
+
     # Email
     MAIL_USERNAME: str = os.getenv("MAIL_USERNAME", "")
     MAIL_PASSWORD: str = os.getenv("MAIL_PASSWORD", "")
