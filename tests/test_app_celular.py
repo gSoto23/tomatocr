@@ -233,3 +233,16 @@ def test_push_message_is_short(db, users):
     message = notifications.push_message(notice)
     assert len(message["body"]) <= 181 and message["body"].endswith("…")
     assert json.dumps(message)
+
+
+def test_cotizar_is_in_the_phone_menu_not_the_header(login_as, users):
+    """The phone header only has the bell, ? and ☰; Cotizar is in the menu, hidden on the computer."""
+    import re
+    page = login_as("ventas").get("/dashboard/").text
+    phone_header = page.split("<!-- Mobile Header -->")[1].split("<!-- Mobile Sidebar Overlay -->")[0]
+    assert "/cotizador" not in phone_header
+    menu_link = re.search(r'<a href="/cotizador" data-menu-cotizar\s+class="md:hidden', page)
+    assert menu_link
+    computer_header = page.split("<!-- Main Header (Desktop) -->")[1].split("<!-- Main Content -->")[0]
+    assert 'href="/cotizador"' in computer_header
+    assert "data-menu-cotizar" not in login_as("worker").get("/dashboard/").text

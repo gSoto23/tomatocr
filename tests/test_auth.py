@@ -18,6 +18,15 @@ def test_active_user_logs_in(db):
     assert "access_token" in response.cookies
 
 
+def test_the_session_survives_closing_the_phone_app(db):
+    """A cookie with Max-Age (not a session cookie): the app installed on an iPhone keeps it
+    when it's closed, for as long as the token lasts."""
+    from app.core.config import settings
+    make_user(db, "app", "worker")
+    cookie = login(new_client(), "app").headers["set-cookie"]
+    assert f"Max-Age={settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60}" in cookie and "HttpOnly" in cookie
+
+
 def test_wrong_password_is_rejected(db):
     make_user(db, "activo", "worker")
     response = login(new_client(), "activo", "incorrecta")

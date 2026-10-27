@@ -65,14 +65,6 @@
             <span class="font-bold tracking-wide text-sm">SISTEMA</span>
         </div>
         <div class="flex items-center gap-3">
-            {% if user.sells or user.role == 'client' %}
-            <a href="/cotizador" class="flex items-center gap-1 text-xs font-semibold bg-white/20 hover:bg-white/30 text-white py-1.5 px-3 rounded-md transition-colors">
-                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                Cotizar
-            </a>
-            {% endif %}
             <a href="{{ manual_help_url(request.url.path if request else '', user.role, user.sells) }}" title="Ayuda: abre el manual de esta pantalla" aria-label="Ayuda" data-help-button
                 class="flex h-7 w-7 items-center justify-center rounded-full border border-white/40 text-sm font-bold text-white hover:bg-white/20">?</a>
             {% if user.role != 'client' %}{% set unread = bell_count(user) %}
@@ -123,6 +115,17 @@
                 </svg>
                 Dashboard
             </a>
+
+            {% if user.sells or user.role == 'client' %}
+            <!-- On the phone the Cotizador lives here; on the computer it's the button in the header. -->
+            <a href="/cotizador" data-menu-cotizar
+                class="md:hidden group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors {{ 'bg-white/10 text-white' if request and request.url.path.startswith('/cotizador') else 'text-white/70 hover:bg-white/10 hover:text-white' }}">
+                <svg class="mr-3 h-5 w-5 text-white/70 group-hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Cotizar
+            </a>
+            {% endif %}
 
             {% if user.role in ['admin', 'supervisor', 'worker', 'client'] %}
             <a href="/projects"

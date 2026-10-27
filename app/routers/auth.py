@@ -73,6 +73,9 @@ def login(
         # seguimos sirviendo por http y un cookie Secure no se guardaría.
         secure=not settings.USE_SQLITE,
         samesite="lax",
+        # Lasts as long as the token. Without it, it's a session cookie, and the app installed
+        # on an iPhone drops it every time it's closed (you had to log in again each time).
+        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
     return response
 

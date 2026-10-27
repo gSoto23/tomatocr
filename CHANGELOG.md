@@ -6,6 +6,19 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-10-27
 
+### La sesión ya no se cierra al salir de la app (esta rama)
+- La cookie de sesión ahora dura lo mismo que el token (`ACCESS_TOKEN_EXPIRE_MINUTES`, 24 h).
+  Antes era de sesión, y la app instalada en iPhone la borraba cada vez que se cerraba:
+  había que volver a entrar.
+- Después de desplegar, cada persona tiene que entrar una vez más para recibir la cookie
+  nueva.
+
+### Cotizar en el menú del celular (esta rama)
+- En el celular, **Cotizar** pasa del encabezado al menú ☰ (debajo de Dashboard): el
+  encabezado quedaba apretado con la campana. En la computadora sigue el botón
+  *Cotizador* arriba a la derecha. Manual al día.
+- Despliegue: sin migración; reiniciar.
+
 ### App para celular y avisos al teléfono (esta rama)
 - TOMATO se **instala como app** en el celular (iPhone: Safari → Compartir → Agregar a
   pantalla de inicio; Android: Chrome → Instalar app): ícono propio, pantalla completa y
