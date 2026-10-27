@@ -6,6 +6,21 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-10-27
 
+### App para celular y avisos al teléfono (esta rama)
+- TOMATO se **instala como app** en el celular (iPhone: Safari → Compartir → Agregar a
+  pantalla de inicio; Android: Chrome → Instalar app): ícono propio, pantalla completa y
+  abre en el Dashboard. Sin internet muestra *Sin conexión* con *Intentar de nuevo*.
+- **Avisos en este teléfono** (campana → Notificaciones): *Activar avisos en este
+  dispositivo* hace sonar en el celular cada aviso de la campana, aunque la app esté
+  cerrada. *Enviar una prueba* y *Desactivar*. En iPhone necesita la app instalada (iOS
+  16.4+); la página explica cómo.
+- Siguen las reglas del correo: de 9 p.m. a 6 a.m. solo los urgentes, reintentos si falla.
+  Tocar el aviso lo abre y lo marca leído; si ya se leyó en la campana, no suena.
+- Manual: *Primeros pasos → La app en el celular* y *Dashboard → Notificaciones*.
+- Despliegue: **dependencias nuevas** (`pywebpush` y las suyas), **migración 0021**
+  (`push_subscriptions`; `push_status`, `push_attempts`, `pushed_at` en `notifications`) y
+  **una vez** generar las claves `VAPID_*` y ponerlas en `.env` (`docs/NOTIFICACIONES.md`).
+
 ### Notificaciones: campana, preferencias, reintentos y resumen diario (esta rama)
 - **Campana** arriba (junto al ?) con los avisos sin leer, para todo el equipo (no el
   cliente). La página **Notificaciones** lista los últimos 50: tocar uno lo marca leído y

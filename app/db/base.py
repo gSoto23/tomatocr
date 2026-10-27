@@ -21,4 +21,4 @@ from app.db.models.reforestation import ReforestationProject, ReforestationTree,
 from app.db.models.crm import Account, Contact, Opportunity, CrmActivity, AccountNotDuplicate, ProjectContactRole, CrmGoal, CrmAssignment, CrmSetting, LeadSubmission
 from app.db.models.task import Task, TaskAssignee, AlertAck
 from app.db.models.supplier import Supplier, SupplierContact
-from app.db.models.notification import Notification, NotificationPref, DigestSent
+from app.db.models.notification import Notification, NotificationPref, DigestSent, PushSubscription

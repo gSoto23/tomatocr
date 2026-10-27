@@ -1,5 +1,6 @@
-"""Notifications: what the bell shows and what goes out by e-mail (app/utils/notifications.py).
-Each one is for one person; the e-mail goes from an outbox so a failure is retried."""
+"""Notifications: what the bell shows and what goes out by e-mail and to the phone
+(app/utils/notifications.py). Each one is for one person; e-mail and phone go from an outbox
+so a failure is retried."""
 from datetime import datetime
 
 from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
@@ -19,8 +20,8 @@ KINDS = {
 DIGEST = "daily_digest"
 DIGEST_LABEL = "Resumen del día por correo (7 a.m.)"
 
-# E-mail of a notification: pending (in the outbox), sending (one process took it), sent,
-# failed (gave up after MAX_ATTEMPTS) or none (not wanted, or the person has no e-mail).
+# E-mail (and phone) of a notification: pending (in the outbox), sending (one process took it),
+# sent, failed (gave up after MAX_ATTEMPTS) or none (not wanted, no e-mail, no phone).
 EMAIL_STATUSES = ("pending", "sending", "sent", "failed", "none")
 
 
@@ -41,6 +42,10 @@ class Notification(Base):
     email_attempts = Column(Integer, nullable=False, default=0, server_default="0")
     # When it was taken for sending, then when it was sent.
     emailed_at = Column(DateTime, nullable=True)
+    # To the phones the person turned on (PushSubscription), same states as the e-mail.
+    push_status = Column(String(10), nullable=False, default="none", server_default="none", index=True)
+    push_attempts = Column(Integer, nullable=False, default=0, server_default="0")
+    pushed_at = Column(DateTime, nullable=True)
 
     user = relationship("User")
 
@@ -54,6 +59,22 @@ class NotificationPref(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     kind = Column(String(30), nullable=False)
     email = Column(Boolean, nullable=False)
+
+
+class PushSubscription(Base):
+    """One phone or browser where the person turned on notifications (web push). The endpoint
+    is the address the browser's push service gave it; a 404/410 from it deletes the row."""
+    __tablename__ = "push_subscriptions"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    endpoint = Column(Text, nullable=False, unique=True)
+    p256dh = Column(String(200), nullable=False)
+    auth = Column(String(100), nullable=False)
+    # What device it is, to tell them apart ("iPhone", "Android"...).
+    user_agent = Column(String(300), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    last_used_at = Column(DateTime, nullable=True)
 
 
 class DigestSent(Base):

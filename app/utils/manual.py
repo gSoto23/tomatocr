@@ -36,8 +36,9 @@ CHAPTERS: List[Chapter] = [
         "Entrar al sistema, moverte por el menú y qué hacer si no podés ingresar.",
         ALL_ROLES, ("/cuenta",),
         (("entrar", "Entrar y salir"), ("contrasena", "Cambiar o recuperar la contraseña"), ("menu", "El menú"),
-         ("ayuda", "Dónde encontrar ayuda"), ("problemas", "Si no podés entrar")),
-        "login ingresar contraseña olvidé recuperar cambiar clave usuario sesión salir menú celular tablet",
+         ("app", "La app en el celular"), ("ayuda", "Dónde encontrar ayuda"), ("problemas", "Si no podés entrar")),
+        "login ingresar contraseña olvidé recuperar cambiar clave usuario sesión salir menú celular tablet "
+        "app instalar pantalla de inicio iphone android avisos",
     ),
     Chapter(
         "dashboard", "Dashboard",

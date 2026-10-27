@@ -47,3 +47,8 @@ psycopg2-binary==2.9.11
 weasyprint==62.3
 # WeasyPrint 62 needs pydyf < 0.12 (0.12 removed Stream.transform; pip picks it on Python 3.10+).
 pydyf==0.11.0
+# Phone notifications (web push).
+pywebpush==2.0.3
+py-vapid==1.9.6
+http-ece==1.2.1
+aiohttp==3.13.5

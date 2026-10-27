@@ -18,10 +18,21 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/static/images/fav/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="96x96" href="/static/images/fav/favicon-96x96.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/static/images/fav/favicon-16x16.png">
-    <link rel="manifest" href="/static/images/fav/manifest.json">
+    <!-- Installable app (app/routers/pwa.py): manifest, iPhone home screen and the service worker. -->
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="apple-touch-icon" href="/static/images/app/apple-touch-icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="TOMATO">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <meta name="msapplication-TileColor" content="#ffffff">
     <meta name="msapplication-TileImage" content="/static/images/fav/ms-icon-144x144.png">
-    <meta name="theme-color" content="#ffffff">
+    <meta name="theme-color" content="#000000">
+    <script>
+        if ("serviceWorker" in navigator) {
+            window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
+        }
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script>

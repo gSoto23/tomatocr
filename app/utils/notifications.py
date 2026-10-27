@@ -1,10 +1,11 @@
-"""Notifications (app/db/models/notification.py): notify() adds one to the bell and, when the
-person wants it and has an e-mail, to the outbox. deliver() sends the outbox: right after the
-request (send_soon) and every few minutes from scripts/notificaciones.py, which also retries
-failures, sends the daily digest and deletes old ones.
+"""Notifications (app/db/models/notification.py): notify() adds one to the bell and to the
+outbox of each channel: e-mail (when the person wants it and has an e-mail) and phone (when
+they turned it on in some device, app/utils/push.py). deliver() sends the outbox: right after
+the request (send_soon) and every few minutes from scripts/notificaciones.py, which also
+retries failures, sends the daily digest and deletes old ones.
 
-At night (QUIET_FROM to QUIET_UNTIL, Costa Rica) only urgent ones are e-mailed; the rest wait
-for the morning run."""
+At night (QUIET_FROM to QUIET_UNTIL, Costa Rica) only urgent ones go out; the rest wait for
+the morning run."""
 import logging
 from datetime import date, datetime, timedelta
 from typing import Iterable, List, Optional, Tuple
@@ -16,6 +17,7 @@ from app.core.roles import CLIENT
 from app.db.models.notification import DIGEST, KINDS, DigestSent, Notification, NotificationPref
 from app.db.models.user import User
 from app.db.session import SessionLocal
+from app.utils import push
 from app.utils.email import send_plain_email
 from app.utils.timecr import now_cr
 
@@ -54,14 +56,15 @@ def notify(db: Session, user: User, kind: str, title: str, body: Optional[str] =
     """Adds a notification for this person (the caller commits, then calls send_soon)."""
     by_email = bool(user.email) and wants_email(db, user, kind)
     notification = Notification(user_id=user.id, kind=kind, title=title[:200], body=body, link=link, urgent=urgent,
-                                email_status="pending" if by_email else "none")
+                                email_status="pending" if by_email else "none",
+                                push_status="pending" if push.has_devices(db, user.id) else "none")
     db.add(notification)
     return notification
 
 
 def send_soon(background: BackgroundTasks, notifications: Iterable[Notification]):
-    """After the commit: send their e-mails once the response is out."""
-    ids = [n.id for n in notifications if n.email_status == "pending"]
+    """After the commit: send them once the response is out."""
+    ids = [n.id for n in notifications if "pending" in (n.email_status, n.push_status)]
     if ids:
         background.add_task(deliver, ids)
 
@@ -84,47 +87,83 @@ def email_body(notification: Notification) -> str:
     return "\n".join(lines).strip()
 
 
+def push_message(notification: Notification) -> dict:
+    """What the phone shows. Tapping it opens /notificaciones/<id>/ir (marks it read)."""
+    body = " ".join((notification.body or "").split())
+    return {"title": notification.title, "body": body[:180] + ("…" if len(body) > 180 else ""),
+            "url": f"/notificaciones/{notification.id}/ir", "tag": f"n{notification.id}"}
+
+
+async def send_email(db: Session, notification: Notification) -> Optional[bool]:
+    if not notification.user.email:
+        return None
+    return await send_plain_email([notification.user.email], notification.title, email_body(notification))
+
+
+async def send_push(db: Session, notification: Notification) -> Optional[bool]:
+    if notification.read_at is not None:
+        return None  # already seen in the bell: no need to ring the phone
+    return await push.push_to(db, notification.user_id, push_message(notification))
+
+
+# Each channel: its sender and its columns (status, attempts, when).
+CHANNELS = {
+    "email": (send_email, "email_status", "email_attempts", "emailed_at"),
+    "push": (send_push, "push_status", "push_attempts", "pushed_at"),
+}
+
+
 async def deliver(ids: Optional[List[int]] = None) -> int:
-    """Sends the outbox (only these ids, if given). Each one is taken with a conditional update,
-    so two processes never send the same. Returns how many went out."""
+    """Sends the outbox of every channel (only these ids, if given). Each one is taken with a
+    conditional update, so two processes never send the same. Returns how many went out."""
     db = SessionLocal()
     sent = 0
     try:
-        query = db.query(Notification.id).filter(Notification.email_status == "pending")
-        if ids is not None:
-            query = query.filter(Notification.id.in_(ids))
-        if quiet(now_cr()):
-            query = query.filter(Notification.urgent == True)  # noqa: E712
-        for (notification_id,) in query.order_by(Notification.id).all():
-            taken = db.query(Notification).filter(Notification.id == notification_id,
-                                                  Notification.email_status == "pending").update(
-                {"email_status": "sending", "emailed_at": datetime.utcnow()}, synchronize_session=False)
-            db.commit()
-            if not taken:
-                continue
-            notification = db.get(Notification, notification_id)
-            db.refresh(notification)
-            if not notification.user.email:
-                notification.email_status = "none"
-                db.commit()
-                continue
-            ok = await send_plain_email([notification.user.email], notification.title, email_body(notification))
-            notification.email_attempts += 1
-            if ok:
-                notification.email_status, notification.emailed_at = "sent", datetime.utcnow()
-                sent += 1
-            else:
-                notification.email_status = "failed" if notification.email_attempts >= MAX_ATTEMPTS else "pending"
-            db.commit()
+        for channel in CHANNELS:
+            sent += await _deliver_channel(db, channel, ids)
     finally:
         db.close()
     return sent
 
 
+async def _deliver_channel(db: Session, channel: str, ids: Optional[List[int]]) -> int:
+    sender, status, attempts, at = CHANNELS[channel]
+    column = getattr(Notification, status)
+    query = db.query(Notification.id).filter(column == "pending")
+    if ids is not None:
+        query = query.filter(Notification.id.in_(ids))
+    if quiet(now_cr()):
+        query = query.filter(Notification.urgent == True)  # noqa: E712
+    sent = 0
+    for (notification_id,) in query.order_by(Notification.id).all():
+        taken = db.query(Notification).filter(Notification.id == notification_id, column == "pending").update(
+            {status: "sending", at: datetime.utcnow()}, synchronize_session=False)
+        db.commit()
+        if not taken:
+            continue
+        notification = db.get(Notification, notification_id)
+        db.refresh(notification)
+        ok = await sender(db, notification)
+        if ok is None:
+            setattr(notification, status, "none")
+        else:
+            setattr(notification, attempts, getattr(notification, attempts) + 1)
+            if ok:
+                setattr(notification, status, "sent")
+                setattr(notification, at, datetime.utcnow())
+                sent += 1
+            else:
+                setattr(notification, status, "failed" if getattr(notification, attempts) >= MAX_ATTEMPTS else "pending")
+        db.commit()
+    return sent
+
+
 def release_stuck(db: Session) -> int:
-    count = db.query(Notification).filter(Notification.email_status == "sending",
-                                          Notification.emailed_at < datetime.utcnow() - STUCK_AFTER).update(
-        {"email_status": "pending"}, synchronize_session=False)
+    count = 0
+    for _, status, _, at in CHANNELS.values():
+        count += db.query(Notification).filter(getattr(Notification, status) == "sending",
+                                               getattr(Notification, at) < datetime.utcnow() - STUCK_AFTER).update(
+            {status: "pending"}, synchronize_session=False)
     db.commit()
     return count
 

@@ -371,7 +371,8 @@ def unlink_user(db: Session, user_id: int):
                 "UPDATE activity_logs SET user_id = NULL WHERE user_id = :id AND action = 'LOGIN'",
                 "DELETE FROM notifications WHERE user_id = :id",
                 "DELETE FROM notification_prefs WHERE user_id = :id",
-                "DELETE FROM notification_digests WHERE user_id = :id"):
+                "DELETE FROM notification_digests WHERE user_id = :id",
+                "DELETE FROM push_subscriptions WHERE user_id = :id"):
         db.execute(text(sql), {"id": user_id})
 
 
