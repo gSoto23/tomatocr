@@ -8,7 +8,7 @@ from typing import Dict, List, Optional, Tuple
 from sqlalchemy.orm import Session
 
 from app.core.roles import ADMIN, CLIENT, SUPERVISOR
-from app.db.models.task import PRIORITIES, AlertAck, Task, TaskAssignee
+from app.db.models.task import PRIORITIES, PRIORITY_LABELS, AlertAck, Task, TaskAssignee
 from app.db.models.user import User
 from app.utils.admin_overview import Alert
 from app.utils.timecr import CR_OFFSET
@@ -135,6 +135,38 @@ def set_assignees(task: Task, user_ids: List[int]):
 def names(task: Task, user: User) -> str:
     """The people of a task, with "vos" for the one looking."""
     return ", ".join("vos" if a.user_id == user.id else (a.user.full_name or a.user.username) for a in task.assignees)
+
+
+def task_emails(task: Task, by: User, before: Tuple[int, ...] = (), priority_before: Optional[str] = None
+                ) -> List[Tuple[str, str, str]]:
+    """(to, subject, body) for the people to tell after a task was saved: who was just added
+    to it, and when it became "alta" the ones who were already on it and haven't done it yet.
+    before / priority_before: its people and priority before the change (nothing for a new
+    one). Never to who made the change, nor to someone without an e-mail."""
+    raised = task.priority == "alta" and priority_before != "alta"
+    mails = []
+    for part in task.assignees:
+        person = part.user
+        if person.id == by.id or not person.email:
+            continue
+        if part.user_id not in before:
+            subject, opening = "Tarea asignada", f"{by.full_name or by.username} te asignó una tarea."
+        elif raised and part.done_at is None:
+            subject, opening = "Tarea en prioridad alta", \
+                f"{by.full_name or by.username} pasó a prioridad alta una tarea tuya."
+        else:
+            continue
+        others = [a.user.full_name or a.user.username for a in task.assignees if a.user_id != person.id]
+        lines = [opening, "", f"Tarea: {task.title}", f"Vence: {task.due_date:%d/%m/%Y}",
+                 f"Prioridad: {PRIORITY_LABELS[task.priority]}"]
+        if others:
+            lines.append(f"Junto con: {', '.join(others)}")
+        if task.description:
+            lines += ["", task.description]
+        lines += ["", "Ver en el sistema: https://tomatocr.com/dashboard/"]
+        tag = "[Alta] " if task.priority == "alta" and subject == "Tarea asignada" else ""
+        mails.append((person.email, f"{tag}{subject}: {task.title}", "\n".join(lines)))
+    return mails
 
 
 def _order(tasks: List[Task]) -> List[Task]:
