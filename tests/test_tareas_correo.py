@@ -3,21 +3,15 @@ a task when it becomes "alta". Never to who made the change, nor to someone with
 import pytest
 
 from app.db.models.task import Task
-from app.routers import dashboard as dashboard_router
 from tests.test_dashboard_tareas import TODAY, add_task
 
 
 @pytest.fixture
-def mails(monkeypatch, db, users):
+def mails(outbox, db, users):
     for role in ("admin", "supervisor", "worker", "ventas"):
         users[role].email = f"{role}@example.com"
     db.commit()
-    sent = []
-
-    async def fake_send(recipients, subject, body):
-        sent.append({"to": recipients, "subject": subject, "body": body})
-    monkeypatch.setattr(dashboard_router, "send_plain_email", fake_send)
-    return sent
+    return outbox
 
 
 def edit(client, task, people, priority="normal", **fields):

@@ -361,13 +361,17 @@ def user_history(db: Session, user_id: int) -> List[str]:
 
 
 def unlink_user(db: Session, user_id: int):
-    """Links that are not history: project membership, contact link, lead motor, their logins."""
+    """Links that are not history: project membership, contact link, lead motor, their logins
+    and notifications."""
     from sqlalchemy import text
     for sql in ("DELETE FROM project_users WHERE user_id = :id",
                 "DELETE FROM crm_assignments WHERE user_id = :id",
                 "UPDATE contacts SET user_id = NULL WHERE user_id = :id",
                 "UPDATE account_not_duplicates SET user_id = NULL WHERE user_id = :id",
-                "UPDATE activity_logs SET user_id = NULL WHERE user_id = :id AND action = 'LOGIN'"):
+                "UPDATE activity_logs SET user_id = NULL WHERE user_id = :id AND action = 'LOGIN'",
+                "DELETE FROM notifications WHERE user_id = :id",
+                "DELETE FROM notification_prefs WHERE user_id = :id",
+                "DELETE FROM notification_digests WHERE user_id = :id"):
         db.execute(text(sql), {"id": user_id})
 
 

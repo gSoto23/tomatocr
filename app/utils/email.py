@@ -167,16 +167,19 @@ async def send_log_email(log_id: int, recipients: List[EmailStr], additional_tex
 
 
 
-async def send_plain_email(recipients: List[str], subject: str, body: str):
-    """Short internal notification (new leads). Does nothing if mail isn't configured."""
+async def send_plain_email(recipients: List[str], subject: str, body: str) -> bool:
+    """Short internal notification. Does nothing if mail isn't configured. Returns True only
+    when the mail server accepted it (the notifications outbox retries otherwise)."""
     recipients = sorted({r for r in recipients if r})
     if not recipients or not settings.MAIL_USERNAME:
-        return
+        return False
     try:
         message = MessageSchema(subject=subject, recipients=recipients, body=body, subtype=MessageType.plain)
         await FastMail(conf).send_message(message)
+        return True
     except Exception as e:
         logger.error(f"Error sending notification '{subject}': {e}")
+        return False
 
 
 # The signature of every quote e-mail: the company, not the seller (the seller takes over

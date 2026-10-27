@@ -194,10 +194,9 @@ def notification(result: LeadResult, lead: Dict, source: str) -> Dict:
         f"Interés: {motor}",
         "",
         lead["message"] or "(sin mensaje)",
-        "",
-        f"Ver en el sistema: https://tomatocr.com/clientes/oportunidades/{result.opportunity.id}",
     ]
-    return {"subject": f"Nueva oportunidad: {result.account.name} ({motor})", "body": "\n".join(lines)}
+    return {"subject": f"Nueva oportunidad: {result.account.name} ({motor})", "body": "\n".join(lines),
+            "link": f"/clientes/oportunidades/{result.opportunity.id}"}
 
 
 def record_spam(db: Session, lead: Dict, reasons: List[str], source: str = "web") -> Account:

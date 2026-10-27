@@ -39,11 +39,17 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
   asignó); al editar, quien sigue conserva su marca. El cliente no tiene tareas. Rutas
   `POST /dashboard/tareas`, `/tareas/{id}/hecha` (la parte de quien la toca),
   `/editar` y `/borrar`.
-  **Correo de tareas** (`task_emails` en `app/utils/tasks.py`, en segundo plano): a quien
+  **Avisos de tareas** (`notify_task` y `notify_task_done` en `app/utils/tasks.py`): a quien
   otra persona le asigna una tarea (al crearla o al agregarlo al editar; "[Alta]" en el
-  asunto si es de prioridad alta) y, cuando una tarea pasa a prioridad alta, a las personas
-  que ya estaban y aún no la hicieron. Nunca a quien hizo el cambio ni a quien no tiene
-  correo.
+  asunto si es de prioridad alta), cuando una tarea pasa a prioridad alta a las personas
+  que ya estaban y aún no la hicieron, y cuando todos la terminan a quien la asignó. Nunca
+  a quien hizo el cambio. Van por las notificaciones (abajo).
+- **Notificaciones** (`/notificaciones`, `docs/NOTIFICACIONES.md`, migración 0020): campana
+  con los avisos sin leer en el encabezado (no para el cliente), lista con "Marcar todas
+  como leídas" y, por persona, qué tipos le llegan también por correo y el resumen diario de
+  las 7 a.m. El correo sale de una bandeja (`email_status`): se intenta al momento, se
+  reintenta cada 5 minutos (`scripts/notificaciones.py`, timer `tomato-notificaciones`) y de
+  9 p.m. a 6 a.m. solo salen los urgentes.
   "Mis tareas" va en pestañas (Hoy y atrasadas, Próximas, Que asigné, Hechas hoy) con
   5 por página y búsqueda sin acentos, todo en el navegador (Alpine `taskTabs`); los
   formularios mandan `tab` y la respuesta vuelve a `/dashboard/?tareas=<pestaña>`.
@@ -443,9 +449,11 @@ formulario de la web, no por correo).
 | `LEADS_NOTIFY_EMAIL` | Aviso de prospecto nuevo, además del vendedor asignado: `info@tomatocr.com` |
 
 Correos que envía: reporte de bitácora (a los contactos elegidos, con la copia oculta),
-prospecto nuevo, oportunidad reasignada (al nuevo responsable), tarea asignada o pasada a
-prioridad alta (a cada persona de la tarea) y recuperar contraseña (al correo del
-usuario). Estos tres últimos usan el correo guardado en cada usuario.
+prospecto nuevo (a `LEADS_NOTIFY_EMAIL`), recuperar contraseña (al correo del usuario) y
+las **notificaciones** al equipo (tareas, oportunidades, prospecto al vendedor, resumen
+diario), que salen según lo que cada persona eligió en `/notificaciones` y usan el correo
+guardado en cada usuario. Las notificaciones necesitan el timer `tomato-notificaciones`
+para reintentos, horario de silencio y resumen diario (`docs/NOTIFICACIONES.md`).
 
 DNS en Route 53 (`tomatocr.com`): MX `1 smtp.google.com`; en el TXT de la raíz,
 `v=spf1 include:_spf.google.com ~all`; DKIM en `google._domainkey` (activado en la
@@ -491,6 +499,9 @@ Siempre por SSH (en la consola de Lightsail, **Connect using SSH**):
    systemctl status tomato --no-pager | head -5 && alembic current
    ```
 4. Probar el login y las páginas públicas.
+5. Si el cambio toca notificaciones, revisar el timer:
+   `systemctl list-timers tomato-notificaciones --no-pager` (instalación en
+   `docs/NOTIFICACIONES.md`).
 
 Para volver atrás: `alembic downgrade <versión anterior>` (si hubo migración),
 `git checkout <commit anterior>` y `sudo systemctl restart tomato`.

@@ -10,7 +10,9 @@ from sqlalchemy.orm import Session
 from app.core.roles import ADMIN, CLIENT, SUPERVISOR
 from app.db.models.task import PRIORITIES, PRIORITY_LABELS, AlertAck, Task, TaskAssignee
 from app.db.models.user import User
+from app.db.models.notification import Notification
 from app.utils.admin_overview import Alert
+from app.utils.notifications import notify
 from app.utils.timecr import CR_OFFSET
 
 # The tabs of "Mis tareas" (the Dashboard opens on the one a form came from).
@@ -137,22 +139,22 @@ def names(task: Task, user: User) -> str:
     return ", ".join("vos" if a.user_id == user.id else (a.user.full_name or a.user.username) for a in task.assignees)
 
 
-def task_emails(task: Task, by: User, before: Tuple[int, ...] = (), priority_before: Optional[str] = None
-                ) -> List[Tuple[str, str, str]]:
-    """(to, subject, body) for the people to tell after a task was saved: who was just added
-    to it, and when it became "alta" the ones who were already on it and haven't done it yet.
-    before / priority_before: its people and priority before the change (nothing for a new
-    one). Never to who made the change, nor to someone without an e-mail."""
+def notify_task(db: Session, task: Task, by: User, before: Tuple[int, ...] = (),
+                priority_before: Optional[str] = None) -> List[Notification]:
+    """Notifies the people to tell after a task was saved: who was just added to it, and when
+    it became "alta" the ones who were already on it and haven't done it yet. before /
+    priority_before: its people and priority before the change (nothing for a new one).
+    Never who made the change."""
     raised = task.priority == "alta" and priority_before != "alta"
-    mails = []
+    added = []
     for part in task.assignees:
         person = part.user
-        if person.id == by.id or not person.email:
+        if person.id == by.id:
             continue
         if part.user_id not in before:
-            subject, opening = "Tarea asignada", f"{by.full_name or by.username} te asignó una tarea."
+            kind, subject, opening = "task_assigned", "Tarea asignada", f"{by.full_name or by.username} te asignó una tarea."
         elif raised and part.done_at is None:
-            subject, opening = "Tarea en prioridad alta", \
+            kind, subject, opening = "task_high", "Tarea en prioridad alta", \
                 f"{by.full_name or by.username} pasó a prioridad alta una tarea tuya."
         else:
             continue
@@ -163,10 +165,20 @@ def task_emails(task: Task, by: User, before: Tuple[int, ...] = (), priority_bef
             lines.append(f"Junto con: {', '.join(others)}")
         if task.description:
             lines += ["", task.description]
-        lines += ["", "Ver en el sistema: https://tomatocr.com/dashboard/"]
-        tag = "[Alta] " if task.priority == "alta" and subject == "Tarea asignada" else ""
-        mails.append((person.email, f"{tag}{subject}: {task.title}", "\n".join(lines)))
-    return mails
+        high = task.priority == "alta"
+        tag = "[Alta] " if high and kind == "task_assigned" else ""
+        added.append(notify(db, person, kind, f"{tag}{subject}: {task.title}", "\n".join(lines), "/dashboard/", urgent=high))
+    return added
+
+
+def notify_task_done(db: Session, task: Task, by: User) -> List[Notification]:
+    """When the last person marks it done, tells who assigned it (unless that's who just did it)."""
+    creator = task.created_by
+    if creator is None or creator.id == by.id or task.done_count < len(task.assignees):
+        return []
+    who = ", ".join(a.user.full_name or a.user.username for a in task.assignees)
+    return [notify(db, creator, "task_done", f"Tarea terminada: {task.title}", f"La terminó: {who}.",
+                   "/dashboard/")]
 
 
 def _order(tasks: List[Task]) -> List[Task]:
