@@ -39,7 +39,8 @@ def test_an_assigned_task_shows_in_the_bell(db, login_as, team, outbox):
     worker = login_as("worker")
     assert 'aria-label="Notificaciones: 1 sin leer"' in worker.get("/dashboard/").text
     page = worker.get("/notificaciones").text
-    assert "Tarea asignada: Regar el vivero" in page and "1 sin leer" in page and "enviada por correo" in page
+    assert ">Tarea asignada</span>" in page and ">Regar el vivero</span>" in page  # label, then the title
+    assert "1 sin leer" in page and "enviada por correo" in page
     assert 'aria-label="Notificaciones"' in login_as("supervisor").get("/dashboard/").text  # nothing for who assigned
 
 
@@ -161,7 +162,7 @@ def test_a_retry_that_works_sends_it_once(db, team, monkeypatch, outbox):
     db.commit()
     calls = []
 
-    async def flaky(recipients, subject, body):
+    async def flaky(recipients, subject, body, html=None):
         calls.append(subject)
         return len(calls) > 1
     monkeypatch.setattr(notifications, "send_plain_email", flaky)

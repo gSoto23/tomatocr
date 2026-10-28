@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+{# A notification by e-mail (app/utils/notifications.py). Tables and inline styles: that's
+   what mail apps (Gmail, Outlook, the iPhone's) show the same way. #}
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>{{ title }}</title>
+</head>
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#111827;">
+<span style="display:none;max-height:0;overflow:hidden;opacity:0;">{{ preheader }}</span>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;">
+<tr><td align="center" style="padding:24px 12px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;">
+    <tr><td style="background:#000000;padding:18px 28px;">
+      <img src="{{ site }}/static/images/LogoTomatoW.png" alt="TOMATO" width="132" style="display:block;height:auto;border:0;">
+    </td></tr>
+    <tr><td style="padding:28px 28px 8px 28px;">
+      <span style="display:inline-block;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700;letter-spacing:.02em;color:{{ chip[0] }};background:{{ chip[1] }};">{{ label }}</span>
+      <h1 style="margin:14px 0 0 0;font-size:21px;line-height:1.3;font-weight:700;color:#111827;">{{ heading }}</h1>
+    </td></tr>
+    {% for block in blocks %}
+    <tr><td style="padding:12px 28px 4px 28px;">
+      {% if block.kind == 'text' %}
+      <p style="margin:0;font-size:15px;line-height:1.6;color:#374151;white-space:pre-line;">{{ block.text }}</p>
+      {% elif block.kind == 'rows' %}
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:8px;border-collapse:separate;">
+        {% for label_, value in block.rows %}
+        <tr>
+          <td style="padding:10px 14px;font-size:13px;color:#6b7280;width:34%;vertical-align:top;{% if not loop.last %}border-bottom:1px solid #f3f4f6;{% endif %}">{{ label_ }}</td>
+          <td style="padding:10px 14px;font-size:14px;color:#111827;font-weight:600;vertical-align:top;{% if not loop.last %}border-bottom:1px solid #f3f4f6;{% endif %}">
+            {%- if label_ == 'Prioridad' and value == 'Alta' -%}
+            <span style="display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;color:#b91c1c;background:#fee2e2;">Alta</span>
+            {%- else %}{{ value }}{% endif -%}
+          </td>
+        </tr>
+        {% endfor %}
+      </table>
+      {% elif block.kind == 'list' %}
+      {% if block.text %}<p style="margin:0 0 8px 0;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#6b7280;">{{ block.text }}</p>{% endif %}
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:8px;border-collapse:separate;">
+        {% for item in block.items %}
+        <tr><td style="padding:10px 14px;font-size:14px;line-height:1.45;color:#111827;{% if not loop.last %}border-bottom:1px solid #f3f4f6;{% endif %}">
+          {{ item.text }}
+          {% for flag in item.flags %}
+          <span style="display:inline-block;margin-left:6px;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:700;{% if flag == 'Alta' %}color:#b91c1c;background:#fee2e2;{% else %}color:#b45309;background:#fef3c7;{% endif %}">{{ flag }}</span>
+          {% endfor %}
+        </td></tr>
+        {% endfor %}
+      </table>
+      {% endif %}
+    </td></tr>
+    {% endfor %}
+    {% if link %}
+    <tr><td style="padding:22px 28px 8px 28px;">
+      <a href="{{ link }}" style="display:inline-block;background:#000000;color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;padding:12px 22px;border-radius:8px;">{{ button }}</a>
+    </td></tr>
+    {% endif %}
+    <tr><td style="padding:24px 28px 26px 28px;">
+      <p style="margin:0;padding-top:16px;border-top:1px solid #e5e7eb;font-size:12px;line-height:1.6;color:#6b7280;">
+        Recibís este correo porque sos parte del equipo de TOMATO.
+        <a href="{{ site }}/notificaciones" style="color:#374151;text-decoration:underline;">Elegí qué avisos te llegan por correo</a>.<br>
+        TOMATO CR · +506 7080 8613 · <a href="{{ site }}" style="color:#374151;text-decoration:none;">tomatocr.com</a>
+      </p>
+    </td></tr>
+  </table>
+</td></tr>
+</table>
+</body>
+</html>

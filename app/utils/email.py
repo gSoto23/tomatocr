@@ -1,7 +1,7 @@
 import re
 
 from typing import List
-from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
+from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType, MultipartSubtypeEnum
 from pydantic import EmailStr
 from app.core.config import settings
 from app.db.models.log import DailyLog
@@ -167,14 +167,20 @@ async def send_log_email(log_id: int, recipients: List[EmailStr], additional_tex
 
 
 
-async def send_plain_email(recipients: List[str], subject: str, body: str) -> bool:
-    """Short internal notification. Does nothing if mail isn't configured. Returns True only
-    when the mail server accepted it (the notifications outbox retries otherwise)."""
+async def send_plain_email(recipients: List[str], subject: str, body: str, html: str = None) -> bool:
+    """Short internal notification. With html, it goes as the designed version and body is
+    the plain text one for mail apps that don't show HTML. Does nothing if mail isn't
+    configured. Returns True only when the mail server accepted it (the notifications outbox
+    retries otherwise)."""
     recipients = sorted({r for r in recipients if r})
     if not recipients or not settings.MAIL_USERNAME:
         return False
     try:
-        message = MessageSchema(subject=subject, recipients=recipients, body=body, subtype=MessageType.plain)
+        if html:
+            message = MessageSchema(subject=subject, recipients=recipients, body=html, subtype=MessageType.html,
+                                    multipart_subtype=MultipartSubtypeEnum.alternative, alternative_body=body)
+        else:
+            message = MessageSchema(subject=subject, recipients=recipients, body=body, subtype=MessageType.plain)
         await FastMail(conf).send_message(message)
         return True
     except Exception as e:
