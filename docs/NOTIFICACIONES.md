@@ -34,7 +34,7 @@ evento (tarea, oportunidad, prospecto)
 | `task_done` | La última persona marca la tarea hecha | Quien la asignó | No | No |
 | `opportunity_assigned` | Te asignan una oportunidad | El vendedor nuevo | Sí | No |
 | `new_lead` | Entra un prospecto del formulario o de darboles.com | El vendedor del motor | Sí | Sí |
-| `daily_digest` | 7 a.m. (hasta las 12) | Equipo activo con correo y algo para hoy | Sí | — |
+| `daily_digest` | 7 a.m. (hasta las 12) | Equipo activo con algo para hoy: campana y teléfono siempre, correo si lo quiere | Sí | — |
 
 Nunca se avisa a quien hizo el cambio. El cliente no tiene notificaciones.
 `LEADS_NOTIFY_EMAIL` (info@) sigue recibiendo los prospectos por correo directo, como antes.
@@ -55,7 +55,10 @@ Nunca se avisa a quien hizo el cambio. El cliente no tiene notificaciones.
   la campana antes de salir, no se manda. Tocarlo abre `/notificaciones/<id>/ir`, que lo
   marca leído y lleva al enlace. No hay preferencia por tipo: activarlo en un dispositivo es
   pedir todos los avisos ahí.
-- **Resumen diario**: tareas de hoy y atrasadas, y alertas *urgentes* del Dashboard
+- **Resumen diario**: es también un aviso de la campana (y suena en el teléfono); la casilla
+  de preferencias solo decide el correo. Si falla para una persona (un dato raro, el correo
+  caído), se registra en el log y se reintenta en la siguiente corrida sin frenar al resto.
+  Contenido: tareas de hoy y atrasadas, y alertas *urgentes* del Dashboard
   (las mismas de la página). Se registra en `notification_digests` aunque no haya nada,
   para no recalcularlo cada 5 minutos; sale una vez por persona y día.
 

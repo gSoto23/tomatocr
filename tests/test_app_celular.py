@@ -253,3 +253,18 @@ def test_the_logo_goes_to_the_dashboard(login_as, users):
     page = login_as("worker").get("/projects").text
     links = re.findall(r'<a href="([^"]+)"[^>]*data-logo-home>', page)
     assert links == ["/dashboard", "/dashboard"]  # phone header and side menu
+
+
+def test_the_digest_rings_the_phone(db, login_as, users, vapid, monkeypatch):
+    from datetime import time
+    from app.utils.notifications import run_once
+    from tests.test_dashboard_tareas import TODAY
+    service = PushService(monkeypatch)
+    worker = login_as("worker")
+    turn_on(worker, browser_subscription())
+    add_task(worker, title="Regar")
+    moment = datetime.combine(TODAY, time(7, 0))
+    monkeypatch.setattr(notifications, "now_cr", lambda: moment)
+    asyncio.run(run_once())
+    notice = db.query(Notification).filter_by(kind="daily_digest").one()
+    assert notice.push_status == "sent" and len(service.calls) == 1

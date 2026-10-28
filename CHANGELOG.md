@@ -4,6 +4,16 @@ Cambios en el sistema y en el sitio público, del más reciente al más antiguo.
 Cada entrada indica el PR y si necesitó migración o pasos especiales al
 desplegar. Hora de Costa Rica salvo que diga UTC.
 
+## 2026-10-28
+
+### Resumen del día también en la campana y el teléfono (esta rama)
+- El resumen de las 7 a.m. ahora es también un aviso de la campana y suena en los teléfonos
+  con avisos activos. La casilla de preferencias solo decide si llega además por correo.
+- Llega aunque la persona no tenga correo.
+- Si el resumen falla para una persona, queda en el log (`journalctl -u
+  tomato-notificaciones`) y se reintenta en la siguiente corrida sin frenar a los demás.
+- Despliegue: sin migración; reiniciar.
+
 ## 2026-10-27
 
 ### El logo lleva al Dashboard (esta rama)
