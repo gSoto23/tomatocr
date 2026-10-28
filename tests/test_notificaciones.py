@@ -254,3 +254,38 @@ def test_the_script_runs(db, team, outbox):
     db.commit()
     from scripts import notificaciones as script  # noqa: F401
     assert run(run_once())["sent"] == 1
+
+
+def test_the_digest_is_also_in_the_bell(db, login_as, team, outbox):
+    add_task(login_as("worker"), title="Llenar la bitácora")
+    run(send_digests(db, datetime.combine(TODAY, time(7, 0))))
+    notice = db.query(Notification).filter_by(kind="daily_digest", user_id=team["worker"].id).one()
+    assert notice.title.startswith("Tu día en TOMATO: 1 tarea") and "- Llenar la bitácora" in notice.body
+    assert notice.link == "/dashboard/" and notice.email_status == "none"  # the e-mail went on its own
+    assert "Ver en el sistema" not in notice.body
+    assert 'aria-label="Notificaciones: 1 sin leer"' in login_as("worker").get("/dashboard/").text
+
+
+def test_without_email_or_with_it_off_the_digest_still_reaches_the_bell(db, login_as, users, outbox):
+    worker = login_as("worker")  # no e-mail
+    add_task(worker, title="Algo")
+    run(send_digests(db, datetime.combine(TODAY, time(7, 0))))
+    assert db.query(Notification).filter_by(kind="daily_digest").count() == 1 and outbox == []
+
+
+def test_one_failing_digest_does_not_stop_the_rest(db, login_as, team, outbox, monkeypatch):
+    add_task(login_as("worker"), title="Algo")
+    add_task(login_as("ventas"), title="Otra cosa")
+    real = notifications.digest
+
+    def broken_for_worker(db, user, today):
+        if user.id == team["worker"].id:
+            raise RuntimeError("datos raros")
+        return real(db, user, today)
+    monkeypatch.setattr(notifications, "digest", broken_for_worker)
+    run(send_digests(db, datetime.combine(TODAY, time(7, 0))))
+    assert [m["to"] for m in outbox] == [["ventas@example.com"]]
+    assert db.query(DigestSent).filter_by(user_id=team["worker"].id).count() == 0  # retried next run
+    monkeypatch.setattr(notifications, "digest", real)
+    run(send_digests(db, datetime.combine(TODAY, time(7, 5))))
+    assert [m["to"] for m in outbox][-1] == ["worker@example.com"]

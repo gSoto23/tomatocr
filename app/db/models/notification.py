@@ -16,9 +16,10 @@ KINDS = {
     "opportunity_assigned": ("Te asignan una oportunidad", True),
     "new_lead": ("Entra un prospecto nuevo tuyo", True),
 }
-# Not a notification of its own: the 7 a.m. e-mail with the day's tasks and urgent alerts.
+# The 7 a.m. digest with the day's tasks and urgent alerts: always in the bell and on the
+# phones; its preference is only about the e-mail.
 DIGEST = "daily_digest"
-DIGEST_LABEL = "Resumen del día por correo (7 a.m.)"
+DIGEST_LABEL = "Resumen del día por correo (7 a.m.; en la campana llega siempre)"
 
 # E-mail (and phone) of a notification: pending (in the outbox), sending (one process took it),
 # sent, failed (gave up after MAX_ATTEMPTS) or none (not wanted, no e-mail, no phone).

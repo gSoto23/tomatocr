@@ -170,8 +170,8 @@ def release_stuck(db: Session) -> int:
 
 # --- Daily digest -----------------------------------------------------------------
 
-def digest_email(db: Session, user: User, today: date) -> Optional[Tuple[str, str]]:
-    """Subject and body with the person's tasks for today (and late ones) and their urgent
+def digest(db: Session, user: User, today: date) -> Optional[Tuple[str, str]]:
+    """Title and text with the person's tasks for today (and late ones) and their urgent
     alerts; None when there is nothing."""
     from app.routers.dashboard import current_alerts  # the Dashboard's own alerts, computed the same way
     from app.utils.tasks import my_tasks
@@ -187,37 +187,47 @@ def digest_email(db: Session, user: User, today: date) -> Optional[Tuple[str, st
             late = " (atrasada)" if task.due_date < today else ""
             high = " [Alta]" if task.priority == "alta" else ""
             lines.append(f"- {task.title}{high}{late}")
-        lines.append("")
     if urgent:
-        lines.append("Urgente:")
-        lines += [f"- {a.title}: {a.detail}" for a in urgent]
-        lines.append("")
-    lines += [f"Ver en el sistema: {SITE}/dashboard/", "",
-              f"Para dejar de recibir este resumen: {SITE}/notificaciones"]
+        lines += [""] * bool(tasks) + ["Urgente:"] + [f"- {a.title}: {a.detail}" for a in urgent]
     parts = [f"{len(tasks)} tarea{'s' if len(tasks) != 1 else ''}"] if tasks else []
     if urgent:
         parts.append(f"{len(urgent)} urgente{'s' if len(urgent) != 1 else ''}")
     return f"Tu día en TOMATO: {', '.join(parts)}", "\n".join(lines)
 
 
+def digest_email_body(text: str) -> str:
+    return "\n".join([text, "", f"Ver en el sistema: {SITE}/dashboard/", "",
+                      f"Para dejar de recibir este resumen por correo: {SITE}/notificaciones"])
+
+
 async def send_digests(db: Session, now: datetime) -> int:
-    """The day's digest to each active team member with an e-mail who wants it, once a day."""
+    """The day's digest, once a day, to each active team member who has something: in the
+    bell and on their phones always, and by e-mail if they want it and have one. A person
+    whose digest fails is retried in the next run and doesn't stop the rest."""
     if not DIGEST_HOUR <= now.hour < LAST_DIGEST_HOUR:
         return 0
     today = now.date()
     done = {d.user_id for d in db.query(DigestSent).filter(DigestSent.day == today)}
-    people = db.query(User).filter(User.is_active != False, User.role != CLIENT,  # noqa: E712
-                                   User.email.isnot(None), User.email != "").order_by(User.id).all()
+    people = db.query(User).filter(User.is_active != False, User.role != CLIENT).order_by(User.id).all()  # noqa: E712
     sent = 0
     for person in people:
-        if person.id in done or person.status in ("inactive", "liquidated") or not wants_email(db, person, DIGEST):
+        if person.id in done or person.status in ("inactive", "liquidated"):
             continue
-        mail = digest_email(db, person, today)
-        if mail is not None and not await send_plain_email([person.email], *mail):
-            continue  # the next run tries again
-        db.add(DigestSent(user_id=person.id, day=today))
-        db.commit()
-        sent += mail is not None
+        try:
+            found = digest(db, person, today)
+            if found is not None:
+                title, text = found
+                if person.email and wants_email(db, person, DIGEST) \
+                        and not await send_plain_email([person.email], title, digest_email_body(text)):
+                    continue  # the next run tries again
+                db.add(Notification(user_id=person.id, kind=DIGEST, title=title, body=text, link="/dashboard/",
+                                    push_status="pending" if push.has_devices(db, person.id) else "none"))
+                sent += 1
+            db.add(DigestSent(user_id=person.id, day=today))
+            db.commit()
+        except Exception:
+            db.rollback()
+            logger.exception(f"Daily digest failed for user {person.id}")
     return sent
 
 
@@ -236,8 +246,8 @@ async def run_once() -> dict:
     try:
         now = now_cr()
         released = release_stuck(db)
-        sent = await deliver()
         digests = await send_digests(db, now)
+        sent = await deliver()  # after the digests, so they reach the phones in the same run
         clean_up(db, now.date())
         return {"released": released, "sent": sent, "digests": digests}
     finally:
