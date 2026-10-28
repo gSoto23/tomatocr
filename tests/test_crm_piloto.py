@@ -110,8 +110,8 @@ def test_admin_assigns_an_opportunity_and_the_seller_gets_an_email(db, login_as,
     assert response.status_code == 303
     db.expire_all()
     assert db.get(Opportunity, o.id).owner_id == melina.id
-    assert mails == [{"to": ["melina@example.com"], "subject": "Oportunidad asignada: Dentro",
-                      "body": mails[0]["body"]}]
+    assert [(m["to"], m["subject"]) for m in mails] == [(["melina@example.com"], "Oportunidad asignada: Dentro")]
+    assert "Abrir la oportunidad" in mails[0]["html"]
     assert f"/clientes/oportunidades/{o.id}" in mails[0]["body"] and "Responder la solicitud" in mails[0]["body"]
     assert db.query(ActivityLog).filter(ActivityLog.details.like("%asignada a Melina Rojas%")).count() == 1
     # Saving again without changing the seller sends nothing.

@@ -14,7 +14,7 @@ from app.db.models.notification import DIGEST, DIGEST_LABEL, KINDS, Notification
 from app.db.models.user import User
 from app.routers import deps
 from app.routers.crm import toast_redirect
-from app.utils import push
+from app.utils import notice_format, push
 from app.utils.notifications import set_pref, unread_count, wants_email
 
 router = APIRouter(prefix="/notificaciones", tags=["notificaciones"])
@@ -36,6 +36,23 @@ def bell_count(user) -> int:
 
 
 templates.env.globals["bell_count"] = bell_count
+templates.env.globals["notice_style"] = notice_format.style
+templates.env.globals["notice_heading"] = notice_format.heading
+templates.env.globals["notice_summary"] = notice_format.summary
+# Tailwind classes per color of notice_format.KIND_STYLE, and an icon (SVG path) per kind.
+templates.env.globals["notice_classes"] = {
+    "blue": "bg-blue-100 text-blue-700", "red": "bg-red-100 text-red-700", "green": "bg-green-100 text-green-700",
+    "purple": "bg-purple-100 text-purple-700", "amber": "bg-amber-100 text-amber-700", "black": "bg-gray-900 text-white",
+}
+templates.env.globals["notice_icons"] = {
+    "task_assigned": "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4",
+    "task_high": "M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z",
+    "task_done": "M5 13l4 4L19 7",
+    "opportunity_assigned": "M13 7h8m0 0v8m0-8l-8 8-4-4-6 6",
+    "new_lead": "M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z",
+    "daily_digest": "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z",
+    "default": "M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9",
+}
 
 
 @router.get("")

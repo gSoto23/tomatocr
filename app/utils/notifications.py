@@ -17,7 +17,7 @@ from app.core.roles import CLIENT
 from app.db.models.notification import DIGEST, KINDS, DigestSent, Notification, NotificationPref
 from app.db.models.user import User
 from app.db.session import SessionLocal
-from app.utils import push
+from app.utils import notice_format, push
 from app.utils.email import send_plain_email
 from app.utils.timecr import now_cr
 
@@ -89,15 +89,16 @@ def email_body(notification: Notification) -> str:
 
 def push_message(notification: Notification) -> dict:
     """What the phone shows. Tapping it opens /notificaciones/<id>/ir (marks it read)."""
-    body = " ".join((notification.body or "").split())
-    return {"title": notification.title, "body": body[:180] + ("…" if len(body) > 180 else ""),
+    return {"title": notification.title, "body": notice_format.summary(notification.body),
             "url": f"/notificaciones/{notification.id}/ir", "tag": f"n{notification.id}"}
 
 
 async def send_email(db: Session, notification: Notification) -> Optional[bool]:
     if not notification.user.email:
         return None
-    return await send_plain_email([notification.user.email], notification.title, email_body(notification))
+    return await send_plain_email([notification.user.email], notification.title, email_body(notification),
+                                  notice_format.email_html(notification.kind, notification.title, notification.body,
+                                                           notification.link, SITE))
 
 
 async def send_push(db: Session, notification: Notification) -> Optional[bool]:
@@ -218,7 +219,8 @@ async def send_digests(db: Session, now: datetime) -> int:
             if found is not None:
                 title, text = found
                 if person.email and wants_email(db, person, DIGEST) \
-                        and not await send_plain_email([person.email], title, digest_email_body(text)):
+                        and not await send_plain_email([person.email], title, digest_email_body(text),
+                                                       notice_format.email_html(DIGEST, title, text, "/dashboard/", SITE)):
                     continue  # the next run tries again
                 db.add(Notification(user_id=person.id, kind=DIGEST, title=title, body=text, link="/dashboard/",
                                     push_status="pending" if push.has_devices(db, person.id) else "none"))

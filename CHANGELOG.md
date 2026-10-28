@@ -6,6 +6,19 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-10-28
 
+### Avisos con diseño: correo, campana y teléfono (esta rama)
+- Los correos de avisos y el resumen del día llegan **con diseño**: encabezado negro con el
+  logo, etiqueta de color por tipo (Tarea asignada, Prioridad alta, Oportunidad, Prospecto
+  nuevo, Resumen del día), los datos en una tabla (vence, prioridad, con quién), las listas
+  con etiquetas *Alta* y *Atrasada*, un botón (*Ver mis tareas*, *Abrir la oportunidad*…) y
+  el pie de TOMATO. Siguen llevando la versión de texto para los correos que no muestran
+  HTML.
+- **Campana**: cada aviso con su ícono y etiqueta de color, el título limpio y una línea de
+  resumen ("Vence 29/10/2026 · Prioridad alta · con Will Perez") en vez del texto completo.
+- **Teléfono**: el aviso trae esa misma línea de resumen, y en Android un ícono de TOMATO
+  propio para la barra de estado.
+- Despliegue: sin migración; reiniciar.
+
 ### Resumen del día también en la campana y el teléfono (esta rama)
 - El resumen de las 7 a.m. ahora es también un aviso de la campana y suena en los teléfonos
   con avisos activos. La casilla de preferencias solo decide si llega además por correo.

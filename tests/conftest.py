@@ -68,8 +68,8 @@ def outbox(monkeypatch):
     from app.utils import notifications
     sent = []
 
-    async def fake_send(recipients, subject, body):
-        sent.append({"to": recipients, "subject": subject, "body": body})
+    async def fake_send(recipients, subject, body, html=None):
+        sent.append({"to": recipients, "subject": subject, "body": body, "html": html})
         return True
     monkeypatch.setattr(notifications, "SessionLocal", TestingSessionLocal)
     monkeypatch.setattr(notifications, "send_plain_email", fake_send)

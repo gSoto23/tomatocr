@@ -23,6 +23,7 @@ evento (tarea, oportunidad, prospecto)
 | Página, campana y preferencias | `app/routers/notifications.py`, `app/templates/notifications/index.html`, `base_dashboard.html` (`bell_count`) |
 | Ejecución periódica | `scripts/notificaciones.py` + timer systemd `tomato-notificaciones` |
 | Avisos al teléfono (web push) | `app/utils/push.py`, tabla `push_subscriptions` (migración 0021), claves `VAPID_*` |
+| Diseño (correo, campana, teléfono) | `app/utils/notice_format.py` (lee el texto como párrafos, filas `Etiqueta: valor` de `ROW_LABELS` y listas `- …`), `app/templates/emails/notificacion.html` |
 | App instalable | `app/routers/pwa.py` (`/manifest.webmanifest`, `/sw.js`, `/offline`), `app/static/app/sw.js`, íconos en `app/static/images/app/` |
 
 ### Tipos de aviso
