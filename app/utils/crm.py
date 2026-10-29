@@ -59,6 +59,20 @@ def active_accounts(db: Session) -> List[Account]:
     return db.query(Account).filter(Account.merged_into_id.is_(None)).order_by(Account.id).all()
 
 
+# Discard reason of the requests blocked as bots (app/utils/leads.py record_spam).
+SPAM_REASON = "Spam automático: "
+
+
+def is_spam(account: Account) -> bool:
+    """Blocked as a bot and still discarded (reactivating it means it was a real client)."""
+    return bool(account.discarded_at) and (account.discard_reason or "").startswith(SPAM_REASON)
+
+
+def real_accounts(db: Session) -> List[Account]:
+    """Active accounts minus spam: what duplicates, similar names and lead matching look at."""
+    return [a for a in active_accounts(db) if not is_spam(a)]
+
+
 def account_status(db: Session, account: Account) -> str:
     """cliente: an active project or a reforestation project; ex_cliente: only closed
     projects; prospecto: no projects yet; descartada: set by hand."""
@@ -258,8 +272,9 @@ def backfill(db: Session, owner: User, today: Optional[date] = None) -> Backfill
 # --- Duplicates and merge -----------------------------------------------------------
 
 def find_duplicates(db: Session) -> List[Tuple[Account, Account, float]]:
-    """Pairs of active accounts with similar names or a shared contact email, minus dismissed pairs."""
-    accounts = active_accounts(db)
+    """Pairs of active accounts with similar names or a shared contact email, minus dismissed
+    pairs and spam (bots repeat names like "NA": those pairs say nothing)."""
+    accounts = real_accounts(db)
     dismissed = {(d.account_a_id, d.account_b_id) for d in db.query(AccountNotDuplicate)}
     emails: Dict[int, set] = {}
     for contact in db.query(Contact).filter(Contact.email.isnot(None)):
@@ -639,7 +654,7 @@ def delete_account(db: Session, account: Account):
 def similar_accounts(db: Session, name: str, tax_id: Optional[str] = None, email: Optional[str] = None) -> List[Account]:
     """Existing accounts that could be the same client: same cédula, contact email, or a similar name."""
     found = {}
-    for account in active_accounts(db):
+    for account in real_accounts(db):
         if tax_id and account.tax_id and account.tax_id == tax_id.strip():
             found[account.id] = account
         elif name and (normalize_name(account.name) == normalize_name(name)
@@ -648,7 +663,7 @@ def similar_accounts(db: Session, name: str, tax_id: Optional[str] = None, email
     if email:
         for contact in db.query(Contact).filter(Contact.email == email.strip().lower()):
             account = db.get(Account, contact.account_id)
-            if account and not account.merged_into_id:
+            if account and not account.merged_into_id and not is_spam(account):
                 found[account.id] = account
     return list(found.values())
 
@@ -847,7 +862,7 @@ def account_payload(account: Account) -> Dict:
 
 def search_accounts(db: Session, query: str, limit: int = 15) -> List[Account]:
     needle = normalize_name(query)
-    accounts = active_accounts(db)
+    accounts = real_accounts(db)
     if not needle:
         return accounts[:limit]
     scored = []

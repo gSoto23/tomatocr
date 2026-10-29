@@ -4,6 +4,17 @@ Cambios en el sistema y en el sitio público, del más reciente al más antiguo.
 Cada entrada indica el PR y si necesitó migración o pasos especiales al
 desplegar. Hora de Costa Rica salvo que diga UTC.
 
+## 2026-10-29
+
+### El spam no sale en Posibles duplicados (esta rama)
+- Las cuentas descartadas como *Spam automático* ya no aparecen en **Posibles
+  duplicados**, en el buscador de cuentas (proyectos y Cotizador) ni en el aviso de
+  cuentas parecidas al crear una. Siguen en Descartados.
+- Si una persona real escribe por el formulario con el mismo nombre o correo que un bot,
+  se le crea su propia cuenta en vez de reactivar la del bot.
+- Si reactivás una cuenta de spam, vuelve a compararse como cualquier otra.
+- Despliegue: sin migración; reiniciar.
+
 ## 2026-10-28
 
 ### Proyectos que suman a las metas sin pasar por Clientes (esta rama)
