@@ -11,7 +11,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.db.models.activity import ActivityLog
-from app.db.models.crm import (DEFAULT_GOALS, FUNNEL_STAGES, GOAL_STAGES, MONEY_GOALS, ORIGINS, TENDER_MOTOR, LABELS, STAGES, Account, AccountNotDuplicate, Contact,
+from app.db.models.crm import (DEFAULT_GOALS, FUNNEL_STAGES, GOAL_STAGES, MONEY_GOALS, MOTORS, ORIGINS, TENDER_MOTOR, LABELS, STAGES, Account, AccountNotDuplicate, Contact,
                                 CrmActivity, CrmGoal, CrmSetting, Opportunity, ProjectContactRole, stage_index)
 from app.db.models.finance import ProjectBudget
 from app.db.models.project_details import ProjectContact
@@ -717,6 +717,42 @@ def win_opportunity(db: Session, opportunity: Opportunity, project: Project, use
     if opportunity.kind != "renovacion":
         opportunity.project_id = project.id
     change_stage(db, opportunity, "ganado", user)
+
+
+def project_opportunity(db: Session, project: Project) -> Optional[Opportunity]:
+    """The won opportunity a project counts under in Clientes, if it has one (an open renewal
+    pointing at the project doesn't count)."""
+    if project.opportunity_id:
+        return db.get(Opportunity, project.opportunity_id)
+    return db.query(Opportunity).filter(Opportunity.project_id == project.id, Opportunity.stage == "ganado").first()
+
+
+def win_from_project(db: Session, project: Project, user: User, motor: Optional[str] = None,
+                     kind: Optional[str] = None, origin: Optional[str] = None) -> Opportunity:
+    """A project that came in without an opportunity (a tender won in SICOP is never quoted)
+    gets one, already won, so it counts in the goals. Its amount is the project's budget.
+    Without a kind: an extension (ampliación) if the account has other projects, else new."""
+    if project.account_id is None:
+        raise ValueError("El proyecto no tiene cuenta")
+    if project_opportunity(db, project) is not None:
+        raise ValueError("El proyecto ya tiene una oportunidad ganada")
+    account = db.get(Account, project.account_id)
+    if kind not in ("nuevo", "ampliacion"):
+        others = db.query(Project.id).filter(Project.account_id == account.id, Project.id != project.id).first()
+        kind = "ampliacion" if others else "nuevo"
+    opportunity = Opportunity(
+        account_id=account.id, title=project.name[:200], kind=kind, motor=motor if motor in MOTORS else None,
+        origin=origin if origin in ORIGINS else None, stage="prospecto", max_stage=0,
+        owner_id=account.owner_id or user.id, created_by_id=user.id, source="proyecto",
+    )
+    db.add(opportunity)
+    db.flush()
+    db.add(CrmActivity(account_id=account.id, opportunity_id=opportunity.id, type="nota", happened_at=datetime.utcnow(),
+                       user_id=user.id, notes=f"Registrada como ganada desde el proyecto {project.name}"))
+    db.add(ActivityLog(user_id=user.id, action="CREATE", entity_type="OPPORTUNITY", entity_id=opportunity.id,
+                       details=f"{opportunity.title} ({account.name}), ganada desde el proyecto"))
+    win_opportunity(db, opportunity, project, user)
+    return opportunity
 
 
 def project_contact_roles(db: Session, project_id: int) -> List[ProjectContactRole]:

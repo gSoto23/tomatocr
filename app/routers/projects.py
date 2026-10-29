@@ -13,7 +13,9 @@ from app.db.models.user import User
 from app.db.models.log import DailyLog
 from app.db.models.reforestation import ReforestationProject
 from app.db.models.crm import Account, Opportunity
-from app.utils.crm import account_payload, project_contact_roles, set_project_contacts, site_contacts, win_opportunity
+from app.db.models.crm import LABELS, MOTORS, ORIGINS
+from app.utils.crm import (account_payload, project_contact_roles, project_opportunity, set_project_contacts, site_contacts,
+                           win_from_project, win_opportunity)
 from app.db.models.associations import project_users
 from sqlalchemy import desc, func
 from math import ceil
@@ -80,6 +82,12 @@ class ProjectCreate(BaseModel):
     account_id: Optional[int] = None
     contact_roles: List[ContactRoleIn] = []
     opportunity_id: Optional[int] = None  # set when the project is created from a won opportunity
+    # A project that came in without an opportunity (e.g. a tender won in SICOP) can be
+    # registered as won in Clientes, so it counts in the goals (app/utils/crm.py win_from_project).
+    register_won: bool = False
+    won_motor: Optional[str] = None
+    won_kind: Optional[str] = None  # empty: chosen from the account (see win_from_project)
+    won_origin: Optional[str] = None
     # Lists
     contacts: List[ContactCreate] = []  # old per-project contacts; no longer sent by the form
     supplies: List[SupplyCreate] = []
@@ -154,6 +162,23 @@ def apply_account(db: Session, project: Project, project_in: "ProjectCreate"):
     return account
 
 
+def register_won(db: Session, project: Project, project_in: "ProjectCreate", user: User):
+    """Creates the won opportunity when the form asks for it (see ProjectCreate.register_won)."""
+    if not project_in.register_won:
+        return
+    try:
+        win_from_project(db, project, user, project_in.won_motor, project_in.won_kind, project_in.won_origin)
+    except ValueError as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+def won_choices():
+    """Motors and origins for the "register as won" section of the form."""
+    return {"motors": [(m, LABELS["motor"][m]) for m in MOTORS],
+            "origins": [(o, LABELS["origin"][o]) for o in ORIGINS]}
+
+
 def account_form_data(db: Session, project: Optional[Project]):
     account = db.get(Account, project.account_id) if project and project.account_id else None
     roles = [{"contact_id": r.contact_id, "is_site": r.is_site, "receives_reports": r.receives_reports,
@@ -181,6 +206,8 @@ def new_project_form(request: Request, opportunity_id: Optional[int] = None, db:
         "account": account_payload(account) if account else None,
         "contact_roles": [],
         "opportunity": opportunity,
+        "won_opportunity": None,
+        "won_choices": won_choices(),
     })
 
 @router.post("/new")
@@ -219,6 +246,8 @@ def create_project(
             win_opportunity(db, opportunity, project, user)
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
+    else:
+        register_won(db, project, project_in, user)
 
     # Add Supplies
     for s in project_in.supplies:
@@ -300,6 +329,8 @@ def edit_project_form(id: int, request: Request, db: Session = Depends(deps.get_
         "account": account,
         "contact_roles": roles,
         "opportunity": None,
+        "won_opportunity": project_opportunity(db, project),
+        "won_choices": won_choices(),
     })
 
 @router.post("/{id}/edit")
@@ -331,6 +362,7 @@ def update_project(
 
     # Client account and its contacts for this project (the old project_contacts are kept as history).
     apply_account(db, project, project_in)
+    register_won(db, project, project_in, user)
     
     # Update Supplies (Replace All strategy for simplicity or nuanced?)
     # Simple strategy: Delete all old, add all new.
