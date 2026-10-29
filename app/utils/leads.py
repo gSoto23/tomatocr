@@ -12,7 +12,7 @@ from app.db.models.activity import ActivityLog
 from app.db.models.crm import (ASSIGNMENT_DEFAULT, LABELS, MOTORS, Account, Contact, CrmActivity, CrmAssignment,
                                LeadSubmission, Opportunity)
 from app.db.models.user import User
-from app.utils.crm import active_accounts, guess_kind, normalize_name
+from app.utils.crm import SPAM_REASON, guess_kind, is_spam, normalize_name, real_accounts
 from app.utils.login_throttle import trackable_ip
 
 # Bump when the consent text on the form or /privacidad changes; stored with each consent.
@@ -101,17 +101,18 @@ def assigned_owner(db: Session, motor: str) -> Optional[User]:
 
 
 def find_account(db: Session, lead: Dict) -> Optional[Account]:
+    """The existing account of a request, by contact email or company name. Spam accounts are
+    skipped: a real request that repeats a bot's name or e-mail gets its own account."""
     if lead["email"]:
-        contact = db.query(Contact).filter(func.lower(Contact.email) == lead["email"]).first()
-        if contact:
+        for contact in db.query(Contact).filter(func.lower(Contact.email) == lead["email"]).order_by(Contact.id):
             account = db.get(Account, contact.account_id)
             while account is not None and account.merged_into_id:
                 account = db.get(Account, account.merged_into_id)
-            if account:
+            if account and not is_spam(account):
                 return account
     if lead["company"]:
         key = normalize_name(lead["company"])
-        return next((a for a in active_accounts(db) if normalize_name(a.name) == key), None)
+        return next((a for a in real_accounts(db) if normalize_name(a.name) == key), None)
     return None
 
 
@@ -205,7 +206,7 @@ def record_spam(db: Session, lead: Dict, reasons: List[str], source: str = "web"
     Always a new account: never matched to an existing client, so a bot that types a real
     client's name or e-mail can't discard that client."""
     now = datetime.utcnow()
-    reason = "Spam automático: " + ", ".join(reasons)
+    reason = SPAM_REASON + ", ".join(reasons)
     motor = lead.get("motor") if lead.get("motor") in MOTORS else None
     account = Account(name=(lead.get("company") or lead.get("name") or "Sin nombre")[:200], kind="otro", source=source,
                       discarded_at=now, discard_reason=reason, origin_ref=f"{source}-spam:{now:%Y%m%d%H%M%S}")

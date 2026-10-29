@@ -288,7 +288,9 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
 - **Duplicados** (`/clientes/duplicados`, solo admin): cuentas con nombres
   parecidos o el mismo correo de contacto, para fusionarlas o marcarlas como
   distintas. La fusión mueve todo a la cuenta que queda y se registra en
-  Actividad.
+  Actividad. Las cuentas de spam (descartadas con *Spam automático*) no se
+  comparan, ni salen en el buscador de cuentas ni en las cuentas parecidas, y
+  un prospecto real nunca se liga a una de ellas (`is_spam`, `real_accounts`).
 - **Entradas de prospectos** (Fase 2D, detalle en `docs/DISENO_CRM.md`,
   sección 6):
   - Formulario de contacto en la portada y en /programas/darboles

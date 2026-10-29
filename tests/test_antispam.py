@@ -120,3 +120,41 @@ def test_company_adds_to_other_signs():
 def test_real_company_with_numbers_reaches_the_seller(db, sellers, mails):  # noqa: F811
     assert post_form({**FORM, "company": "Soluciones360Group"}).json()["ok"]
     assert db.query(Account).one().discarded_at is None and len(mails) == 1
+
+
+# --- Spam stays out of duplicates, similar names, the account picker and lead matching -------
+
+def test_spam_accounts_are_not_duplicates(db, sellers, mails, login_as):  # noqa: F811
+    from app.utils.crm import find_duplicates
+    post_form({**BOT, "company": "NA"})
+    post_form({**BOT, "company": "NA", "email": "otro@belettersmail.com"})
+    assert db.query(Account).count() == 2 and find_duplicates(db) == []
+    html = login_as("admin").get("/clientes/duplicados").text
+    assert "Quedarse con" not in html
+
+
+def test_reactivated_spam_counts_again(db, sellers, mails):  # noqa: F811
+    from app.utils.crm import find_duplicates, reactivate_account
+    post_form({**BOT, "company": "Hotel Sol"})
+    db.add(Account(name="Hotel Sol"))
+    db.commit()
+    assert find_duplicates(db) == []
+    reactivate_account(db, db.query(Account).filter(Account.discarded_at.isnot(None)).one(), None)
+    db.commit()
+    assert len(find_duplicates(db)) == 1
+
+
+def test_spam_is_not_in_the_picker_or_similar_names(db, sellers, mails, login_as):  # noqa: F811
+    from app.utils.crm import similar_accounts
+    post_form({**BOT, "company": "Finca Azul"})
+    assert similar_accounts(db, "Finca Azul", email=BOT["email"]) == []
+    assert login_as("admin").get("/clientes/api/cuentas?q=finca").json() == []
+
+
+def test_a_real_request_never_lands_in_a_spam_account(db, sellers, mails):  # noqa: F811
+    post_form({**BOT, "company": "Finca Azul", "email": "laura@fincaazul.cr"})
+    spam = db.query(Account).one()
+    assert post_form({**FORM, "company": "Finca Azul", "email": "laura@fincaazul.cr"}).json()["ok"]
+    db.expire_all()
+    assert db.query(Account).count() == 2
+    assert db.get(Account, spam.id).discarded_at is not None
