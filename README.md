@@ -252,6 +252,12 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
   (`POST /clientes/cuentas/{id}/cotizaciones/{quote_id}/oportunidad`).
 - **Marcar ganada** (admin): crea el proyecto desde la oportunidad o liga uno
   existente de la misma cuenta.
+- **Registrar como ganado en Clientes** (formulario de proyecto): para los
+  proyectos que no pasaron por una oportunidad, como una licitación ganada en
+  SICOP, crea la oportunidad ya ganada (motor, tipo y origen a elegir) para que
+  sume a las metas con el monto del presupuesto. En un proyecto nuevo con número
+  de licitación se marca sola con Sector público y SICOP. Al editar un proyecto
+  que ya cuenta, muestra el enlace a su oportunidad (`win_from_project`).
 - **Contratos por vencer** (en el Filtro): contratos de Presupuestos que
   vencen en 90 días (en rojo, menos de 60) con botón "Crear renovación".
 - **Permisos**: ventas ve todas las cuentas sin finanzas y edita las suyas y

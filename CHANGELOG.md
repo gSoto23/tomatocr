@@ -6,6 +6,18 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-10-28
 
+### Proyectos que suman a las metas sin pasar por Clientes (esta rama)
+- El formulario de proyecto tiene **Registrar como ganado en Clientes**: crea la oportunidad
+  ya ganada (motor, tipo y origen a elegir) para que el proyecto sume a las metas con el
+  monto de sus líneas adjudicadas. Pensado para licitaciones ganadas en SICOP, que no se
+  cotizan.
+- En un proyecto nuevo, al escribir el número de licitación la casilla se marca sola con
+  Sector público y SICOP. El tipo, si no se elige, es Ampliación cuando la cuenta ya tiene
+  otros proyectos y Nuevo cuando es el primero.
+- También sirve para proyectos existentes (Editar). Si el proyecto ya cuenta, se muestra el
+  enlace a su oportunidad en vez de la casilla.
+- Despliegue: sin migración; reiniciar.
+
 ### Avisos con diseño: correo, campana y teléfono (esta rama)
 - Los correos de avisos y el resumen del día llegan **con diseño**: encabezado negro con el
   logo, etiqueta de color por tipo (Tarea asignada, Prioridad alta, Oportunidad, Prospecto
