@@ -183,3 +183,33 @@ def test_supervisor_who_sells_uses_it(db, login_as, users):
     client = login_as("supervisor")
     assert add(client).status_code == 303
     assert db.query(Prospect).one().owner_id == users["supervisor"].id
+
+
+def test_deleting_a_converted_account_takes_its_prospect(db, login_as):
+    client = login_as("ventas")
+    add(client)
+    p = db.query(Prospect).one()
+    client.post(f"/clientes/posibles/{p.id}/intento", data={"channel": "llamada", "notes": "Prueba"})
+    client.post(f"/clientes/posibles/{p.id}/convertir")
+    db.refresh(p)
+    account_id = p.account_id
+    admin = login_as("admin")
+    admin.post(f"/clientes/cuentas/{account_id}/descartar", data={"reason": "Prueba"})
+    response = admin.post(f"/clientes/cuentas/{account_id}/borrar", follow_redirects=False)
+    assert response.status_code == 303
+    db.expire_all()
+    assert db.get(Account, account_id) is None and db.query(Opportunity).count() == 0
+    assert db.query(Prospect).count() == 0 and db.query(ProspectAttempt).count() == 0
+
+
+def test_deleting_an_account_keeps_other_prospects(db, login_as):
+    client = login_as("ventas")
+    add(client)
+    add(client, company="Otra empresa distinta", phone="", email="", confirm="1")
+    first = db.query(Prospect).filter_by(company="Residencial Los Olivos").one()
+    client.post(f"/clientes/posibles/{first.id}/convertir")
+    db.refresh(first)
+    admin = login_as("admin")
+    admin.post(f"/clientes/cuentas/{first.account_id}/descartar", data={"reason": "Prueba"})
+    admin.post(f"/clientes/cuentas/{first.account_id}/borrar")
+    assert [p.company for p in db.query(Prospect)] == ["Otra empresa distinta"]

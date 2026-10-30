@@ -43,7 +43,7 @@
                             <span class="px-2 py-1.5 text-xs text-gray-500" title="No se puede borrar: {{ row.blockers|join(', ') }}">No se borra: {{ row.blockers|join(', ') }}</span>
                             {% else %}
                             <form method="post" action="/clientes/cuentas/{{ a.id }}/borrar"
-                                  onsubmit="return confirm('¿Borrar {{ a.name|e }} para siempre? Se borran sus contactos, oportunidades y seguimientos. No se puede deshacer.')">
+                                  onsubmit="return confirm('¿Borrar {{ a.name|e }} para siempre? Se borran sus contactos, oportunidades, seguimientos y el posible cliente del que vino. No se puede deshacer.')">
                                 <button class="rounded-md bg-white px-3 py-1.5 font-semibold text-red-700 ring-1 ring-inset ring-red-300 hover:bg-red-50">Borrar</button>
                             </form>
                             {% endif %}

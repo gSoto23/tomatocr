@@ -633,7 +633,8 @@ def delete_blockers(db: Session, account: Account) -> List[str]:
 
 
 def delete_account(db: Session, account: Account):
-    """Deletes a discarded account with its contacts, opportunities and follow-ups (spam, tests)."""
+    """Deletes a discarded account with its contacts, opportunities, follow-ups and the Posibles
+    clientes converted into it (spam, tests)."""
     blockers = delete_blockers(db, account)
     if blockers:
         raise ValueError("No se puede borrar: " + ", ".join(blockers))
@@ -645,6 +646,13 @@ def delete_account(db: Session, account: Account):
                                          | (AccountNotDuplicate.account_b_id == account.id)).delete(
         synchronize_session=False)
     db.query(CrmActivity).filter(CrmActivity.account_id == account.id).delete(synchronize_session=False)
+    # Posibles clientes converted into this account (or into one of its opportunities) go with it.
+    from app.db.models.prospect import Prospect
+    opportunity_ids = [o.id for o in account.opportunities]
+    for prospect in db.query(Prospect).filter((Prospect.account_id == account.id)
+                                              | (Prospect.opportunity_id.in_(opportunity_ids or [0]))):
+        db.delete(prospect)  # with its attempts
+    db.flush()
     db.query(Opportunity).filter(Opportunity.account_id == account.id).delete(synchronize_session=False)
     db.query(Contact).filter(Contact.account_id == account.id).delete(synchronize_session=False)
     db.query(Account).filter(Account.id == account.id).delete(synchronize_session=False)
