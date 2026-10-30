@@ -1,6 +1,6 @@
 
 from typing import List, Optional
-from datetime import datetime
+from datetime import date, datetime
 from fastapi import APIRouter, Body, Depends, Form, Request, status, HTTPException
 from fastapi.responses import RedirectResponse, JSONResponse
 from sqlalchemy.orm import Session
@@ -72,6 +72,7 @@ def member_payload(s: ProjectSchedule, group_sizes: dict) -> dict:
         "hours": s.hours_worked,
         "overtime": s.overtime_hours or 0.0,
         "confirmed": bool(s.is_confirmed),
+        "attendance": s.attendance,
         "group_size": group_sizes.get(group_key(s), 1),
         "tasks": [{"id": t.id, "title": t.title, "description": t.description, "completed": t.completed}
                   for t in s.tasks],
@@ -80,6 +81,12 @@ def member_payload(s: ProjectSchedule, group_sizes: dict) -> dict:
 
 @router.get("/events")
 def get_events(start: str, end: str, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
+    # FullCalendar sends "2026-10-26T00:00:00-06:00": compare days, not text (as text, SQLite
+    # leaves out the first day of the range).
+    try:
+        start, end = date.fromisoformat(start[:10]), date.fromisoformat(end[:10])
+    except ValueError:
+        return JSONResponse({"status": "error", "message": "Fechas no válidas"}, status_code=400)
     query = db.query(ProjectSchedule)
     is_manager = user.role in [ADMIN, SUPERVISOR]
     if not is_manager:
@@ -106,6 +113,7 @@ def get_events(start: str, end: str, db: Session = Depends(deps.get_db), user: U
     for (project_id, day), members in days.items():
         members.sort(key=lambda m: (m.user.full_name or m.user.username).lower())
         all_confirmed = all(m.is_confirmed for m in members)
+        absent = sum(1 for m in members if m.attendance == "no_llego")
         count = len(members)
         events.append({
             "id": f"p{project_id}-{day.isoformat()}",
@@ -120,6 +128,7 @@ def get_events(start: str, end: str, db: Session = Depends(deps.get_db), user: U
                 "project_name": members[0].project.name,
                 "date": day.isoformat(),
                 "all_confirmed": all_confirmed,
+                "absent": absent,
                 "members": [member_payload(m, group_sizes) for m in members],
             },
         })
@@ -397,10 +406,15 @@ def move_schedule(id: int, date_val: str = Form(..., alias="date"), confirm_conf
     return JSONResponse({"status": "success", "message": "Asignación movida"})
 
 
+# What really happened on an assigned day (the supervisor marks it when confirming).
+ATTENDANCE = {"asistio": "Asistió", "tarde": "Llegó tarde", "no_llego": "No llegó"}
+
+
 class HoursItem(BaseModel):
     id: int
     hours: float
     overtime: float = 0.0
+    attendance: Optional[str] = None
 
 
 def in_final_payroll(db: Session, day) -> bool:
@@ -427,10 +441,17 @@ def confirm_day_hours(items: List[HoursItem] = Body(...), db: Session = Depends(
         if in_final_payroll(db, schedule.date):
             skipped.append(f"{name} (el día ya está en una planilla final)")
             continue
+        attendance = item.attendance or "asistio"
+        if attendance not in ATTENDANCE:
+            skipped.append(f"{name} (asistencia no válida)")
+            continue
         if not (0 <= item.hours <= 24 and 0 <= item.overtime <= 24):
             skipped.append(f"{name} (horas fuera de rango)")
             continue
-        schedule.hours_worked, schedule.overtime_hours, schedule.is_confirmed = item.hours, item.overtime, True
+        # Nobody is paid for a day they did not come.
+        hours, overtime = (0.0, 0.0) if attendance == "no_llego" else (item.hours, item.overtime)
+        schedule.hours_worked, schedule.overtime_hours, schedule.is_confirmed = hours, overtime, True
+        schedule.attendance = attendance
         done += 1
     db.commit()
     if done:
@@ -484,3 +505,31 @@ def toggle_task_status(id: int, db: Session = Depends(deps.get_db), user: User =
         "message": "Estado actualizado", 
         "completed": task.completed
     })
+
+
+@router.get("/cost")
+def labor_cost(start: str, end: str, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
+    """Estimated labour cost of the days shown (end not included): hours × each person's rate, overtime
+    at 1.5x, like the payroll. Days marked "No llegó" cost nothing. Admin only: it shows the rates."""
+    if user.role != ADMIN:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    try:
+        first, last = date.fromisoformat(start[:10]), date.fromisoformat(end[:10])
+    except ValueError:
+        return JSONResponse({"status": "error", "message": "Fechas no válidas"}, status_code=400)
+    schedules = db.query(ProjectSchedule).filter(ProjectSchedule.date >= first, ProjectSchedule.date < last).all()
+    totals = {"hours": 0.0, "overtime": 0.0, "cost": 0.0, "confirmed": 0.0, "pending": 0.0}
+    without_rate = set()
+    for s in schedules:
+        if not s.user or s.attendance == "no_llego":
+            continue
+        rate = s.user.hourly_rate or 0.0
+        hours, overtime = s.hours_worked or 0.0, s.overtime_hours or 0.0
+        if not rate and hours + overtime:
+            without_rate.add(s.user.full_name or s.user.username)
+        cost = hours * rate + overtime * rate * 1.5
+        totals["hours"] += hours
+        totals["overtime"] += overtime
+        totals["cost"] += cost
+        totals["confirmed" if s.is_confirmed else "pending"] += cost
+    return JSONResponse({**{k: round(v, 2) for k, v in totals.items()}, "without_rate": sorted(without_rate)})

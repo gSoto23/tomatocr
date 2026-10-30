@@ -15,6 +15,8 @@ class ProjectSchedule(Base):
     hours_worked = Column(Float, default=8.0)
     overtime_hours = Column(Float, default=0.0)
     is_confirmed = Column(Boolean, default=False)
+    # What really happened, set when the day is confirmed: asistio, tarde, no_llego (None: not marked yet).
+    attendance = Column(String(12), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     project = relationship("Project")

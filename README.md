@@ -100,6 +100,18 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
   agregan o quitan personas, se confirman las horas del día y se mueve el día
   arrastrándolo. Cada persona en cada día sigue siendo una `ProjectSchedule` (lo que
   usan la planilla y el Dashboard).
+- Vistas Mes, Semana, Día y Lista (la semana empieza el lunes; se recuerda la última
+  vista en el navegador). En Semana y Día cada bloque lista a su gente; en Día, con
+  horas y sede.
+- Colores por proyecto o por estado de las horas (por confirmar, confirmado, alguien
+  no llegó), con leyenda.
+- Asistencia al confirmar el día (migración 0022, `project_schedules.attendance`):
+  Asistió, Llegó tarde o No llegó; *No llegó* guarda 0 horas y 0 extras. Se ve en el
+  calendario y en el desglose de horas de la planilla.
+- Mano de obra (solo admin, `GET /calendar/cost?start&end`, fin no incluido): horas
+  × tarifa por hora + extras a 1.5 de las fechas en pantalla, separado en confirmado
+  y por confirmar, sin cargas sociales; nombra a quien no tiene tarifa. Plan completo
+  de planilla y calendario en `docs/PLAN_PLANILLA_CALENDARIO.md`.
 
 ### 4. Cotizador (`/cotizador`)
 - Secciones: 1. Cliente y servicio, 2. Ítems (descripción de varias líneas,
@@ -617,7 +629,7 @@ tomatocr/
 │   ├── utils/          # Actividad, correo, subidas, límite de login, reforestación
 │   └── main.py         # Entrada de la app y páginas públicas
 ├── alembic/            # Migraciones de esquema (PostgreSQL)
-├── docs/               # Plan comercial, migración a PostgreSQL
+├── docs/               # Plan comercial, plan de planilla y calendario, migración a PostgreSQL
 ├── scripts/            # Copia SQLite→PostgreSQL y scripts viejos de migración
 ├── tests/              # Pruebas (pytest)
 └── CHANGELOG.md        # Historial de cambios

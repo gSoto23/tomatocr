@@ -13,10 +13,24 @@
 {% call m.section("vistas", "Ver el calendario") %}
 {{ m.shot("calendario/mes.webp", "Calendario en vista de mes", "El calendario del equipo, vista de mes.") }}
 {{ m.steps([
-    (1, "Flechas para ir al mes anterior o siguiente, y <strong>Hoy</strong> para volver."),
-    (2, "<strong>Mes</strong> o <strong>Lista</strong> (la semana en forma de lista)."),
-    (3, "Cada bloque es <strong>un proyecto en un día</strong>: el nombre y cuántas personas van. Cada proyecto tiene su color; ✓ quiere decir que las horas del día ya están confirmadas. Tocalo para abrir el día."),
+    (1, "Flechas para ir al mes, la semana o el día anterior o siguiente, y <strong>Hoy</strong> para volver."),
+    (2, "<strong>Mes</strong>, <strong>Semana</strong>, <strong>Día</strong> o <strong>Lista</strong> (la semana en forma de lista). La semana empieza el lunes y el calendario recuerda la última vista que usaste."),
+    (3, "Cada bloque es <strong>un proyecto en un día</strong>: el nombre y cuántas personas van. ✓ quiere decir que las horas del día ya están confirmadas. Tocalo para abrir el día."),
 ]) }}
+{% if user.role in ['admin', 'supervisor'] %}
+<p>En <strong>Semana</strong> cada bloque muestra también <strong>quiénes van</strong>, uno por línea; en <strong>Día</strong>,
+    además, las horas y la sede de cada uno. Las marcas: ✓ horas confirmadas, ⏱ llegó tarde y ✗ no llegó (tachado).</p>
+<p><strong>Colores</strong>, arriba del calendario: <em>Por proyecto</em> (cada proyecto siempre con el mismo color) o
+    <em>Por estado de las horas</em>: naranja si falta confirmar, verde si ya están confirmadas y rojo si alguien no llegó.
+    Sirve para ver de un vistazo qué días falta revisar.</p>
+{% endif %}
+{% if user.role == 'admin' %}
+<p><strong>Mano de obra</strong>, arriba a la derecha: lo que cuestan en salario las fechas que tenés en pantalla (el mes,
+    la semana o el día). Son las horas de cada asignación por la tarifa por hora de la persona, más las extras a 1.5,
+    igual que en la planilla, sin cargas sociales. Se separa lo ya confirmado de lo que falta confirmar, y los días
+    marcados <em>No llegó</em> no suman. Si alguien no tiene tarifa por hora, aparece su nombre para que la completes
+    en Empleados. Solo lo ve el admin.</p>
+{% endif %}
 <p>El trabajador ve solo sus días: el proyecto y la sede.</p>
 <p>En el celular el calendario se abre directo en la <strong>lista de la semana</strong>, que se lee mejor en pantalla chica.</p>
 {{ m.shot("calendario/celular.webp", "Calendario en el celular", "La semana en el celular de un trabajador.", mobile=True) }}
@@ -46,11 +60,17 @@
 {{ m.shot("calendario/dia.webp", "El día de un proyecto", "El día de un proyecto, con su gente.") }}
 {{ m.steps([
     (1, "El proyecto y el día. <em>Ver proyecto</em> abre su ficha."),
-    (2, "Cada persona con su sede, cuántas tareas lleva hechas y sus <strong>horas</strong> y <strong>extras</strong>."),
+    (2, "Cada persona con su sede, cuántas tareas lleva hechas, si <strong>Asistió</strong>, <strong>Llegó tarde</strong> o <strong>No llegó</strong>, y sus <strong>horas</strong> y <strong>extras</strong>."),
     (3, "<strong>Editar</strong> cambia la asignación de esa persona (fecha, sede, horas previstas, tareas); <strong>Quitar</strong> la saca del día."),
     (4, "<strong>+ Agregar persona</strong> suma a alguien más a este proyecto en este día."),
-    (5, "<strong>Confirmar horas del día</strong> guarda las horas y extras de todos y las deja listas para la planilla."),
+    (5, "<strong>Confirmar horas del día</strong> guarda la asistencia, las horas y las extras de todos y las deja listas para la planilla."),
 ]) }}
+{% call m.tip("Asistencia") %}
+<p>Cada persona viene marcada como <strong>Asistió</strong>. Si llegó tarde, tocá <strong>Llegó tarde</strong> y bajale las
+    horas si corresponde. Si no llegó, tocá <strong>No llegó</strong>: las horas y las extras quedan en 0 y ese día no se
+    paga. Si fue un error, tocá <em>Asistió</em> y vuelven las horas que tenía. La asistencia se ve en el calendario y en
+    el desglose de horas de la planilla.</p>
+{% endcall %}
 <p>Para <strong>mover el día</strong>, arrastrá el bloque a otro día: se mueve todo el equipo. Si alguien ya tiene algo ese
     día, te pregunta; un día con horas confirmadas no se mueve.</p>
 {% if user.role == 'supervisor' %}<p>Tus propias horas no las podés confirmar: las confirma el admin.</p>{% endif %}
@@ -72,8 +92,8 @@
 {% endcall %}
 
 {% call m.section("horas", "Las horas") %}
-<p>Cada asignación empieza con las <strong>horas previstas</strong> (8 si no se cambian) y 0 extra, sin confirmar. Las horas
-    reales y las extra se confirman en el <strong>día del proyecto</strong> (arriba) o, para revisar varios días juntos, en
+<p>Cada asignación empieza con las <strong>horas previstas</strong> (8 si no se cambian) y 0 extra, sin confirmar. La
+    asistencia, las horas reales y las extra se confirman en el <strong>día del proyecto</strong> (arriba) o, para revisar varios días juntos, en
     <strong>Planilla → Aprobar Horas</strong>
     {%- if user.role != 'client' %} (ver el capítulo <a href="/manual/planilla" class="text-indigo-600 hover:underline">Planilla</a>){% endif %}.
     Solo las horas confirmadas se pagan.</p>
@@ -82,7 +102,7 @@
 {% call m.section("preguntas", "Preguntas frecuentes") %}
 <div class="space-y-2">
 {% call m.faq("¿Se puede arrastrar una asignación a otro día?") %}
-<p>Sí: arrastrá el bloque del proyecto en la vista de mes y soltalo en el día nuevo; se mueve todo el equipo de ese día.
+<p>Sí: arrastrá el bloque del proyecto en la vista de mes o de semana y soltalo en el día nuevo; se mueve todo el equipo de ese día.
     Si alguien ya tiene algo ese día, te pregunta. Un día con horas confirmadas no se mueve. Para mover a una sola
     persona, abrí el día, tocá <em>Editar</em> en su fila y cambiá la fecha.</p>
 {% endcall %}
@@ -90,6 +110,10 @@
 <p>Abrí el día, tocá <em>Editar</em> en la persona. Arriba aparece <em>Esta asignación es parte de un rango</em>: elegí <strong>Cambiar todos los
     días del rango</strong> para cambiar la sede, las horas y las tareas de todos, o tocá <em>Eliminar</em> →
     <strong>Eliminar todo el rango</strong>. Las tareas que el trabajador ya marcó se conservan.</p>
+{% endcall %}
+{% call m.faq("Alguien no llegó: ¿cómo lo marco?") %}
+<p>Abrí el día del proyecto, tocá <strong>No llegó</strong> en su fila y luego <strong>Confirmar horas del día</strong>. Queda
+    en 0 horas, no se paga y en el calendario aparece tachado con ✗.</p>
 {% endcall %}
 {% call m.faq("¿Dónde elijo la sede?") %}
 <p>En la ventana de la asignación, debajo del proyecto. El trabajador la ve al abrir su asignación.</p>

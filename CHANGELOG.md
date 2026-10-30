@@ -4,6 +4,27 @@ Cambios en el sistema y en el sitio público, del más reciente al más antiguo.
 Cada entrada indica el PR y si necesitó migración o pasos especiales al
 desplegar. Hora de Costa Rica salvo que diga UTC.
 
+## 2026-10-30
+
+### Calendario más fácil: semana, día, asistencia y costo (esta rama)
+- Nuevas vistas **Semana** y **Día**, además de Mes y Lista. En Semana cada proyecto
+  muestra quiénes van; en Día, también sus horas y su sede. La semana empieza el lunes y
+  el calendario recuerda la última vista que usaste.
+- **Colores**: por proyecto, como antes, o *por estado de las horas* (naranja por
+  confirmar, verde confirmado, rojo si alguien no llegó).
+- Al abrir el día de un proyecto, cada persona tiene **Asistió / Llegó tarde / No llegó**.
+  *No llegó* deja el día en 0 horas y no se paga. La asistencia se ve en el calendario
+  (✓, ⏱, ✗) y en el desglose de horas de la planilla.
+- **Mano de obra** (solo admin): arriba del calendario, lo que cuestan en salario las
+  fechas en pantalla (horas × tarifa + extras a 1.5, sin cargas sociales), separado en
+  confirmado y por confirmar. Avisa quién no tiene tarifa por hora.
+- Si en **Planilla → Aprobar Horas** se le ponen horas a alguien marcado *No llegó*, pasa a
+  *Asistió*, para que la marca y lo pagado coincidan.
+- Arreglo: el calendario compara días y no texto al pedir las asignaciones; con la base
+  local (SQLite) se perdía el primer día del rango, que ahora es el lunes.
+- Primera fase del plan de planilla y calendario (`docs/PLAN_PLANILLA_CALENDARIO.md`).
+- Despliegue: **migración 0022** (`alembic upgrade head`); reiniciar.
+
 ## 2026-10-29
 
 ### El spam no sale en Posibles duplicados (esta rama)

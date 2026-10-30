@@ -30,6 +30,36 @@
     {% endif %}
 </div>
 
+{% if user.role in ['admin', 'supervisor'] %}
+<div class="mb-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+        <label class="flex items-center gap-2 font-medium text-gray-700">Colores
+            <select id="color-mode" class="rounded-md border border-gray-300 py-1 pl-2 pr-8 text-sm">
+                <option value="project">Por proyecto</option>
+                <option value="status">Por estado de las horas</option>
+            </select>
+        </label>
+        <div id="status-legend" class="hidden flex flex-wrap items-center gap-3 text-xs text-gray-600">
+            <span class="flex items-center gap-1"><span class="h-3 w-3 rounded-sm" style="background:#d97706"></span>Por confirmar</span>
+            <span class="flex items-center gap-1"><span class="h-3 w-3 rounded-sm" style="background:#15803d"></span>Confirmado</span>
+            <span class="flex items-center gap-1"><span class="h-3 w-3 rounded-sm" style="background:#b91c1c"></span>Alguien no llegó</span>
+        </div>
+    </div>
+    {% if user.role == 'admin' %}
+    <!-- Estimated labour cost of the dates on screen (filled by loadCost) -->
+    <div id="cost-box" class="hidden rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm">
+        <div class="flex flex-wrap items-baseline gap-x-2">
+            <span class="text-gray-500">Mano de obra <span id="cost-range"></span>:</span>
+            <strong id="cost-total" class="text-gray-900"></strong>
+            <span id="cost-hours" class="text-xs text-gray-500"></span>
+        </div>
+        <div class="text-xs text-gray-500"><span id="cost-split"></span> · Salario y extras, sin cargas sociales.</div>
+        <div id="cost-warning" class="hidden text-xs text-amber-700"></div>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
 <div class="bg-white shadow-sm rounded-lg border border-gray-200 p-2 sm:p-4 overflow-x-auto">
     <div id='calendar'></div>
 </div>
@@ -39,6 +69,13 @@
         #calendar .fc-toolbar-title { font-size: 1.05rem; line-height: 1.3; }
         #calendar .fc-list-event-title { white-space: normal; }
     }
+    /* Week and day: each project shows its people, one per line */
+    #calendar .fc-dayGridWeek-view .fc-daygrid-event,
+    #calendar .fc-dayGridDay-view .fc-daygrid-event { white-space: normal; }
+    .attendance-btn[aria-pressed="true"] { color: #fff; }
+    .attendance-btn[data-value="asistio"][aria-pressed="true"] { background: #15803d; border-color: #15803d; }
+    .attendance-btn[data-value="tarde"][aria-pressed="true"] { background: #d97706; border-color: #d97706; }
+    .attendance-btn[data-value="no_llego"][aria-pressed="true"] { background: #b91c1c; border-color: #b91c1c; }
 </style>
 
 <!-- Scheduling Modal (Admin/Supervisor) -->
@@ -216,7 +253,7 @@
                 <div class="px-4 py-4 sm:px-6">
                     <p id="day-error" class="mb-3 hidden rounded-md bg-red-50 p-3 text-sm text-red-700"></p>
                     <div id="day-members" class="divide-y divide-gray-100"></div>
-                    <p class="mt-3 text-xs text-gray-500">Corregí las horas y las extras de cada persona y tocá <strong>Confirmar horas del día</strong>.
+                    <p class="mt-3 text-xs text-gray-500">Marcá si cada persona asistió, llegó tarde o no llegó, corregí las horas y las extras y tocá <strong>Confirmar horas del día</strong>. <em>No llegó</em> deja el día en 0 horas.
                         {% if user.role == 'supervisor' %}Tus propias horas las confirma el admin.{% endif %} Un día que ya está en una planilla final no se cambia.</p>
                 </div>
                 <div class="flex flex-col gap-2 bg-gray-50 px-4 py-3 sm:flex-row-reverse sm:px-6">
@@ -535,10 +572,55 @@
                 badge.textContent = 'Confirmado';
                 hours.appendChild(badge);
             }
-            row.append(head, hours);
+            row.append(head, attendanceButtons(m), hours);
             list.appendChild(row);
+            setAttendance(m.id, m.attendance || 'asistio', false);
         });
         document.getElementById('dayModal').classList.remove('hidden');
+    }
+
+    // Asistió / Llegó tarde / No llegó: one tap per person. "No llegó" leaves the day at 0 hours.
+    const ATTENDANCE = [['asistio', 'Asistió'], ['tarde', 'Llegó tarde'], ['no_llego', 'No llegó']];
+
+    function attendanceButtons(m) {
+        const group = document.createElement('div');
+        group.className = 'mt-2 inline-flex overflow-hidden rounded-md border border-gray-300 text-sm';
+        group.setAttribute('role', 'group');
+        group.setAttribute('aria-label', `Asistencia de ${m.worker_name}`);
+        group.dataset.attendance = m.id;
+        ATTENDANCE.forEach(([value, label], i) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.dataset.value = value;
+            button.className = 'attendance-btn border-gray-300 px-3 py-1.5 font-medium text-gray-700 hover:bg-gray-50'
+                + (i ? ' border-l' : '');
+            button.textContent = label;
+            button.onclick = () => setAttendance(m.id, value, true);
+            group.appendChild(button);
+        });
+        return group;
+    }
+
+    function setAttendance(id, value, byHand) {
+        document.querySelectorAll(`[data-attendance="${id}"] button`).forEach(b =>
+            b.setAttribute('aria-pressed', String(b.dataset.value === value)));
+        document.querySelector(`[data-attendance="${id}"]`).dataset.value = value;
+        const hours = document.querySelector(`[data-hours="${id}"]`);
+        const overtime = document.querySelector(`[data-overtime="${id}"]`);
+        const absent = value === 'no_llego';
+        if (absent && byHand) {
+            // Keep what was there, in case it was a wrong tap.
+            hours.dataset.before = hours.value; overtime.dataset.before = overtime.value;
+        }
+        if (absent) { hours.value = 0; overtime.value = 0; }
+        else if (byHand && hours.dataset.before !== undefined) {
+            hours.value = hours.dataset.before; overtime.value = overtime.dataset.before;
+            delete hours.dataset.before; delete overtime.dataset.before;
+        } else if (byHand && Number(hours.value) === 0) {
+            hours.value = 8;
+        }
+        hours.disabled = overtime.disabled = absent;
+        hours.classList.toggle('bg-gray-100', absent); overtime.classList.toggle('bg-gray-100', absent);
     }
 
     function closeDayModal() {
@@ -567,6 +649,7 @@
             id: m.id,
             hours: parseFloat(document.querySelector(`[data-hours="${m.id}"]`).value || 0),
             overtime: parseFloat(document.querySelector(`[data-overtime="${m.id}"]`).value || 0),
+            attendance: document.querySelector(`[data-attendance="${m.id}"]`).dataset.value,
         }));
         const error = document.getElementById('day-error');
         error.classList.add('hidden');
@@ -710,45 +793,98 @@
     }
     {% endif %}
 
+    // ---- Calendar ---------------------------------------------------------------------
+    const IS_MANAGER = {{ 'true' if user.role in ['admin', 'supervisor'] else 'false' }};
+    const IS_ADMIN = {{ 'true' if user.role == 'admin' else 'false' }};
+    const DESKTOP_VIEWS = ['dayGridMonth', 'dayGridWeek', 'dayGridDay', 'listWeek'];
+    const isPhone = () => window.innerWidth < 768;
+    // Remembered per browser; the page works the same when storage is blocked.
+    const saved = {
+        get(key) { try { return localStorage.getItem(key); } catch (e) { return null; } },
+        set(key, value) { try { localStorage.setItem(key, value); } catch (e) { } },
+    };
+    const desktopView = () => DESKTOP_VIEWS.includes(saved.get('calendar.view')) ? saved.get('calendar.view') : 'dayGridMonth';
+    const toolbar = () => isPhone()
+        ? { left: 'prev,next', center: 'title', right: 'today' }
+        : { left: 'prev,next today', center: 'title', right: DESKTOP_VIEWS.join(',') };
+
+    // Colours by project (default) or by the state of the day's hours.
+    const STATUS_COLORS = { pending: '#d97706', confirmed: '#15803d', absent: '#b91c1c' };
+    let colorMode = saved.get('calendar.color') === 'status' ? 'status' : 'project';
+    const statusColor = (p) => p.absent ? STATUS_COLORS.absent : p.all_confirmed ? STATUS_COLORS.confirmed : STATUS_COLORS.pending;
+    const people = (n) => `${n} ${n === 1 ? 'persona' : 'personas'}`;
+    const absentText = (n) => `${n} no ${n === 1 ? 'llegó' : 'llegaron'}`;
+    const MEMBER_MARK = { no_llego: '✗ ', tarde: '⏱ ' };
+
+    const pad = (n) => String(n).padStart(2, '0');
+    const isoDay = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    const money = new Intl.NumberFormat('es-CR', { style: 'currency', currency: 'CRC', maximumFractionDigits: 0 });
+    const number = new Intl.NumberFormat('es-CR', { maximumFractionDigits: 1 });
+    let costRequest = 0;
+
+    // Admin: what the dates on screen cost in salary (hours × rate, overtime at 1.5x).
+    async function loadCost(view) {
+        const box = document.getElementById('cost-box');
+        if (!box) return;
+        const request = ++costRequest;
+        try {
+            const response = await fetch(`/calendar/cost?start=${isoDay(view.currentStart)}&end=${isoDay(view.currentEnd)}`);
+            if (!response.ok || request !== costRequest) return;
+            const cost = await response.json();
+            document.getElementById('cost-range').textContent = view.title;
+            document.getElementById('cost-total').textContent = money.format(cost.cost);
+            document.getElementById('cost-hours').textContent =
+                `(${number.format(cost.hours)} h${cost.overtime ? ` + ${number.format(cost.overtime)} h extra` : ''})`;
+            document.getElementById('cost-split').textContent =
+                `${money.format(cost.confirmed)} confirmado · ${money.format(cost.pending)} por confirmar`;
+            const warning = document.getElementById('cost-warning');
+            warning.textContent = cost.without_rate.length
+                ? `Sin tarifa por hora (no suman): ${cost.without_rate.join(', ')}` : '';
+            warning.classList.toggle('hidden', !cost.without_rate.length);
+            box.classList.remove('hidden');
+        } catch (e) {
+            // The cost is a help: the calendar works without it.
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         var calendarEl = document.getElementById('calendar');
-        var initialView = window.innerWidth < 768 ? 'listWeek' : 'dayGridMonth';
+        let phone = isPhone();
 
         var calendar = new FullCalendar.Calendar(calendarEl, {
-            initialView: initialView,
+            initialView: phone ? 'listWeek' : desktopView(),
             locale: 'es',
+            firstDay: 1,
             allDayText: 'Todo el día',
             noEventsText: 'No hay asignaciones en estas fechas',
-            headerToolbar: {
-                left: 'prev,next today',
-                center: 'title',
-                right: 'dayGridMonth,listWeek'
-            },
+            headerToolbar: toolbar(),
             buttonText: {
                 today: 'Hoy',
                 month: 'Mes',
+                week: 'Semana',
+                day: 'Día',
                 list: 'Lista'
             },
             height: 'auto',
             aspectRatio: 1.5,
-            windowResize: function (view) {
-                if (window.innerWidth < 768) {
-                    calendar.changeView('listWeek');
-                    calendar.setOption('headerToolbar', {
-                        left: 'prev,next',
-                        center: 'title',
-                        right: 'today' // Simplified for mobile
-                    });
-                } else {
-                    calendar.changeView('dayGridMonth');
-                    calendar.setOption('headerToolbar', {
-                        left: 'prev,next today',
-                        center: 'title',
-                        right: 'dayGridMonth,listWeek'
-                    });
-                }
+            // Change layout only when crossing between phone and computer, so the chosen view stays.
+            windowResize: function () {
+                if (isPhone() === phone) return;
+                phone = isPhone();
+                calendar.setOption('headerToolbar', toolbar());
+                calendar.changeView(phone ? 'listWeek' : desktopView());
+            },
+            datesSet: function (info) {
+                if (!isPhone() && DESKTOP_VIEWS.includes(info.view.type)) saved.set('calendar.view', info.view.type);
+                if (IS_ADMIN) loadCost(info.view);
             },
             events: '/calendar/events',
+            eventDataTransform: function (event) {
+                if (colorMode === 'status' && event.extendedProps && event.extendedProps.members) {
+                    event.color = event.borderColor = statusColor(event.extendedProps);
+                }
+                return event;
+            },
             eventClick: function (info) {
                 info.jsEvent.preventDefault();
 
@@ -756,75 +892,91 @@
                 openDayModal(info.event);
                 {% else %}
                 openWorkerModal(info.event);
-        {% endif %}
-    },
-        {% if user.role in ['admin', 'supervisor'] %}
-    dateClick: function (info) {
-        openModal(info.dateStr);
-    },
-    editable: true,
-    eventDurationEditable: false,
-    // Two lines per project and day: the name, and how many people (✓ when hours are confirmed).
-    eventContent: function (arg) {
-        const p = arg.event.extendedProps;
-        if (!p.members) return true;
-        const inMonth = arg.view.type === 'dayGridMonth';
-        const box = document.createElement('div');
-        box.className = inMonth ? 'w-full overflow-hidden px-1 py-0.5 leading-tight' : 'leading-tight';
-        const name = document.createElement('div');
-        // The month cell is narrow (cut the name); the list has room (let it wrap).
-        name.className = inMonth ? 'truncate text-xs font-semibold' : 'font-semibold';
-        name.textContent = p.project_name;
-        const count = document.createElement('div');
-        count.className = 'truncate text-[11px] opacity-90';
-        count.textContent = `${p.all_confirmed ? '✓ ' : ''}${p.members.length} ${p.members.length === 1 ? 'persona' : 'personas'}`;
-        box.append(name, count);
-        return { domNodes: [box] };
-    },
-    eventDrop: async function (info) {
-        // Drag a project's day to another day: everyone on it moves.
-        const send = async (confirmed) => {
-            const body = new FormData();
-            body.append('project_id', info.event.extendedProps.project_id);
-            body.append('from_date', info.oldEvent.startStr.slice(0, 10));
-            body.append('to_date', info.event.startStr.slice(0, 10));
-            if (confirmed) body.append('confirm_conflicts', 'true');
-            const response = await fetch('/calendar/day/move', { method: 'POST', body });
-            return [response, await response.json()];
-        };
-        try {
-            let [response, result] = await send(false);
-            if (response.status === 409) {
-                if (!confirm(result.message)) return info.revert();
-                [response, result] = await send(true);
-            }
-            if (!response.ok) { info.revert(); return showGlobalToast("Error", result.message || "No se pudo mover", "error"); }
-            showGlobalToast("Éxito", result.message);
-            calendar.refetchEvents();
-        } catch (e) {
-            info.revert();
-            showGlobalToast("Error", "Error de conexión", "error");
-        }
-    },
-    {% endif %}
-    eventDidMount: function(info) {
-        // Style improvements for events in list view or month view
-        if (info.view.type === 'dayGridMonth') {
-            // Make them look pill-like or similar to design
-        }
-    }
+                {% endif %}
+            },
+            {% if user.role in ['admin', 'supervisor'] %}
+            dateClick: function (info) {
+                openModal(info.dateStr);
+            },
+            editable: true,
+            eventDurationEditable: false,
+            // The project's name and how many people (✓ when hours are confirmed); week and day also list them.
+            eventContent: function (arg) {
+                const p = arg.event.extendedProps;
+                if (!p.members) return true;
+                const type = arg.view.type;
+                const inGrid = type.startsWith('dayGrid');
+                const box = document.createElement('div');
+                box.className = inGrid ? 'w-full overflow-hidden px-1 py-0.5 leading-tight' : 'leading-tight';
+                const name = document.createElement('div');
+                // The month cell is narrow (cut the name); the other views have room (let it wrap).
+                name.className = type === 'dayGridMonth' ? 'truncate text-xs font-semibold' : 'text-xs font-semibold sm:text-sm';
+                name.textContent = p.project_name;
+                const count = document.createElement('div');
+                count.className = 'truncate text-[11px] opacity-90';
+                count.textContent = `${p.all_confirmed ? '✓ ' : ''}${people(p.members.length)}${p.absent ? ` · ${absentText(p.absent)}` : ''}`;
+                box.append(name, count);
+                if (type === 'dayGridWeek' || type === 'dayGridDay') {
+                    const list = document.createElement('ul');
+                    list.className = 'mt-1 space-y-0.5 text-[11px] sm:text-xs';
+                    p.members.forEach(m => {
+                        const item = document.createElement('li');
+                        item.className = type === 'dayGridWeek' ? 'truncate' : '';
+                        const mark = MEMBER_MARK[m.attendance] || (m.confirmed ? '✓ ' : '· ');
+                        const detail = type === 'dayGridDay'
+                            ? ` — ${number.format(m.hours || 0)} h${m.overtime ? ` + ${number.format(m.overtime)} extra` : ''}${m.location_name ? ` · ${m.location_name}` : ''}`
+                            : '';
+                        item.textContent = `${mark}${m.worker_name}${detail}`;
+                        if (m.attendance === 'no_llego') item.classList.add('line-through', 'opacity-80');
+                        list.appendChild(item);
+                    });
+                    box.appendChild(list);
+                }
+                return { domNodes: [box] };
+            },
+            eventDrop: async function (info) {
+                // Drag a project's day to another day: everyone on it moves.
+                const send = async (confirmed) => {
+                    const body = new FormData();
+                    body.append('project_id', info.event.extendedProps.project_id);
+                    body.append('from_date', info.oldEvent.startStr.slice(0, 10));
+                    body.append('to_date', info.event.startStr.slice(0, 10));
+                    if (confirmed) body.append('confirm_conflicts', 'true');
+                    const response = await fetch('/calendar/day/move', { method: 'POST', body });
+                    return [response, await response.json()];
+                };
+                try {
+                    let [response, result] = await send(false);
+                    if (response.status === 409) {
+                        if (!confirm(result.message)) return info.revert();
+                        [response, result] = await send(true);
+                    }
+                    if (!response.ok) { info.revert(); return showGlobalToast("Error", result.message || "No se pudo mover", "error"); }
+                    showGlobalToast("Éxito", result.message);
+                    calendar.refetchEvents();
+                    if (IS_ADMIN) loadCost(calendar.view);
+                } catch (e) {
+                    info.revert();
+                    showGlobalToast("Error", "Error de conexión", "error");
+                }
+            },
+            {% endif %}
         });
 
-    // Initial mobile adjustment
-    if (window.innerWidth < 768) {
-        calendar.setOption('headerToolbar', {
-            left: 'prev,next',
-            center: 'title',
-            right: 'today'
-        });
-    }
+        calendar.render();
 
-    calendar.render();
+        const colorSelect = document.getElementById('color-mode');
+        if (colorSelect) {
+            const showLegend = () => document.getElementById('status-legend').classList.toggle('hidden', colorMode !== 'status');
+            colorSelect.value = colorMode;
+            showLegend();
+            colorSelect.addEventListener('change', () => {
+                colorMode = colorSelect.value;
+                saved.set('calendar.color', colorMode);
+                showLegend();
+                calendar.refetchEvents();
+            });
+        }
     });
 </script>
 {% endblock %}

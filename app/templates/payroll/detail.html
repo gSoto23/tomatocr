@@ -344,6 +344,9 @@
         }
     }
 
+    // Marked in the calendar when the day was confirmed ("Asistió" needs no note).
+    const ATTENDANCE_NOTE = { tarde: ' · Llegó tarde', no_llego: ' · No llegó' };
+
     function showBreakdown(details, workerName) {
         document.getElementById('modal-worker-name').textContent = workerName;
         const tbody = document.getElementById('breakdown-body');
@@ -361,7 +364,7 @@
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td class="whitespace-nowrap py-2 pl-3 pr-3 text-sm text-gray-900">${formattedDate}</td>
-                <td class="whitespace-nowrap px-3 py-2 text-sm text-gray-500">${d.project}</td>
+                <td class="whitespace-nowrap px-3 py-2 text-sm text-gray-500">${d.project}${ATTENDANCE_NOTE[d.attendance] || ''}</td>
                 <td class="whitespace-nowrap px-3 py-2 text-sm text-gray-500 text-right">${d.hours}</td>
                 <td class="whitespace-nowrap px-3 py-2 text-sm text-gray-500 text-right">${d.overtime || 0}</td>
             `;
