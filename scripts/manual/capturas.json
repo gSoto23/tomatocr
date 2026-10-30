@@ -1383,6 +1383,57 @@
      "tags": "button"
     }
    ]
+  },
+  {
+   "name": "clientes/posibles",
+   "path": "/clientes/posibles",
+   "as": "ventas",
+   "markers": [
+    {
+     "n": 1,
+     "text": "+ Posible cliente",
+     "tags": "button"
+    },
+    {
+     "n": 2,
+     "text": "Para hoy y atrasados",
+     "exact": false,
+     "tags": "a"
+    },
+    {
+     "n": 3,
+     "text": "Registrar intento",
+     "tags": "button"
+    },
+    {
+     "n": 4,
+     "text": "Convertir en oportunidad",
+     "tags": "button"
+    }
+   ]
+  },
+  {
+   "name": "clientes/posible",
+   "path": "/clientes/posibles/2",
+   "as": "ventas",
+   "markers": [
+    {
+     "n": 1,
+     "text": "Convertir en oportunidad",
+     "tags": "button"
+    },
+    {
+     "n": 2,
+     "text": "Guardar intento",
+     "tags": "button"
+    },
+    {
+     "n": 3,
+     "text": "Intentos",
+     "exact": false,
+     "tags": "h3"
+    }
+   ]
   }
  ]
 }

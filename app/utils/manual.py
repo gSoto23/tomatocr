@@ -90,11 +90,11 @@ CHAPTERS: List[Chapter] = [
         "Cuentas y oportunidades: cómo trabajar una oportunidad hasta ganarla, y descartar lo que no sirve.",
         (ADMIN, VENTAS), ("/clientes",),
         (("que-es", "Qué es"), ("dia", "Tu día"), ("origen", "De dónde salen las oportunidades"),
-         ("registrar", "Registrar una oportunidad"), ("etapas", "Las etapas"), ("descartar", "Descartar y borrar"),
+         ("posibles", "Posibles clientes: tu lista de prospección"), ("registrar", "Registrar una oportunidad"), ("etapas", "Las etapas"), ("descartar", "Descartar y borrar"),
          ("seguimientos", "Seguimientos"),
          ("cotizar", "Cotizar"), ("metas", "Qué cuenta para las metas"), ("permisos", "Qué podés ver y editar"),
          ("admin", "Tareas del admin"), ("datos", "Datos personales"), ("preguntas", "Preguntas frecuentes")),
-        "crm cuentas prospectos oportunidades filtro embudo etapas metas piloto seguimientos vendedor asignación duplicados descartados descartar borrar spam",
+        "crm cuentas posibles clientes prospección lista intentos convertir prospectos oportunidades filtro embudo etapas metas piloto seguimientos vendedor asignación duplicados descartados descartar borrar spam",
     ),
     Chapter(
         "cotizador", "Cotizador",

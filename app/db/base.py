@@ -22,3 +22,4 @@ from app.db.models.crm import Account, Contact, Opportunity, CrmActivity, Accoun
 from app.db.models.task import Task, TaskAssignee, AlertAck
 from app.db.models.supplier import Supplier, SupplierContact
 from app.db.models.notification import Notification, NotificationPref, DigestSent, PushSubscription
+from app.db.models.prospect import Prospect, ProspectAttempt
