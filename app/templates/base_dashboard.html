@@ -412,8 +412,9 @@
                 });
             });
             document.querySelectorAll('form').forEach(form => {
-                form.addEventListener('submit', () => {
-                    showLoader();
+                form.addEventListener('submit', (e) => {
+                    // A form cancelled (validation, "Cancelar" in a confirmation) stays on the page.
+                    if (!e.defaultPrevented) showLoader();
                 });
             });
 
@@ -439,6 +440,7 @@
             }
         }
     </script>
+    {% include "components/confirm_modal.html" %}
 </body>
 
 </html>

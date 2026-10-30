@@ -33,11 +33,11 @@
         </div>
         <div class="flex flex-wrap gap-3 text-sm">
             <form method="post" action="/clientes/cuentas/{{ pair.a.account.id }}/fusionar/{{ pair.b.account.id }}"
-                onsubmit='return confirm({{ ("¿Fusionar en «" ~ pair.a.account.name ~ "»? No se puede deshacer desde la pantalla.")|tojson }})'>
+                data-confirm="¿Fusionar en «{{ pair.a.account.name }}»? No se puede deshacer desde la pantalla." data-confirm-ok="Fusionar" data-confirm-danger>
                 <button class="rounded-md bg-black px-3 py-2 font-semibold text-white hover:bg-gray-800">Quedarse con «{{ pair.a.account.name }}»</button>
             </form>
             <form method="post" action="/clientes/cuentas/{{ pair.b.account.id }}/fusionar/{{ pair.a.account.id }}"
-                onsubmit='return confirm({{ ("¿Fusionar en «" ~ pair.b.account.name ~ "»? No se puede deshacer desde la pantalla.")|tojson }})'>
+                data-confirm="¿Fusionar en «{{ pair.b.account.name }}»? No se puede deshacer desde la pantalla." data-confirm-ok="Fusionar" data-confirm-danger>
                 <button class="rounded-md bg-black px-3 py-2 font-semibold text-white hover:bg-gray-800">Quedarse con «{{ pair.b.account.name }}»</button>
             </form>
             <form method="post" action="/clientes/duplicados/{{ pair.a.account.id }}/{{ pair.b.account.id }}/descartar">

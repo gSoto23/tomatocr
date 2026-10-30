@@ -492,7 +492,7 @@
             let result = await response.json();
             // The person already has something those days: ask before assigning twice.
             if (response.status === 409) {
-                if (!confirm(result.message)) return;
+                if (!await tomatoConfirm(result.message, {ok: 'Asignar igual', title: 'Ya tiene asignación esos días'})) return;
                 formData.append('confirm_conflicts', 'true');
                 response = await fetch(action, { method: 'POST', body: formData });
                 result = await response.json();
@@ -634,7 +634,7 @@
     }
 
     async function removeFromDay(m) {
-        if (!confirm(`¿Quitar a ${m.worker_name} de este día?`)) return;
+        if (!await tomatoConfirm(`¿Quitar a ${m.worker_name} de este día?`, {ok: 'Quitar'})) return;
         const body = new FormData();
         body.append('scope', 'one');
         const response = await fetch(`/calendar/schedule/${m.id}/delete`, { method: 'POST', body });
@@ -679,7 +679,7 @@
 
     async function executeDelete(scope = 'one') {
         if (!currentScheduleId) return;
-        if (scope === 'group' && !confirm(`¿Eliminar los ${currentGroupSize} días de este rango?`)) return;
+        if (scope === 'group' && !await tomatoConfirm(`¿Eliminar los ${currentGroupSize} días de este rango?`, {ok: 'Eliminar días'})) return;
 
         try {
             const body = new FormData();
@@ -948,7 +948,7 @@
                 try {
                     let [response, result] = await send(false);
                     if (response.status === 409) {
-                        if (!confirm(result.message)) return info.revert();
+                        if (!await tomatoConfirm(result.message, {ok: 'Mover igual', title: 'Ya tiene asignación ese día'})) return info.revert();
                         [response, result] = await send(true);
                     }
                     if (!response.ok) { info.revert(); return showGlobalToast("Error", result.message || "No se pudo mover", "error"); }

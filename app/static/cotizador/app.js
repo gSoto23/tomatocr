@@ -202,7 +202,7 @@ function quoteFromData(data) {
 }
 
 window.loadFromSQL = async (id) => {
-  if (isDirty() && !confirm("Tenés cambios sin guardar en la cotización abierta. ¿Cargar la otra igual?")) return;
+  if (isDirty() && !await tomatoConfirm("Tenés cambios sin guardar en la cotización abierta.", {ok: "Cargar la otra igual", title: "Cambios sin guardar"})) return;
   const response = await fetch(API_URL + id);
   if (response.ok) {
     accountContacts = [];
@@ -224,7 +224,7 @@ window.pdfFromHistory = async (id) => {
 };
 
 window.deleteQuote = async (id, number) => {
-  if (!confirm(`¿Borrar la cotización ${number} para siempre? No se puede deshacer.`)) return;
+  if (!await tomatoConfirm(`¿Borrar la cotización ${number} para siempre? No se puede deshacer.`, {ok: "Borrar cotización"})) return;
   const response = await fetch(API_URL + id, { method: "DELETE" });
   if (!response.ok) return showToast("No se pudo borrar la cotización.", "error");
   if (String(state.quoteId) === String(id)) { state.quoteId = null; }
@@ -652,7 +652,7 @@ function wireListeners() {
   }
   $("btnAddService").onclick = () => addItem("Servicio");
   $("btnAddMaterial").onclick = () => addItem("Material");
-  $("btnNew").onclick = () => (!isDirty() || confirm("Hay cambios sin guardar. ¿Empezar una nueva de todos modos?")) && init();
+  $("btnNew").onclick = async () => (!isDirty() || await tomatoConfirm("Hay cambios sin guardar.", {ok: "Empezar una nueva", title: "Cambios sin guardar"})) && init();
   $("btnDuplicate").onclick = async () => {
     let n = 1;
     try {
@@ -668,8 +668,8 @@ function wireListeners() {
     bindForm(false);
     showToast("Copia lista con número nuevo. Tocá Guardar para crearla.", "success");
   };
-  $("btnClearDraft").onclick = () => {
-    if (!confirm("¿Descartar lo que no guardaste y empezar de cero?")) return;
+  $("btnClearDraft").onclick = async () => {
+    if (!await tomatoConfirm("¿Descartar lo que no guardaste y empezar de cero?", {ok: "Descartar cambios"})) return;
     try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
     baseline = "";
     init();
@@ -697,8 +697,8 @@ function wireListeners() {
   if (PICKS_ACCOUNT) {
     $("accountSearch").addEventListener("input", (e) => searchAccounts(e.target.value));
     $("accountSearch").addEventListener("focus", (e) => searchAccounts(e.target.value));
-    $("btnChangeAccount").onclick = () => {
-      if (state.opportunityId && !confirm("Esta cotización está ligada a una oportunidad. Si cambiás la cuenta deja de estarlo. ¿Seguir?")) return;
+    $("btnChangeAccount").onclick = async () => {
+      if (state.opportunityId && !await tomatoConfirm("Esta cotización está ligada a una oportunidad. Si cambiás la cuenta deja de estarlo.", {ok: "Cambiar cuenta"})) return;
       state.accountId = null; state.accountName = ""; state.opportunityId = null; state.opportunityTitle = "";
       accountContacts = [];
       renderAccount();

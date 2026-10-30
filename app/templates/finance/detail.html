@@ -645,7 +645,7 @@
                             
                             <!-- Delete Button when Editing -->
                             <template x-if="editInvoiceId">
-                                <button type="button" @click="confirm('¿Eliminar la factura #' + invNum + '? No se puede deshacer.') && $refs.deleteInvoiceForm.submit()" class="inline-flex w-full sm:mr-auto justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:w-auto">
+                                <button type="button" @click="tomatoConfirm('¿Eliminar la factura #' + invNum + '? No se puede deshacer.', {ok: 'Eliminar factura'}).then(ok => { if (ok) { showLoader(); $refs.deleteInvoiceForm.submit(); } })" class="inline-flex w-full sm:mr-auto justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:w-auto">
                                     Eliminar Factura
                                 </button>
                             </template>
@@ -794,7 +794,7 @@
                             
                             <!-- Delete Button when Editing -->
                             <template x-if="editCostId">
-                                <button type="button" @click="confirm('¿Eliminar este gasto? No se puede deshacer.') && $refs.deleteCostForm.submit()" class="inline-flex w-full sm:mr-auto justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:w-auto">
+                                <button type="button" @click="tomatoConfirm('¿Eliminar este gasto? No se puede deshacer.', {ok: 'Eliminar gasto'}).then(ok => { if (ok) { showLoader(); $refs.deleteCostForm.submit(); } })" class="inline-flex w-full sm:mr-auto justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:w-auto">
                                     Eliminar Gasto
                                 </button>
                             </template>

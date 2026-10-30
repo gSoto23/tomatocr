@@ -322,7 +322,7 @@
     });
 
     async function confirmPayroll(id) {
-        if (!confirm("¿Estás seguro de finalizar esta planilla? No se podrá editar después.")) return;
+        if (!await tomatoConfirm("¿Finalizar esta planilla? No se podrá editar después.", {ok: 'Finalizar planilla'})) return;
 
         try {
             const response = await fetch('/payroll/confirm', {

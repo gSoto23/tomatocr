@@ -214,7 +214,7 @@
         if (net && Number(net) > 0) document.getElementById('amount').value = Number(net).toFixed(2);
     }
 
-    function notifyWhatsapp() {
+    async function notifyWhatsapp() {
         const amount = document.getElementById('amount').value;
         const date = document.getElementById('date').value;
         const notes = document.getElementById('notes').value;
@@ -228,7 +228,7 @@
         }
 
         if (!phone) {
-            if (!confirm("No hay teléfono ingresado. ¿Desea abrir WhatsApp sin número destinatario?")) {
+            if (!await tomatoConfirm("No hay teléfono ingresado. ¿Abrir WhatsApp sin número de destino?", {ok: 'Abrir WhatsApp'})) {
                 return;
             }
         }
