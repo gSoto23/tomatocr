@@ -43,6 +43,15 @@ def overtime_amount(overtime_hours: float, rate: float) -> float:
     return round(((overtime_hours or 0.0) * rate * 1.5) / 100) * 100
 
 
+def set_confirmed_hours(schedule: ProjectSchedule, hours: float, overtime: float):
+    """Aprobar Horas: a day marked "No llegó" in the calendar that gets hours here did happen."""
+    schedule.hours_worked = hours
+    schedule.overtime_hours = overtime
+    schedule.is_confirmed = True
+    if schedule.attendance == "no_llego" and (hours or overtime):
+        schedule.attendance = "asistio"
+
+
 @router.get("/", response_class=HTMLResponse)
 def payroll_dashboard(
     request: Request,
@@ -394,9 +403,7 @@ def confirm_hours(
     if not schedule:
         raise HTTPException(status_code=404, detail="Schedule not found")
 
-    schedule.hours_worked = hours
-    schedule.overtime_hours = overtime
-    schedule.is_confirmed = True
+    set_confirmed_hours(schedule, hours, overtime)
     db.commit()
 
     log_activity(db, user, "Aprobar Horas", "SCHEDULE", schedule.id, f"Horas: {hours}, Extra: {overtime} para Proyecto: {schedule.project.name if schedule.project else 'Unknown'}")
@@ -425,9 +432,7 @@ def confirm_hours_batch_update(
                  if schedule.project not in user.projects:
                      continue 
             
-            schedule.hours_worked = item.hours
-            schedule.overtime_hours = item.overtime
-            schedule.is_confirmed = True
+            set_confirmed_hours(schedule, item.hours, item.overtime)
             count += 1
             
     db.commit()
@@ -506,7 +511,8 @@ def generate_payroll(
             "date": s.date.isoformat(),
             "hours": s.hours_worked,
             "overtime": s.overtime_hours,
-            "project": s.project.name if s.project else "Unknown"
+            "project": s.project.name if s.project else "Unknown",
+            "attendance": s.attendance,
         })
 
     # Create Entries
