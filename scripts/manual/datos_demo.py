@@ -379,6 +379,29 @@ def fill():
                         iban="CR05015202001026284066" if terms != "Contado" else None, created_by_id=admin.id,
                         contacts=[SupplierContact(name=n, role=r, phone=ph, email=e) for n, r, ph, e in people]))
 
+    # --- Posibles clientes --------------------------------------------------------------------
+    from app.db.models.prospect import Prospect, ProspectAttempt
+    for company, contact, phone, kind, motor, province, source, offset, attempts in (
+            ("Condominio Monte Verde", "Patricia Solano", "8811 2233", "condominio", "mantenimiento", "Heredia", "directorio", -2,
+             [("llamada", "No contestó; dejar mensaje con el guarda")]),
+            ("Hotel Brisas del Pacífico", "Mauricio Vega", "8722 3344", "hotel", "mantenimiento", "Puntarenas", "visita", 0,
+             [("whatsapp", "Pidió precios por correo"), ("llamada", "Interesado en jardines de la entrada")]),
+            ("Colegio Santa Lucía", "Hna. Carmen", "2440 5566", "institucion_publica", "esg", "Alajuela", "referido", 0, []),
+            ("Plaza Comercial Escazú", None, None, "empresa", "mantenimiento", "San José", "redes", None, []),
+            ("Finca La Esperanza", "Rodolfo Mora", "8633 4455", "empresa", "esg", "Cartago", "referido", 6,
+             [("visita", "Le interesa reforestar 2 hectáreas")])):
+        prospect = Prospect(company=company, contact_name=contact, phone=phone, kind=kind, motor=motor, province=province,
+                            source=source, owner_id=ventas.id, created_by_id=ventas.id,
+                            status="en_seguimiento" if attempts else "por_contactar",
+                            next_contact_date=today + timedelta(days=offset) if offset is not None else None)
+        for i, (channel, note) in enumerate(attempts):
+            prospect.attempts.append(ProspectAttempt(user_id=ventas.id, channel=channel, notes=note,
+                                                     happened_at=datetime.utcnow() - timedelta(days=len(attempts) - i)))
+        db.add(prospect)
+    db.add(Prospect(company="Residencial Las Palmas", contact_name="Jorge Arias", phone="8544 6677", kind="condominio",
+                    motor="mantenimiento", province="Heredia", source="directorio", owner_id=ventas.id,
+                    status="descartado", discard_reason="Ya tienen contrato hasta 2027"))
+
     db.add(ActivityLog(user_id=admin.id, action="IMPORT", entity_type="MANUAL", details="Datos de ejemplo del manual"))
     db.commit()
     db.close()

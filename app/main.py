@@ -167,9 +167,10 @@ app.include_router(liquidation.router)
 app.include_router(quotes.router)
 app.include_router(logs.router)
 
-from app.routers import reforestation, crm, leads, manual, account, darboles_sync, suppliers, notifications, pwa
+from app.routers import reforestation, crm, leads, manual, account, darboles_sync, suppliers, prospects, notifications, pwa
 app.include_router(reforestation.router)
 app.include_router(reforestation.public_router)
+app.include_router(prospects.router)
 app.include_router(crm.router)
 app.include_router(leads.router)
 app.include_router(darboles_sync.router)

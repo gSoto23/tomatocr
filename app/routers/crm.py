@@ -19,6 +19,8 @@ from app.db.models.reforestation import ReforestationProject
 from app.db.models.user import User
 from app.routers import deps
 from app.utils.activity import log_activity
+from app.utils.prospects import due_count as prospects_due_count
+from app.utils.timecr import today_cr
 from app.utils.notifications import notify, send_soon
 from app.utils.crm import (account_payload, account_status, active_accounts, anonymize_contact, can_edit_account,
                            can_edit_opportunity, delete_account, delete_blockers, discard_account, reactivate_account,
@@ -131,7 +133,7 @@ def pipeline(request: Request, motor: Optional[str] = None, owner: Optional[str]
         "filters": {"motor": motor, "owner": owner_id, "stage": stage, "q": q or "", "origin": origin},
         "origins": ORIGINS,
         "duplicates": len(find_duplicates(db)) if user.role == ADMIN else 0,
-        "discarded": discarded_count(db),
+        "discarded": discarded_count(db), "my_due": prospects_due_count(db, user.id, today_cr()),
         "today": date.today(),
         "expiring": expiring_contracts(db),
     })
@@ -192,7 +194,7 @@ def accounts(request: Request, q: Optional[str] = None, estado: Optional[str] = 
         "request": request, "user": user, "rows": rows, "sellers": sellers(db),
         "filters": {"q": q or "", "estado": estado, "owner": owner_id},
         "duplicates": len(find_duplicates(db)) if user.role == ADMIN else 0,
-        "discarded": discarded_count(db),
+        "discarded": discarded_count(db), "my_due": prospects_due_count(db, user.id, today_cr()),
     })
 
 
@@ -208,7 +210,7 @@ def discarded(request: Request, db: Session = Depends(deps.get_db), user: User =
     rows = [{"account": a, "blockers": delete_blockers(db, a),
              "motors": sorted({o.motor for o in a.opportunities if o.motor})} for a in accounts]
     return templates.TemplateResponse("crm/descartados.html", {
-        "request": request, "user": user, "rows": rows, "discarded": len(rows),
+        "request": request, "user": user, "rows": rows, "discarded": len(rows), "my_due": prospects_due_count(db, user.id, today_cr()),
         "duplicates": len(find_duplicates(db)) if user.role == ADMIN else 0,
     })
 

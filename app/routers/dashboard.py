@@ -21,6 +21,7 @@ from app.utils.activity import log_activity
 from app.utils.notifications import send_soon
 from app.utils.admin_overview import (LEVEL_LABELS, by_importance, admin_overview, client_projects, sales_alerts, supervisor_overview,
                                       worker_alerts)
+from app.utils.prospects import due_count as prospects_due_count
 from app.utils.tasks import (assignable_users, can_manage, mark_seen, my_tasks, names, parse_task_form, set_assignees,
                              notify_task, notify_task_done, split_alerts, tasks_url, unmark, uses_tasks)
 from app.routers.crm import toast_redirect
@@ -206,6 +207,7 @@ def dashboard(
 def sales_data(db: Session, user: User, today, data: dict):
     """A seller's own next steps and funnel (ventas, and a supervisor who also sells)."""
     data["next_steps"] = crm.next_steps(db, owner_id=user.id, today=today)
+    data["prospects_due"] = prospects_due_count(db, user.id, today)
     data["crm_period"] = crm.funnel_period(db)
     data["crm_running"] = data["crm_period"].start <= today <= data["crm_period"].end
     data["crm_funnel"] = crm.funnel(db, owner_id=user.id, period=data["crm_period"])

@@ -50,8 +50,12 @@
     <li class="py-2"><a href="/clientes/oportunidades/{{ o.id }}" class="font-medium text-gray-900 hover:underline">{{ o.account.name }}</a>
         <div class="text-gray-600">{{ o.next_step or o.title }}</div></li>
     {% else %}
-    <li class="py-2 text-gray-500">Nada para hoy en Clientes.</li>
+    {% if not data.prospects_due %}<li class="py-2 text-gray-500">Nada para hoy en Clientes.</li>{% endif %}
     {% endfor %}
+    {% if data.prospects_due %}
+    <li class="py-2"><a href="/clientes/posibles?vista=hoy" class="font-medium text-gray-900 hover:underline">{{ data.prospects_due }} posible{{ 's' if data.prospects_due != 1 }} cliente{{ 's' if data.prospects_due != 1 }} para contactar hoy</a>
+        <div class="text-gray-600">De tu lista de prospección (incluye los atrasados).</div></li>
+    {% endif %}
 </ul>
 {% endmacro %}
 

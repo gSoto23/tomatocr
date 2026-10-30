@@ -6,7 +6,27 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-10-30
 
-### Calendario más fácil: semana, día, asistencia y costo (esta rama)
+### Clientes: Posibles clientes, la lista de prospección (esta rama)
+- Pestaña nueva **Posibles clientes** en Clientes: empresas a las que se piensa llamar o
+  visitar, antes del Filtro. Empresa, contacto, teléfono/WhatsApp, correo, tipo, motor,
+  provincia, cómo se encontró, notas, vendedor y fecha del próximo intento.
+- Todos los vendedores ven la lista completa (para no llamar dos veces a la misma
+  empresa); cada uno edita los suyos y el admin reasigna. Avisa si una empresa ya es
+  cuenta o ya está en la lista (nombre parecido, mismo teléfono o correo).
+- Vistas Por trabajar, Para hoy y atrasados (con número), Convertidos, No le interesa y
+  Todos; búsqueda sin acentos, filtros por vendedor, motor y provincia, 20 por página.
+- **Registrar intento** (llamada, WhatsApp, correo, visita) con el próximo intento.
+  **Convertir en oportunidad** crea la cuenta (o usa la existente) con el contacto y una
+  oportunidad en *Nueva* con origen *Prospección*; los intentos pasan a seguimientos.
+  Solo desde ahí cuenta en el Filtro y las metas. **No le interesa** pide motivo y se
+  puede reactivar.
+- Dashboard del vendedor: "N posibles clientes para contactar hoy"; arriba de la lista,
+  contactados y convertidos de la semana (informativo).
+- Manual (Clientes) con sección nueva y capturas.
+- Despliegue: **migración 0023** (`prospects`, `prospect_attempts`). Snapshot,
+  `alembic upgrade head` y reiniciar.
+
+### Calendario más fácil: semana, día, asistencia y costo (#121)
 - Nuevas vistas **Semana** y **Día**, además de Mes y Lista. En Semana cada proyecto
   muestra quiénes van; en Día, también sus horas y su sede. La semana empieza el lunes y
   el calendario recuerda la última vista que usaste.

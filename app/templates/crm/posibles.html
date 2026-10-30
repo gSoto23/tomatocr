@@ -1,0 +1,139 @@
+{% extends "base_dashboard.html" %}
+{% from "suppliers/_macros.html" import contact_links %}
+{% from "crm/_posibles_macros.html" import prospect_fields, attempt_form, status_chip %}
+
+{% block title %}Posibles clientes | Clientes | TOMATO{% endblock %}
+{% block header_title %}Clientes{% endblock %}
+
+{% block content %}
+{% set L = crm_labels %}{% set PL = prospect_labels %}
+<div class="max-w-6xl mx-auto space-y-5" x-data="{ add: {{ 'true' if error else 'false' }} }">
+    {% set active = 'posibles' %}{% include "crm/_nav.html" %}
+
+    <div class="flex flex-wrap items-start justify-between gap-3">
+        <div class="max-w-3xl text-sm text-gray-600">
+            <p>Empresas a las que pensás llamar o visitar, antes del Filtro. Cuando hay contacto de verdad, tocá
+                <strong>Convertir en oportunidad</strong> y pasa a <em>Nueva</em>: desde ahí cuenta en el Filtro y en las metas.
+                Todos los vendedores ven la lista completa para no llamar dos veces a la misma empresa.</p>
+            <p class="mt-1 text-gray-500">Esta semana{{ ' (tuyos)' if filters.vendedor == user.id|string else (' (del equipo)' if filters.vendedor == 'todos' else '') }}:
+                <strong class="text-gray-900">{{ week.contacted }}</strong> contactado{{ 's' if week.contacted != 1 }} ·
+                <strong class="text-gray-900">{{ week.converted }}</strong> convertido{{ 's' if week.converted != 1 }}.</p>
+        </div>
+        <button type="button" @click="add = !add" class="rounded-md bg-black px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800">+ Posible cliente</button>
+    </div>
+
+    <div x-show="add" {% if not error %}x-cloak{% endif %} class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+        <h2 class="mb-3 font-bold text-gray-900">Nuevo posible cliente</h2>
+        {% if error %}<p class="mb-3 rounded-md {{ 'bg-amber-50 text-amber-800' if repeats else 'bg-red-50 text-red-700' }} px-3 py-2 text-sm font-semibold" role="alert">{{ error }}</p>{% endif %}
+        {% if repeats %}
+        <div class="mb-4 rounded-lg border border-amber-200 bg-amber-50/50 p-3 text-sm">
+            {% if repeats.accounts %}<p class="font-semibold text-gray-800">Ya es una cuenta en Clientes:</p>
+            <ul class="mb-2 list-disc pl-5">{% for a in repeats.accounts %}<li><a href="/clientes/cuentas/{{ a.id }}" class="font-medium text-blue-700 hover:underline">{{ a.name }}</a>{% if a.owner %} · {{ a.owner.full_name or a.owner.username }}{% endif %}</li>{% endfor %}</ul>{% endif %}
+            {% if repeats.prospects %}<p class="font-semibold text-gray-800">Ya está en Posibles clientes:</p>
+            <ul class="list-disc pl-5">{% for o in repeats.prospects %}<li><a href="/clientes/posibles/{{ o.id }}" class="font-medium text-blue-700 hover:underline">{{ o.company }}</a> · {{ PL.status[o.status] }}{% if o.owner %} · {{ o.owner.full_name or o.owner.username }}{% endif %}</li>{% endfor %}</ul>{% endif %}
+        </div>
+        {% endif %}
+        <form method="post" action="/clientes/posibles/nuevo" class="grid gap-3 text-sm sm:grid-cols-2">
+            {{ prospect_fields(form, kinds, motors, sellers, user, today) }}
+            <div class="flex flex-wrap gap-2 sm:col-span-2">
+                {% if repeats %}
+                <button name="confirm" value="1" class="rounded-md bg-black px-4 py-2 font-semibold text-white hover:bg-gray-800">Es otra empresa, guardarlo igual</button>
+                {% else %}
+                <button class="rounded-md bg-black px-4 py-2 font-semibold text-white hover:bg-gray-800">Guardar</button>
+                {% endif %}
+                <button type="button" @click="add = false" class="rounded-md px-4 py-2 font-semibold text-gray-600">Cancelar</button>
+            </div>
+        </form>
+    </div>
+
+    <form method="get" action="/clientes/posibles" class="space-y-2">
+        <nav class="flex flex-wrap gap-1 text-sm" aria-label="Vistas">
+            {% set keep = {'vendedor': filters.vendedor, 'q': filters.q, 'motor': filters.motor, 'provincia': filters.provincia}|urlencode %}
+            {% for key, label in PL.views.items() %}
+            <a href="/clientes/posibles?vista={{ key }}&{{ keep }}" {% if filters.vista == key %}aria-current="page"{% endif %}
+               class="rounded-full px-3 py-1 font-semibold {{ 'bg-black text-white' if filters.vista == key else 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">{{ label }}{% if key == 'hoy' and my_due %} <span class="rounded-full bg-red-600 px-1.5 text-xs text-white">{{ my_due }}</span>{% endif %}</a>
+            {% endfor %}
+        </nav>
+        <input type="hidden" name="vista" value="{{ filters.vista }}">
+        <div class="flex flex-col gap-2 lg:flex-row">
+            <input type="search" name="q" value="{{ filters.q }}" placeholder="Buscar empresa, contacto, teléfono, nota…" aria-label="Buscar posibles clientes"
+                   class="block w-full rounded-md border border-gray-300 p-2 text-sm">
+            <select name="vendedor" aria-label="Vendedor" onchange="this.form.submit()" class="rounded-md border border-gray-300 p-2 text-sm">
+                <option value="todos" {% if filters.vendedor == 'todos' %}selected{% endif %}>Todos los vendedores</option>
+                {% for s in sellers %}<option value="{{ s.id }}" {% if filters.vendedor == s.id|string %}selected{% endif %}>{{ 'Míos' if s.id == user.id else (s.full_name or s.username) }}</option>{% endfor %}
+            </select>
+            <select name="motor" aria-label="Motor" onchange="this.form.submit()" class="rounded-md border border-gray-300 p-2 text-sm">
+                <option value="">Todos los motores</option>
+                {% for m in motors %}<option value="{{ m }}" {% if filters.motor == m %}selected{% endif %}>{{ L.motor[m] }}</option>{% endfor %}
+            </select>
+            <select name="provincia" aria-label="Provincia" onchange="this.form.submit()" class="rounded-md border border-gray-300 p-2 text-sm">
+                <option value="">Todas las provincias</option>
+                {% for pv in PL.provinces %}<option value="{{ pv }}" {% if filters.provincia == pv %}selected{% endif %}>{{ pv }}</option>{% endfor %}
+            </select>
+            <button class="rounded-md bg-white px-4 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Buscar</button>
+        </div>
+    </form>
+    <p class="text-sm text-gray-500">{{ found }} posible{{ 's' if found != 1 }} cliente{{ 's' if found != 1 }}{% if filters.q %} para «{{ filters.q }}»{% endif %}.</p>
+
+    {% if rows %}
+    <ul class="divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white shadow-sm">
+        {% for p in rows %}
+        {% set late = due(p, today) %}
+        <li class="px-4 py-3" x-data="{ attempt: false, drop: false }">
+            <div class="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                <div class="min-w-0">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <a href="/clientes/posibles/{{ p.id }}" class="font-semibold text-gray-900 hover:underline">{{ p.company }}</a>
+                        {{ status_chip(p) }}
+                        {% if p.motor %}<span class="text-xs text-gray-500">{{ L.motor[p.motor] }}</span>{% endif %}
+                        {% if p.province %}<span class="text-xs text-gray-500">· {{ p.province }}</span>{% endif %}
+                    </div>
+                    <p class="text-xs {{ 'font-semibold text-red-700' if late and p.next_contact_date < today else 'text-gray-500' }}">
+                        {% if p.status == 'convertido' %}Convertido el {{ p.converted_at|format_datetime_cr }}{% if p.opportunity_id %} · <a href="/clientes/oportunidades/{{ p.opportunity_id }}" class="font-semibold text-blue-700 hover:underline">Ver oportunidad</a>{% endif %}
+                        {% elif p.status == 'descartado' %}{{ p.discard_reason }}
+                        {% elif p.next_contact_date %}{% if p.next_contact_date < today %}Atrasado · {{ p.next_contact_date|format_date }}{% elif p.next_contact_date == today %}Contactar hoy{% else %}Próximo intento {{ p.next_contact_date|format_date }}{% endif %}
+                        {% else %}Sin fecha{% endif %}
+                        · {{ (p.owner.full_name or p.owner.username) if p.owner else 'Sin vendedor' }}
+                        {% if p.attempts %} · {{ p.attempts|length }} intento{{ 's' if p.attempts|length != 1 }}, el último: {{ prospect_labels.channel[p.attempts[0].channel]|lower }}{% if p.attempts[0].notes %} «{{ p.attempts[0].notes|truncate(60) }}»{% endif %}{% endif %}
+                    </p>
+                </div>
+                <div class="flex flex-wrap items-center gap-2 md:justify-end">
+                    {% if p.contact_name %}<span class="text-sm text-gray-700">{{ p.contact_name }}</span>{% endif %}
+                    {{ contact_links(p) }}
+                </div>
+            </div>
+            {% if p.is_open and can_edit(p) %}
+            <div class="mt-2 flex flex-wrap gap-2 text-sm">
+                <button type="button" @click="attempt = !attempt; drop = false" class="rounded-md bg-white px-3 py-1 font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Registrar intento</button>
+                <form method="post" action="/clientes/posibles/{{ p.id }}/convertir">
+                    <button class="rounded-md bg-black px-3 py-1 font-semibold text-white hover:bg-gray-800">Convertir en oportunidad</button>
+                </form>
+                <button type="button" @click="drop = !drop; attempt = false" class="rounded-md px-3 py-1 font-semibold text-gray-500 hover:text-red-700">No le interesa</button>
+            </div>
+            <div x-show="attempt" x-cloak class="mt-2 rounded-lg border border-gray-200 bg-gray-50 p-3">{{ attempt_form(p, today, back='lista') }}</div>
+            <form x-show="drop" x-cloak method="post" action="/clientes/posibles/{{ p.id }}/descartar" class="mt-2 flex flex-col gap-2 rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm sm:flex-row">
+                <input type="hidden" name="back" value="lista">
+                <input type="text" name="reason" required maxlength="300" placeholder="Por qué: ya tienen proveedor, no tienen presupuesto…" class="block w-full rounded-md border border-gray-300 p-2">
+                <button class="shrink-0 rounded-md bg-red-700 px-3 py-2 font-semibold text-white hover:bg-red-800">Guardar</button>
+            </form>
+            {% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+    {% if pages > 1 %}
+    <nav class="flex items-center justify-between text-sm" aria-label="Páginas de posibles clientes">
+        {% set base = '/clientes/posibles?' ~ {'vista': filters.vista, 'vendedor': filters.vendedor, 'q': filters.q, 'motor': filters.motor, 'provincia': filters.provincia}|urlencode ~ '&page=' %}
+        {% if page > 1 %}<a href="{{ base }}{{ page - 1 }}" class="rounded-md px-3 py-1.5 font-semibold text-gray-700 hover:bg-gray-100">‹ Anterior</a>{% else %}<span></span>{% endif %}
+        <span class="text-gray-500">Página {{ page }} de {{ pages }}</span>
+        {% if page < pages %}<a href="{{ base }}{{ page + 1 }}" class="rounded-md px-3 py-1.5 font-semibold text-gray-700 hover:bg-gray-100">Siguiente ›</a>{% else %}<span></span>{% endif %}
+    </nav>
+    {% endif %}
+    {% else %}
+    <p class="rounded-xl border border-dashed border-gray-300 bg-white p-6 text-center text-sm text-gray-500">
+        {% if filters.q or filters.motor or filters.provincia %}Ninguno coincide con la búsqueda.
+        {% elif filters.vista == 'hoy' %}Nada para hoy. Buen momento para agregar empresas nuevas.
+        {% else %}Todavía no hay posibles clientes aquí. Agregá empresas a las que pensás llamar con <strong>+ Posible cliente</strong>.{% endif %}
+    </p>
+    {% endif %}
+</div>
+{% endblock %}

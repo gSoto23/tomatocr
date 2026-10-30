@@ -1,0 +1,53 @@
+{# Posibles clientes: the fields of one (new and edit), the attempt form and the status chip. #}
+
+{% macro prospect_fields(f, kinds, motors, sellers, user, today) %}
+{% set L = crm_labels %}{% set PL = prospect_labels %}
+{% set input = "mt-1 block w-full rounded-md border border-gray-300 p-2" %}
+<label class="block sm:col-span-2"><span class="font-medium text-gray-700">Empresa o institución *</span>
+    <input type="text" name="company" required maxlength="200" value="{{ f.company or '' }}" placeholder="Ej.: Condominio Vista Real" class="{{ input }}"></label>
+<label class="block"><span class="font-medium text-gray-700">Persona de contacto</span>
+    <input type="text" name="contact_name" maxlength="150" value="{{ f.contact_name or '' }}" class="{{ input }}"></label>
+<label class="block"><span class="font-medium text-gray-700">Puesto</span>
+    <input type="text" name="contact_role" maxlength="100" value="{{ f.contact_role or '' }}" placeholder="Administración, gerencia…" class="{{ input }}"></label>
+<label class="block"><span class="font-medium text-gray-700">Teléfono / WhatsApp</span>
+    <input type="tel" name="phone" maxlength="30" value="{{ f.phone or '' }}" placeholder="8888 8888" class="{{ input }}"></label>
+<label class="block"><span class="font-medium text-gray-700">Correo</span>
+    <input type="email" name="email" maxlength="150" value="{{ f.email or '' }}" class="{{ input }}"></label>
+<label class="block"><span class="font-medium text-gray-700">Tipo</span>
+    <select name="kind" class="{{ input }}">{% for k in kinds %}<option value="{{ k }}" {% if (f.kind or 'empresa') == k %}selected{% endif %}>{{ L.kind[k] }}</option>{% endfor %}</select></label>
+<label class="block"><span class="font-medium text-gray-700">Qué le ofreceríamos (motor)</span>
+    <select name="motor" class="{{ input }}"><option value="">Todavía no sé</option>{% for m in motors %}<option value="{{ m }}" {% if f.motor == m %}selected{% endif %}>{{ L.motor[m] }}</option>{% endfor %}</select></label>
+<label class="block"><span class="font-medium text-gray-700">Provincia</span>
+    <select name="province" class="{{ input }}"><option value="">—</option>{% for pv in PL.provinces %}<option value="{{ pv }}" {% if f.province == pv %}selected{% endif %}>{{ pv }}</option>{% endfor %}</select></label>
+<label class="block"><span class="font-medium text-gray-700">Cómo lo encontramos</span>
+    <select name="source" class="{{ input }}"><option value="">—</option>{% for key, label in PL.source.items() %}<option value="{{ key }}" {% if f.source == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+<label class="block"><span class="font-medium text-gray-700">{{ 'Próximo intento' if f.id else 'Primer intento (fecha)' }}</span>
+    <input type="date" name="next_contact_date" value="{{ f.next_contact_date.isoformat() if f.next_contact_date is not string and f.next_contact_date else (f.next_contact_date or '') }}" class="{{ input }}"></label>
+{% if user.role == 'admin' %}
+<label class="block"><span class="font-medium text-gray-700">Vendedor</span>
+    <select name="owner_id" class="{{ input }}"><option value="">Sin vendedor</option>{% for s in sellers %}<option value="{{ s.id }}" {% if (f.owner_id|string if f.owner_id else user.id|string) == s.id|string %}selected{% endif %}>{{ s.full_name or s.username }}</option>{% endfor %}</select></label>
+{% endif %}
+<label class="block sm:col-span-2"><span class="font-medium text-gray-700">Notas</span>
+    <textarea name="notes" rows="2" placeholder="Qué sabemos: tamaño, quién les da el servicio hoy, a quién preguntar…" class="{{ input }}">{{ f.notes or '' }}</textarea></label>
+{% endmacro %}
+
+{% macro attempt_form(p, today, back='') %}
+{% set input = "mt-1 block w-full rounded-md border border-gray-300 p-2" %}
+<form method="post" action="/clientes/posibles/{{ p.id }}/intento" class="grid gap-2 text-sm sm:grid-cols-4">
+    <input type="hidden" name="back" value="{{ back }}">
+    <label class="block"><span class="text-xs font-medium text-gray-700">Cómo</span>
+        <select name="channel" class="{{ input }}">{% for key, label in prospect_labels.channel.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}</select></label>
+    <label class="block sm:col-span-2"><span class="text-xs font-medium text-gray-700">Qué pasó</span>
+        <input type="text" name="notes" maxlength="500" placeholder="No contestó, pidió info por correo, llamar al administrador…" class="{{ input }}"></label>
+    <label class="block"><span class="text-xs font-medium text-gray-700">Próximo intento</span>
+        <input type="date" name="next_contact_date" min="{{ today.isoformat() }}" class="{{ input }}"></label>
+    <div class="sm:col-span-4"><button class="rounded-md bg-black px-3 py-2 font-semibold text-white hover:bg-gray-800">Guardar intento</button>
+        <span class="ml-2 text-xs text-gray-500">Si hubo interés real, guardalo y después tocá <em>Convertir en oportunidad</em>.</span></div>
+</form>
+{% endmacro %}
+
+{% macro status_chip(p) %}
+{% set style = {'por_contactar': 'bg-blue-50 text-blue-700 ring-blue-600/20', 'en_seguimiento': 'bg-amber-50 text-amber-800 ring-amber-600/20',
+                'convertido': 'bg-green-50 text-green-700 ring-green-600/20', 'descartado': 'bg-gray-100 text-gray-600 ring-gray-500/20'} %}
+<span class="rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset {{ style[p.status] }}">{{ prospect_labels.status[p.status] }}</span>
+{% endmacro %}

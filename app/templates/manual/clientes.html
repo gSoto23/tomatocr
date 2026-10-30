@@ -24,10 +24,32 @@
 
 {% call m.section("origen", "De dónde salen las oportunidades") %}
 <ul class="list-disc space-y-1 pl-5">
-    <li><strong>Los buscás vos</strong> (LinkedIn, correo, SICOP, referidos, visitas): los registrás como en el punto siguiente.</li>
+    <li><strong>Los buscás vos</strong> (LinkedIn, correo, SICOP, referidos, visitas): primero van a <strong>Posibles clientes</strong> (ver la sección siguiente) y pasan al Filtro cuando hay contacto de verdad. Si ya hablaste con la empresa, registralos directo como en <em>Registrar una oportunidad</em>.</li>
     <li><strong>Llegan solos</strong> por el formulario de tomatocr.com (y más adelante de darboles.com). Entran como
         oportunidad en la etapa <strong>Nueva</strong> con el próximo paso <em>Responder la solicitud</em> para ese día.</li>
     <li><strong>El admin los reparte.</strong> Cuando te asigna una oportunidad te llega un correo con el enlace. Respondé ese mismo día.</li>
+</ul>
+{% endcall %}
+
+{% call m.section("posibles", "Posibles clientes: tu lista de prospección") %}
+<p>Es la libreta de empresas a las que <strong>pensás llamar o visitar</strong> y todavía no son una oportunidad. No
+    cuentan en el Filtro ni en las metas: así el Filtro muestra solo trabajo real. <strong>Todos los vendedores ven la
+    lista completa</strong>, para que dos no llamen a la misma empresa; cada uno trabaja (y edita) los suyos, y el admin
+    puede reasignarlos.</p>
+{{ m.shot("clientes/posibles.webp", "Lista de posibles clientes", "Posibles clientes de un vendedor, con datos de ejemplo.") }}
+{{ m.steps([
+    (1, "<strong>+ Posible cliente</strong>: solo la empresa es obligatoria; sumá contacto, teléfono, qué le ofreceríamos, provincia, cómo lo encontramos y la fecha del primer intento. Si se parece a una cuenta o a otro posible cliente, el sistema te lo muestra antes de guardar."),
+    (2, "Las vistas: <strong>Por trabajar</strong> (abre en los tuyos), <strong>Para hoy y atrasados</strong> con su número, Convertidos, No le interesa y Todos. Arriba van primero los atrasados, después los que nunca llamaste y después por fecha."),
+    (3, "<strong>Registrar intento</strong>: cómo (llamada, WhatsApp, correo, visita), qué pasó y la fecha del próximo intento. Pasa a <em>En seguimiento</em>."),
+    (4, "<strong>Convertir en oportunidad</strong> cuando hubo contacto real: crea la cuenta (o usa la que ya existe, si se parece) con el contacto y una oportunidad en <strong>Nueva</strong> con origen <em>Prospección</em>. Los intentos y las notas pasan al historial de seguimientos."),
+]) }}
+{{ m.shot("clientes/posible.webp", "Ficha de un posible cliente", "La ficha: intentos y acciones.") }}
+<ul class="list-disc space-y-1 pl-5">
+    <li><strong>No le interesa</strong> pide el motivo y lo saca de la lista; se puede <em>Reactivar</em> desde su ficha.</li>
+    <li><strong>Borrar</strong> (en <em>Editar datos</em>) es solo para lo que se agregó por error; uno convertido no se borra.</li>
+    <li>En el <strong>Dashboard</strong>, <em>Próximos pasos de hoy</em> dice cuántos posibles clientes te tocan hoy, y la
+        pestaña tiene un número rojo con los tuyos para hoy o atrasados.</li>
+    <li>Arriba de la lista: cuántos contactaste y convertiste esta semana. Es informativo, no es una meta.</li>
 </ul>
 {% endcall %}
 
@@ -120,7 +142,7 @@
         se ganaran todas las propuestas no se llega.</li>
     <li>Con <strong>Origen</strong> en la lista se filtra todo el Filtro (cajas, metas y lista), para ver por separado lo que
         llega solo por la web y lo que se busca con prospección: sus tasas son muy distintas.</li>
-    <li>Cuentan las <strong>cuentas</strong> con una oportunidad de tipo <strong>Nuevo</strong> creada dentro del periodo ({{ period.label }}).</li>
+    <li>Cuentan las <strong>cuentas</strong> con una oportunidad de tipo <strong>Nuevo</strong> creada dentro del periodo ({{ period.label }}). Un posible cliente cuenta desde el día que lo convertís, no desde que lo agregaste a la lista.</li>
     <li>Cuenta la <strong>etapa más alta alcanzada</strong>: si una oportunidad llegó a Reunión y después se perdió, sigue contando hasta Reunión.</li>
     <li>Las <strong>renovaciones y ampliaciones</strong> de clientes actuales no cuentan para las metas; igual se trabajan y aparecen en la lista.</li>
 </ul>

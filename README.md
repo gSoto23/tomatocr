@@ -320,6 +320,16 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
   - `/privacidad` (Ley 8968) y `/contacto/gracias`.
   - **Asignación de oportunidades** (`/clientes/asignacion`, solo admin):
     vendedor por motor.
+  - **Posibles clientes** (`/clientes/posibles`, `app/routers/prospects.py`,
+    `app/utils/prospects.py`, migración 0023): lista de prospección antes del Filtro
+    (`prospects` y sus intentos en `prospect_attempts`). Estados por contactar, en
+    seguimiento, convertido y no le interesa. La ven todos los que venden; la editan su
+    vendedor y el admin (que reasigna). Duplicados contra cuentas (`similar_accounts`) y
+    otros posibles clientes (nombre parecido, teléfono o correo). Orden: atrasados y de
+    hoy, nunca llamados, luego por fecha. "Convertir en oportunidad" crea o reutiliza la
+    cuenta, el contacto y una oportunidad `prospecto` con origen `prospeccion`, y copia
+    intentos y notas como `CrmActivity`; recién ahí cuenta en el Filtro y las metas. El
+    Dashboard del vendedor muestra los que le tocan hoy.
   - "Eliminar datos personales" de un contacto (admin), para el derecho de
     supresión.
   - **Piloto en el sistema**: el Filtro cuenta solo oportunidades nuevas
