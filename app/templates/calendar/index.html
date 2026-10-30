@@ -37,12 +37,18 @@
             <select id="color-mode" class="rounded-md border border-gray-300 py-1 pl-2 pr-8 text-sm">
                 <option value="project">Por proyecto</option>
                 <option value="status">Por estado de las horas</option>
+                <option value="type">Por tipo de empleado</option>
             </select>
         </label>
         <div id="status-legend" class="hidden flex flex-wrap items-center gap-3 text-xs text-gray-600">
             <span class="flex items-center gap-1"><span class="h-3 w-3 rounded-sm" style="background:#d97706"></span>Por confirmar</span>
             <span class="flex items-center gap-1"><span class="h-3 w-3 rounded-sm" style="background:#15803d"></span>Confirmado</span>
             <span class="flex items-center gap-1"><span class="h-3 w-3 rounded-sm" style="background:#b91c1c"></span>Alguien no llegó</span>
+        </div>
+        <div id="type-legend" class="hidden flex flex-wrap items-center gap-3 text-xs text-gray-600">
+            <span class="flex items-center gap-1"><span class="h-3 w-3 rounded-full" style="background:#1d4ed8"></span>Fijo</span>
+            <span class="flex items-center gap-1"><span class="h-3 w-3 rounded-full" style="background:#c026d3"></span>Ocasional</span>
+            <span>En Semana y Día, el punto de cada persona.</span>
         </div>
     </div>
     {% if user.role == 'admin' %}
@@ -810,7 +816,13 @@
 
     // Colours by project (default) or by the state of the day's hours.
     const STATUS_COLORS = { pending: '#d97706', confirmed: '#15803d', absent: '#b91c1c' };
-    let colorMode = saved.get('calendar.color') === 'status' ? 'status' : 'project';
+    let colorMode = ['status', 'type'].includes(saved.get('calendar.color')) ? saved.get('calendar.color') : 'project';
+    // By employee type: the block is neutral and each person carries the colour of their type.
+    const TYPE_COLORS = { fijo: '#1d4ed8', ocasional: '#c026d3' };
+    const TYPE_NAMES = { fijo: ['fijo', 'fijos'], ocasional: ['ocasional', 'ocasionales'] };
+    const typeCount = (members) => Object.keys(TYPE_NAMES)
+        .map(t => [t, members.filter(m => (m.employment_type || 'fijo') === t).length])
+        .filter(([, n]) => n).map(([t, n]) => `${n} ${TYPE_NAMES[t][n === 1 ? 0 : 1]}`).join(' · ');
     const statusColor = (p) => p.absent ? STATUS_COLORS.absent : p.all_confirmed ? STATUS_COLORS.confirmed : STATUS_COLORS.pending;
     const people = (n) => `${n} ${n === 1 ? 'persona' : 'personas'}`;
     const absentText = (n) => `${n} no ${n === 1 ? 'llegó' : 'llegaron'}`;
@@ -882,6 +894,8 @@
             eventDataTransform: function (event) {
                 if (colorMode === 'status' && event.extendedProps && event.extendedProps.members) {
                     event.color = event.borderColor = statusColor(event.extendedProps);
+                } else if (colorMode === 'type' && event.extendedProps && event.extendedProps.members) {
+                    event.color = event.borderColor = '#374151';
                 }
                 return event;
             },
@@ -914,7 +928,7 @@
                 name.textContent = p.project_name;
                 const count = document.createElement('div');
                 count.className = 'truncate text-[11px] opacity-90';
-                count.textContent = `${p.all_confirmed ? '✓ ' : ''}${people(p.members.length)}${p.absent ? ` · ${absentText(p.absent)}` : ''}`;
+                count.textContent = `${p.all_confirmed ? '✓ ' : ''}${colorMode === 'type' ? typeCount(p.members) : people(p.members.length)}${p.absent ? ` · ${absentText(p.absent)}` : ''}`;
                 box.append(name, count);
                 if (type === 'dayGridWeek' || type === 'dayGridDay') {
                     const list = document.createElement('ul');
@@ -927,6 +941,12 @@
                             ? ` — ${number.format(m.hours || 0)} h${m.overtime ? ` + ${number.format(m.overtime)} extra` : ''}${m.location_name ? ` · ${m.location_name}` : ''}`
                             : '';
                         item.textContent = `${mark}${m.worker_name}${detail}`;
+                        if (colorMode === 'type') {
+                            const dot = document.createElement('span');
+                            dot.className = 'mr-1 inline-block h-2 w-2 rounded-full align-middle ring-1 ring-white';
+                            dot.style.background = TYPE_COLORS[m.employment_type] || TYPE_COLORS.fijo;
+                            item.prepend(dot);
+                        }
                         if (m.attendance === 'no_llego') item.classList.add('line-through', 'opacity-80');
                         list.appendChild(item);
                     });
@@ -967,7 +987,10 @@
 
         const colorSelect = document.getElementById('color-mode');
         if (colorSelect) {
-            const showLegend = () => document.getElementById('status-legend').classList.toggle('hidden', colorMode !== 'status');
+            const showLegend = () => {
+                document.getElementById('status-legend').classList.toggle('hidden', colorMode !== 'status');
+                document.getElementById('type-legend').classList.toggle('hidden', colorMode !== 'type');
+            };
             colorSelect.value = colorMode;
             showLegend();
             colorSelect.addEventListener('change', () => {

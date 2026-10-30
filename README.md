@@ -85,6 +85,13 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
 - **Cliente**: ve lo adjudicado, sus facturas y sus pagos; nunca costos, planillas ni ganancia.
 - **Planilla**: cada planilla guarda la tarifa por hora de cada persona al generarse; los pagos de
   planilla guardan método, referencia y la planilla que pagan, y cada trabajador ve los suyos.
+- **Formas de pago** (migración 0024, `app/utils/planilla.py`): la planilla es quincenal (1–15 y
+  16–fin de mes; el formulario propone la quincena). Cada persona se paga por hora (horas
+  confirmadas × tarifa), por día (días confirmados con horas × `daily_rate`) o mensual (la mitad
+  de `monthly_salary` por quincena aunque no tenga calendario; proporcional desde la fecha de
+  ingreso). Extras a 1,5 sobre la tarifa por hora, o la diaria / 8, o el salario / 192. Los
+  usuarios `ventas` (asesores) son siempre mensuales, entran a la planilla y ven solo lo suyo en
+  Planilla y Mis pagos. `payroll_entries.pay_type` y `days_worked` guardan cómo se pagó.
 - **Dashboard Estadístico**: Análisis de KPI operativos (Facturación, vencimientos).
 
 ### 3. Bitácora Digital (Daily Logs)
@@ -103,13 +110,14 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
 - Vistas Mes, Semana, Día y Lista (la semana empieza el lunes; se recuerda la última
   vista en el navegador). En Semana y Día cada bloque lista a su gente; en Día, con
   horas y sede.
-- Colores por proyecto o por estado de las horas (por confirmar, confirmado, alguien
-  no llegó), con leyenda.
+- Colores por proyecto, por estado de las horas (por confirmar, confirmado, alguien
+  no llegó) o por tipo de empleado (`users.employment_type`: fijo u ocasional), con leyenda.
 - Asistencia al confirmar el día (migración 0022, `project_schedules.attendance`):
   Asistió, Llegó tarde o No llegó; *No llegó* guarda 0 horas y 0 extras. Se ve en el
   calendario y en el desglose de horas de la planilla.
-- Mano de obra (solo admin, `GET /calendar/cost?start&end`, fin no incluido): horas
-  × tarifa por hora + extras a 1.5 de las fechas en pantalla, separado en confirmado
+- Mano de obra (solo admin, `GET /calendar/cost?start&end`, fin no incluido): según la
+  forma de pago (horas × tarifa, tarifa diaria por día con horas, o salario / 192 por
+  hora) + extras a 1.5 de las fechas en pantalla, separado en confirmado
   y por confirmar, sin cargas sociales; nombra a quien no tiene tarifa. Plan completo
   de planilla y calendario en `docs/PLAN_PLANILLA_CALENDARIO.md`.
 

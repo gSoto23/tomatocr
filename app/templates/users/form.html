@@ -67,7 +67,7 @@
                         class="text-red-500">*</span></label>
                 <div class="mt-2">
                     <select id="role" name="role" required
-                        onchange="document.getElementById('also-sells-box').hidden = this.value !== 'supervisor'"
+                        onchange="document.getElementById('also-sells-box').classList.toggle('hidden', this.value !== 'supervisor'); syncPay()"
                         class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
                         {% for value, label in role_labels.items() %}
                         <option value="{{ value }}" {% if edit_user and edit_user.role == value %}selected{% endif %}>{{ label }}</option>
@@ -75,8 +75,8 @@
                     </select>
                 </div>
                 {# Only for supervisors: Clientes and the Cotizador as well, without losing anything. #}
-                <label id="also-sells-box" class="mt-3 flex items-start gap-3 rounded-md border border-gray-200 p-3 text-sm"
-                    {% if not (edit_user and edit_user.role == 'supervisor') %}hidden{% endif %}>
+                <!-- A class, not the hidden attribute: "flex" would override the attribute and always show it. -->
+                <label id="also-sells-box" class="mt-3 flex items-start gap-3 rounded-md border border-gray-200 p-3 text-sm{% if not (edit_user and edit_user.role == 'supervisor') %} hidden{% endif %}">
                     <input type="checkbox" name="also_sells" value="true" class="mt-0.5 h-4 w-4 rounded border-gray-300"
                         {% if edit_user and edit_user.also_sells %}checked{% endif %}>
                     <span><span class="font-medium text-gray-900">También vende</span>
@@ -119,6 +119,40 @@
                         <div class="mt-2">
                             <input type="date" name="start_date" id="start_date"
                                 value="{{ edit_user.start_date if edit_user and edit_user.start_date else '' }}"
+                                class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
+                        </div>
+                    </div>
+
+                    <!-- How the payroll pays this person (Fase 2) -->
+                    <div>
+                        <label for="pay_type" class="block text-sm font-medium leading-6 text-gray-900">Forma de pago</label>
+                        <div class="mt-2">
+                            <select id="pay_type" name="pay_type" onchange="syncPay()" class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
+                                {% for value, label in pay_types.items() %}
+                                <option value="{{ value }}" {% if (edit_user.pay_type if edit_user else 'hora') == value %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <p id="pay_type_hint" class="mt-1 text-xs text-gray-500"></p>
+                    </div>
+
+                    <div id="employment_type_box">
+                        <label for="employment_type" class="block text-sm font-medium leading-6 text-gray-900">Tipo de empleado</label>
+                        <div class="mt-2">
+                            <select id="employment_type" name="employment_type" class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
+                                {% for value, label in employment_types.items() %}
+                                <option value="{{ value }}" {% if (edit_user.employment_type if edit_user else 'fijo') == value %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <p class="mt-1 text-xs text-gray-500">Fijo: horario regular. Ocasional: trabaja cuando se le llama. Se ve con color en el Calendario.</p>
+                    </div>
+
+                    <div id="daily_rate_box">
+                        <label for="daily_rate" class="block text-sm font-medium leading-6 text-gray-900">Tarifa por Día (₡)</label>
+                        <div class="mt-2">
+                            <input type="number" step="0.01" min="0" name="daily_rate" id="daily_rate"
+                                value="{{ edit_user.daily_rate if edit_user and edit_user.daily_rate else '' }}"
                                 class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6">
                         </div>
                     </div>
@@ -191,6 +225,25 @@
             </div>
 
             <script>
+                // What each pay type asks for; ventas (asesores) are always paid monthly.
+                const PAY_HINTS = {
+                    hora: 'Horas confirmadas en el Calendario × tarifa por hora.',
+                    dia: 'Días confirmados en el Calendario × tarifa por día. Las extras, con la tarifa por hora (o la diaria / 8).',
+                    mensual: 'La mitad del salario mensual por quincena, aunque no tenga Calendario. Las extras, con la tarifa por hora.',
+                };
+                function syncPay() {
+                    const role = document.getElementById('role').value;
+                    const pay = document.getElementById('pay_type');
+                    if (role === 'ventas') pay.value = 'mensual';
+                    // A disabled select is not sent: the server applies "mensual" to ventas anyway.
+                    pay.disabled = role === 'ventas';
+                    document.getElementById('pay_type_hint').textContent =
+                        (role === 'ventas' ? 'Asesor: salario mensual. ' : '') + PAY_HINTS[pay.value];
+                    document.getElementById('daily_rate_box').hidden = pay.value !== 'dia';
+                    document.getElementById('employment_type_box').hidden = !['worker', 'supervisor'].includes(role);
+                }
+                syncPay();
+
                 function toggleAccountField() {
                     const method = document.getElementById('payment_method').value;
                     const container = document.getElementById('account_number_container');

@@ -11,10 +11,11 @@ from sqlalchemy import or_, func
 
 from app.db.models.user import User
 from app.routers import deps
-from app.core.roles import CLIENT, ADMIN, ALL_ROLES, ROLE_LABELS, SUPERVISOR
+from app.core.roles import CLIENT, ADMIN, ALL_ROLES, ROLE_LABELS, SUPERVISOR, VENTAS
 from app.core.security import get_password_hash
 from sqlalchemy.exc import IntegrityError
 from app.utils.activity import log_activity
+from app.utils.planilla import EMPLOYMENT_TYPES, PAY_TYPES
 from app.utils.uploads import DOCUMENT_RULES, DOCUMENT_TYPES, MAX_DOCUMENT_SIZE_BYTES
 import logging
 
@@ -67,6 +68,14 @@ def store_documents(db: Session, person: User, documents: List[tuple]):
 
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+def pay_fields(role: str, pay_type: str, employment_type: str) -> tuple:
+    """Ventas (asesores) always earn a monthly salary; an unknown value falls back to the default."""
+    if role == VENTAS:
+        pay_type = "mensual"
+    return (pay_type if pay_type in PAY_TYPES else "hora",
+            employment_type if employment_type in EMPLOYMENT_TYPES else "fijo")
 
 
 def valid_email(value: Optional[str]) -> Optional[str]:
@@ -132,7 +141,8 @@ def list_users(
 @router.get("/new")
 def new_user_form(request: Request, user: User = Depends(deps.get_current_user)):
     check_admin(user)
-    return templates.TemplateResponse("users/form.html", {"request": request, "user": user, "edit_user": None, "role_labels": ROLE_LABELS})
+    return templates.TemplateResponse("users/form.html", {"request": request, "user": user, "edit_user": None, "role_labels": ROLE_LABELS,
+                                                         "pay_types": PAY_TYPES, "employment_types": EMPLOYMENT_TYPES})
 
 @router.post("/new")
 def create_user(
@@ -145,6 +155,9 @@ def create_user(
     start_date: Optional[str] = Form(None),
     hourly_rate: Optional[float] = Form(None),
     monthly_salary: Optional[float] = Form(None),
+    pay_type: str = Form("hora"),
+    daily_rate: Optional[float] = Form(None),
+    employment_type: str = Form("fijo"),
     vacation_days_taken: Optional[float] = Form(None),
     is_active: bool = Form(False),
     also_sells: bool = Form(False),
@@ -160,6 +173,7 @@ def create_user(
 
     if role not in ALL_ROLES:
         return error_redirect("/users/new", "Rol no válido")
+    pay_type, employment_type = pay_fields(role, pay_type, employment_type)
     email = valid_email(email)
     if not email:
         return error_redirect("/users/new", "El correo es obligatorio y tiene que ser válido: con él la persona recupera su contraseña")
@@ -195,6 +209,9 @@ def create_user(
         start_date=s_date,
         hourly_rate=hourly_rate,
         monthly_salary=monthly_salary,
+        pay_type=pay_type,
+        daily_rate=max(0.0, daily_rate or 0.0),
+        employment_type=employment_type,
         vacation_days_taken=max(0.0, vacation_days_taken or 0.0),
         is_active=is_active,
         also_sells=also_sells and role == SUPERVISOR,
@@ -222,7 +239,8 @@ def edit_user_form(id: int, request: Request, db: Session = Depends(deps.get_db)
     edit_user = db.query(User).filter(User.id == id).first()
     if not edit_user:
         return RedirectResponse(url="/users", status_code=status.HTTP_303_SEE_OTHER)
-    return templates.TemplateResponse("users/form.html", {"request": request, "user": user, "edit_user": edit_user, "role_labels": ROLE_LABELS})
+    return templates.TemplateResponse("users/form.html", {"request": request, "user": user, "edit_user": edit_user, "role_labels": ROLE_LABELS,
+                                                         "pay_types": PAY_TYPES, "employment_types": EMPLOYMENT_TYPES})
 
 @router.post("/{id}/edit")
 def update_user(
@@ -236,6 +254,9 @@ def update_user(
     start_date: Optional[str] = Form(None),
     hourly_rate: Optional[float] = Form(None),
     monthly_salary: Optional[float] = Form(None),
+    pay_type: str = Form("hora"),
+    daily_rate: Optional[float] = Form(None),
+    employment_type: str = Form("fijo"),
     vacation_days_taken: Optional[float] = Form(None),
     is_active: bool = Form(False),
     also_sells: bool = Form(False),
@@ -251,6 +272,7 @@ def update_user(
 
     if role not in ALL_ROLES:
         return error_redirect(f"/users/{id}/edit", "Rol no válido")
+    pay_type, employment_type = pay_fields(role, pay_type, employment_type)
     email = valid_email(email)
     if not email:
         return error_redirect(f"/users/{id}/edit", "El correo es obligatorio y tiene que ser válido: con él la persona recupera su contraseña")
@@ -289,6 +311,9 @@ def update_user(
         edit_user.start_date = s_date
         edit_user.hourly_rate = hourly_rate
         edit_user.monthly_salary = monthly_salary
+        edit_user.pay_type = pay_type
+        edit_user.daily_rate = max(0.0, daily_rate or 0.0)
+        edit_user.employment_type = employment_type
         if vacation_days_taken is not None:
             edit_user.vacation_days_taken = max(0.0, vacation_days_taken)
         edit_user.is_active = is_active

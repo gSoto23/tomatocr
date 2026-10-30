@@ -30,6 +30,9 @@ class PayrollEntry(Base):
     apply_deductions = Column(Boolean, default=True)
     # Rate used when the payroll was generated (later rate changes do not touch it).
     hourly_rate = Column(Float, nullable=True)
+    # How it was paid when generated: hora, dia or mensual (older entries: None = hora).
+    pay_type = Column(String(10), nullable=True)
+    days_worked = Column(Float, nullable=True)
     details = Column(JSON, nullable=True) # Breakdown
 
     period = relationship("PayrollPeriod", back_populates="entries")

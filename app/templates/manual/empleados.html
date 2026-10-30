@@ -25,10 +25,16 @@
 {{ m.steps([
     (1, "<strong>Usuario</strong> (con el que entra; no se puede repetir), <strong>Nombre Completo</strong> y <strong>Contraseña</strong>. Al editar, dejá la contraseña en blanco para no cambiarla."),
     (2, "<strong>Rol</strong>: Trabajador, Supervisor, Cliente, Ventas o Administrador. Define qué ve en el sistema (ver el capítulo Primeros pasos). A un <strong>Supervisor</strong> le podés marcar <strong>También vende</strong>: además de supervisar, ve Clientes y el Cotizador como un vendedor (cuentas y oportunidades a su nombre, cotizar y enviar)."),
-    (3, "<strong>Información de Planilla</strong>: <strong>correo (obligatorio</strong>: ahí le llega el enlace para recuperar la contraseña), teléfono, fecha de ingreso, tarifa por hora, salario mensual y método de pago (con número de cuenta o Sinpe)."),
+    (3, "<strong>Información de Planilla</strong>: <strong>correo (obligatorio</strong>: ahí le llega el enlace para recuperar la contraseña), teléfono, fecha de ingreso, <strong>forma de pago</strong> (por hora, por día o mensual), <strong>tipo de empleado</strong> (fijo u ocasional), tarifa por día, tarifa por hora, salario mensual y método de pago (con número de cuenta o Sinpe)."),
     (4, "<strong>Empleado Activo</strong> y <strong>Aplicar Deducciones</strong> (rebaja de CCSS del 9,17 %)."),
 ]) }}
 <ul class="list-disc space-y-1 pl-5">
+    <li><strong>Forma de pago</strong>: <em>Por hora</em> paga las horas confirmadas en el Calendario; <em>Por día</em>, los
+        días confirmados por la tarifa por día; <em>Mensual</em>, la mitad del salario cada quincena aunque no esté en el
+        Calendario. Los usuarios de <strong>Ventas</strong> (asesores) siempre son mensuales. Un supervisor con
+        <em>También vende</em> sigue con su forma de pago de supervisor.</li>
+    <li><strong>Tipo de empleado</strong> (trabajadores y supervisores): <em>Fijo</em> tiene horario regular;
+        <em>Ocasional</em> trabaja cuando se le llama. En el Calendario se puede colorear por tipo.</li>
     <li>Al escribir el <strong>Salario Mensual</strong>, si la tarifa por hora está vacía se calcula sola (salario ÷ 192,
         redondeado). Si ya tiene una, no se toca: abajo aparece la sugerida y <em>Usar esa tarifa</em>.</li>
     <li><strong>Expediente y Documentos</strong>: contratos y otros papeles. Se aceptan <strong>PDF, Word, JPG, PNG o

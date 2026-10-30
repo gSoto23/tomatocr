@@ -33,7 +33,7 @@
 
     <!-- Summary Cards -->
     <dl class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        {% if user.role in ['worker', 'supervisor'] %}
+        {% if user.role in ['worker', 'supervisor', 'ventas'] %}
         <!-- Worker/Supervisor View: Simplified -->
         <div class="overflow-hidden rounded-lg bg-green-50 px-4 py-5 shadow sm:p-6 border border-green-100">
             <dt class="truncate text-sm font-medium text-green-800">Total a Pagar</dt>
@@ -97,7 +97,7 @@
                     <th scope="col"
                         class="px-2 py-3.5 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Neto
                         Pagar</th>
-                    {% if user.role not in ['worker', 'supervisor'] %}
+                    {% if user.role not in ['worker', 'supervisor', 'ventas'] %}
                     <th scope="col"
                         class="px-2 py-3.5 text-right text-xs font-bold text-gray-500 uppercase tracking-wider bg-gray-100 text-gray-900">
                         C.S. Empresa</th>
@@ -124,7 +124,7 @@
                             </div>
                             <div>
                                 {{ entry.user.full_name or entry.user.username }}
-                                <div class="text-xs font-normal text-gray-500">₡{{ "{:,.0f}".format(entry.hourly_rate) }}/h · {{ entry.user.payment_method or 'Sin método' }}{% if entry.user.payment_method in ['Transferencia', 'Sinpe'] and entry.user.account_number %} {{ entry.user.account_number }}{% endif %} ·
+                                <div class="text-xs font-normal text-gray-500">{{ pay_types[entry.pay_type] }}{% if entry.pay_type == 'mensual' %} (quincena){% elif entry.pay_type == 'dia' %} · {{ entry.days_worked | int }} {{ 'día' if entry.days_worked == 1 else 'días' }}{% endif %} · ₡{{ "{:,.0f}".format(entry.hourly_rate) }}/h{% if entry.pay_type != 'hora' %} extra base{% endif %} · {{ entry.user.payment_method or 'Sin método' }}{% if entry.user.payment_method in ['Transferencia', 'Sinpe'] and entry.user.account_number %} {{ entry.user.account_number }}{% endif %} ·
                                     <button type="button"
                                         onclick='showBreakdown({{ entry.details | tojson | safe }}, {{ (entry.user.full_name or entry.user.username) | tojson }})'
                                         class="font-semibold text-blue-600 hover:text-blue-900">Ver desglose</button></div>
@@ -145,7 +145,7 @@
                         "{:,.2f}".format(entry.social_charges) }}</td>
                     <td class="whitespace-nowrap px-2 py-4 text-sm font-bold text-gray-900 text-right bg-gray-50">₡{{
                         "{:,.2f}".format(entry.net_salary) }}</td>
-                    {% if user.role not in ['worker', 'supervisor'] %}
+                    {% if user.role not in ['worker', 'supervisor', 'ventas'] %}
                     <td class="whitespace-nowrap px-2 py-4 text-sm text-gray-900 text-right bg-gray-100">₡{{
                         "{:,.2f}".format(entry.cs_empresa) }}</td>
                     <td class="whitespace-nowrap px-2 py-4 text-sm text-gray-900 text-right bg-gray-50">₡{{
@@ -178,7 +178,7 @@
                     <td class="whitespace-nowrap px-2 pt-4 pb-4 text-right text-sm text-gray-900">-₡{{
                         "{:,.2f}".format(totals.social_charges) }}</td>
                     <td class="whitespace-nowrap px-2 pt-4 pb-4 text-right text-sm bg-gray-200">₡{{ "{:,.2f}".format(totals.net) }}</td>
-                    {% if user.role not in ['worker', 'supervisor'] %}
+                    {% if user.role not in ['worker', 'supervisor', 'ventas'] %}
                     <td class="whitespace-nowrap px-2 pt-4 pb-4 text-right text-sm text-gray-900 bg-gray-300">₡{{
                         "{:,.2f}".format(totals.cs_empresa) }}</td>
                     <td class="whitespace-nowrap px-2 pt-4 pb-4 text-right text-sm text-gray-900 bg-gray-200">₡{{

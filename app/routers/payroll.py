@@ -5,21 +5,25 @@ from fastapi.responses import JSONResponse, HTMLResponse
 from sqlalchemy.orm import Session
 
 from app.routers import deps
-from app.core.roles import ADMIN, OPERATIONS_ROLES, SUPERVISOR, WORKER
+from app.core.roles import ADMIN, SUPERVISOR, VENTAS, WORKER
 from app.db.models.user import User
 from app.db.models.schedule import ProjectSchedule
 from app.db.models.payroll import PayrollPeriod, PayrollEntry
 import pydantic
 from app.db.models.project import Project
 from app.utils.activity import log_activity
+from app.utils.planilla import PAY_TYPES, monthly_share, overtime_rate
 from app.utils.timecr import today_cr
 from app.core.templates import templates
 
 router = APIRouter(
     prefix="/payroll",
     tags=["payroll"],
-    dependencies=[Depends(deps.require_roles(*OPERATIONS_ROLES))]
+    dependencies=[Depends(deps.require_roles(ADMIN, SUPERVISOR, WORKER, VENTAS))]
 )
+
+# People in the payroll. Everyone but the admin sees only their own entries and payments.
+PAYROLL_PEOPLE = (WORKER, SUPERVISOR, VENTAS)
 
 def vacation_balance(user: User) -> dict:
     """1 day per month worked since the start date, minus the days already taken."""
@@ -58,7 +62,7 @@ def payroll_dashboard(
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
-    if user.role not in [ADMIN, SUPERVISOR, WORKER]:
+    if user.role not in (ADMIN, *PAYROLL_PEOPLE):
          raise HTTPException(status_code=403, detail="Not authorized")
     
     # Admin: Full dashboard
@@ -67,7 +71,7 @@ def payroll_dashboard(
     
     query = db.query(PayrollPeriod).order_by(PayrollPeriod.start_date.desc())
     
-    if user.role in [WORKER, SUPERVISOR]:
+    if user.role in PAYROLL_PEOPLE:
         # Only periods where user has an entry, OR allows seeing active/draft if they are scheduled?
         # Usually they only see finalized payrolls or drafts where they are calculated.
         # Filtering by existence of PayrollEntry for this user
@@ -77,7 +81,7 @@ def payroll_dashboard(
 
     # Calculate stats for Worker/Supervisor
     worker_stats = {}
-    if user.role in [WORKER, SUPERVISOR]:
+    if user.role in PAYROLL_PEOPLE:
         worker_stats = vacation_balance(user)
     
     return templates.TemplateResponse("payroll/index.html", {
@@ -112,7 +116,7 @@ def payroll_detail(
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
-    if user.role not in [ADMIN, SUPERVISOR, WORKER]:
+    if user.role not in (ADMIN, *PAYROLL_PEOPLE):
          raise HTTPException(status_code=403, detail="Not authorized")
 
     period = db.query(PayrollPeriod).filter(PayrollPeriod.id == period_id).first()
@@ -139,7 +143,7 @@ def payroll_detail(
     
     for entry in entries:
         # Filter for worker/supervisor (only see own)
-        if user.role in [WORKER, SUPERVISOR] and entry.user_id != user.id:
+        if user.role in PAYROLL_PEOPLE and entry.user_id != user.id:
             continue
             
         gross = entry.gross_salary
@@ -182,6 +186,8 @@ def payroll_detail(
             "overtime_amount": overtime_amt,
             "overtime_hours": entry.overtime_hours or 0.0,
             "hourly_rate": rate,
+            "pay_type": entry.pay_type or "hora",
+            "days_worked": entry.days_worked,
         }
         enhanced_entries.append(entry_dict)
         
@@ -189,11 +195,12 @@ def payroll_detail(
 
     # For Worker/Supervisor view: Calculate Vacation Days
     worker_stats = {}
-    if user.role in [WORKER, SUPERVISOR]:
+    if user.role in PAYROLL_PEOPLE:
         # Logic from liquidation: 1 day per month worked
         worker_stats = vacation_balance(user)
 
     return templates.TemplateResponse("payroll/detail.html", {
+        "pay_types": PAY_TYPES,
         "request": request,
         "user": user,
         "period": period,
@@ -209,7 +216,7 @@ def payroll_report(
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
-    if user.role not in [ADMIN, SUPERVISOR, WORKER]:
+    if user.role not in (ADMIN, *PAYROLL_PEOPLE):
          raise HTTPException(status_code=403, detail="Not authorized")
 
     period = db.query(PayrollPeriod).filter(PayrollPeriod.id == period_id).first()
@@ -223,7 +230,7 @@ def payroll_report(
 
     for entry in entries:
         # Filter logic: Admin sees all. Worker/Supervisor sees only own.
-        if user.role in [WORKER, SUPERVISOR] and entry.user_id != user.id:
+        if user.role in PAYROLL_PEOPLE and entry.user_id != user.id:
             continue
         
         # Same rate and rounding as the payroll detail.
@@ -460,7 +467,8 @@ def confirm_hours_batch(
 # 2. PAYROLL GENERATION (Admin)
 # -----------------------------------------------------------------------------
 
-@router.post("/generate")
+# Admin only, checked before the body so other roles get 403 even with an empty request.
+@router.post("/generate", dependencies=[Depends(deps.require_roles(ADMIN))])
 def generate_payroll(
     start_date: str = Body(...),
     end_date: str = Body(...),
@@ -491,23 +499,20 @@ def generate_payroll(
     db.add(period)
     db.flush()
 
-    # Calculate for each worker
-    # Get all confirmed schedules in range
+    # Confirmed calendar days, by person.
     schedules = db.query(ProjectSchedule).filter(
         ProjectSchedule.date >= s_date,
         ProjectSchedule.date <= e_date,
         ProjectSchedule.is_confirmed == True
     ).all()
-
-    # Group by User
-    user_hours = {}
+    worked = {}
     for s in schedules:
-        if s.user_id not in user_hours:
-            user_hours[s.user_id] = {"total_hours": 0.0, "overtime_hours": 0.0, "details": []}
-        
-        user_hours[s.user_id]["total_hours"] += s.hours_worked
-        user_hours[s.user_id]["overtime_hours"] += (getattr(s, "overtime_hours", 0.0) or 0.0)
-        user_hours[s.user_id]["details"].append({
+        data = worked.setdefault(s.user_id, {"hours": 0.0, "overtime": 0.0, "days": set(), "details": []})
+        data["hours"] += s.hours_worked or 0.0
+        data["overtime"] += s.overtime_hours or 0.0
+        if s.hours_worked:
+            data["days"].add(s.date)
+        data["details"].append({
             "date": s.date.isoformat(),
             "hours": s.hours_worked,
             "overtime": s.overtime_hours,
@@ -515,42 +520,53 @@ def generate_payroll(
             "attendance": s.attendance,
         })
 
-    # Create Entries
-    entries = []
-    for uid, data in user_hours.items():
-        worker = db.query(User).get(uid)
-        if not worker:
-            continue
-        
-        rate = worker.hourly_rate or 0.0
-        # Calculate separately
-        regular_pay = data["total_hours"] * rate
-        overtime_pay = data["overtime_hours"] * rate * 1.5
-        
+    # Monthly people are paid even with no calendar: asesores (ventas) and anyone set to "mensual".
+    monthly = db.query(User).filter(User.pay_type == "mensual", User.monthly_salary > 0,
+                                    User.role.in_(PAYROLL_PEOPLE)).all()
+    people = {p.id: p for p in monthly if deps.can_log_in(p) and not (p.start_date and p.start_date > e_date)}
+    for uid in worked:
+        if uid not in people:
+            worker = db.get(User, uid)
+            if worker:
+                people[uid] = worker
+
+    for uid, worker in people.items():
+        data = worked.get(uid, {"hours": 0.0, "overtime": 0.0, "days": set(), "details": []})
+        pay_type = worker.pay_type or "hora"
+        rate = overtime_rate(worker)
+        days = len(data["days"])
+        if pay_type == "mensual":
+            regular_pay = monthly_share(worker.monthly_salary or 0.0, s_date, e_date, worker.start_date)
+        elif pay_type == "dia":
+            regular_pay = days * (worker.daily_rate or 0.0)
+        else:
+            rate = worker.hourly_rate or 0.0
+            regular_pay = data["hours"] * rate
+        overtime_pay = data["overtime"] * rate * 1.5
+
         # Round Gross to hundreds
         gross = round((regular_pay + overtime_pay) / 100) * 100
-        
+
         # Social Charges (9.17% - user specified "Aplicar cargas sociales")
         charges = 0.0
         if worker.apply_deductions:
              charges = round((gross * 0.0917) / 100) * 100
-        
-        net = gross - charges
 
-        entry = PayrollEntry(
+        db.add(PayrollEntry(
             payroll_period_id=period.id,
             user_id=uid,
-            total_hours=data["total_hours"],
-            overtime_hours=data["overtime_hours"],
+            total_hours=data["hours"],
+            overtime_hours=data["overtime"],
             gross_salary=gross,
             social_charges=charges,
-            net_salary=net,
+            net_salary=gross - charges,
             apply_deductions=worker.apply_deductions,
+            # The overtime base, so the detail can split regular and overtime pay.
             hourly_rate=rate,
+            pay_type=pay_type,
+            days_worked=days,
             details=data["details"] # JSON
-        )
-        db.add(entry)
-        entries.append(entry)
+        ))
 
     db.commit()
 

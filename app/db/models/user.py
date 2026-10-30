@@ -20,7 +20,14 @@ class User(Base):
     email = Column(String(100), nullable=True)
     start_date = Column(Date, nullable=True)
     hourly_rate = Column(Float, default=0.0)
-    monthly_salary = Column(Float, default=0.0) # Informative
+    # Paid in the payroll when pay_type is "mensual" (half per quincena); otherwise informative.
+    monthly_salary = Column(Float, default=0.0)
+    # How the payroll pays this person: "hora" (confirmed hours × rate), "dia" (confirmed days ×
+    # daily_rate) or "mensual" (monthly_salary). Ventas are "mensual".
+    pay_type = Column(String(10), nullable=False, default="hora", server_default="hora")
+    daily_rate = Column(Float, nullable=False, default=0.0, server_default="0")
+    # Calendar people: "fijo" (regular schedule) or "ocasional" (called when needed).
+    employment_type = Column(String(12), nullable=False, default="fijo", server_default="fijo")
     # Vacation days already taken in the current contract (recorded by the admin).
     vacation_days_taken = Column(Float, nullable=False, default=0.0, server_default="0")
     # A supervisor who also sells: sees Clientes and the Cotizador like ventas ("También vende").
