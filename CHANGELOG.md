@@ -6,7 +6,14 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-10-30
 
-### Clientes: Posibles clientes, la lista de prospección (esta rama)
+### Arreglo: borrar una cuenta que vino de Posibles clientes (esta rama)
+- En Descartados, **Borrar** una cuenta que se creó al convertir un posible cliente daba
+  error (PostgreSQL no dejaba borrarla porque el posible cliente seguía enlazado). Ahora
+  se borra también ese posible cliente con sus intentos; los demás no se tocan.
+- Manual (Clientes) y el mensaje de confirmación al borrar lo dicen.
+- Despliegue: sin migraciones; reiniciar.
+
+### Clientes: Posibles clientes, la lista de prospección (#122)
 - Pestaña nueva **Posibles clientes** en Clientes: empresas a las que se piensa llamar o
   visitar, antes del Filtro. Empresa, contacto, teléfono/WhatsApp, correo, tipo, motor,
   provincia, cómo se encontró, notas, vendedor y fecha del próximo intento.

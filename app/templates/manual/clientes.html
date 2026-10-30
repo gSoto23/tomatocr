@@ -46,7 +46,7 @@
 {{ m.shot("clientes/posible.webp", "Ficha de un posible cliente", "La ficha: intentos y acciones.") }}
 <ul class="list-disc space-y-1 pl-5">
     <li><strong>No le interesa</strong> pide el motivo y lo saca de la lista; se puede <em>Reactivar</em> desde su ficha.</li>
-    <li><strong>Borrar</strong> (en <em>Editar datos</em>) es solo para lo que se agregó por error; uno convertido no se borra.</li>
+    <li><strong>Borrar</strong> (en <em>Editar datos</em>) es solo para lo que se agregó por error; uno convertido no se borra desde ahí (si su cuenta era una prueba o spam, el admin la descarta y la borra en Descartados, y se va con ella).</li>
     <li>En el <strong>Dashboard</strong>, <em>Próximos pasos de hoy</em> dice cuántos posibles clientes te tocan hoy, y la
         pestaña tiene un número rojo con los tuyos para hoy o atrasados.</li>
     <li>Arriba de la lista: cuántos contactaste y convertiste esta semana. Es informativo, no es una meta.</li>
@@ -104,7 +104,7 @@
         Descartados con el motivo <em>Spam automático: …</em>. Si alguno era real, <strong>Reactivar</strong>; si no,
         <strong>Borrar</strong>. El spam no aparece en <em>Posibles duplicados</em> ni en el buscador de cuentas, y si una
         persona real escribe con el mismo nombre o correo que un bot, se le crea su propia cuenta.</li>
-    <li><strong>Borrar</strong> (solo el admin) la elimina para siempre con sus contactos, oportunidades y seguimientos. Solo
+    <li><strong>Borrar</strong> (solo el admin) la elimina para siempre con sus contactos, oportunidades y seguimientos (y, si vino de Posibles clientes, también ese posible cliente con sus intentos). Solo
         se puede con cuentas descartadas que no tienen proyectos, cotizaciones ni usuarios del portal; si no, la tabla dice por qué.</li>
 </ul>
 {% endcall %}
