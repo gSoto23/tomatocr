@@ -6,7 +6,22 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-10-30
 
-### Arreglo: borrar una cuenta que vino de Posibles clientes (esta rama)
+### Ventana propia para confirmar (esta rama)
+- Las 31 confirmaciones del sistema (borrar tareas, cuentas, proveedores, contactos,
+  facturas, gastos, empleados, planillas, árboles, días del Calendario, fusionar
+  duplicados, el Cotizador…) usan una ventana con el diseño de TOMATO en lugar de la del
+  navegador ("tomatocr.com says"): dice qué va a pasar, botón rojo para lo que borra,
+  Cancelar, Esc o tocar fuera para cerrar.
+- Borrar una planilla FINAL pide escribir ELIMINAR en la misma ventana (antes era un
+  `prompt()` del navegador).
+- Arreglo: al tocar **Cancelar** en una confirmación, la pantalla "Cargando" quedaba
+  pegada hasta recargar. Ahora solo aparece si la acción sigue.
+- Manual (Primeros pasos) y README.
+- Despliegue: sin migraciones; reiniciar.
+
+## 2026-10-30
+
+### Arreglo: borrar una cuenta que vino de Posibles clientes (#123)
 - En Descartados, **Borrar** una cuenta que se creó al convertir un posible cliente daba
   error (PostgreSQL no dejaba borrarla porque el posible cliente seguía enlazado). Ahora
   se borra también ese posible cliente con sus intentos; los demás no se tocan.

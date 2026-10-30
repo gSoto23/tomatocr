@@ -338,6 +338,7 @@
   {% endif %}
   <script>window.COTIZADOR = { picksAccount: {{ picks_account | tojson }}, canDelete: {{ can_delete | tojson }}, canSend: {{ can_send | tojson }} };</script>
   <script src="/static/cotizador/app.js?v={{ asset_version }}"></script>
+  {% include "components/confirm_modal.html" %}
 </body>
 
 </html>

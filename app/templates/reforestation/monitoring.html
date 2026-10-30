@@ -129,7 +129,7 @@
                     {% if pics %}<div class="mt-1 flex gap-1">{% for url, w, h in pics %}<a href="{{ url }}" target="_blank" rel="noopener"><img src="{{ url }}" alt="Foto del árbol N° {{ c.tree.tree_number }}" class="h-10 w-10 rounded object-cover"></a>{% endfor %}</div>{% endif %}
                 </div>
                 <form method="post" action="/projects/{{ project.id }}/monitoreo/{{ c.id }}/delete"
-                    onsubmit="return confirm('¿Borrar este monitoreo del árbol N° {{ c.tree.tree_number }}?')">
+                    data-confirm="¿Borrar este monitoreo del árbol N° {{ c.tree.tree_number }}?" data-confirm-ok="Borrar">
                     <button class="text-xs font-semibold text-red-700 hover:underline">Borrar</button>
                 </form>
             </li>

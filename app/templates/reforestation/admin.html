@@ -129,13 +129,13 @@
                     <button class="rounded-md border border-gray-300 px-3 py-2 font-semibold hover:bg-gray-50">Renombrar</button>
                 </form>
                 <form method="post" action="/dashboard/reforestacion/{{ p.id }}/trees/delete" class="space-y-2"
-                    onsubmit="return confirm('¿Borrar el árbol N° ' + this.tree_number.value + ' y todos sus monitoreos? No se puede deshacer.')">
+                    onsubmit="return confirmSubmit(event, '¿Borrar el árbol N° ' + this.tree_number.value + ' y todos sus monitoreos? No se puede deshacer.', {ok: 'Borrar árbol'})">
                     <label class="block font-medium text-gray-700">Borrar el árbol N°
                         <input type="text" name="tree_number" inputmode="numeric" required class="mt-1 block w-full rounded-md border border-gray-300 p-2"></label>
                     <button class="rounded-md border border-red-300 px-3 py-2 font-semibold text-red-700 hover:bg-red-50">Borrar árbol</button>
                 </form>
                 <form method="post" action="/dashboard/reforestacion/{{ p.id }}/delete" class="space-y-2"
-                    onsubmit="return confirm('Se borran el proyecto, sus {{ p.trees|length }} árboles y todos sus monitoreos. No se puede deshacer. ¿Seguir?')">
+                    data-confirm="Se borran el proyecto, sus {{ p.trees|length }} árboles y todos sus monitoreos. No se puede deshacer." data-confirm-ok="Borrar proyecto">
                     <label class="block font-medium text-gray-700">Para borrar el proyecto, escribí su nombre
                         <input type="text" name="confirm_name" required autocomplete="off" class="mt-1 block w-full rounded-md border border-gray-300 p-2"></label>
                     <button class="rounded-md bg-red-600 px-3 py-2 font-semibold text-white hover:bg-red-500">Borrar proyecto</button>

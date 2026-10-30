@@ -247,9 +247,10 @@
         let word = '';
         if (isFinal) {
             // A final payroll: only if nobody was paid for it, and typing the word.
-            word = prompt("Esta planilla ya está FINAL. Solo se elimina para regenerarla si todavía no se pagó.\nEscribí ELIMINAR para confirmar:") || '';
+            word = await tomatoConfirm("Esta planilla ya está FINAL. Solo se elimina para regenerarla si todavía no se pagó.",
+                                       {ok: 'Eliminar planilla', danger: true, typeWord: 'ELIMINAR'}) || '';
             if (!word) return;
-        } else if (!confirm("¿Estás seguro de eliminar esta planilla? Esta acción no se puede deshacer.")) return;
+        } else if (!await tomatoConfirm("¿Eliminar esta planilla? Esta acción no se puede deshacer.", {ok: 'Eliminar planilla'})) return;
 
         try {
             const response = await fetch(`/payroll/${id}?confirm=${encodeURIComponent(word)}`, {

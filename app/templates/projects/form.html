@@ -38,7 +38,7 @@
                     <div x-show="formData.account" class="mt-2 flex flex-wrap items-center gap-3 rounded-md border border-gray-300 px-3 py-2 text-sm">
                         <span class="font-semibold text-gray-900" x-text="formData.account && formData.account.name"></span>
                         <a :href="formData.account ? '/clientes/cuentas/' + formData.account.id : '#'" target="_blank" class="text-xs text-gray-500 hover:underline">Ver ficha</a>
-                        <button type="button" x-show="!formData.opportunity_id" @click="(!Object.keys(formData.roles || {}).length || confirm('Al cambiar la cuenta se quitan los contactos elegidos para este proyecto. ¿Seguir?')) && (formData.account = null, formData.roles = {})" class="ml-auto text-xs font-semibold text-gray-600 hover:text-black">Cambiar</button>
+                        <button type="button" x-show="!formData.opportunity_id" @click="(!Object.keys(formData.roles || {}).length ? Promise.resolve(true) : tomatoConfirm('Al cambiar la cuenta se quitan los contactos elegidos para este proyecto.', {ok: 'Cambiar cuenta'})).then(ok => { if (ok) { formData.account = null; formData.roles = {}; } })" class="ml-auto text-xs font-semibold text-gray-600 hover:text-black">Cambiar</button>
                     </div>
                     <div x-show="!formData.account" class="relative mt-2">
                         <input type="text" id="accountSearch" x-model="accountQuery" @input.debounce.250ms="searchAccounts()" @focus="searchAccounts()" autocomplete="off"

@@ -398,9 +398,9 @@
             }
         }
 
-        function deleteLog() {
+        async function deleteLog() {
             if (!currentLogId) return;
-            if (!confirm('¿Estás seguro de eliminar este reporte de forma permanente?')) return;
+            if (!await tomatoConfirm('¿Eliminar este reporte de forma permanente?', {ok: 'Eliminar reporte'})) return;
 
             const form = document.getElementById('delete-log-form');
             form.action = `/logs/${currentLogId}/delete`;

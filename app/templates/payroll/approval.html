@@ -358,7 +358,7 @@
         });
 
         if (updates.length === 0) return showGlobalToast("Éxito", "No hay horas pendientes en esta página.");
-        if (!confirm(`¿Confirmar ${updates.length} registro(s) con las horas que dice cada fila?`)) return;
+        if (!await tomatoConfirm(`¿Confirmar ${updates.length} registro(s) con las horas que dice cada fila?`, {ok: 'Confirmar horas'})) return;
 
         try {
             const response = await fetch('/payroll/hours/confirm-batch-update', {

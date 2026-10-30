@@ -29,7 +29,7 @@
         </span>
         {% if user.role == 'admin' %}
         <form action="/liquidation/reactivate/{{ target_user.id }}" method="post" class="flex flex-wrap items-center gap-2"
-            onsubmit="return confirm('¿Reactivar el contrato desde el ' + this.start_date.value.split('-').reverse().join('/') + '? Las vacaciones tomadas vuelven a 0.');">
+            onsubmit="return confirmSubmit(event, '¿Reactivar el contrato desde el ' + this.start_date.value.split('-').reverse().join('/') + '? Las vacaciones tomadas vuelven a 0.', {ok: 'Reactivar'})">
             <label class="text-sm text-gray-700">Nuevo contrato desde
                 <input type="date" name="start_date" required value="{{ today_iso }}" class="ml-1 rounded-md border border-gray-300 px-2 py-1 text-sm"></label>
             <button type="submit"

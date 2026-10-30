@@ -353,6 +353,12 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
 ### 7. Configuración Jerárquica & Auth
 - Prevención total basada en Roles: `[Admin, Supervisor, Worker, Client, Ventas]`.
 - Encriptación y seguridad a nivel de tokens en las capas.
+- **Confirmaciones** con la ventana propia del sistema (`components/confirm_modal.html`,
+  incluida en `base_dashboard.html` y el Cotizador), nunca `confirm()`/`prompt()` del
+  navegador: formularios con `data-confirm="…"` (`data-confirm-ok`, `data-confirm-danger`),
+  `confirmSubmit(event, mensaje, opciones)` si el mensaje se arma al enviar, y
+  `await tomatoConfirm(mensaje, {ok, danger, typeWord})` en scripts. La pantalla
+  "Cargando" solo aparece si el envío sigue (`!e.defaultPrevented`).
 
 ---
 
