@@ -6,6 +6,27 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-10-30
 
+### Planilla quincenal con formas de pago; asesores en la planilla (esta rama)
+- Cada persona tiene **forma de pago** en Empleados: *por hora* (como hasta ahora), *por día*
+  (días confirmados en el Calendario × tarifa por día) o *mensual* (la mitad del salario por
+  quincena, aunque no esté en el Calendario). Las extras se pagan a 1,5 sobre la tarifa por hora.
+- **Generar Planilla** propone la quincena actual (1–15 o 16–fin de mes) y tiene *Quincena
+  anterior*. Si alguien entró a mitad de la quincena, se le paga desde su fecha de ingreso.
+- Los **asesores (Ventas)** son siempre mensuales: entran a la planilla con su salario y ven
+  Planilla y Mis pagos con solo lo suyo. Los supervisores que venden siguen con su pago de
+  supervisor.
+- **Tipo de empleado** (fijo u ocasional) en Empleados, y en el Calendario un color nuevo
+  *Por tipo de empleado*.
+- En el detalle de la planilla, debajo de cada nombre, la forma de pago (y los días, si es por día).
+- La **mano de obra** del Calendario también sigue la forma de pago: tarifa diaria por día
+  trabajado, o salario / 192 por hora para los mensuales.
+- Arreglo: en el formulario de Empleados, *También vende* solo aparece para Supervisor (se
+  mostraba con cualquier rol, aunque solo se guardaba para supervisores).
+- Despliegue: **migración 0024** (`alembic upgrade head`): agrega las columnas y pasa a
+  *mensual* a los usuarios de Ventas; todos los demás siguen por hora, así que nada cambia
+  hasta que se edite una persona. Completar el **salario mensual** de cada asesor en Empleados
+  antes de generar la próxima quincena. Reiniciar.
+
 ### Ventana propia para confirmar (esta rama)
 - Las 31 confirmaciones del sistema (borrar tareas, cuentas, proveedores, contactos,
   facturas, gastos, empleados, planillas, árboles, días del Calendario, fusionar
@@ -18,8 +39,6 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
   pegada hasta recargar. Ahora solo aparece si la acción sigue.
 - Manual (Primeros pasos) y README.
 - Despliegue: sin migraciones; reiniciar.
-
-## 2026-10-30
 
 ### Arreglo: borrar una cuenta que vino de Posibles clientes (#123)
 - En Descartados, **Borrar** una cuenta que se creó al convertir un posible cliente daba

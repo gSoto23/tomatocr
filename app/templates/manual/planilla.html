@@ -2,13 +2,15 @@
 
 {% block manual %}
 {% call m.section("que-es", "Qué es") %}
-<p><strong>Planilla</strong> calcula lo que se le paga a cada persona a partir de las horas <strong>confirmadas</strong> de sus
-    asignaciones del Calendario. También lleva el historial de pagos y las liquidaciones.</p>
-<p>Quién lo usa: {{ m.roles(["admin", "supervisor", "worker"]) }}. El admin genera y cierra las planillas; el supervisor
-    confirma las horas de su equipo; cada trabajador ve lo suyo.</p>
+<p><strong>Planilla</strong> calcula lo que se le paga a cada persona cada <strong>quincena</strong> (del 1 al 15 y del 16 al
+    fin de mes), según su <strong>forma de pago</strong>: por las horas o los días <strong>confirmados</strong> en el
+    Calendario, o por su salario mensual. También lleva el historial de pagos y las liquidaciones.</p>
+<p>Quién lo usa: {{ m.roles(["admin", "supervisor", "worker", "ventas"]) }}. El admin genera y cierra las planillas; el
+    supervisor confirma las horas de su equipo; cada trabajador y cada asesor ve lo suyo.</p>
 {% if user.role == 'admin' %}
 <p>El cálculo usa del perfil de cada persona (en <a href="/manual/empleados" class="text-indigo-600 hover:underline">Empleados</a>):
-    la <strong>Tarifa por Hora</strong>, <strong>Aplicar Deducciones</strong> (CCSS del trabajador, 9,17 %), el
+    la <strong>Forma de pago</strong>, la <strong>Tarifa por Hora</strong>, la <strong>Tarifa por Día</strong>, el
+    <strong>Salario Mensual</strong>, <strong>Aplicar Deducciones</strong> (CCSS del trabajador, 9,17 %), el
     <strong>Método de Pago</strong> y la <strong>Fecha de Ingreso</strong>.</p>
 {% endif %}
 {% endcall %}
@@ -48,26 +50,36 @@
 {% if user.role == 'admin' %}
 {{ m.shot("planilla/periodos.webp", "Lista de planillas", "Planilla: periodos y accesos.") }}
 {{ m.steps([
-    (1, "<strong>Generar Planilla</strong>: elegí <em>Fecha Inicio</em> y <em>Fecha Fin</em> y tocá <em>Generar</em>. Queda como <em>Borrador</em>."),
+    (1, "<strong>Generar Planilla</strong>: las fechas vienen puestas con la quincena actual; <em>Quincena anterior</em> cambia a la de antes. También podés escribirlas. Tocá <em>Generar</em>: queda como <em>Borrador</em>."),
     (2, "Tocá el periodo para abrirlo y revisar."),
     (3, "<strong>Historial de Pagos</strong> y <strong>Liquidaciones</strong>."),
 ]) }}
 {{ m.shot("planilla/detalle.webp", "Detalle de una planilla", "El detalle de un periodo.") }}
 {{ m.steps([
     (1, "Totales: salarios netos, cargas patronales (26,67 %), previsiones (18 %) y costo total para la empresa."),
-    (2, "Por persona: debajo del nombre, la tarifa por hora de esta planilla, el método de pago y <em>Ver desglose</em> (día por día y proyecto); en las columnas, horas, extras, bruto, CCSS (9,17 %) y <strong>Neto Pagar</strong>."),
+    (2, "Por persona: debajo del nombre, la forma de pago (mensual, por día con los días trabajados, o por hora), la tarifa por hora de esta planilla (para los mensuales y por día, la base de las extras), el método de pago y <em>Ver desglose</em> (día por día y proyecto); en las columnas, horas, extras, bruto, CCSS (9,17 %) y <strong>Neto Pagar</strong>."),
     (3, "<strong>Imprimir Reporte</strong> abre el listado de pago para imprimir o guardar en PDF."),
     (4, "<strong>Finalizar Planilla</strong> la marca como <em>final</em>. Solo las planillas finales cuentan como costo de los proyectos en Presupuestos."),
 ]) }}
-<p><strong>Cómo se calcula</strong>: bruto = horas × tarifa + horas extra × tarifa × 1,5 (redondeado a centenas); CCSS del
-    trabajador = 9,17 % del bruto si tiene <em>Aplicar Deducciones</em>; neto = bruto − CCSS.</p>
+<p><strong>Cómo se calcula</strong> según la forma de pago de cada persona:</p>
+<ul class="list-disc space-y-1 pl-5">
+    <li><strong>Por hora</strong>: horas confirmadas × tarifa por hora.</li>
+    <li><strong>Por día</strong>: días confirmados (con horas) × tarifa por día. Un día con <em>No llegó</em> no cuenta.</li>
+    <li><strong>Mensual</strong>: la <strong>mitad del salario</strong> por quincena, aunque no tenga Calendario (así entran
+        los asesores de Ventas). Si entró a mitad de la quincena, se paga la parte desde su fecha de ingreso.</li>
+    <li>Las <strong>extras</strong> siempre son horas extra × tarifa por hora × 1,5. Si no tiene tarifa por hora, se usa la
+        diaria ÷ 8 o el salario ÷ 192.</li>
+</ul>
+<p>El bruto se redondea a centenas; CCSS del trabajador = 9,17 % del bruto si tiene <em>Aplicar Deducciones</em>; neto =
+    bruto − CCSS.</p>
 <p><strong>La tarifa queda fija</strong>: al generar la planilla se guarda la tarifa de cada persona. Si después le subís la
     tarifa en Empleados, esta planilla no cambia (el detalle, el reporte y el costo en Presupuestos siguen usando la de ese momento).</p>
 <p><strong>Deducciones</strong>: si a una persona no le corresponde la rebaja de CCSS, desmarcá <em>Apl. Ded?</em> en su fila
     mientras la planilla está en borrador (o <em>Aplicar Deducciones</em> en su perfil, para las próximas). Una planilla
     <em>final</em> ya no se puede cambiar.</p>
 {% else %}
-<p>El admin genera la planilla de cada periodo. En <strong>Planilla</strong> ves los periodos donde tenés horas; al abrir uno
+<p>El admin genera la planilla de cada quincena. En <strong>Planilla</strong> ves los periodos donde tenés pago
+    {%- if user.role == 'ventas' %} (como asesor, tu salario mensual: la mitad cada quincena){% endif %}; al abrir uno
     ves tu fila: horas, extras, rebajas, <strong>Total a Pagar</strong> y <em>Ver desglose</em> día por día.
     <em>Imprimir Reporte</em> te da tu comprobante. Arriba ves tu <strong>Fecha de Inicio</strong> y tus
     <strong>Vacaciones Disponibles</strong>: 1 día por mes trabajado menos los días que ya tomaste (los anota el admin en

@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc
 
 from app.routers import deps
-from app.core.roles import ADMIN, OPERATIONS_ROLES, SUPERVISOR, WORKER
+from app.core.roles import ADMIN, OPERATIONS_ROLES, SUPERVISOR, VENTAS, WORKER
 from app.db.models.user import User
 from app.db.models.payment import PayrollPayment
 from app.db.models.payroll import PayrollEntry, PayrollPeriod
@@ -18,7 +18,8 @@ from app.utils.activity import log_activity
 router = APIRouter(
     prefix="/payments",
     tags=["payments"],
-    dependencies=[Depends(deps.require_roles(*OPERATIONS_ROLES))]
+    # Ventas (asesores) are in the payroll too: they see their own payments.
+    dependencies=[Depends(deps.require_roles(*OPERATIONS_ROLES, VENTAS))]
 )
 
 from app.core.templates import templates
@@ -30,13 +31,13 @@ def list_payments_view(
     user: User = Depends(deps.get_current_user)
 ):
     if user.role != ADMIN:
-        # Workers and supervisors see their own payments ("Mis pagos")
-        if user.role in (WORKER, SUPERVISOR):
+        # Workers, supervisors and asesores see their own payments ("Mis pagos")
+        if user.role in (WORKER, SUPERVISOR, VENTAS):
             return RedirectResponse(url=f"/payments/history/{user.id}", status_code=303)
         return RedirectResponse(url="/", status_code=303)
 
     # Admin: List all workers to manage payments
-    workers = db.query(User).filter(User.role.in_([WORKER, SUPERVISOR])).all()
+    workers = db.query(User).filter(User.role.in_([WORKER, SUPERVISOR, VENTAS])).all()
     
     return templates.TemplateResponse("payments/index.html", {
         "request": request,

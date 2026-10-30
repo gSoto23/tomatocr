@@ -20,15 +20,18 @@
 {% if user.role in ['admin', 'supervisor'] %}
 <p>En <strong>Semana</strong> cada bloque muestra también <strong>quiénes van</strong>, uno por línea; en <strong>Día</strong>,
     además, las horas y la sede de cada uno. Las marcas: ✓ horas confirmadas, ⏱ llegó tarde y ✗ no llegó (tachado).</p>
-<p><strong>Colores</strong>, arriba del calendario: <em>Por proyecto</em> (cada proyecto siempre con el mismo color) o
-    <em>Por estado de las horas</em>: naranja si falta confirmar, verde si ya están confirmadas y rojo si alguien no llegó.
-    Sirve para ver de un vistazo qué días falta revisar.</p>
+<p><strong>Colores</strong>, arriba del calendario: <em>Por proyecto</em> (cada proyecto siempre con el mismo color),
+    <em>Por estado de las horas</em> (naranja si falta confirmar, verde si ya están confirmadas y rojo si alguien no llegó;
+    sirve para ver de un vistazo qué días falta revisar) o <em>Por tipo de empleado</em>: el bloque queda gris, dice
+    cuántos fijos y ocasionales van, y en Semana y Día cada persona lleva un punto azul (fijo) o fucsia (ocasional). El
+    tipo se elige en Empleados.</p>
 {% endif %}
 {% if user.role == 'admin' %}
 <p><strong>Mano de obra</strong>, arriba a la derecha: lo que cuestan en salario las fechas que tenés en pantalla (el mes,
-    la semana o el día). Son las horas de cada asignación por la tarifa por hora de la persona, más las extras a 1.5,
-    igual que en la planilla, sin cargas sociales. Se separa lo ya confirmado de lo que falta confirmar, y los días
-    marcados <em>No llegó</em> no suman. Si alguien no tiene tarifa por hora, aparece su nombre para que la completes
+    la semana o el día). Se calcula según la forma de pago de cada persona, igual que en la planilla: por hora, sus
+    horas por la tarifa; por día, la tarifa diaria por cada día con horas; mensual, el salario ÷ 192 por cada hora. Las
+    extras van a 1.5 y no se suman cargas sociales. Se separa lo ya confirmado de lo que falta confirmar, y los días
+    marcados <em>No llegó</em> no suman. Si a alguien le falta su tarifa, aparece su nombre para que la completes
     en Empleados. Solo lo ve el admin.</p>
 {% endif %}
 <p>El trabajador ve solo sus días: el proyecto y la sede.</p>

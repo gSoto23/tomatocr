@@ -23,6 +23,7 @@ router = APIRouter(
 
 from app.core.templates import templates
 from app.utils.activity import log_activity
+from app.utils.planilla import overtime_rate
 
 @router.get("/")
 def calendar_view(request: Request, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
@@ -65,6 +66,7 @@ def member_payload(s: ProjectSchedule, group_sizes: dict) -> dict:
         "id": s.id,
         "worker_id": s.user_id,
         "worker_name": s.user.full_name or s.user.username,
+        "employment_type": s.user.employment_type or "fijo",
         "project_id": s.project_id,
         "project_name": s.project.name,
         "location_id": s.location_id,
@@ -509,8 +511,9 @@ def toggle_task_status(id: int, db: Session = Depends(deps.get_db), user: User =
 
 @router.get("/cost")
 def labor_cost(start: str, end: str, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
-    """Estimated labour cost of the days shown (end not included): hours × each person's rate, overtime
-    at 1.5x, like the payroll. Days marked "No llegó" cost nothing. Admin only: it shows the rates."""
+    """Estimated labour cost of the days shown (end not included), by each person's pay type like the
+    payroll: hours × hourly rate, or the daily rate per day worked, or the monthly salary / 192 per
+    hour; overtime at 1.5x. Days marked "No llegó" cost nothing. Admin only: it shows the rates."""
     if user.role != ADMIN:
         raise HTTPException(status_code=403, detail="Not authorized")
     try:
@@ -519,15 +522,25 @@ def labor_cost(start: str, end: str, db: Session = Depends(deps.get_db), user: U
         return JSONResponse({"status": "error", "message": "Fechas no válidas"}, status_code=400)
     schedules = db.query(ProjectSchedule).filter(ProjectSchedule.date >= first, ProjectSchedule.date < last).all()
     totals = {"hours": 0.0, "overtime": 0.0, "cost": 0.0, "confirmed": 0.0, "pending": 0.0}
-    without_rate = set()
+    without_rate, paid_days = set(), set()
     for s in schedules:
         if not s.user or s.attendance == "no_llego":
             continue
-        rate = s.user.hourly_rate or 0.0
+        person = s.user
         hours, overtime = s.hours_worked or 0.0, s.overtime_hours or 0.0
-        if not rate and hours + overtime:
-            without_rate.add(s.user.full_name or s.user.username)
-        cost = hours * rate + overtime * rate * 1.5
+        rate = overtime_rate(person) if person.pay_type in ("dia", "mensual") else (person.hourly_rate or 0.0)
+        if person.pay_type == "dia":
+            # A day is paid once, even with two projects that day.
+            day_pay = (person.daily_rate or 0.0) if hours and (person.id, s.date) not in paid_days else 0.0
+            if hours:
+                paid_days.add((person.id, s.date))
+            cost = day_pay + overtime * rate * 1.5
+            missing = not person.daily_rate
+        else:
+            cost = hours * rate + overtime * rate * 1.5
+            missing = not rate
+        if missing and hours + overtime:
+            without_rate.add(person.full_name or person.username)
         totals["hours"] += hours
         totals["overtime"] += overtime
         totals["cost"] += cost

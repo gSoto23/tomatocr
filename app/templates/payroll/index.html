@@ -31,7 +31,7 @@
     </div>
 </div>
 
-{% if user.role in ['worker', 'supervisor'] %}
+{% if user.role in ['worker', 'supervisor', 'ventas'] %}
 <div class="mb-8">
     <dl class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
         <a href="/payments/history/{{ user.id }}" class="block overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6 border border-gray-100 hover:border-gray-400">
@@ -129,6 +129,11 @@
                                 <h3 class="text-base font-semibold leading-6 text-gray-900" id="modal-title">Generar
                                     Planilla</h3>
                                 <div class="mt-4 space-y-4">
+                                    <p class="text-sm text-gray-500">La planilla es quincenal: del 1 al 15 y del 16 al fin de mes.</p>
+                                    <div class="flex flex-wrap gap-2">
+                                        <button type="button" onclick="setQuincena(0)" class="rounded-md bg-white px-3 py-1.5 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Esta quincena</button>
+                                        <button type="button" onclick="setQuincena(-1)" class="rounded-md bg-white px-3 py-1.5 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Quincena anterior</button>
+                                    </div>
                                     <div>
                                         <label for="start_date"
                                             class="block text-sm font-medium leading-6 text-gray-900">Fecha
@@ -236,7 +241,20 @@
     });
 
     function openGenerateModal() {
+        if (!document.getElementById('start_date').value) setQuincena(0);
         document.getElementById('generateModal').classList.remove('hidden');
+    }
+
+    // The quincena of today in Costa Rica (offset -1: the one before): 1–15 or 16–end of month.
+    function setQuincena(offset) {
+        const [y, m, d] = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Costa_Rica' })
+            .format(new Date()).split('-').map(Number);
+        let index = (y * 12 + (m - 1)) * 2 + (d > 15 ? 1 : 0) + offset;
+        const year = Math.floor(index / 24), month = Math.floor(index / 2) % 12, second = index % 2 === 1;
+        const pad = (n) => String(n).padStart(2, '0');
+        const last = new Date(year, month + 1, 0).getDate();
+        document.getElementById('start_date').value = `${year}-${pad(month + 1)}-${second ? '16' : '01'}`;
+        document.getElementById('end_date').value = `${year}-${pad(month + 1)}-${second ? last : 15}`;
     }
 
     function closeGenerateModal() {
