@@ -92,6 +92,13 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
   ingreso). Extras a 1,5 sobre la tarifa por hora, o la diaria / 8, o el salario / 192. Los
   usuarios `ventas` (asesores) son siempre mensuales, entran a la planilla y ven solo lo suyo en
   Planilla y Mis pagos. `payroll_entries.pay_type` y `days_worked` guardan cómo se pagó.
+- **Líneas, ajustes y estados** (migración 0025): cada persona puede tener líneas en su
+  planilla (`payroll_lines`): bono, comisión y ajuste suman al bruto (CCSS y aguinaldo);
+  viáticos suman al neto sin CCSS; deducción y adelanto restan del neto
+  (`app/utils/planilla.py`, `recompute`). Solo se cambian en borrador. `users.viatico_quincenal`
+  agrega viáticos fijos a cada planilla. Una planilla aprobada no se cambia: la corrección queda
+  en `payroll_adjustments` y entra como línea en la próxima planilla de la persona. Estados:
+  Borrador → Aprobada (`final`) → Pagada (calculado: todos tienen su pago con esa planilla).
 - **Dashboard Estadístico**: Análisis de KPI operativos (Facturación, vencimientos).
 
 ### 3. Bitácora Digital (Daily Logs)

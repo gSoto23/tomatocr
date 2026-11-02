@@ -20,8 +20,13 @@
     <li>El supervisor o el admin arma las <strong>asignaciones</strong> en el Calendario (cada una empieza con 8 h y 0 extra).</li>
     <li>Se revisan y <strong>confirman las horas</strong> reales en <em>Aprobar Horas</em>.</li>
     <li>El admin <strong>genera la planilla</strong> de un periodo: toma solo las horas confirmadas.</li>
-    <li>El admin la revisa, la <strong>finaliza</strong> e imprime el reporte para pagar.</li>
+    <li>El admin la revisa (y agrega bonos, viáticos o rebajas si hacen falta), la <strong>aprueba</strong> e imprime el
+        reporte para pagar.</li>
+    <li>Al registrar el pago de cada persona en <em>Historial de Pagos</em> (eligiendo la planilla que paga), la planilla
+        pasa sola a <strong>Pagada</strong> cuando todos tienen el suyo.</li>
 </ol>
+<p>Estados: <strong>Borrador</strong> (se puede revisar y cambiar) → <strong>Aprobada</strong> (ya no se cambia; dice
+    cuántos van pagados) → <strong>Pagada</strong>.</p>
 {% call m.warn("Confirmá las horas antes de generar") %}
 <p>Las horas que se confirman <em>después</em> de generar la planilla no entran en ella. Si pasa, hay que eliminar ese
     periodo y generarlo de nuevo. El sistema no deja generar dos planillas con días en común, para que nada se pague doble.</p>
@@ -46,7 +51,7 @@
 {% endif %}
 {% endcall %}
 
-{% call m.section("generar", "Generar y cerrar la planilla") %}
+{% call m.section("generar", "Generar y aprobar la planilla") %}
 {% if user.role == 'admin' %}
 {{ m.shot("planilla/periodos.webp", "Lista de planillas", "Planilla: periodos y accesos.") }}
 {{ m.steps([
@@ -57,9 +62,9 @@
 {{ m.shot("planilla/detalle.webp", "Detalle de una planilla", "El detalle de un periodo.") }}
 {{ m.steps([
     (1, "Totales: salarios netos, cargas patronales (26,67 %), previsiones (18 %) y costo total para la empresa."),
-    (2, "Por persona: debajo del nombre, la forma de pago (mensual, por día con los días trabajados, o por hora), la tarifa por hora de esta planilla (para los mensuales y por día, la base de las extras), el método de pago y <em>Ver desglose</em> (día por día y proyecto); en las columnas, horas, extras, bruto, CCSS (9,17 %) y <strong>Neto Pagar</strong>."),
+    (2, "Por persona: debajo del nombre, la forma de pago (mensual, por día con los días trabajados, o por hora), la tarifa por hora de esta planilla (para los mensuales y por día, la base de las extras), el método de pago y <em>Ver desglose</em> (día por día y proyecto); en las columnas, horas, extras, <em>Bonos / Ajustes</em>, bruto, CCSS (9,17 %), <em>Viáticos / Rebajas</em> y <strong>Neto Pagar</strong>. <em>Líneas</em> abre los bonos, viáticos y rebajas de esa persona."),
     (3, "<strong>Imprimir Reporte</strong> abre el listado de pago para imprimir o guardar en PDF."),
-    (4, "<strong>Finalizar Planilla</strong> la marca como <em>final</em>. Solo las planillas finales cuentan como costo de los proyectos en Presupuestos."),
+    (4, "<strong>Aprobar planilla</strong> la cierra: ya no se cambia. Solo las planillas aprobadas cuentan como costo de los proyectos en Presupuestos."),
 ]) }}
 <p><strong>Cómo se calcula</strong> según la forma de pago de cada persona:</p>
 <ul class="list-disc space-y-1 pl-5">
@@ -70,21 +75,46 @@
     <li>Las <strong>extras</strong> siempre son horas extra × tarifa por hora × 1,5. Si no tiene tarifa por hora, se usa la
         diaria ÷ 8 o el salario ÷ 192.</li>
 </ul>
-<p>El bruto se redondea a centenas; CCSS del trabajador = 9,17 % del bruto si tiene <em>Aplicar Deducciones</em>; neto =
-    bruto − CCSS.</p>
+<p>El salario se redondea a centenas; bruto = salario + bonos, comisiones y ajustes; CCSS del trabajador = 9,17 % del
+    bruto si tiene <em>Aplicar Deducciones</em>; neto = bruto − CCSS + viáticos − deducciones y adelantos.</p>
 <p><strong>La tarifa queda fija</strong>: al generar la planilla se guarda la tarifa de cada persona. Si después le subís la
     tarifa en Empleados, esta planilla no cambia (el detalle, el reporte y el costo en Presupuestos siguen usando la de ese momento).</p>
 <p><strong>Deducciones</strong>: si a una persona no le corresponde la rebaja de CCSS, desmarcá <em>Apl. Ded?</em> en su fila
     mientras la planilla está en borrador (o <em>Aplicar Deducciones</em> en su perfil, para las próximas). Una planilla
-    <em>final</em> ya no se puede cambiar.</p>
+    <em>aprobada</em> ya no se puede cambiar.</p>
 {% else %}
 <p>El admin genera la planilla de cada quincena. En <strong>Planilla</strong> ves los periodos donde tenés pago
     {%- if user.role == 'ventas' %} (como asesor, tu salario mensual: la mitad cada quincena){% endif %}; al abrir uno
-    ves tu fila: horas, extras, rebajas, <strong>Total a Pagar</strong> y <em>Ver desglose</em> día por día.
+    ves tu fila: horas, extras, bonos, viáticos, rebajas, <strong>Total a Pagar</strong>, <em>Ver desglose</em> día por día
+    y <em>Líneas</em> con el detalle de cada bono, viático o rebaja.
     <em>Imprimir Reporte</em> te da tu comprobante. Arriba ves tu <strong>Fecha de Inicio</strong> y tus
     <strong>Vacaciones Disponibles</strong>: 1 día por mes trabajado menos los días que ya tomaste (los anota el admin en
     tu perfil). Debajo dice cuántos acumulaste y cuántos tomaste.</p>
 {{ m.shot("planilla/trabajador.webp", "Planilla vista por un trabajador", "Planilla, vista de un trabajador.", mobile=True) }}
+{% endif %}
+{% endcall %}
+
+{% call m.section("lineas", "Bonos, viáticos, rebajas y ajustes") %}
+<p>Además del salario, cada persona puede tener <strong>líneas</strong> en su planilla:</p>
+<ul class="list-disc space-y-1 pl-5">
+    <li><strong>Bono</strong>, <strong>Comisión</strong> y <strong>Ajuste de salario</strong>: suman al bruto, así que
+        llevan CCSS y cuentan para el aguinaldo. Un ajuste o una comisión pueden ser negativos para devolver algo pagado
+        de más.</li>
+    <li><strong>Viáticos</strong>: suman al neto, sin CCSS.</li>
+    <li><strong>Deducción</strong> y <strong>Adelanto</strong>: se restan del neto.</li>
+</ul>
+{% if user.role == 'admin' %}
+{{ m.steps([
+    (None, "En el detalle de una planilla en <em>Borrador</em>, tocá <strong>Líneas</strong> debajo del nombre: elegí el tipo, el monto y el detalle y <em>Guardar</em>. <em>Quitar</em> la saca. Los totales se recalculan solos."),
+    (None, "<strong>Viáticos fijos</strong>: en Empleados, <em>Viáticos por quincena</em>. Cada planilla que generes los agrega sola como línea; se pueden quitar o cambiar en el borrador."),
+    (None, "<strong>Corregir una planilla aprobada</strong>: no se cambia. En su detalle, <em>Líneas</em> de la persona deja un <strong>ajuste para la próxima planilla</strong> (por ejemplo −₡10 000 por un día pagado de más). Aparece en Planilla, arriba, en <em>Ajustes para la próxima planilla</em>, y entra solo en la próxima planilla que generes de esa persona."),
+]) }}
+<p>El neto nunca queda negativo: una línea que lo dejaría bajo cero no se guarda, y un ajuste en contra que no cabe en la
+    próxima planilla (por ejemplo, la persona no trabajó esa quincena) sigue pendiente para la siguiente.</p>
+<p>Todo queda en <strong>Actividad</strong>: quién agregó o quitó cada línea o ajuste, y cuándo. Si eliminás un borrador
+    que tenía un ajuste, el ajuste vuelve a quedar pendiente; un ajuste pendiente se puede <em>Borrar</em>.</p>
+{% else %}
+<p>Las agrega el admin; las ves en tu planilla con <em>Líneas</em>.</p>
 {% endif %}
 {% endcall %}
 

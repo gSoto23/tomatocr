@@ -6,6 +6,22 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-10-30
 
+### Planilla: bonos, viáticos, rebajas y ajustes; aprobada y pagada (esta rama)
+- En el detalle de una planilla en borrador, **Líneas** debajo de cada nombre: bono, comisión,
+  ajuste de salario (suman al bruto: llevan CCSS y cuentan para el aguinaldo), viáticos (suman al
+  neto, sin CCSS), deducción y adelanto (restan del neto). Columnas nuevas *Bonos / Ajustes* y
+  *Viáticos / Rebajas*.
+- **Viáticos por quincena** en Empleados: un monto fijo que cada planilla agrega sola.
+- **Finalizar** pasa a llamarse **Aprobar planilla**. Una planilla aprobada no se cambia: desde
+  *Líneas* se deja un **ajuste para la próxima planilla**, que aparece arriba en Planilla y entra
+  solo en la siguiente que se genere de esa persona. Todo queda en Actividad.
+- El neto nunca queda negativo: una línea que lo dejaría bajo cero no se guarda, y un ajuste en
+  contra que no cabe en la planilla queda pendiente para la siguiente.
+- Estados **Borrador → Aprobada → Pagada**: la aprobada dice cuántos van pagados y pasa sola a
+  *Pagada* cuando cada persona tiene su pago registrado con esa planilla.
+- Despliegue: **migración 0025** (`alembic upgrade head`; las planillas existentes quedan
+  igual); reiniciar.
+
 ### Planilla quincenal con formas de pago; asesores en la planilla (esta rama)
 - Cada persona tiene **forma de pago** en Empleados: *por hora* (como hasta ahora), *por día*
   (días confirmados en el Calendario × tarifa por día) o *mensual* (la mitad del salario por

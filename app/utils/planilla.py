@@ -49,3 +49,51 @@ def overtime_rate(person) -> float:
     if person.pay_type == "mensual" and person.monthly_salary:
         return person.monthly_salary / HOURS_PER_MONTH
     return 0.0
+
+
+# Lines on a payroll entry (Fase 4): (label, what it touches).
+#   "salario": added to the gross, so it carries CCSS and counts for the aguinaldo;
+#   "suma": added to the net (viáticos are not salary); "resta": taken from the net.
+LINE_KINDS = {
+    "bono": ("Bono", "salario"),
+    "comision": ("Comisión", "salario"),
+    "ajuste": ("Ajuste de salario", "salario"),
+    "viatico": ("Viáticos", "suma"),
+    "deduccion": ("Deducción", "resta"),
+    "adelanto": ("Adelanto", "resta"),
+}
+# Corrections can go either way (a negative ajuste takes back salary paid of more).
+SIGNED_KINDS = ("ajuste", "comision")
+CCSS_RATE = 0.0917
+
+
+def valid_line(kind: str, amount) -> Optional[str]:
+    """Why a line can't be saved, or None."""
+    if kind not in LINE_KINDS:
+        return "Tipo de línea no válido"
+    if amount is None or amount == 0:
+        return "El monto no puede ser 0"
+    if amount < 0 and kind not in SIGNED_KINDS:
+        return "Solo un ajuste o una comisión pueden ser negativos"
+    return None
+
+
+def line_sums(lines) -> dict:
+    """What the lines add to the gross ("salario") and to the net ("suma" − "resta")."""
+    sums = {"salario": 0.0, "suma": 0.0, "resta": 0.0}
+    for line in lines:
+        sums[LINE_KINDS.get(line.kind, ("", "suma"))[1]] += line.amount or 0.0
+    return sums
+
+
+def recompute(entry) -> None:
+    """Gross = base salary + salary lines; CCSS on the gross (rounded to hundreds) when it applies;
+    net = gross − CCSS + viáticos − deducciones and adelantos."""
+    if entry.base_salary is None:
+        entry.base_salary = entry.gross_salary or 0.0
+    sums = line_sums(entry.lines)
+    gross = (entry.base_salary or 0.0) + sums["salario"]
+    charges = round(max(gross, 0.0) * CCSS_RATE / 100) * 100 if entry.apply_deductions else 0.0
+    entry.gross_salary = gross
+    entry.social_charges = charges
+    entry.net_salary = gross - charges + sums["suma"] - sums["resta"]

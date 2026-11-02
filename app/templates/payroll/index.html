@@ -67,6 +67,29 @@
 </div>
 {% endif %}
 
+{% if user.role == 'admin' and pending %}
+<!-- Adjustments waiting for the next payroll (Fase 4) -->
+<div class="mb-6 rounded-lg border border-amber-200 bg-amber-50 shadow-sm">
+    <div class="border-b border-amber-200 px-4 py-3 sm:px-6">
+        <h3 class="text-base font-semibold text-amber-900">Ajustes para la próxima planilla</h3>
+        <p class="text-xs text-amber-800">Entran solos en la próxima planilla que generes de cada persona.</p>
+    </div>
+    <ul class="divide-y divide-amber-100">
+        {% for a in pending %}
+        <li class="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm sm:px-6">
+            <div>
+                <span class="font-semibold text-gray-900">{{ a.user.full_name or a.user.username }}</span>
+                · {{ line_kinds[a.kind][0] if a.kind in line_kinds else a.kind }} <strong>{{ a.amount | crc }}</strong>
+                · {{ a.description }}
+                <span class="text-xs text-gray-500">{% if a.source_period_id %}(corrige la planilla #{{ a.source_period_id }}) {% endif %}por {{ a.created_by.full_name or a.created_by.username if a.created_by else '?' }}, {{ a.created_at | format_date }}</span>
+            </div>
+            <button type="button" onclick="deleteAdjustment({{ a.id }})" class="text-xs font-semibold text-red-600 hover:text-red-900">Borrar</button>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
 <!-- Recent Payroll Periods -->
 <div class="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
     <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
@@ -84,9 +107,12 @@
                         </a>
                     </p>
                     <p class="mt-1 flex text-xs leading-5 text-gray-500">
-                        Estado: <span
-                            class="ml-1 font-medium {{ 'text-green-600' if period.status == 'final' else 'text-yellow-600' }}">{{
-                            'Final' if period.status == 'final' else 'Borrador' }}</span>
+                        Estado:
+                        {% set paid = statuses.get(period.id) %}
+                        {% if period.status != 'final' %}<span class="ml-1 font-medium text-yellow-600">Borrador</span>
+                        {% elif paid and paid.complete %}<span class="ml-1 font-medium text-green-700">Pagada</span>
+                        {% else %}<span class="ml-1 font-medium text-blue-700">Aprobada</span>{% if paid %}<span class="ml-1">· {{ paid.paid }} de {{ paid.owed }} pagados</span>{% endif %}
+                        {% endif %}
                     </p>
                 </div>
             </div>
@@ -287,6 +313,15 @@
             alert("Error de conexión");
         }
     }
+    async function deleteAdjustment(id) {
+        if (!await tomatoConfirm("¿Borrar este ajuste? Ya no entrará en la próxima planilla.", {ok: 'Borrar ajuste', danger: true})) return;
+        const response = await fetch(`/payroll/adjustments/${id}/delete`, { method: 'POST' });
+        const result = await response.json();
+        if (!response.ok) return showGlobalToast("Error", result.detail || "No se pudo borrar", "error");
+        showGlobalToast("Éxito", result.message);
+        setTimeout(() => window.location.reload(), 700);
+    }
+
     async function submitGenerate(e) {
         e.preventDefault();
         const start = document.getElementById('start_date').value;
