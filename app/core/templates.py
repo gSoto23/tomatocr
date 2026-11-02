@@ -1,3 +1,5 @@
+from functools import lru_cache
+from pathlib import Path
 import re
 
 from markupsafe import Markup, escape
@@ -118,3 +120,21 @@ def linkify_filter(value) -> Markup:
 
 
 templates.env.filters["linkify"] = linkify_filter
+
+
+# Static files are cached for a week; a screenshot regenerated with the same name would keep
+# showing the old one. Its file date in the address (?v=...) makes browsers fetch the new one.
+STATIC_DIR = Path(__file__).resolve().parents[1] / "static"
+
+
+@lru_cache(maxsize=1024)
+def static_version(path: str) -> str:
+    """Modification time of app/static/<path> ("" if it is missing). Cached per process: a deploy
+    restarts it, and that is when files change."""
+    try:
+        return str(int((STATIC_DIR / path).stat().st_mtime))
+    except OSError:
+        return ""
+
+
+templates.env.globals["static_version"] = static_version

@@ -100,3 +100,15 @@ def test_chapters_have_no_formal_usted():
 
 def test_registry_has_no_duplicate_slugs():
     assert len(BY_SLUG) == len(CHAPTERS) and chapters_for("nadie") == []
+
+
+def test_screenshots_carry_their_file_version(login_as):
+    """A regenerated screenshot keeps its name; its file date in the address makes browsers
+    fetch it again instead of the week-long cached copy."""
+    from app.core.templates import STATIC_DIR, static_version
+    html = login_as("admin").get("/manual/planilla").text
+    sources = re.findall(r'src="/static/manual/([^"?]+)\?v=(\d+)"', html)
+    assert sources, "no versioned screenshots"
+    for path, version in sources:
+        assert version == str(int((STATIC_DIR / "manual" / path).stat().st_mtime))
+    assert static_version("manual/no-existe.webp") == ""

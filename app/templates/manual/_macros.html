@@ -10,13 +10,13 @@
 {% macro shot(src, alt, caption="", mobile=False) -%}
 <figure class="my-4" x-data="{ zoom: false }">
     <button type="button" @click="zoom = true" class="block w-full text-left" title="Ver en grande">
-        <img src="/static/manual/{{ src }}" alt="{{ alt }}" loading="lazy"
+        <img src="/static/manual/{{ src }}?v={{ static_version('manual/' ~ src) }}" alt="{{ alt }}" loading="lazy"
             class="{{ 'mx-auto max-w-[260px]' if mobile else 'w-full' }} rounded-lg border border-gray-200 shadow-sm">
     </button>
     {% if caption %}<figcaption class="mt-2 text-center text-xs text-gray-500">{{ caption }}</figcaption>{% endif %}
     <div x-show="zoom" x-cloak @click="zoom = false" @keydown.escape.window="zoom = false"
         class="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4">
-        <img src="/static/manual/{{ src }}" alt="{{ alt }}" class="max-h-full max-w-full rounded-lg">
+        <img src="/static/manual/{{ src }}?v={{ static_version('manual/' ~ src) }}" alt="{{ alt }}" class="max-h-full max-w-full rounded-lg">
     </div>
 </figure>
 {%- endmacro %}

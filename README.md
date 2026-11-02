@@ -382,6 +382,7 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
 - Capítulos en `app/templates/manual/`, registro y permisos en `app/utils/manual.py`.
 - Las capturas salen de datos ficticios locales, nunca de producción:
   `scripts/manual/README.md` explica cómo regenerarlas.
+- Las capturas llevan `?v=<fecha del archivo>` para que una regenerada se vea al instante.
 - Lo que cuesta explicar queda en `docs/PUNTOS_DIFICILES_UX.md`, para el trabajo de UI/UX.
 
 ### 7. Configuración Jerárquica & Auth

@@ -61,3 +61,6 @@ captura que no existe.
 
 Las fotos de ejemplo de la bitácora se generan en `app/static/uploads/manual-demo/`,
 que está fuera de git.
+
+Las capturas se sirven con `?v=<fecha del archivo>` (`static_version` en `app/core/templates.py`):
+al regenerarlas con el mismo nombre, el navegador descarga la nueva en vez de usar la guardada.
