@@ -14,6 +14,7 @@ from app.db.models.payroll import PayrollEntry, PayrollPeriod
 from app.routers import deps
 from app.core.roles import ADMIN, CLIENT, FINANCE_ROLES, OPERATIONS_ROLES
 from app.utils.activity import log_activity, compute_diff
+from app.utils.comisiones import KINDS as COMMISSION_KINDS, create_for_paid_invoice
 
 router = APIRouter(
     prefix="/finance",
@@ -576,8 +577,18 @@ def pay_invoice(
         "monto_abonado": payment.amount,
         "fecha_pago": str(payment.payment_date)
     }
-    
+
+    # PAGADA now (not before): the seller's commissions are born with the payment (Fase 5).
+    commissions = []
+    if invoice.status == InvoiceStatus.PAID and old_data["estado_factura"] != InvoiceStatus.PAID.value:
+        commissions = create_for_paid_invoice(db, invoice, user, paid_on)
+
     db.commit()
+    for commission in commissions:
+        log_activity(db, user, "Comisión", "COMMISSION", commission.id,
+                     f"{COMMISSION_KINDS[commission.kind]}: ₡{commission.amount:,.2f} para "
+                     f"{commission.user.full_name or commission.user.username} por la factura "
+                     f"#{invoice.invoice_number} ({commission.client_name})")
     
     diffs = compute_diff(old_data, new_data)
     msg = f"Pago {'Parcial' if payment_type == 'partial' else 'Total'} a Factura #{invoice.invoice_number}"

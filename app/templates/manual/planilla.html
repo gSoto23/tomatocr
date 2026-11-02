@@ -118,6 +118,30 @@
 {% endif %}
 {% endcall %}
 
+{% call m.section("comisiones", "Comisiones") %}
+<p>Los vendedores (asesores de Ventas y supervisores que venden) ganan comisión por lo que se cobra:</p>
+<ul class="list-disc space-y-1 pl-5">
+    <li><strong>Por factura cobrada</strong>: un porcentaje del monto <strong>sin IVA</strong>, cuando la factura queda
+        <em>Pagada</em> (un pago parcial no cuenta hasta que se completa).</li>
+    <li><strong>Por cliente nuevo</strong>: un monto fijo, una sola vez, cuando se cobra la primera factura de una
+        oportunidad de tipo <em>Nuevo</em>.</li>
+    <li>La gana el <strong>vendedor de la oportunidad</strong> que generó el proyecto (si el proyecto no tiene oportunidad,
+        el dueño de la cuenta).</li>
+</ul>
+<p>Cada comisión entra <strong>sola</strong> en la próxima planilla del vendedor como línea <em>Comisión</em> (suma al
+    bruto: lleva CCSS y cuenta para el aguinaldo).</p>
+{% if user.role == 'admin' %}
+{{ m.steps([
+    (None, "Planilla → <strong>Comisiones</strong>: las <em>Reglas generales</em> (% por factura y monto por cliente nuevo; en 0 no se genera) y quién gana cuánto. Cada persona puede tener las suyas en Empleados → <em>Comisiones propias</em>. Un administrador no gana comisiones salvo con las suyas."),
+    (None, "La lista dice de cada comisión: fecha de cobro, vendedor, cliente, factura, base sin IVA, monto y estado: <em>Para la próxima planilla</em>, <em>En planilla (borrador)</em> o <em>Pagada</em> con el número de planilla."),
+    (None, "<strong>Anular</strong> (con motivo), por ejemplo si se anuló la factura o se devolvió el pago: si todavía no se pagó, sale de la planilla; si ya se pagó, queda <em>Revertida</em> y se descuenta en la próxima planilla del vendedor."),
+]) }}
+{% elif user.sells %}
+<p>En Planilla → <strong>Mis comisiones</strong> ves cada una: de qué factura y cliente, cuándo se cobró y en qué
+    planilla se paga.</p>
+{% endif %}
+{% endcall %}
+
 {% call m.section("pagos", "Historial de pagos") %}
 {% if user.role == 'admin' %}
 <p>Registro de lo que se le pagó a cada persona.</p>

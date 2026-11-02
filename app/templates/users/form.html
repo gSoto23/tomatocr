@@ -167,6 +167,23 @@
                         <p class="mt-1 text-xs text-gray-500">Monto fijo que la planilla agrega cada quincena (asesores y quienes venden). No lleva CCSS. Vacío: sin viáticos.</p>
                     </div>
 
+                    <div id="commission_box" class="sm:col-span-2 rounded-md border border-gray-200 p-3">
+                        <p class="text-sm font-medium text-gray-900">Comisiones propias</p>
+                        <p class="text-xs text-gray-500">Vacío: usa las reglas generales de Planilla → Comisiones (un administrador no gana comisiones sin las suyas). 0: sin esa comisión.</p>
+                        <div class="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <label class="text-sm text-gray-700">% por factura cobrada (sin IVA)
+                                <input type="number" step="0.01" min="0" max="100" name="commission_percent" id="commission_percent"
+                                    value="{{ edit_user.commission_percent if edit_user and edit_user.commission_percent is not none else '' }}"
+                                    class="mt-1 block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm">
+                            </label>
+                            <label class="text-sm text-gray-700">Por cliente nuevo (₡)
+                                <input type="number" step="0.01" min="0" name="commission_new_client" id="commission_new_client"
+                                    value="{{ edit_user.commission_new_client if edit_user and edit_user.commission_new_client is not none else '' }}"
+                                    class="mt-1 block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm">
+                            </label>
+                        </div>
+                    </div>
+
                     <!-- Hourly Rate -->
                     <div>
                         <label for="hourly_rate" class="block text-sm font-medium leading-6 text-gray-900">Tarifa por
@@ -251,6 +268,7 @@
                         (role === 'ventas' ? 'Asesor: salario mensual. ' : '') + PAY_HINTS[pay.value];
                     document.getElementById('daily_rate_box').hidden = pay.value !== 'dia';
                     document.getElementById('employment_type_box').hidden = !['worker', 'supervisor'].includes(role);
+                    document.getElementById('commission_box').hidden = !['ventas', 'supervisor', 'admin'].includes(role);
                 }
                 syncPay();
 

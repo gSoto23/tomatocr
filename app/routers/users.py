@@ -70,6 +70,18 @@ def store_documents(db: Session, person: User, documents: List[tuple]):
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
+def own_rule(value: Optional[str], top: Optional[float] = None) -> Optional[float]:
+    """A person's own commission rule: empty means "use the general one" (None), 0 means none."""
+    try:
+        number = float(value) if value not in (None, "") else None
+    except ValueError:
+        return None
+    if number is None:
+        return None
+    number = max(0.0, number)
+    return min(number, top) if top is not None else number
+
+
 def pay_fields(role: str, pay_type: str, employment_type: str) -> tuple:
     """Ventas (asesores) always earn a monthly salary; an unknown value falls back to the default."""
     if role == VENTAS:
@@ -159,6 +171,8 @@ def create_user(
     daily_rate: Optional[float] = Form(None),
     employment_type: str = Form("fijo"),
     viatico_quincenal: Optional[float] = Form(None),
+    commission_percent: Optional[str] = Form(None),
+    commission_new_client: Optional[str] = Form(None),
     vacation_days_taken: Optional[float] = Form(None),
     is_active: bool = Form(False),
     also_sells: bool = Form(False),
@@ -214,6 +228,8 @@ def create_user(
         daily_rate=max(0.0, daily_rate or 0.0),
         employment_type=employment_type,
         viatico_quincenal=max(0.0, viatico_quincenal or 0.0),
+        commission_percent=own_rule(commission_percent, 100),
+        commission_new_client=own_rule(commission_new_client),
         vacation_days_taken=max(0.0, vacation_days_taken or 0.0),
         is_active=is_active,
         also_sells=also_sells and role == SUPERVISOR,
@@ -260,6 +276,8 @@ def update_user(
     daily_rate: Optional[float] = Form(None),
     employment_type: str = Form("fijo"),
     viatico_quincenal: Optional[float] = Form(None),
+    commission_percent: Optional[str] = Form(None),
+    commission_new_client: Optional[str] = Form(None),
     vacation_days_taken: Optional[float] = Form(None),
     is_active: bool = Form(False),
     also_sells: bool = Form(False),
@@ -318,6 +336,8 @@ def update_user(
         edit_user.daily_rate = max(0.0, daily_rate or 0.0)
         edit_user.employment_type = employment_type
         edit_user.viatico_quincenal = max(0.0, viatico_quincenal or 0.0)
+        edit_user.commission_percent = own_rule(commission_percent, 100)
+        edit_user.commission_new_client = own_rule(commission_new_client)
         if vacation_days_taken is not None:
             edit_user.vacation_days_taken = max(0.0, vacation_days_taken)
         edit_user.is_active = is_active

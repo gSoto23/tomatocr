@@ -17,7 +17,7 @@ lo que ya existe y la ordena en fases; cada fase es su propio PR.
 
 1. Tipos de empleado (asesor, fijo, ocasional) y formas de pago (hora, día, mensual). **Hecho en
    la Fase 2.**
-2. Comisiones (cliente nuevo y factura cobrada), con reversión y trazabilidad.
+2. Comisiones (cliente nuevo y factura cobrada), con reversión y trazabilidad. **Hecho en la Fase 5.**
 3. Ausencias, incapacidades y feriados en el calendario y en la planilla.
 4. Asistencia real (llegó tarde, no llegó). **Hecho en la Fase 1.**
 5. Vistas semana y día; colores por tipo. **Hecho (Fases 1 y 2).**
@@ -68,14 +68,16 @@ lo que ya existe y la ordena en fases; cada fase es su propio PR.
 - Borrador → aprobada → pagada (pagada se marca sola cuando todos tienen su pago).
 - Un cambio sobre una planilla aprobada entra como ajuste en la siguiente, con registro.
 
-### Fase 5. Comisiones
+### Fase 5. Comisiones (hecha, 02/11/2026)
 - Reglas configurables (globales o por asesor): monto fijo por cliente nuevo, % sobre factura
   cobrada, o ambos.
 - La comisión por cliente nuevo se genera **al cobrar su primera factura**, no al ganar la
   oportunidad.
 - Registro por comisión: cliente, factura, fecha de pago, monto, estado y planilla donde se pagó.
-- Se genera al registrar el pago de la factura (`/invoice/{id}/pay`). Si se borra el pago o la
-  factura: se anula si no se pagó; si ya se pagó, línea negativa en la siguiente planilla.
+- Se genera al registrar el pago que deja la factura PAGADA (`/invoice/{id}/pay`), sobre el monto
+  sin IVA. La gana el vendedor de la oportunidad (o el dueño de la cuenta); los admins solo con
+  reglas propias. El sistema no deja borrar pagos ni facturas pagadas, así que la reversión es
+  **Anular** con motivo: si no se pagó, sale; si ya se pagó, ajuste negativo en la siguiente planilla.
 
 ### Fase 6. Comprobantes y exportación
 - Comprobante por empleado imprimible / PDF (impresión del navegador).
@@ -92,6 +94,9 @@ lo que ya existe y la ordena en fases; cada fase es su propio PR.
 - Los supervisores que venden solo ganan comisiones y viáticos por vender.
 - Viáticos: monto fijo por quincena.
 - Comisión por cliente nuevo: al cobrar la primera factura.
+- Comisión por factura: sobre el monto **sin IVA**; la gana el vendedor de la oportunidad; los
+  administradores no ganan comisión salvo con reglas propias; los montos generales los carga el
+  admin (empiezan en 0). (02/11/2026)
 
 ## Decisiones pendientes
 
