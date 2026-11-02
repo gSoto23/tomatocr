@@ -25,8 +25,17 @@
     <li>Registra el <strong>pago</strong> de cada persona desde la misma quincena; cuando todos tienen el suyo, pasa sola a
         <strong>Pagada</strong>.</li>
 </ol>
-{% if user.role == 'admin' %}<p>La pantalla <strong>Quincenas</strong> muestra arriba esos tres pasos con lo que falta en cada uno: días por
-    confirmar, quincenas en borrador y quincenas con pagos pendientes. Tocá el que corresponda.</p>{% endif %}
+{% if user.role == 'admin' %}
+<p>La pantalla <strong>Quincenas</strong> muestra arriba esos pasos con lo que falta en cada uno. Tocá el que corresponda.</p>
+{{ m.shot("planilla/periodos.webp", "Pantalla Quincenas", "Planilla → Quincenas: qué sigue y la lista de quincenas.") }}
+{{ m.steps([
+    (1, "<strong>Horas</strong>: cuántos días hasta hoy faltan por confirmar. Lleva a <em>Aprobar horas</em>."),
+    (2, "<strong>Revisar y aprobar</strong>: las quincenas en borrador. Tocá una para abrirla."),
+    (3, "<strong>Pagar</strong>: las quincenas aprobadas con pagos pendientes, y cuántas personas faltan."),
+    (4, "Todas las quincenas, la más nueva arriba, con su estado, cuántas personas y el <strong>neto a pagar</strong>."),
+    (5, "<strong>Generar quincena</strong> crea la siguiente (ver abajo)."),
+]) }}
+{% endif %}
 <p>Estados: <strong>Borrador</strong> (se puede revisar y cambiar) → <strong>Aprobada</strong> (ya no se cambia; dice
     cuántos van pagados) → <strong>Pagada</strong>.</p>
 {% call m.warn("Confirmá las horas antes de generar") %}
@@ -37,8 +46,11 @@
 
 {% call m.section("aprobar", "Confirmar las horas") %}
 {% if user.role in ['admin', 'supervisor'] %}
+<p>Para un solo día, lo más rápido es el <strong>Calendario</strong>: tocá el proyecto en ese día, corregí las horas y
+    tocá <em>Confirmar horas del día</em>. Para revisar varios días juntos: Planilla → <strong>Aprobar horas</strong> y elegí
+    el proyecto (cada tarjeta dice cuántos días tiene por confirmar; esos van primero).</p>
+{{ m.shot("planilla/aprobar.webp", "Aprobar horas de un proyecto", "Aprobar horas, con un proyecto abierto.") }}
 {{ m.steps([
-    (None, "Para un solo día, lo más rápido es el <strong>Calendario</strong>: tocá el proyecto en ese día, corregí las horas y tocá <em>Confirmar horas del día</em>. Para revisar varios días juntos: Planilla → <strong>Aprobar horas</strong> y elegí el proyecto (cada tarjeta dice cuántos días tiene por confirmar; esos van primero)."),
     (1, "Se abre con <strong>esta quincena</strong> hasta hoy. Cambiá las fechas, o tocá <em>Hoy</em>, <em>Esta quincena</em> o <em>Quincena anterior</em>; <em>Refrescar</em> vuelve a cargar."),
     (2, "Corregí las <strong>Horas</strong> y las horas <strong>Extra (1.5x)</strong> de cada persona si no fueron las 8 de siempre."),
     (3, "Tocá <strong>Confirmar pendientes</strong> y aceptá el aviso. Las filas pasan a <em>Confirmado</em>."),
@@ -54,12 +66,25 @@
 
 {% call m.section("generar", "Generar, revisar y aprobar la quincena") %}
 {% if user.role == 'admin' %}
+<p><strong>Generar quincena</strong> (en Quincenas): las fechas vienen puestas con la quincena actual; <em>Quincena
+    anterior</em> cambia a la de antes. Tocá <em>Generar</em>: se abre en <em>Borrador</em> para revisarla. Si quedan días sin
+    confirmar, la ventana te avisa.</p>
+{{ m.shot("planilla/detalle.webp", "Detalle de una quincena en borrador", "Una quincena en borrador.") }}
 {{ m.steps([
-    (1, "<strong>Generar quincena</strong>: las fechas vienen puestas con la quincena actual; <em>Quincena anterior</em> cambia a la de antes. Tocá <em>Generar</em>: se abre en <em>Borrador</em> para revisarla. Si quedan días sin confirmar, la ventana te avisa."),
-    (2, "Arriba: <strong>Neto a pagar</strong>, el bruto, la CCSS de los trabajadores y el <strong>costo para la empresa</strong> (<em>Ver desglose</em>: cargas patronales 26,67 %, previsiones 18 % y viáticos)."),
-    (3, "Una fila por persona: salario, bonos y ajustes, CCSS, viáticos y rebajas, y <strong>neto</strong>. En el celular, una tarjeta por persona."),
-    (4, "<strong>Tocá a una persona</strong> para abrir su panel: el cálculo paso a paso, <em>Rebajar CCSS</em>, sus bonos, viáticos y rebajas (agregar o quitar), los días trabajados y su comprobante."),
-    (5, "<strong>Aprobar quincena</strong> la cierra: ya no se cambia. Solo las quincenas aprobadas cuentan como costo de los proyectos en Presupuestos."),
+    (1, "Arriba: <strong>Neto a pagar</strong>, el bruto, la CCSS de los trabajadores y el <strong>costo para la empresa</strong> (<em>Ver desglose</em>: cargas patronales 26,67 %, previsiones 18 % y viáticos)."),
+    (2, "Una fila por persona, con su forma de pago: salario, bonos y ajustes, CCSS, viáticos y rebajas, y <strong>neto</strong>. En el celular, una tarjeta por persona."),
+    (3, "<strong>Tocá a una persona</strong> para abrir su panel (abajo)."),
+    (4, "<strong>Aprobar quincena</strong> la cierra: ya no se cambia. Solo las quincenas aprobadas cuentan como costo de los proyectos en Presupuestos."),
+    (5, "<em>Listado de pago</em>, <em>Comprobantes</em> y <em>Descargar Excel</em>, para pagar y archivar."),
+]) }}
+<p><strong>El panel de una persona</strong>:</p>
+{{ m.shot("planilla/panel.webp", "Panel de una persona en la quincena", "El panel de una persona, en una quincena en borrador.") }}
+{{ m.steps([
+    (1, "<strong>Cálculo</strong> paso a paso: salario (horas, días o media quincena), extras, bonos, bruto, CCSS, viáticos y rebajas, y el neto."),
+    (2, "<strong>Rebajar CCSS</strong>: desmarcalo si a esa persona no le corresponde (solo en borrador)."),
+    (3, "Sus <strong>bonos, viáticos y rebajas</strong> en esta quincena; <em>Quitar</em> saca una."),
+    (4, "<strong>Agregar a esta quincena</strong>: tipo, monto y detalle. Los totales se recalculan solos."),
+    (5, "<em>Días trabajados</em> (fecha, proyecto, horas y extras) y <em>Ver comprobante</em>. En una quincena aprobada, aquí también se registra su pago."),
 ]) }}
 <p><strong>Para pagar y archivar</strong>: <em>Listado de pago</em> (quién, cómo y cuánto, para imprimir o hacer las
     transferencias), <em>Comprobantes</em> (uno por persona, una página cada uno, para imprimir o guardar en PDF) y
@@ -92,7 +117,9 @@
     borrador todavía puede cambiar, por eso aparece cuando se aprueba.</p>
 <p>Al abrir una ves tu <strong>comprobante</strong>: salario, extras, bonos, CCSS, viáticos y rebajas, el
     <strong>neto a pagar</strong>, cómo se te paga y los días trabajados. <em>Imprimir o guardar en PDF</em> lo abre para
-    imprimir. Arriba ves tus <strong>vacaciones disponibles</strong>: 1 día por mes trabajado menos los que ya tomaste.</p>
+    imprimir. En <em>Mis quincenas</em> ves tus <strong>vacaciones disponibles</strong>: 1 día por mes trabajado menos los que
+    ya tomaste.</p>
+{{ m.shot("planilla/trabajador.webp", "Comprobante de una quincena en el celular", "Una quincena aprobada, vista por el trabajador en el celular.", mobile=True) }}
 {% endif %}
 {% endcall %}
 
@@ -133,9 +160,11 @@
 <p>Cada comisión entra <strong>sola</strong> en la próxima planilla del vendedor como línea <em>Comisión</em> (suma al
     bruto: lleva CCSS y cuenta para el aguinaldo).</p>
 {% if user.role == 'admin' %}
+{{ m.shot("planilla/comisiones.webp", "Pantalla Comisiones", "Planilla → Comisiones.") }}
 {{ m.steps([
-    (None, "Planilla → <strong>Comisiones</strong>: las <em>Reglas generales</em> (% por factura y monto por cliente nuevo; en 0 no se genera) y quién gana cuánto. Cada persona puede tener las suyas en Empleados → <em>Comisiones propias</em>. Un administrador no gana comisiones salvo con las suyas."),
-    (None, "La lista dice de cada comisión: fecha de cobro, vendedor, cliente, factura, base sin IVA, monto y estado: <em>Para la próxima planilla</em>, <em>En planilla (borrador)</em> o <em>Pagada</em> con el número de planilla."),
+    (1, "Las <strong>Reglas generales</strong>: % por factura y monto por cliente nuevo; en 0 no se genera."),
+    (2, "<strong>Quién gana comisiones</strong> y cuánto. Cada persona puede tener las suyas en Empleados → <em>Comisiones propias</em>. Un administrador no gana comisiones salvo con las suyas."),
+    (3, "La lista dice de cada comisión: fecha de cobro, vendedor, cliente, factura, base sin IVA, monto y estado: <em>Para la próxima planilla</em>, <em>En planilla (borrador)</em> o <em>Pagada</em> con el número de planilla."),
     (None, "<strong>Anular</strong> (con motivo), por ejemplo si se anuló la factura o se devolvió el pago: si todavía no se pagó, sale de la planilla; si ya se pagó, queda <em>Revertida</em> y se descuenta en la próxima planilla del vendedor."),
 ]) }}
 {% elif user.sells %}

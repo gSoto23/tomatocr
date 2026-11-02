@@ -6,6 +6,16 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-11-02
 
+### Manual de Planilla con capturas nuevas (esta rama)
+- El capítulo **Planilla** del manual vuelve a tener capturas, del diseño actual: Quincenas con
+  los pasos de *Qué sigue*, el detalle de una quincena en borrador, el panel de una persona,
+  Aprobar horas, el comprobante del trabajador en el celular y Comisiones, con pasos numerados
+  que coinciden con las marcas.
+- `scripts/manual/datos_demo.py` arma la planilla de ejemplo con el código de la app: personas
+  por hora, por día y mensuales (un asesor con viáticos y una comisión de factura cobrada), una
+  quincena pagada, una aprobada con pagos a medias y un borrador con bono y adelanto.
+- Despliegue: nada especial.
+
 ### Quincenas pagadas fuera del sistema (esta rama)
 - En una quincena aprobada, **Marcar como pagada fuera del sistema**: pasa a *Pagada* sin
   registrar los pagos de cada persona (para las que se pagaron por fuera, como las de enero y

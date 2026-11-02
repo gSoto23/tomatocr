@@ -73,8 +73,7 @@ def fill():
     from app.db.models.crm import (Account, Contact, CrmActivity, CrmAssignment, CrmSetting, Opportunity,
                                    ProjectContactRole, stage_index)
     from app.db.models.finance import BudgetLine, Invoice, InvoiceStatus, Payment, ProjectBudget, ProjectCost
-    from app.db.models.payment import PayrollPayment
-    from app.db.models.payroll import PayrollEntry, PayrollPeriod
+    from app.db.models.payroll import PayrollPeriod
     from app.db.models.reforestation import ReforestationProject, ReforestationTree, TreeCheck
     from app.db.models.log import DailyLog, Photo
     from app.db.models.log_task import DailyLogTask
@@ -260,12 +259,24 @@ def fill():
     db.add(ScheduleTask(schedule_id=schedule.id, description="Corta de zacate"))
 
     # --- Planilla ---------------------------------------------------------------------------
+    # One person per way of paying: Andrés by the hour, María by the day, Carlos and the asesor
+    # Diego monthly (Diego with fixed viáticos and the commissions of the hotel).
+    from app.routers import payroll as payroll_api
+    from app.utils.comisiones import create_for_paid_invoice, set_general_rules
+    from app.utils.planilla import quincena_of
     worker, maria, supervisor = users["worker"], extra_worker, users["supervisor"]
-    for person, start, salary, method, account_no in (
-            (worker, date(2025, 3, 3), 441600, "Sinpe", "8800-7001"), (maria, date(2025, 11, 3), 441600, "Efectivo", None),
-            (supervisor, date(2024, 8, 1), 576000, "Transferencia", "CR05015201001026284066")):
-        person.start_date, person.monthly_salary, person.hourly_rate = start, salary, round(salary / 192 / 100) * 100
-        person.payment_method, person.account_number, person.phone = method, account_no, "8800-9000"
+    for person, start, pay_type, rate, method, account_no in (
+            (worker, date(2025, 3, 3), "hora", 2300, "Sinpe", "8800-7001"),
+            (maria, date(2025, 11, 3), "dia", 18400, "Efectivo", None),
+            (supervisor, date(2024, 8, 1), "mensual", 576000, "Transferencia", "CR05015201001026284066"),
+            (ventas, date(2025, 6, 2), "mensual", 650000, "Transferencia", "CR21015202001026284077")):
+        person.start_date, person.pay_type, person.phone = start, pay_type, "8800-9000"
+        person.payment_method, person.account_number = method, account_no
+        person.hourly_rate = rate if pay_type == "hora" else 0
+        person.daily_rate = rate if pay_type == "dia" else 0
+        person.monthly_salary = rate if pay_type == "mensual" else 0
+    ventas.viatico_quincenal = 25000
+    set_general_rules(db, 3, 20000)
     p3.users = [users["supervisor"], worker]
 
     def weekdays(first, last):
@@ -275,38 +286,68 @@ def fill():
                 yield day
             day += timedelta(days=1)
 
-    confirmed = []
-    for day in weekdays(today - timedelta(days=28), today - timedelta(days=1)):
+    # Three quincenas before this one: paid, approved with some payments, and a draft.
+    draft_q = quincena_of(quincena_of(today)[0] - timedelta(days=1))
+    approved_q = quincena_of(draft_q[0] - timedelta(days=1))
+    paid_q = quincena_of(approved_q[0] - timedelta(days=1))
+    for day in weekdays(paid_q[0], draft_q[1]):
         for person, project, extra in ((worker, p1, 1.0 if day.weekday() == 4 else 0.0), (maria, p2, 0.0),
                                        (supervisor, p1, 0.0)):
-            schedule = ProjectSchedule(project_id=project.id, user_id=person.id, date=day, hours_worked=8,
-                                       overtime_hours=extra, is_confirmed=True)
-            db.add(schedule)
-            confirmed.append(schedule)
-    db.flush()
+            db.add(ProjectSchedule(project_id=project.id, user_id=person.id, date=day, hours_worked=8,
+                                   overtime_hours=extra, is_confirmed=True))
+    # Today's days are still to confirm (Aprobar horas).
+    db.add(ProjectSchedule(project_id=p1.id, user_id=supervisor.id, date=today, hours_worked=8))
 
-    def payroll(first, last, status):
-        period = PayrollPeriod(start_date=first, end_date=last, status=status)
-        db.add(period)
-        db.flush()
-        for person in (worker, maria, supervisor):
-            rows = [s for s in confirmed if s.user_id == person.id and first <= s.date <= last]
-            hours, extra = sum(s.hours_worked for s in rows), sum(s.overtime_hours for s in rows)
-            gross = round((hours * person.hourly_rate + extra * person.hourly_rate * 1.5) / 100) * 100
-            charges = round(gross * 0.0917 / 100) * 100
-            db.add(PayrollEntry(payroll_period_id=period.id, user_id=person.id, total_hours=hours, overtime_hours=extra,
-                                gross_salary=gross, social_charges=charges, net_salary=gross - charges,
-                                apply_deductions=True,
-                                details=[{"date": s.date.isoformat(), "hours": s.hours_worked,
-                                          "overtime": s.overtime_hours,
-                                          "project": p1.name if s.project_id == p1.id else p2.name} for s in rows]))
-        return period
-    payroll(today - timedelta(days=28), today - timedelta(days=15), "final")
-    payroll(today - timedelta(days=14), today - timedelta(days=1), "draft")
-    db.add_all([PayrollPayment(user_id=worker.id, amount=172400, hours_paid=80, overtime_hours=2,
-                               date=today - timedelta(days=13), notes="Quincena por Sinpe", created_by_id=admin.id),
-                PayrollPayment(user_id=maria.id, amount=167000, hours_paid=80, date=today - timedelta(days=13),
-                               notes="Quincena en efectivo", created_by_id=admin.id)])
+    # The hotel's garden: its paid invoice is the asesor's commission in the draft.
+    p5 = Project(name="Jardines Hotel Vista al Volcán", client_display_name=hotel.name, account_id=hotel.id,
+                 province="Alajuela", address="La Garita", is_active=True)
+    db.add(p5)
+    db.flush()
+    hotel_budget = ProjectBudget(project_id=p5.id, start_date=paid_q[0], end_date=paid_q[0] + timedelta(days=365))
+    db.add(hotel_budget)
+    db.flush()
+    hotel_line = BudgetLine(budget_id=hotel_budget.id, name="Mantenimiento mensual de jardines", subtotal=850000,
+                            tax_percentage=13)
+    db.add(hotel_line)
+    db.flush()
+    hotel_paid = draft_q[0] + timedelta(days=3)
+    hotel_invoice = Invoice(budget_id=hotel_budget.id, budget_line_id=hotel_line.id, invoice_number="FE-00139",
+                            amount=960500, issue_date=approved_q[0], due_date=approved_q[0] + timedelta(days=30),
+                            status=InvoiceStatus.PAID)
+    db.add(hotel_invoice)
+    db.flush()
+    db.add(Payment(invoice_id=hotel_invoice.id, payment_date=hotel_paid, amount=960500, deposit_number="TRF-90412"))
+    db.commit()
+
+    # The payrolls go through the app's own code, as the admin would do them.
+    def generate(q):
+        result = payroll_api.generate_payroll(start_date=q[0].isoformat(), end_date=q[1].isoformat(), db=db,
+                                              user=admin)
+        return db.get(PayrollPeriod, result["period_id"])
+
+    def entry_of(period, person):
+        return next(e for e in period.entries if e.user_id == person.id)
+
+    def pay(period, person, day, reference=""):
+        payroll_api.pay_entry(entry_of(period, person).id, payroll_api.EntryPaymentIn(
+            date=day, method=person.payment_method, reference=reference), db=db, user=admin)
+
+    paid = generate(paid_q)
+    payroll_api.confirm_payroll(period_id=paid.id, db=db, user=admin)
+    for person, ref in ((worker, "SINPE 55102"), (maria, ""), (supervisor, "TRF-77310"), (ventas, "TRF-77311")):
+        pay(paid, person, paid_q[1] + timedelta(days=1), ref)
+    approved = generate(approved_q)
+    payroll_api.confirm_payroll(period_id=approved.id, db=db, user=admin)
+    for person, ref in ((worker, "SINPE 58233"), (supervisor, "TRF-78120")):
+        pay(approved, person, approved_q[1] + timedelta(days=1), ref)
+    create_for_paid_invoice(db, hotel_invoice, admin, hotel_paid)
+    db.commit()
+    draft = generate(draft_q)
+    for person, kind, description, amount in (
+            (worker, "bono", "Bono por cumplir todas las visitas", 15000),
+            (worker, "adelanto", f"Adelanto del {draft_q[0] + timedelta(days=6):%d/%m}", 20000)):
+        payroll_api.add_line(entry_of(draft, person).id, payroll_api.LineIn(
+            kind=kind, description=description, amount=amount), db=db, user=admin)
     db.add_all([ProjectCost(project_id=p1.id, date=today - timedelta(days=20), amount=48500,
                             description="Abono orgánico y sustrato"),
                 ProjectCost(project_id=p1.id, date=today - timedelta(days=9), amount=22000,
@@ -342,8 +383,7 @@ def fill():
             ("LOGIN", "SISTEMA", "Inicio de sesión", worker), ("CREATE", "REPORT", "Reporte del proyecto Mantenimiento Condominio Los Robles", worker),
             ("EMAIL", "REPORT", "Reporte enviado a sofia.castro@example.com, jorge.arias@example.com", admin),
             ("PAGO", "Factura", "Pago registrado para la factura FE-00121", admin),
-            ("Aprobar Lote", "SCHEDULE", "10 registros confirmados en Mantenimiento Condominio Los Robles", supervisor),
-            ("Generar Planilla", "PAYROLL", "Periodo del último mes", admin)):
+            ("Aprobar Lote", "SCHEDULE", "10 registros confirmados en Mantenimiento Condominio Los Robles", supervisor)):
         db.add(ActivityLog(user_id=who.id, action=action, entity_type=entity, details=details))
 
     # --- Cotizaciones ----------------------------------------------------------------------

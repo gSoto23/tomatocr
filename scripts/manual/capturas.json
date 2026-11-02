@@ -899,58 +899,106 @@
    "name": "planilla/periodos",
    "path": "/payroll",
    "as": "admin",
+   "height": 900,
    "markers": [
     {
      "n": 1,
-     "text": "Generar Planilla",
-     "tags": "button"
+     "selector": "section[aria-label=\"Qué sigue\"] > :nth-child(1)"
     },
     {
      "n": 2,
+     "selector": "section[aria-label=\"Qué sigue\"] > :nth-child(2)"
+    },
+    {
+     "n": 3,
+     "selector": "section[aria-label=\"Qué sigue\"] > :nth-child(3)"
+    },
+    {
+     "n": 4,
      "selector": "#payroll-periods-list"
     },
     {
-     "n": 3,
-     "text": "Historial de Pagos",
+     "n": 5,
+     "text": "Generar quincena",
      "exact": false,
-     "tags": "h3,h4,p,span,a"
-    },
-    {
-     "n": 3,
-     "text": "Liquidaciones",
-     "exact": false,
-     "tags": "h3,h4,p,span,a"
+     "tags": "button"
     }
    ]
   },
   {
    "name": "planilla/detalle",
-   "path": "/payroll/detail/2",
+   "path": "/payroll/detail/3",
    "as": "admin",
-   "width": 1700,
-   "wait": 1500,
+   "height": 900,
    "markers": [
     {
      "n": 1,
-     "text": "Total Salarios (Neto)",
-     "exact": false,
-     "tags": "dt,p,span,div,h3"
+     "selector": "main dl"
     },
     {
      "n": 2,
-     "selector": "#payroll-entries-body"
+     "selector": "table tbody"
     },
     {
      "n": 3,
-     "text": "Imprimir Reporte",
-     "exact": false,
-     "tags": "a,button"
+     "text": "Andrés Solano",
+     "tags": "button"
     },
     {
      "n": 4,
-     "text": "Finalizar Planilla",
-     "exact": false,
-     "tags": "a,button"
+     "text": "Aprobar quincena",
+     "tags": "button"
+    },
+    {
+     "n": 5,
+     "text": "Listado de pago",
+     "tags": "a"
+    },
+    {
+     "n": 5,
+     "text": "Comprobantes",
+     "tags": "a"
+    },
+    {
+     "n": 5,
+     "text": "Descargar Excel",
+     "tags": "a"
+    }
+   ]
+  },
+  {
+   "name": "planilla/panel",
+   "path": "/payroll/detail/3",
+   "as": "admin",
+   "height": 900,
+   "before": [
+    "[...document.querySelectorAll('tbody tr')].find(t => t.textContent.includes('Andrés')).click(); await new Promise(r => setTimeout(r, 500))"
+   ],
+   "markers": [
+    {
+     "n": 1,
+     "selector": "#person-calc"
+    },
+    {
+     "n": 2,
+     "selector": "#person-ccss"
+    },
+    {
+     "n": 3,
+     "selector": "#person-lines"
+    },
+    {
+     "n": 4,
+     "selector": "#line-form"
+    },
+    {
+     "n": 5,
+     "text": "Días trabajados",
+     "tags": "summary"
+    },
+    {
+     "n": 5,
+     "selector": "#person-payslip"
     }
    ]
   },
@@ -972,6 +1020,11 @@
      "selector": "#end_date"
     },
     {
+     "n": 1,
+     "text": "Esta quincena",
+     "tags": "button"
+    },
+    {
      "n": 2,
      "selector": "input[id^=\"hours-\"]"
     },
@@ -982,15 +1035,39 @@
     {
      "n": 3,
      "text": "Confirmar pendientes",
+     "exact": false,
      "tags": "button"
     }
-   ]
+   ],
+   "width": 1500
   },
   {
    "name": "planilla/trabajador",
-   "path": "/payroll",
+   "path": "/payroll/detail/2",
    "as": "worker",
    "viewport": "mobile"
+  },
+  {
+   "name": "planilla/comisiones",
+   "path": "/payroll/commissions",
+   "as": "admin",
+   "height": 900,
+   "markers": [
+    {
+     "n": 1,
+     "text": "Reglas generales",
+     "tags": "h2"
+    },
+    {
+     "n": 2,
+     "text": "Quién gana comisiones",
+     "tags": "h2"
+    },
+    {
+     "n": 3,
+     "selector": "table"
+    }
+   ]
   },
   {
    "name": "calendario/mes",
