@@ -6,6 +6,17 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-11-02
 
+### Comisiones por tramo y filtros en Planilla (esta rama)
+- Arreglo: en **Comisiones**, filtrar con *Todos* daba un error.
+- **Comisiones por tramo**: umbral de factura (sin IVA) con un % para las facturas de menos de ese
+  monto y otro % desde el umbral, sobre toda la factura. General en Planilla → Comisiones y propio
+  por persona en Empleados: con umbral propio usa sus tramos; con solo un % propio (como los de
+  antes), ese % vale para todas sus facturas. Con umbral 0 todo sigue con un solo %.
+- **Filtros**: Comisiones por fechas de cobro (además de vendedor y estado; también en Mis
+  comisiones); Quincenas por estado y año; en una quincena, buscar persona y *Solo sin pagar*;
+  Pagos y Liquidaciones por nombre (sin importar tildes) y *Activos / Todos* (por defecto, activos).
+- Despliegue: **migración 0028** (`alembic upgrade head`); reiniciar.
+
 ### Capturas del manual siempre al día (esta rama)
 - Cada captura del manual lleva en su dirección la fecha del archivo (`?v=...`). Los navegadores
   guardan las imágenes una semana; ahora una captura regenerada con el mismo nombre se ve nueva al

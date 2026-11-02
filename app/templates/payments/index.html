@@ -10,6 +10,7 @@
         historial de cada persona y los pagos sueltos.</p>
 </div>
 {% set active = 'pagos' %}{% include "payroll/_nav.html" %}
+{% set action = '/payments' %}{% include "payroll/_people_filter.html" %}
 
 <div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
     <ul class="divide-y divide-gray-100">
@@ -29,7 +30,7 @@
             </div>
         </li>
         {% else %}
-        <li class="px-4 py-8 text-center text-sm text-gray-500">No hay personas en planilla.</li>
+        <li class="px-4 py-8 text-center text-sm text-gray-500">{{ "Nadie con esos filtros." if filters.q or filters.ver == "todos" else "No hay personas activas en planilla." }}</li>
         {% endfor %}
     </ul>
 </div>

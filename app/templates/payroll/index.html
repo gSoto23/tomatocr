@@ -108,8 +108,26 @@
 
 <!-- The quincenas -->
 <div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-    <div class="border-b border-gray-200 px-4 py-3 sm:px-6">
+    <div class="flex flex-col gap-3 border-b border-gray-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <h2 class="text-base font-semibold text-gray-900">{{ 'Quincenas' if user.role == 'admin' else 'Mis quincenas' }}</h2>
+        {% if user.role == 'admin' %}
+        <form method="get" class="flex flex-wrap items-center gap-2 text-sm" aria-label="Filtrar quincenas">
+            <select name="estado" onchange="this.form.submit()" aria-label="Estado" class="rounded-md border border-gray-300 py-1 pl-2 pr-8 text-sm">
+                <option value="">Todos los estados</option>
+                {% for value, label in [('borrador', 'Borrador'), ('aprobada', 'Aprobada (falta pagar)'), ('pagada', 'Pagada')] %}
+                <option value="{{ value }}" {% if filters.estado == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+            {% if years | length > 1 %}
+            <select name="anio" onchange="this.form.submit()" aria-label="Año" class="rounded-md border border-gray-300 py-1 pl-2 pr-8 text-sm">
+                <option value="">Todos los años</option>
+                {% for y in years %}<option value="{{ y }}" {% if filters.anio == y %}selected{% endif %}>{{ y }}</option>{% endfor %}
+            </select>
+            {% endif %}
+            <noscript><button type="submit" class="rounded-md px-2 py-1 ring-1 ring-gray-300">Filtrar</button></noscript>
+            {% if filters.estado or filters.anio %}<a href="/payroll" class="text-gray-600 hover:underline">Quitar filtros</a>{% endif %}
+        </form>
+        {% endif %}
     </div>
     <ul id="payroll-periods-list" role="list" class="divide-y divide-gray-100">
         {% for period in periods %}
@@ -138,7 +156,8 @@
         </li>
         {% else %}
         <li class="px-4 py-8 text-center text-sm text-gray-500 sm:px-6">
-            {% if user.role == 'admin' %}Todavía no hay quincenas. Tocá <strong>Generar quincena</strong>.{% else %}Todavía no tenés quincenas aprobadas.{% endif %}
+            {% if user.role == 'admin' and (filters.estado or filters.anio) %}Ninguna quincena con esos filtros.
+            {% elif user.role == 'admin' %}Todavía no hay quincenas. Tocá <strong>Generar quincena</strong>.{% else %}Todavía no tenés quincenas aprobadas.{% endif %}
         </li>
         {% endfor %}
     </ul>

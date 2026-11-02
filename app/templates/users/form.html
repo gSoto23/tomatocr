@@ -171,7 +171,7 @@
                         <p class="text-sm font-medium text-gray-900">Comisiones propias</p>
                         <p class="text-xs text-gray-500">Vacío: usa las reglas generales de Planilla → Comisiones (un administrador no gana comisiones sin las suyas). 0: sin esa comisión.</p>
                         <div class="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                            <label class="text-sm text-gray-700">% por factura cobrada (sin IVA)
+                            <label class="text-sm text-gray-700">% por factura (sin IVA)
                                 <input type="number" step="0.01" min="0" max="100" name="commission_percent" id="commission_percent"
                                     value="{{ edit_user.commission_percent if edit_user and edit_user.commission_percent is not none else '' }}"
                                     class="mt-1 block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm">
@@ -181,7 +181,18 @@
                                     value="{{ edit_user.commission_new_client if edit_user and edit_user.commission_new_client is not none else '' }}"
                                     class="mt-1 block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm">
                             </label>
+                            <label class="text-sm text-gray-700">Umbral de factura (₡, sin IVA)
+                                <input type="number" step="0.01" min="0" name="commission_threshold" id="commission_threshold"
+                                    value="{{ edit_user.commission_threshold if edit_user and edit_user.commission_threshold is not none else '' }}"
+                                    class="mt-1 block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm">
+                            </label>
+                            <label class="text-sm text-gray-700">% desde el umbral
+                                <input type="number" step="0.01" min="0" max="100" name="commission_percent_high" id="commission_percent_high"
+                                    value="{{ edit_user.commission_percent_high if edit_user and edit_user.commission_percent_high is not none else '' }}"
+                                    class="mt-1 block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm">
+                            </label>
                         </div>
+                        <p class="mt-2 text-xs text-gray-500">Con umbral: una factura de menos de ese monto gana el primer %, y una igual o mayor gana el <em>% desde el umbral</em> (sobre toda la factura). Sin umbral propio pero con %: ese % para todas sus facturas.</p>
                     </div>
 
                     <!-- Hourly Rate -->

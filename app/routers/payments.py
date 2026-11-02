@@ -14,6 +14,7 @@ from app.db.models.payroll import PayrollEntry, PayrollPeriod
 
 PAYMENT_METHODS = ("Sinpe", "Transferencia", "Efectivo")
 from app.utils.activity import log_activity
+from app.utils.planilla import filter_people
 
 router = APIRouter(
     prefix="/payments",
@@ -27,6 +28,8 @@ from app.core.templates import templates
 @router.get("/", response_class=JSONResponse)
 def list_payments_view(
     request: Request,
+    q: Optional[str] = None,
+    ver: Optional[str] = None,
     db: Session = Depends(deps.get_db), 
     user: User = Depends(deps.get_current_user)
 ):
@@ -37,7 +40,8 @@ def list_payments_view(
         return RedirectResponse(url="/", status_code=303)
 
     # Admin: List all workers to manage payments
-    workers = db.query(User).filter(User.role.in_([WORKER, SUPERVISOR, VENTAS])).order_by(User.full_name).all()
+    workers = filter_people(db.query(User).filter(User.role.in_([WORKER, SUPERVISOR, VENTAS])).order_by(User.full_name),
+                            q, ver)
     # Each person's latest payment, so the list says who is up to date.
     last = {}
     for payment in db.query(PayrollPayment).order_by(PayrollPayment.date, PayrollPayment.id):
@@ -48,6 +52,7 @@ def list_payments_view(
         "workers": workers,
         "last": last,
         "role_names": ROLE_NAMES,
+        "filters": {"q": q or "", "ver": ver},
     })
 
 @router.get("/history/{user_id}")

@@ -1,6 +1,7 @@
 """Sellers' commissions (docs/PLAN_PLANILLA_CALENDARIO.md, Fase 5).
 
-- When an invoice becomes PAGADA, its seller earns a % of its amount without IVA.
+- When an invoice becomes PAGADA, its seller earns a % of its amount without IVA. With a threshold,
+  an invoice under it earns one % and one at or above it another (on the whole invoice).
 - When the first invoice of a "Nuevo" opportunity is paid, the seller earns the new-client amount.
 - The seller is the owner of the opportunity that made the project (or of the account).
 - Each commission becomes a payroll adjustment, so it joins the seller's next payroll and the
@@ -21,7 +22,12 @@ from app.db.models.project import Project
 from app.db.models.user import User
 from app.utils.planilla import recompute
 
-GENERAL_KEYS = {"percent": "commission_percent", "new_client": "commission_new_client"}
+GENERAL_KEYS = {"percent": "commission_percent", "new_client": "commission_new_client",
+                "threshold": "commission_threshold", "percent_high": "commission_percent_high"}
+# A person's own rules, field by field (None: the general one).
+OWN_FIELDS = {"percent": "commission_percent", "new_client": "commission_new_client",
+              "threshold": "commission_threshold", "percent_high": "commission_percent_high"}
+NO_RULES = {"percent": 0.0, "new_client": 0.0, "threshold": 0.0, "percent_high": 0.0}
 KINDS = {"factura": "Factura cobrada", "cliente_nuevo": "Cliente nuevo"}
 STATUS_LABELS = {"pendiente": "Para la próxima planilla", "borrador": "En planilla (borrador)",
                  "pagada": "Pagada", "anulada": "Anulada", "revertida": "Revertida"}
@@ -39,23 +45,46 @@ def general_rules(db: Session) -> dict:
     return rules
 
 
-def set_general_rules(db: Session, percent: float, new_client: float) -> None:
-    for name, value in (("percent", percent), ("new_client", new_client)):
+def set_general_rules(db: Session, percent: float, new_client: float, threshold: float = 0.0,
+                      percent_high: float = 0.0) -> None:
+    for name, value in (("percent", percent), ("new_client", new_client), ("threshold", threshold),
+                        ("percent_high", percent_high)):
         key = GENERAL_KEYS[name]
         row = db.get(CrmSetting, key) or CrmSetting(key=key)
         row.value = str(max(0.0, value or 0.0))
         db.add(row)
 
 
+def has_own_rules(person: User) -> bool:
+    return any(getattr(person, field) is not None for field in OWN_FIELDS.values())
+
+
 def rules_for(db: Session, person: Optional[User]) -> dict:
-    """The person's own rules where set; otherwise the general ones, only for people who sell
-    (ventas and supervisors marked "También vende"). An admin earns only with their own."""
+    """The person's own rules, otherwise the general ones (only for people who sell: ventas and
+    supervisors marked "También vende"; an admin earns only with their own). Tiers go together:
+    an own threshold uses the person's tiers (an empty % takes the general one); an own % without
+    an own threshold is one % for every invoice."""
     if not person:
-        return {"percent": 0.0, "new_client": 0.0}
-    general = general_rules(db) if person.sells and person.role != ADMIN else {"percent": 0.0, "new_client": 0.0}
-    return {"percent": person.commission_percent if person.commission_percent is not None else general["percent"],
-            "new_client": (person.commission_new_client if person.commission_new_client is not None
-                           else general["new_client"])}
+        return dict(NO_RULES)
+    general = general_rules(db) if person.sells and person.role != ADMIN else dict(NO_RULES)
+    own = {name: getattr(person, field) for name, field in OWN_FIELDS.items()}
+    pick = lambda name: own[name] if own[name] is not None else general[name]  # noqa: E731
+    rules = {"new_client": pick("new_client")}
+    if own["threshold"] is not None:
+        rules.update(threshold=own["threshold"], percent=pick("percent"), percent_high=pick("percent_high"))
+    elif own["percent"] is not None:
+        rules.update(threshold=0.0, percent=own["percent"], percent_high=own["percent"])
+    else:
+        rules.update(threshold=general["threshold"], percent=general["percent"], percent_high=general["percent_high"])
+    return rules
+
+
+def percent_for(rules: dict, base: float) -> float:
+    """The % for an invoice of `base` (without IVA): with a threshold, the whole invoice takes the
+    % of its tier (under it, or at and above it)."""
+    if rules.get("threshold") and base >= rules["threshold"]:
+        return rules.get("percent_high") or 0.0
+    return rules.get("percent") or 0.0
 
 
 def invoice_context(db: Session, invoice: Invoice) -> dict:
@@ -103,14 +132,14 @@ def create_for_paid_invoice(db: Session, invoice: Invoice, by: User, paid_on: da
         return []
     rules = rules_for(db, seller)
     created = []
-    if rules["percent"] > 0 and not db.query(Commission).filter(
-            Commission.kind == "factura", Commission.invoice_id == invoice.id).first():
+    if not db.query(Commission).filter(Commission.kind == "factura", Commission.invoice_id == invoice.id).first():
         base = round(without_iva(invoice), 2)
-        amount = round(base * rules["percent"] / 100, 2)
+        percent = percent_for(rules, base)
+        amount = round(base * percent / 100, 2)
         if amount > 0:
             created.append(_new(db, by, context, invoice, paid_on, "factura", amount,
-                                f"Comisión {rules['percent']:g}% factura #{invoice.invoice_number}",
-                                base_amount=base, rate=rules["percent"]))
+                                f"Comisión {percent:g}% factura #{invoice.invoice_number}",
+                                base_amount=base, rate=percent))
     opportunity = context["opportunity"]
     if rules["new_client"] > 0 and opportunity and opportunity.kind == "nuevo" and not db.query(Commission).filter(
             Commission.kind == "cliente_nuevo", Commission.opportunity_id == opportunity.id).first():

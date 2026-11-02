@@ -97,3 +97,17 @@ def recompute(entry) -> None:
     entry.gross_salary = gross
     entry.social_charges = charges
     entry.net_salary = gross - charges + sums["suma"] - sums["resta"]
+
+
+def _plain(text: str) -> str:
+    """Lowercase without accents, so "jose" finds "José"."""
+    import unicodedata
+    return "".join(c for c in unicodedata.normalize("NFD", (text or "").lower()) if unicodedata.category(c) != "Mn")
+
+
+def filter_people(people, q: Optional[str] = None, ver: Optional[str] = None) -> list:
+    """Pagos and Liquidaciones lists: by name, and only the active people unless ver == "todos"."""
+    text = _plain((q or "").strip())
+    return [p for p in people
+            if (ver == "todos" or p.status == "active")
+            and (not text or text in _plain(p.full_name or p.username) or text in _plain(p.username))]

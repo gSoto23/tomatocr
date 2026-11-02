@@ -4,6 +4,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status, Form, Request
 from app.utils.timecr import today_cr
+from app.utils.planilla import filter_people
 from fastapi.responses import JSONResponse, RedirectResponse, HTMLResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
@@ -29,6 +30,8 @@ router = APIRouter(
 @router.get("/", response_class=JSONResponse)
 def list_liquidations(
     request: Request,
+    q: Optional[str] = None,
+    ver: Optional[str] = None,
     db: Session = Depends(deps.get_db), 
     user: User = Depends(deps.get_current_user)
 ):
@@ -40,13 +43,15 @@ def list_liquidations(
 
     # Admin: List all workers
     # Everyone in the payroll, asesores (ventas) included.
-    workers = db.query(User).filter(User.role.in_([WORKER, SUPERVISOR, VENTAS])).order_by(User.full_name).all()
-    
+    workers = filter_people(db.query(User).filter(User.role.in_([WORKER, SUPERVISOR, VENTAS])).order_by(User.full_name),
+                            q, ver)
+
     return templates.TemplateResponse("liquidation/index.html", {
         "request": request,
         "user": user,
         "workers": workers,
-        "role_names": ROLE_NAMES
+        "role_names": ROLE_NAMES,
+        "filters": {"q": q or "", "ver": ver},
     })
 
 @router.get("/history/{user_id}")

@@ -32,6 +32,9 @@ class User(Base):
     # commissions only with their own.
     commission_percent = Column(Float, nullable=True)
     commission_new_client = Column(Float, nullable=True)
+    # Tiers: an invoice (without IVA) at or above the threshold takes commission_percent_high.
+    commission_threshold = Column(Float, nullable=True)
+    commission_percent_high = Column(Float, nullable=True)
     # Calendar people: "fijo" (regular schedule) or "ocasional" (called when needed).
     employment_type = Column(String(12), nullable=False, default="fijo", server_default="fijo")
     # Vacation days already taken in the current contract (recorded by the admin).
