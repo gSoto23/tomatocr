@@ -95,6 +95,8 @@
     transferencias), <em>Comprobantes</em> (uno por persona, una página cada uno, para imprimir o guardar en PDF) y
     <em>Descargar Excel</em> (hojas <em>Resumen</em> con el costo patronal, <em>Líneas</em> y <em>Días</em>). Ninguno se
     imprime solo: tocá <em>Imprimir</em>.</p>
+<p><strong>Filtros</strong>: la lista de quincenas se filtra por estado y año; en una quincena, <em>Buscar persona</em> y
+    <em>Solo sin pagar</em>; en Pagos y Liquidaciones, buscar por nombre y ver solo los activos o todos.</p>
 <p><strong>Pagada fuera del sistema</strong>: si una quincena aprobada ya se pagó sin registrar los pagos aquí (por
     ejemplo, las de antes de que existiera esta pantalla), tocá <em>Marcar como pagada fuera del sistema</em>. Pasa a
     <em>Pagada</em>, deja de aparecer en <em>Pagar</em> y queda en Actividad quién la marcó. <em>Deshacer</em> la devuelve a
@@ -155,8 +157,9 @@
 {% call m.section("comisiones", "Comisiones") %}
 <p>Los vendedores (asesores de Ventas y supervisores que venden) ganan comisión por lo que se cobra:</p>
 <ul class="list-disc space-y-1 pl-5">
-    <li><strong>Por factura cobrada</strong>: un porcentaje del monto <strong>sin IVA</strong>, cuando la factura queda
-        <em>Pagada</em> (un pago parcial no cuenta hasta que se completa).</li>
+    <li><strong>Por factura cobrada</strong>: un porcentaje del monto <strong>sin IVA</strong>, cuando el cliente la paga
+        y queda <em>Pagada</em> (un pago parcial no cuenta hasta que se completa). Con un <strong>umbral</strong>, una
+        factura de menos de ese monto gana un % y una igual o mayor gana otro, sobre toda la factura.</li>
     <li><strong>Por cliente nuevo</strong>: un monto fijo, una sola vez, cuando se cobra la primera factura de una
         oportunidad de tipo <em>Nuevo</em>.</li>
     <li>La gana el <strong>vendedor de la oportunidad</strong> que generó el proyecto (si el proyecto no tiene oportunidad,
@@ -167,9 +170,9 @@
 {% if user.role == 'admin' %}
 {{ m.shot("planilla/comisiones.webp", "Pantalla Comisiones", "Planilla → Comisiones.") }}
 {{ m.steps([
-    (1, "Las <strong>Reglas generales</strong>: % por factura y monto por cliente nuevo; en 0 no se genera."),
+    (1, "Las <strong>Reglas generales</strong>: el umbral de factura (0 = un solo %), el % de las facturas de menos que el umbral, el % desde el umbral y el monto por cliente nuevo; en 0 no se genera."),
     (2, "<strong>Quién gana comisiones</strong> y cuánto. Cada persona puede tener las suyas en Empleados → <em>Comisiones propias</em>. Un administrador no gana comisiones salvo con las suyas."),
-    (3, "La lista dice de cada comisión: fecha de cobro, vendedor, cliente, factura, base sin IVA, monto y estado: <em>Para la próxima planilla</em>, <em>En planilla (borrador)</em> o <em>Pagada</em> con el número de planilla."),
+    (3, "La lista dice de cada comisión: fecha de cobro, vendedor, cliente, factura, base sin IVA, el % que le tocó, monto y estado: <em>Para la próxima planilla</em>, <em>En planilla (borrador)</em> o <em>Pagada</em> con el número de planilla. Se filtra por vendedor, estado y fechas de cobro (por ejemplo, el total del mes)."),
     (None, "<strong>Anular</strong> (con motivo), por ejemplo si se anuló la factura o se devolvió el pago: si todavía no se pagó, sale de la planilla; si ya se pagó, queda <em>Revertida</em> y se descuenta en la próxima planilla del vendedor."),
 ]) }}
 {% elif user.sells %}

@@ -1,0 +1,11 @@
+{# Search and Activos/Todos for the Pagos and Liquidaciones lists. Needs: filters (q, ver), action. #}
+<form method="get" action="{{ action }}" class="mb-3 flex flex-wrap items-center gap-2 text-sm" aria-label="Filtrar personas">
+    <input type="search" name="q" value="{{ filters.q }}" placeholder="Buscar persona" aria-label="Buscar persona"
+        class="w-full rounded-md border border-gray-300 px-3 py-1.5 sm:w-64">
+    <select name="ver" onchange="this.form.submit()" aria-label="Quiénes" class="rounded-md border border-gray-300 py-1.5 pl-2 pr-8">
+        <option value="" {% if filters.ver != 'todos' %}selected{% endif %}>Activos</option>
+        <option value="todos" {% if filters.ver == 'todos' %}selected{% endif %}>Todos (también inactivos y liquidados)</option>
+    </select>
+    <button type="submit" class="rounded-md bg-white px-3 py-1.5 font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Buscar</button>
+    {% if filters.q or filters.ver == 'todos' %}<a href="{{ action }}" class="text-gray-600 hover:underline">Quitar filtros</a>{% endif %}
+</form>

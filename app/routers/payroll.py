@@ -14,7 +14,7 @@ import pydantic
 from app.db.models.project import Project
 from app.utils.activity import log_activity
 from app.utils.comisiones import KINDS as COMMISSION_KINDS, STATUS_LABELS, cancel, general_rules, \
-    rules_for, set_general_rules, status_of
+    has_own_rules, rules_for, set_general_rules, status_of
 from app.utils.planilla import LINE_KINDS, monthly_share, overtime_rate, recompute, valid_line
 from app.utils.planilla_resumen import entry_view, payroll_workbook, period_label, totals_of
 from app.utils.timecr import today_cr
@@ -91,6 +91,8 @@ def visible_period(db: Session, period_id: int, user: User) -> PayrollPeriod:
 @router.get("/", response_class=HTMLResponse)
 def payroll_dashboard(
     request: Request,
+    estado: Optional[str] = None,
+    anio: Optional[str] = None,
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
@@ -122,6 +124,16 @@ def payroll_dashboard(
             "unpaid": [p for p in periods if p.status == "final" and not summaries[p.id]["complete"]
                        and summaries[p.id]["paid"] < summaries[p.id]["owed"]][:3],
         }
+    # Filters (admin): state and year. The steps above still look at every quincena.
+    years = sorted({p.start_date.year for p in periods}, reverse=True)
+    year = query_int(anio)
+    shown = [p for p in periods if not year or p.start_date.year == year]
+    if estado == "borrador":
+        shown = [p for p in shown if p.status != "final"]
+    elif estado == "aprobada":
+        shown = [p for p in shown if p.status == "final" and not summaries.get(p.id, {}).get("complete")]
+    elif estado == "pagada":
+        shown = [p for p in shown if summaries.get(p.id, {}).get("complete")]
     # Commission adjustments are cancelled from Comisiones, not deleted here.
     from_commissions = {i for row in db.query(Commission.adjustment_id, Commission.reversal_adjustment_id)
                         for i in row if i} if pending else set()
@@ -130,8 +142,10 @@ def payroll_dashboard(
         "from_commissions": from_commissions,
         "request": request,
         "user": user,
-        "periods": periods,
+        "periods": shown,
         "labels": {p.id: period_label(p) for p in periods},
+        "years": years,
+        "filters": {"estado": estado if estado in ("borrador", "aprobada", "pagada") else "", "anio": year},
         "worker_stats": worker_stats,
         "mine": mine,
         "summaries": summaries,
@@ -781,26 +795,47 @@ def delete_adjustment(adjustment_id: int, db: Session = Depends(deps.get_db),
 # 4. COMMISSIONS (Fase 5)
 # -----------------------------------------------------------------------------
 
+def query_int(value: Optional[str]) -> Optional[int]:
+    """A filter's number; empty ("Todos") or not a number means no filter."""
+    try:
+        return int(value) if value not in (None, "") else None
+    except ValueError:
+        return None
+
+
+def query_date(value: Optional[str]) -> Optional[date]:
+    try:
+        return date.fromisoformat(value) if value else None
+    except ValueError:
+        return None
+
+
 @router.get("/commissions", response_class=HTMLResponse)
-def commissions_view(request: Request, persona: Optional[int] = None, estado: Optional[str] = None,
+def commissions_view(request: Request, persona: Optional[str] = None, estado: Optional[str] = None,
+                     desde: Optional[str] = None, hasta: Optional[str] = None,
                      db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
-    """Admin: every commission, the general rules and Anular. A seller: their own ("Mis comisiones")."""
+    """Admin: every commission, the general rules and Anular. A seller: their own ("Mis comisiones").
+    Filters: seller, state and the payment dates (e.g. a month's total)."""
     if user.role != ADMIN and not user.sells:
         raise HTTPException(status_code=403, detail="Not authorized")
+    persona, since, until = query_int(persona), query_date(desde), query_date(hasta)
     query = db.query(Commission).order_by(Commission.payment_date.desc().nullslast(), Commission.id.desc())
     if user.role != ADMIN:
         query = query.filter(Commission.user_id == user.id)
     elif persona:
         query = query.filter(Commission.user_id == persona)
+    if since:
+        query = query.filter(Commission.payment_date >= since)
+    if until:
+        query = query.filter(Commission.payment_date <= until)
     rows = [{"c": c, "status": status_of(c)} for c in query.all()]
     if estado in STATUS_LABELS:
         rows = [r for r in rows if r["status"]["code"] == estado]
     total = sum(r["c"].amount for r in rows if r["status"]["code"] not in ("anulada", "revertida"))
     sellers = []
     if user.role == ADMIN:
-        sellers = [{"user": p, "rules": rules_for(db, p)} for p in db.query(User).order_by(User.full_name)
-                   if ((p.sells and p.role != ADMIN) or p.commission_percent is not None
-                       or p.commission_new_client is not None) and deps.can_log_in(p)]
+        sellers = [{"user": p, "rules": rules_for(db, p), "own": has_own_rules(p)} for p in db.query(User).order_by(User.full_name)
+                   if ((p.sells and p.role != ADMIN) or has_own_rules(p)) and deps.can_log_in(p)]
     # Supervisors who could sell but aren't marked "También vende" (they earn nothing until they are).
     not_selling = [p for p in db.query(User).filter(User.role == SUPERVISOR, User.also_sells == False)  # noqa: E712
                    .order_by(User.full_name) if deps.can_log_in(p)] if user.role == ADMIN else []
@@ -808,19 +843,22 @@ def commissions_view(request: Request, persona: Optional[int] = None, estado: Op
         "not_selling": not_selling,
         "request": request, "user": user, "rows": rows, "total": total, "kinds": COMMISSION_KINDS,
         "status_labels": STATUS_LABELS, "general": general_rules(db), "sellers": sellers,
-        "filters": {"persona": persona, "estado": estado},
+        "filters": {"persona": persona, "estado": estado, "desde": since, "hasta": until},
     })
 
 
 @router.post("/commissions/settings", dependencies=[Depends(deps.require_roles(ADMIN))])
-def commissions_settings(percent: float = Form(0.0), new_client: float = Form(0.0), db: Session = Depends(deps.get_db),
+def commissions_settings(percent: float = Form(0.0), new_client: float = Form(0.0), threshold: float = Form(0.0),
+                         percent_high: float = Form(0.0), db: Session = Depends(deps.get_db),
                          user: User = Depends(deps.get_current_user)):
-    if percent < 0 or percent > 100 or new_client < 0:
+    if not (0 <= percent <= 100 and 0 <= percent_high <= 100) or new_client < 0 or threshold < 0:
         return RedirectResponse(url="/payroll/commissions?error=valores", status_code=303)
-    set_general_rules(db, percent, new_client)
+    set_general_rules(db, percent, new_client, threshold, percent_high)
     db.commit()
+    tiers = (f"{percent:g}% para facturas de menos de {money(threshold)} y {percent_high:g}% desde ese monto"
+             if threshold else f"{percent:g}% por factura cobrada")
     log_activity(db, user, "Reglas Comisiones", "COMMISSION", None,
-                 f"Generales: {percent:g}% por factura cobrada (sin IVA) y {money(new_client)} por cliente nuevo")
+                 f"Generales: {tiers} (sin IVA) y {money(new_client)} por cliente nuevo")
     response = RedirectResponse(url="/payroll/commissions", status_code=303)
     response.set_cookie(key="toast_message", value="Reglas de comisión guardadas")
     return response

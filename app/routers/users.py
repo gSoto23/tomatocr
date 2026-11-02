@@ -173,6 +173,8 @@ def create_user(
     viatico_quincenal: Optional[float] = Form(None),
     commission_percent: Optional[str] = Form(None),
     commission_new_client: Optional[str] = Form(None),
+    commission_threshold: Optional[str] = Form(None),
+    commission_percent_high: Optional[str] = Form(None),
     vacation_days_taken: Optional[float] = Form(None),
     is_active: bool = Form(False),
     also_sells: bool = Form(False),
@@ -230,6 +232,8 @@ def create_user(
         viatico_quincenal=max(0.0, viatico_quincenal or 0.0),
         commission_percent=own_rule(commission_percent, 100),
         commission_new_client=own_rule(commission_new_client),
+        commission_threshold=own_rule(commission_threshold),
+        commission_percent_high=own_rule(commission_percent_high, 100),
         vacation_days_taken=max(0.0, vacation_days_taken or 0.0),
         is_active=is_active,
         also_sells=also_sells and role == SUPERVISOR,
@@ -278,6 +282,8 @@ def update_user(
     viatico_quincenal: Optional[float] = Form(None),
     commission_percent: Optional[str] = Form(None),
     commission_new_client: Optional[str] = Form(None),
+    commission_threshold: Optional[str] = Form(None),
+    commission_percent_high: Optional[str] = Form(None),
     vacation_days_taken: Optional[float] = Form(None),
     is_active: bool = Form(False),
     also_sells: bool = Form(False),
@@ -338,6 +344,8 @@ def update_user(
         edit_user.viatico_quincenal = max(0.0, viatico_quincenal or 0.0)
         edit_user.commission_percent = own_rule(commission_percent, 100)
         edit_user.commission_new_client = own_rule(commission_new_client)
+        edit_user.commission_threshold = own_rule(commission_threshold)
+        edit_user.commission_percent_high = own_rule(commission_percent_high, 100)
         if vacation_days_taken is not None:
             edit_user.vacation_days_taken = max(0.0, vacation_days_taken)
         edit_user.is_active = is_active

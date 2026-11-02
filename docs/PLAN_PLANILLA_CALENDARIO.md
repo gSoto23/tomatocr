@@ -100,6 +100,8 @@ lo que ya existe y la ordena en fases; cada fase es su propio PR.
   administradores no ganan comisión salvo con reglas propias; los montos generales los carga el
   admin (empiezan en 0). (02/11/2026)
 - Exportación: Excel (.xlsx). (02/11/2026)
+- Comisión por factura con tramos: umbral sin IVA, un % debajo y otro desde el umbral, sobre toda la
+  factura; general y por persona. (02/11/2026)
 
 ## Decisiones pendientes
 

@@ -84,6 +84,16 @@
 </dl>
 
 <!-- People: one row each; the panel has the rest -->
+{% if rows | length > 5 or not draft %}
+<div class="mb-3 flex flex-wrap items-center gap-3 text-sm">
+    <input type="search" id="people-search" placeholder="Buscar persona" aria-label="Buscar persona" oninput="filterPeople()"
+        class="w-full rounded-md border border-gray-300 px-3 py-1.5 sm:w-64">
+    {% if not draft and not payments.outside %}
+    <label class="flex items-center gap-2 text-gray-700"><input type="checkbox" id="people-unpaid" onchange="filterPeople()" class="h-4 w-4 rounded border-gray-300"> Solo sin pagar</label>
+    {% endif %}
+    <span id="people-count" class="text-gray-500"></span>
+</div>
+{% endif %}
 <div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
     <table class="hidden min-w-full divide-y divide-gray-200 text-sm md:table">
         <thead class="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
@@ -99,7 +109,7 @@
         </thead>
         <tbody class="divide-y divide-gray-100">
             {% for r in rows %}
-            <tr class="cursor-pointer hover:bg-gray-50" onclick="openPerson({{ r.id }})">
+            <tr class="cursor-pointer hover:bg-gray-50" onclick="openPerson({{ r.id }})" data-person="{{ r.name | lower }}" data-unpaid="{{ 'si' if (not r.paid and r.net > 0) else 'no' }}">
                 <td class="py-3 pl-4 pr-3 sm:pl-6">
                     <button type="button" class="text-left font-medium text-gray-900 hover:underline" onclick="event.stopPropagation(); openPerson({{ r.id }})">{{ r.name }}</button>
                     <div class="text-xs text-gray-500">{{ r.how }}{% if r.lines %} · {{ r.lines | length }} {{ 'línea' if r.lines | length == 1 else 'líneas' }}{% endif %}</div>
@@ -136,7 +146,7 @@
     <!-- Phone: one card per person -->
     <ul class="divide-y divide-gray-100 md:hidden">
         {% for r in rows %}
-        <li>
+        <li data-person="{{ r.name | lower }}" data-unpaid="{{ 'si' if (not r.paid and r.net > 0) else 'no' }}">
             <button type="button" onclick="openPerson({{ r.id }})" class="flex w-full items-center justify-between gap-3 px-4 py-3 text-left">
                 <span class="min-w-0">
                     <span class="block font-medium text-gray-900">{{ r.name }}</span>
@@ -338,6 +348,21 @@
         const panel = document.getElementById('person-panel');
         panel.classList.remove('hidden');
         if (focus === 'pago') document.getElementById('pay-reference').focus();
+    }
+
+    // Search by name and "Solo sin pagar", on the table and the phone cards alike.
+    function filterPeople() {
+        const strip = (t) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const text = strip((document.getElementById('people-search')?.value || '').trim().toLowerCase());
+        const unpaid = document.getElementById('people-unpaid')?.checked;
+        let shown = 0;
+        document.querySelectorAll('[data-person]').forEach(node => {
+            const ok = strip(node.dataset.person).includes(text) && (!unpaid || node.dataset.unpaid === 'si');
+            node.hidden = !ok;
+            if (ok && node.tagName === 'TR') shown++;
+        });
+        const total = document.querySelectorAll('tr[data-person]').length;
+        document.getElementById('people-count').textContent = (text || unpaid) ? `${shown} de ${total}` : '';
     }
 
     function closePerson() {

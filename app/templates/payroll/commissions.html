@@ -21,17 +21,27 @@
         <p class="mt-2 rounded-md bg-red-50 p-2 text-sm text-red-700">El porcentaje va de 0 a 100 y el monto no puede ser negativo.</p>
         {% endif %}
         <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <label class="text-sm font-medium text-gray-700">% por factura cobrada (sin IVA)
-                <input type="number" name="percent" step="0.01" min="0" max="100" value="{{ general.percent }}"
+            <label class="text-sm font-medium text-gray-700">Umbral de factura (₡, sin IVA)
+                <input type="number" name="threshold" step="0.01" min="0" value="{{ '%.2f' % general.threshold }}"
                     class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm">
+                <span class="mt-0.5 block text-xs font-normal text-gray-500">0: un solo % para todas las facturas.</span>
             </label>
             <label class="text-sm font-medium text-gray-700">Por cliente nuevo (₡)
                 <input type="number" name="new_client" step="0.01" min="0" value="{{ general.new_client }}"
                     class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm">
             </label>
+            <label class="text-sm font-medium text-gray-700">% facturas de menos que el umbral
+                <input type="number" name="percent" step="0.01" min="0" max="100" value="{{ general.percent }}"
+                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm">
+                <span class="mt-0.5 block text-xs font-normal text-gray-500">Sin umbral: el % de todas.</span>
+            </label>
+            <label class="text-sm font-medium text-gray-700">% facturas desde el umbral
+                <input type="number" name="percent_high" step="0.01" min="0" max="100" value="{{ general.percent_high }}"
+                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm">
+            </label>
         </div>
-        <p class="mt-2 text-xs text-gray-500">Cliente nuevo: una sola vez por oportunidad de tipo <em>Nuevo</em>, con su primera
-            factura cobrada.</p>
+        <p class="mt-2 text-xs text-gray-500">El % se aplica a <strong>toda</strong> la factura según su tramo (sin IVA). Cliente nuevo:
+            una sola vez por oportunidad de tipo <em>Nuevo</em>, con su primera factura cobrada.</p>
         <button type="submit" class="mt-4 rounded-md bg-black px-3 py-2 text-sm font-semibold text-white hover:bg-gray-800">Guardar reglas</button>
     </form>
 
@@ -44,8 +54,8 @@
             {% for s in sellers %}
             <li class="flex items-center justify-between gap-3 py-2">
                 <a href="/users/{{ s.user.id }}/edit" class="font-medium text-gray-900 hover:underline">{{ s.user.full_name or s.user.username }}</a>
-                <span class="text-gray-600">{{ '%g' % s.rules.percent }}% · {{ s.rules.new_client | crc }}
-                    {% if s.user.commission_percent is not none or s.user.commission_new_client is not none %}<span class="text-xs text-indigo-600">(propias)</span>{% endif %}</span>
+                <span class="text-right text-gray-600">{% if s.rules.threshold %}{{ '%g' % s.rules.percent }}% · {{ '%g' % s.rules.percent_high }}% desde {{ s.rules.threshold | crc0 }}{% else %}{{ '%g' % s.rules.percent }}%{% endif %} · {{ s.rules.new_client | crc0 }} cliente nuevo
+                    {% if s.own %}<span class="text-xs text-indigo-600">(propias)</span>{% endif %}</span>
             </li>
             {% else %}
             <li class="py-2 text-gray-500">Nadie vende todavía.</li>
@@ -58,7 +68,10 @@
     </div>
 </div>
 
+{% endif %}
+
 <form method="get" class="mb-4 flex flex-wrap items-end gap-3 text-sm">
+    {% if user.role == 'admin' %}
     <label class="font-medium text-gray-700">Vendedor
         <select name="persona" class="mt-1 block rounded-md border border-gray-300 py-1.5 pl-2 pr-8">
             <option value="">Todos</option>
@@ -71,9 +84,16 @@
             {% for value, label in status_labels.items() %}<option value="{{ value }}" {% if filters.estado == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
         </select>
     </label>
+    {% endif %}
+    <label class="font-medium text-gray-700">Cobradas desde
+        <input type="date" name="desde" value="{{ filters.desde.isoformat() if filters.desde else '' }}" class="mt-1 block rounded-md border border-gray-300 px-2 py-1.5">
+    </label>
+    <label class="font-medium text-gray-700">hasta
+        <input type="date" name="hasta" value="{{ filters.hasta.isoformat() if filters.hasta else '' }}" class="mt-1 block rounded-md border border-gray-300 px-2 py-1.5">
+    </label>
     <button type="submit" class="rounded-md bg-white px-3 py-1.5 font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Filtrar</button>
+    {% if filters.persona or filters.estado or filters.desde or filters.hasta %}<a href="/payroll/commissions" class="py-1.5 text-gray-600 hover:underline">Quitar filtros</a>{% endif %}
 </form>
-{% endif %}
 
 <div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
     <div class="overflow-x-auto">
