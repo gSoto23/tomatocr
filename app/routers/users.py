@@ -158,6 +158,7 @@ def create_user(
     pay_type: str = Form("hora"),
     daily_rate: Optional[float] = Form(None),
     employment_type: str = Form("fijo"),
+    viatico_quincenal: Optional[float] = Form(None),
     vacation_days_taken: Optional[float] = Form(None),
     is_active: bool = Form(False),
     also_sells: bool = Form(False),
@@ -212,6 +213,7 @@ def create_user(
         pay_type=pay_type,
         daily_rate=max(0.0, daily_rate or 0.0),
         employment_type=employment_type,
+        viatico_quincenal=max(0.0, viatico_quincenal or 0.0),
         vacation_days_taken=max(0.0, vacation_days_taken or 0.0),
         is_active=is_active,
         also_sells=also_sells and role == SUPERVISOR,
@@ -257,6 +259,7 @@ def update_user(
     pay_type: str = Form("hora"),
     daily_rate: Optional[float] = Form(None),
     employment_type: str = Form("fijo"),
+    viatico_quincenal: Optional[float] = Form(None),
     vacation_days_taken: Optional[float] = Form(None),
     is_active: bool = Form(False),
     also_sells: bool = Form(False),
@@ -314,6 +317,7 @@ def update_user(
         edit_user.pay_type = pay_type
         edit_user.daily_rate = max(0.0, daily_rate or 0.0)
         edit_user.employment_type = employment_type
+        edit_user.viatico_quincenal = max(0.0, viatico_quincenal or 0.0)
         if vacation_days_taken is not None:
             edit_user.vacation_days_taken = max(0.0, vacation_days_taken)
         edit_user.is_active = is_active

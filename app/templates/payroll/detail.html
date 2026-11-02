@@ -11,6 +11,11 @@
             <p class="mt-1 text-sm text-gray-500">
                 Periodo: <span class="font-medium text-gray-900">{{ period.start_date | format_date }}</span> - <span
                     class="font-medium text-gray-900">{{ period.end_date | format_date }}</span>
+                ·
+                {% if period.status != 'final' %}<span class="font-semibold text-yellow-700">Borrador</span>
+                {% elif payments.complete %}<span class="font-semibold text-green-700">Pagada</span>
+                {% else %}<span class="font-semibold text-blue-700">Aprobada</span>{% if user.role == 'admin' %} · {{ payments.paid }} de {{ payments.owed }} pagados{% endif %}
+                {% endif %}
             </p>
         </div>
         <div class="flex gap-3 mt-4 sm:mt-0">
@@ -25,7 +30,7 @@
             {% if user.role == 'admin' and period.status == 'draft' %}
             <button onclick="confirmPayroll({{ period.id }})"
                 class="inline-flex items-center justify-center rounded-md bg-black px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 transition-all">
-                Finalizar Planilla
+                Aprobar planilla
             </button>
             {% endif %}
         </div>
@@ -88,12 +93,14 @@
                         class="px-2 py-3.5 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Monto
                         Extra
                     </th>
+                    <th scope="col" class="px-2 py-3.5 text-right text-xs font-bold text-gray-500 uppercase tracking-wider" title="Bonos, comisiones y ajustes de salario: llevan CCSS">Bonos / Ajustes</th>
                     <th scope="col"
                         class="px-2 py-3.5 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Total
                         Bruto</th>
                     <th scope="col"
                         class="px-2 py-3.5 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">C.C.S.S
                         (9.17%)</th>
+                    <th scope="col" class="px-2 py-3.5 text-right text-xs font-bold text-gray-500 uppercase tracking-wider" title="Viáticos suman; deducciones y adelantos restan. Sin CCSS">Viáticos / Rebajas</th>
                     <th scope="col"
                         class="px-2 py-3.5 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Neto
                         Pagar</th>
@@ -127,7 +134,10 @@
                                 <div class="text-xs font-normal text-gray-500">{{ pay_types[entry.pay_type] }}{% if entry.pay_type == 'mensual' %} (quincena){% elif entry.pay_type == 'dia' %} · {{ entry.days_worked | int }} {{ 'día' if entry.days_worked == 1 else 'días' }}{% endif %} · ₡{{ "{:,.0f}".format(entry.hourly_rate) }}/h{% if entry.pay_type != 'hora' %} extra base{% endif %} · {{ entry.user.payment_method or 'Sin método' }}{% if entry.user.payment_method in ['Transferencia', 'Sinpe'] and entry.user.account_number %} {{ entry.user.account_number }}{% endif %} ·
                                     <button type="button"
                                         onclick='showBreakdown({{ entry.details | tojson | safe }}, {{ (entry.user.full_name or entry.user.username) | tojson }})'
-                                        class="font-semibold text-blue-600 hover:text-blue-900">Ver desglose</button></div>
+                                        class="font-semibold text-blue-600 hover:text-blue-900">Ver desglose</button>
+                                    {% if entry.lines or user.role == 'admin' %} ·
+                                    <button type="button" onclick="openLines({{ entry.id }})"
+                                        class="font-semibold text-blue-600 hover:text-blue-900">Líneas{% if entry.lines %} ({{ entry.lines | length }}){% endif %}</button>{% endif %}</div>
                             </div>
                         </div>
                     </td>
@@ -139,10 +149,12 @@
                         "{:,.2f}".format(entry.regular_amount) }}</td>
                     <td class="whitespace-nowrap px-2 py-4 text-sm text-gray-900 text-right">₡{{
                         "{:,.2f}".format(entry.overtime_amount) }}</td>
+                    <td class="whitespace-nowrap px-2 py-4 text-sm text-gray-900 text-right">{{ entry.salary_lines | crc if entry.salary_lines else '—' }}</td>
                     <td class="whitespace-nowrap px-2 py-4 text-sm text-gray-900 text-right font-bold">₡{{
                         "{:,.2f}".format(entry.gross_salary) }}</td>
                     <td class="whitespace-nowrap px-2 py-4 text-sm text-gray-900 text-right">-₡{{
                         "{:,.2f}".format(entry.social_charges) }}</td>
+                    <td class="whitespace-nowrap px-2 py-4 text-sm text-gray-900 text-right">{{ entry.net_lines | crc if entry.net_lines else '—' }}</td>
                     <td class="whitespace-nowrap px-2 py-4 text-sm font-bold text-gray-900 text-right bg-gray-50">₡{{
                         "{:,.2f}".format(entry.net_salary) }}</td>
                     {% if user.role not in ['worker', 'supervisor', 'ventas'] %}
@@ -155,13 +167,13 @@
                     <td class="whitespace-nowrap px-2 py-4 text-center">
                         <input type="checkbox" onchange="toggleDeductions({{ entry.id }}, this.checked, this)"
                             class="h-4 w-4 rounded border-gray-300 text-black focus:ring-black" {% if
-                            entry.apply_deductions %}checked{% endif %} {% if period.status == 'final' %}disabled title="La planilla ya está finalizada"{% endif %}>
+                            entry.apply_deductions %}checked{% endif %} {% if period.status == 'final' %}disabled title="La planilla ya está aprobada"{% endif %}>
                     </td>
                     {% endif %}
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="8" class="px-4 py-12 text-center text-sm text-gray-500">No hay registros en esta
+                    <td colspan="10" class="px-4 py-12 text-center text-sm text-gray-500">No hay registros en esta
                         planilla.</td>
                 </tr>
                 {% endfor %}
@@ -174,9 +186,11 @@
                     <td class="whitespace-nowrap px-2 pt-4 pb-4 text-right text-sm">{{ totals.overtime_hours }}</td>
                     <td class="whitespace-nowrap px-2 pt-4 pb-4 text-right text-sm">₡{{ "{:,.2f}".format(totals.regular_amount) }}</td>
                     <td class="whitespace-nowrap px-2 pt-4 pb-4 text-right text-sm">₡{{ "{:,.2f}".format(totals.overtime_amount) }}</td>
+                    <td class="whitespace-nowrap px-2 pt-4 pb-4 text-right text-sm">{{ totals.salary_lines | crc }}</td>
                     <td class="whitespace-nowrap px-2 pt-4 pb-4 text-right text-sm font-bold">₡{{ "{:,.2f}".format(totals.gross) }}</td>
                     <td class="whitespace-nowrap px-2 pt-4 pb-4 text-right text-sm text-gray-900">-₡{{
                         "{:,.2f}".format(totals.social_charges) }}</td>
+                    <td class="whitespace-nowrap px-2 pt-4 pb-4 text-right text-sm">{{ totals.net_lines | crc }}</td>
                     <td class="whitespace-nowrap px-2 pt-4 pb-4 text-right text-sm bg-gray-200">₡{{ "{:,.2f}".format(totals.net) }}</td>
                     {% if user.role not in ['worker', 'supervisor', 'ventas'] %}
                     <td class="whitespace-nowrap px-2 pt-4 pb-4 text-right text-sm text-gray-900 bg-gray-300">₡{{
@@ -245,7 +259,136 @@
     </div>
 </div>
 
+<!-- Lines of one person: list, and (admin) add on a draft or leave an adjustment on an approved one -->
+<div id="lines-modal" class="relative z-20 hidden" role="dialog" aria-modal="true" aria-labelledby="lines-title">
+    <div class="fixed inset-0 bg-gray-500 bg-opacity-75"></div>
+    <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+        <div class="flex min-h-full items-center justify-center p-4">
+            <div class="relative w-full overflow-hidden rounded-lg bg-white text-left shadow-xl sm:max-w-lg">
+                <div class="px-4 pb-4 pt-5 sm:p-6">
+                    <h3 id="lines-title" class="text-base font-semibold text-gray-900">Líneas</h3>
+                    <p id="lines-person" class="text-sm text-gray-500"></p>
+                    <ul id="lines-list" class="mt-3 divide-y divide-gray-100 rounded-md border border-gray-200 text-sm"></ul>
+                    {% if user.role == 'admin' %}
+                    <form id="lines-form" class="mt-4 space-y-3" onsubmit="saveLine(event)">
+                        <p id="lines-form-title" class="text-sm font-semibold text-gray-900"></p>
+                        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <label class="text-sm font-medium text-gray-700">Tipo
+                                <select id="line-kind" class="mt-1 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm">
+                                    {% for value, kind in line_kinds.items() %}<option value="{{ value }}">{{ kind[0] }}</option>{% endfor %}
+                                </select>
+                            </label>
+                            <label class="text-sm font-medium text-gray-700">Monto (₡)
+                                <input id="line-amount" type="number" step="0.01" required class="mt-1 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm">
+                            </label>
+                        </div>
+                        <label class="block text-sm font-medium text-gray-700">Detalle
+                            <input id="line-description" type="text" maxlength="200" placeholder="Ej.: bono por meta, adelanto del 10/11" class="mt-1 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm">
+                        </label>
+                        <p id="line-hint" class="text-xs text-gray-500"></p>
+                        <button type="submit" class="rounded-md bg-black px-3 py-2 text-sm font-semibold text-white hover:bg-gray-800">Guardar</button>
+                    </form>
+                    {% endif %}
+                </div>
+                <div class="flex justify-end bg-gray-50 px-4 py-3 sm:px-6">
+                    <button type="button" onclick="closeLines()" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
+    // ---- Lines (Fase 4) -------------------------------------------------------------------
+    const ENTRIES = { {% for e in entries %}{{ e.id }}: { user_id: {{ e.user.id }}, name: {{ (e.user.full_name or e.user.username) | tojson }}, lines: {{ e.lines | tojson }} },{% endfor %} };
+    const PERIOD_ID = {{ period.id }};
+    const IS_DRAFT = {{ (period.status == 'draft') | tojson }};
+    const CAN_EDIT = {{ (user.role == 'admin') | tojson }};
+    const EFFECT_NOTE = { salario: 'Suma al bruto: lleva CCSS y cuenta para el aguinaldo.', suma: 'Suma al neto, sin CCSS.', resta: 'Se resta del neto.' };
+    const LINE_EFFECT = { {% for value, kind in line_kinds.items() %}{{ value | tojson }}: {{ kind[1] | tojson }},{% endfor %} };
+    const crc = new Intl.NumberFormat('es-CR', { style: 'currency', currency: 'CRC', minimumFractionDigits: 2 });
+    let linesEntry = null;
+
+    function openLines(entryId) {
+        linesEntry = entryId;
+        const entry = ENTRIES[entryId];
+        document.getElementById('lines-person').textContent = entry.name;
+        const list = document.getElementById('lines-list');
+        list.innerHTML = '';
+        if (!entry.lines.length) {
+            const empty = document.createElement('li');
+            empty.className = 'px-3 py-2 text-gray-500';
+            empty.textContent = 'Sin líneas en esta planilla.';
+            list.appendChild(empty);
+        }
+        entry.lines.forEach(line => {
+            const li = document.createElement('li');
+            li.className = 'flex items-start justify-between gap-3 px-3 py-2';
+            const text = document.createElement('div');
+            const head = document.createElement('div');
+            head.className = 'font-medium text-gray-900';
+            const sign = line.effect === 'resta' ? '−' : '';
+            head.textContent = `${line.label}: ${sign}${crc.format(line.amount)}`;
+            const sub = document.createElement('div');
+            sub.className = 'text-xs text-gray-500';
+            sub.textContent = line.description + (line.from_adjustment ? ' · ajuste de una planilla anterior' : '');
+            text.append(head, sub);
+            li.appendChild(text);
+            if (CAN_EDIT && IS_DRAFT) {
+                const remove = document.createElement('button');
+                remove.type = 'button';
+                remove.className = 'text-xs font-semibold text-red-600 hover:text-red-900';
+                remove.textContent = 'Quitar';
+                remove.onclick = () => deleteLine(line);
+                li.appendChild(remove);
+            }
+            list.appendChild(li);
+        });
+        const title = document.getElementById('lines-form-title');
+        if (title) {
+            title.textContent = IS_DRAFT ? 'Agregar línea'
+                : 'La planilla ya está aprobada: dejá un ajuste para la próxima planilla de esta persona';
+            showLineHint();
+        }
+        document.getElementById('lines-modal').classList.remove('hidden');
+    }
+
+    function closeLines() {
+        document.getElementById('lines-modal').classList.add('hidden');
+    }
+
+    function showLineHint() {
+        const kind = document.getElementById('line-kind').value;
+        document.getElementById('line-hint').textContent = EFFECT_NOTE[LINE_EFFECT[kind]]
+            + (['ajuste', 'comision'].includes(kind) ? ' Puede ser negativo para devolver algo pagado de más.' : '');
+    }
+    document.getElementById('line-kind')?.addEventListener('change', showLineHint);
+
+    async function saveLine(e) {
+        e.preventDefault();
+        const body = {
+            kind: document.getElementById('line-kind').value,
+            amount: parseFloat(document.getElementById('line-amount').value),
+            description: document.getElementById('line-description').value,
+        };
+        const url = IS_DRAFT ? `/payroll/entry/${linesEntry}/lines` : '/payroll/adjustments';
+        if (!IS_DRAFT) Object.assign(body, { user_id: ENTRIES[linesEntry].user_id, source_period_id: PERIOD_ID });
+        const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        const result = await response.json();
+        if (!response.ok) return showGlobalToast("Error", result.detail || "No se pudo guardar", "error");
+        showGlobalToast("Éxito", result.message);
+        setTimeout(() => window.location.reload(), 700);
+    }
+
+    async function deleteLine(line) {
+        if (!await tomatoConfirm(`¿Quitar «${line.description}» de esta planilla?`, {ok: 'Quitar línea'})) return;
+        const response = await fetch(`/payroll/line/${line.id}/delete`, { method: 'POST' });
+        const result = await response.json();
+        if (!response.ok) return showGlobalToast("Error", result.detail || "No se pudo quitar", "error");
+        showGlobalToast("Éxito", result.message);
+        setTimeout(() => window.location.reload(), 700);
+    }
+
     // Pagination Logic
     function setupPagination(containerId, itemsSelector, pageSize = 10) {
         const container = document.getElementById(containerId);
@@ -322,7 +465,7 @@
     });
 
     async function confirmPayroll(id) {
-        if (!await tomatoConfirm("¿Finalizar esta planilla? No se podrá editar después.", {ok: 'Finalizar planilla'})) return;
+        if (!await tomatoConfirm("¿Aprobar esta planilla? Después no se cambia: una corrección queda como ajuste para la próxima planilla.", {ok: 'Aprobar planilla'})) return;
 
         try {
             const response = await fetch('/payroll/confirm', {
@@ -333,7 +476,7 @@
             const result = await response.json();
 
             if (response.ok) {
-                showGlobalToast("Éxito", "Planilla finalizada");
+                showGlobalToast("Éxito", "Planilla aprobada");
                 setTimeout(() => window.location.reload(), 1000);
             } else {
                 showGlobalToast("Error", result.message, "error");

@@ -8,11 +8,12 @@ from app.routers import deps
 from app.core.roles import ADMIN, SUPERVISOR, VENTAS, WORKER
 from app.db.models.user import User
 from app.db.models.schedule import ProjectSchedule
-from app.db.models.payroll import PayrollPeriod, PayrollEntry
+from app.db.models.payroll import PayrollAdjustment, PayrollEntry, PayrollLine, PayrollPeriod
 import pydantic
 from app.db.models.project import Project
 from app.utils.activity import log_activity
-from app.utils.planilla import PAY_TYPES, monthly_share, overtime_rate
+from app.utils.planilla import (LINE_KINDS, PAY_TYPES, line_sums, monthly_share, overtime_rate, recompute,
+                                valid_line)
 from app.utils.timecr import today_cr
 from app.core.templates import templates
 
@@ -45,6 +46,28 @@ def entry_rate(entry: PayrollEntry) -> float:
 def overtime_amount(overtime_hours: float, rate: float) -> float:
     """Overtime at 1.5x, rounded to hundreds like the gross salary."""
     return round(((overtime_hours or 0.0) * rate * 1.5) / 100) * 100
+
+
+def pending_adjustments(db: Session):
+    """Adjustments that no payroll line applies yet, oldest first."""
+    applied = db.query(PayrollLine.adjustment_id).filter(PayrollLine.adjustment_id.isnot(None))
+    return db.query(PayrollAdjustment).filter(~PayrollAdjustment.id.in_(applied)).order_by(PayrollAdjustment.id)
+
+
+def payment_status(db: Session, period: PayrollPeriod) -> dict:
+    """An approved payroll is "pagada" once everyone with something to receive has a payment
+    registered against it (Historial de Pagos → Planilla que paga)."""
+    from app.db.models.payment import PayrollPayment
+    owed = {e.user_id for e in period.entries if (e.net_salary or 0) > 0}
+    paid = {uid for (uid,) in db.query(PayrollPayment.user_id).filter(PayrollPayment.payroll_period_id == period.id)}
+    done = len(owed & paid)
+    return {"owed": len(owed), "paid": done, "complete": period.status == "final" and done == len(owed)}
+
+
+def line_payload(line: PayrollLine) -> dict:
+    label, effect = LINE_KINDS.get(line.kind, (line.kind, "suma"))
+    return {"id": line.id, "kind": line.kind, "label": label, "effect": effect, "description": line.description,
+            "amount": line.amount, "from_adjustment": line.adjustment_id is not None}
 
 
 def set_confirmed_hours(schedule: ProjectSchedule, hours: float, overtime: float):
@@ -84,11 +107,20 @@ def payroll_dashboard(
     if user.role in PAYROLL_PEOPLE:
         worker_stats = vacation_balance(user)
     
+    # Admin: what each approved payroll still owes, and the adjustments waiting for the next one.
+    statuses, pending = {}, []
+    if user.role == ADMIN:
+        statuses = {p.id: payment_status(db, p) for p in periods if p.status == "final"}
+        pending = pending_adjustments(db).all()
+
     return templates.TemplateResponse("payroll/index.html", {
         "request": request,
         "user": user,
         "periods": periods,
-        "worker_stats": worker_stats
+        "worker_stats": worker_stats,
+        "statuses": statuses,
+        "pending": pending,
+        "line_kinds": LINE_KINDS,
     })
 
 @router.get("/approval", response_class=HTMLResponse)
@@ -136,7 +168,10 @@ def payroll_detail(
         "company_cost": 0.0,
         "regular_amount": 0.0,
         "overtime_amount": 0.0,
-        "overtime_hours": 0.0
+        "overtime_hours": 0.0,
+        "salary_lines": 0.0,
+        "net_lines": 0.0,
+        "viaticos": 0.0,
     }
     
     enhanced_entries = []
@@ -154,7 +189,9 @@ def payroll_detail(
         rate = entry_rate(entry)
         overtime_amt = overtime_amount(entry.overtime_hours, rate)
         
-        regular_amt = gross - overtime_amt
+        base = entry.base_salary if entry.base_salary is not None else gross
+        regular_amt = base - overtime_amt
+        sums = line_sums(entry.lines)
         
         # New Calculations
         cs_empresa = gross * 0.2667
@@ -170,6 +207,9 @@ def payroll_detail(
         totals["previsiones"] += previsiones
         totals["regular_amount"] += regular_amt
         totals["overtime_amount"] += overtime_amt
+        totals["salary_lines"] += sums["salario"]
+        totals["net_lines"] += sums["suma"] - sums["resta"]
+        totals["viaticos"] += sums["suma"]
         
         entry_dict = {
             "id": entry.id,
@@ -188,10 +228,14 @@ def payroll_detail(
             "hourly_rate": rate,
             "pay_type": entry.pay_type or "hora",
             "days_worked": entry.days_worked,
+            "salary_lines": sums["salario"],
+            "net_lines": sums["suma"] - sums["resta"],
+            "lines": [line_payload(line) for line in entry.lines],
         }
         enhanced_entries.append(entry_dict)
-        
-    totals["company_cost"] = totals["gross"] + totals["cs_empresa"] + totals["previsiones"]
+
+    # Viáticos are paid by the company too, without charges on them.
+    totals["company_cost"] = totals["gross"] + totals["cs_empresa"] + totals["previsiones"] + totals["viaticos"]
 
     # For Worker/Supervisor view: Calculate Vacation Days
     worker_stats = {}
@@ -201,6 +245,8 @@ def payroll_detail(
 
     return templates.TemplateResponse("payroll/detail.html", {
         "pay_types": PAY_TYPES,
+        "line_kinds": LINE_KINDS,
+        "payments": payment_status(db, period),
         "request": request,
         "user": user,
         "period": period,
@@ -273,9 +319,9 @@ def confirm_payroll(
     period.status = "final"
     db.commit()
 
-    log_activity(db, user, "Finalizar Planilla", "PAYROLL", period.id, f"Periodo ID: {period.id} finalizado")
+    log_activity(db, user, "Aprobar Planilla", "PAYROLL", period.id, f"Planilla #{period.id} aprobada")
     
-    return {"status": "success", "message": "Planilla finalizada"}
+    return {"status": "success", "message": "Planilla aprobada"}
 
 @router.delete("/{period_id}")
 def delete_payroll(
@@ -524,6 +570,15 @@ def generate_payroll(
     monthly = db.query(User).filter(User.pay_type == "mensual", User.monthly_salary > 0,
                                     User.role.in_(PAYROLL_PEOPLE)).all()
     people = {p.id: p for p in monthly if deps.can_log_in(p) and not (p.start_date and p.start_date > e_date)}
+    # Fixed viáticos are paid each quincena, with or without salary in it.
+    for p in db.query(User).filter(User.viatico_quincenal > 0, User.role.in_(PAYROLL_PEOPLE)):
+        if deps.can_log_in(p):
+            people.setdefault(p.id, p)
+    # Adjustments left for the next payroll come in now (pending: no line applies them yet).
+    pending = pending_adjustments(db).all()
+    for adjustment in pending:
+        if adjustment.user:
+            people.setdefault(adjustment.user_id, adjustment.user)
     for uid in worked:
         if uid not in people:
             worker = db.get(User, uid)
@@ -545,28 +600,41 @@ def generate_payroll(
         overtime_pay = data["overtime"] * rate * 1.5
 
         # Round Gross to hundreds
-        gross = round((regular_pay + overtime_pay) / 100) * 100
+        base = round((regular_pay + overtime_pay) / 100) * 100
 
-        # Social Charges (9.17% - user specified "Aplicar cargas sociales")
-        charges = 0.0
-        if worker.apply_deductions:
-             charges = round((gross * 0.0917) / 100) * 100
-
-        db.add(PayrollEntry(
+        entry = PayrollEntry(
             payroll_period_id=period.id,
             user_id=uid,
             total_hours=data["hours"],
             overtime_hours=data["overtime"],
-            gross_salary=gross,
-            social_charges=charges,
-            net_salary=gross - charges,
+            base_salary=base,
+            gross_salary=base,
             apply_deductions=worker.apply_deductions,
             # The overtime base, so the detail can split regular and overtime pay.
             hourly_rate=rate,
             pay_type=pay_type,
             days_worked=days,
             details=data["details"] # JSON
-        ))
+        )
+        if worker.viatico_quincenal:
+            entry.lines.append(PayrollLine(kind="viatico", description="Viáticos de la quincena",
+                                           amount=worker.viatico_quincenal, created_by_id=user.id))
+        for adjustment in (a for a in pending if a.user_id == uid):
+            source = f" (planilla #{adjustment.source_period_id})" if adjustment.source_period_id else ""
+            entry.lines.append(PayrollLine(kind=adjustment.kind, description=adjustment.description + source,
+                                           amount=adjustment.amount, adjustment_id=adjustment.id,
+                                           created_by_id=user.id))
+        recompute(entry)
+        # An adjustment that would leave nothing (or less) to pay waits for a later payroll.
+        for line in [l for l in entry.lines if l.adjustment_id is not None]:
+            if entry.net_salary >= 0:
+                break
+            if line.amount < 0 or LINE_KINDS[line.kind][1] == "resta":
+                entry.lines.remove(line)
+                recompute(entry)
+        if not (entry.lines or base or data["hours"] or data["overtime"] or uid in worked):
+            continue
+        db.add(entry)
 
     db.commit()
 
@@ -588,22 +656,13 @@ def update_payroll_entry_deductions(
     if not entry:
         raise HTTPException(status_code=404, detail="Entry not found")
     if entry.period and entry.period.status == "final":
-        raise HTTPException(status_code=400, detail="La planilla ya está finalizada: no se puede cambiar")
+        raise HTTPException(status_code=400, detail="La planilla ya está aprobada: no se puede cambiar")
 
     log_activity(db, user, "Actualizar Deducciones", "PAYROLL_ENTRY", entry_id, f"Planilla cambio deducciones a: {apply_deductions}")
 
     entry.apply_deductions = apply_deductions
-    
-    # Recalculate with rounding
-    # Note: gross_salary is already rounded from creation, but if we want to be safe we use it as is.
-    gross = entry.gross_salary 
-    charges = 0.0
-    if apply_deductions:
-        charges = round((gross * 0.0917) / 100) * 100
-        
-    entry.social_charges = charges
-    entry.net_salary = gross - charges
-    
+    recompute(entry)
+
     db.commit()
     
     return {
@@ -612,3 +671,116 @@ def update_payroll_entry_deductions(
         "net_salary": entry.net_salary,
         "social_charges": entry.social_charges
     }
+
+
+# -----------------------------------------------------------------------------
+# 3. LINES AND ADJUSTMENTS (Admin)
+# -----------------------------------------------------------------------------
+
+class LineIn(pydantic.BaseModel):
+    kind: str
+    description: str = ""
+    amount: float
+
+
+def clean_line(data: LineIn) -> tuple:
+    """(kind, description, amount) or an HTTP 400 with the reason."""
+    problem = valid_line(data.kind, data.amount)
+    if problem:
+        raise HTTPException(status_code=400, detail=problem)
+    description = (data.description or "").strip()[:200] or LINE_KINDS[data.kind][0]
+    return data.kind, description, round(data.amount, 2)
+
+
+def money(amount: float) -> str:
+    return f"{'-' if amount < 0 else ''}₡{abs(amount):,.2f}"
+
+
+@router.post("/entry/{entry_id}/lines", dependencies=[Depends(deps.require_roles(ADMIN))])
+def add_line(entry_id: int, data: LineIn, db: Session = Depends(deps.get_db),
+             user: User = Depends(deps.get_current_user)):
+    """A bono, deducción, viáticos… on a draft payroll; the person's totals are recalculated."""
+    entry = db.get(PayrollEntry, entry_id)
+    if not entry:
+        raise HTTPException(status_code=404, detail="Entry not found")
+    if entry.period.status != "draft":
+        raise HTTPException(status_code=400, detail=(
+            "La planilla ya está aprobada: no se cambia. Dejá un ajuste para la próxima planilla."))
+    kind, description, amount = clean_line(data)
+    line = PayrollLine(kind=kind, description=description, amount=amount, created_by_id=user.id)
+    entry.lines.append(line)
+    recompute(entry)
+    if entry.net_salary < 0:
+        would_be = entry.net_salary
+        db.rollback()
+        raise HTTPException(status_code=400, detail=(
+            f"El neto quedaría en negativo ({money(would_be)}). Revisá el monto, o dejalo como ajuste para una "
+            "planilla con más salario."))
+    db.commit()
+    log_activity(db, user, "Agregar Línea Planilla", "PAYROLL_ENTRY", entry.id,
+                 f"{LINE_KINDS[kind][0]} {money(amount)} a {entry.user.full_name or entry.user.username} "
+                 f"en la planilla #{entry.payroll_period_id}: {description}")
+    return {"status": "success", "message": "Línea agregada", "net_salary": entry.net_salary}
+
+
+@router.post("/line/{line_id}/delete", dependencies=[Depends(deps.require_roles(ADMIN))])
+def delete_line(line_id: int, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
+    line = db.get(PayrollLine, line_id)
+    if not line:
+        raise HTTPException(status_code=404, detail="Line not found")
+    entry = line.entry
+    if entry.period.status != "draft":
+        raise HTTPException(status_code=400, detail="La planilla ya está aprobada: no se cambia.")
+    back = line.adjustment_id is not None
+    detail = (f"{LINE_KINDS.get(line.kind, (line.kind,))[0]} {money(line.amount)} de "
+              f"{entry.user.full_name or entry.user.username} en la planilla #{entry.payroll_period_id}")
+    entry.lines.remove(line)
+    recompute(entry)
+    db.commit()
+    log_activity(db, user, "Quitar Línea Planilla", "PAYROLL_ENTRY", entry.id, detail)
+    # A line that came from an adjustment frees it: it waits for the next payroll again.
+    message = "Línea quitada" + (": el ajuste vuelve a quedar pendiente para la próxima planilla" if back else "")
+    return {"status": "success", "message": message}
+
+
+class AdjustmentIn(LineIn):
+    user_id: int
+    source_period_id: Optional[int] = None
+
+
+@router.post("/adjustments", dependencies=[Depends(deps.require_roles(ADMIN))])
+def add_adjustment(data: AdjustmentIn, db: Session = Depends(deps.get_db),
+                   user: User = Depends(deps.get_current_user)):
+    """For an approved payroll: the correction is left for the person's next payroll, with a record."""
+    person = db.get(User, data.user_id)
+    if not person:
+        raise HTTPException(status_code=404, detail="Persona no encontrada")
+    kind, description, amount = clean_line(data)
+    if data.source_period_id and not db.get(PayrollPeriod, data.source_period_id):
+        raise HTTPException(status_code=404, detail="Planilla no encontrada")
+    adjustment = PayrollAdjustment(user_id=person.id, kind=kind, description=description, amount=amount,
+                                   source_period_id=data.source_period_id, created_by_id=user.id)
+    db.add(adjustment)
+    db.commit()
+    log_activity(db, user, "Ajuste Planilla", "PAYROLL_ADJUSTMENT", adjustment.id,
+                 f"{LINE_KINDS[kind][0]} {money(amount)} para {person.full_name or person.username} en la próxima "
+                 f"planilla" + (f" (corrige la #{data.source_period_id})" if data.source_period_id else "")
+                 + f": {description}")
+    return {"status": "success", "message": "Ajuste guardado: entra en la próxima planilla que se genere"}
+
+
+@router.post("/adjustments/{adjustment_id}/delete", dependencies=[Depends(deps.require_roles(ADMIN))])
+def delete_adjustment(adjustment_id: int, db: Session = Depends(deps.get_db),
+                      user: User = Depends(deps.get_current_user)):
+    adjustment = db.get(PayrollAdjustment, adjustment_id)
+    if not adjustment:
+        raise HTTPException(status_code=404, detail="Ajuste no encontrado")
+    if adjustment.lines:
+        raise HTTPException(status_code=400, detail=(
+            f"Ese ajuste ya está en la planilla #{adjustment.lines[0].entry.payroll_period_id}: quitalo de ahí."))
+    person = adjustment.user.full_name or adjustment.user.username if adjustment.user else "?"
+    detail = f"{LINE_KINDS.get(adjustment.kind, (adjustment.kind,))[0]} {money(adjustment.amount)} para {person}"
+    db.delete(adjustment)
+    db.commit()
+    log_activity(db, user, "Borrar Ajuste Planilla", "PAYROLL_ADJUSTMENT", adjustment_id, detail)
+    return {"status": "success", "message": "Ajuste borrado"}

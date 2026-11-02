@@ -22,7 +22,8 @@ lo que ya existe y la ordena en fases; cada fase es su propio PR.
 4. Asistencia real (llegó tarde, no llegó). **Hecho en la Fase 1.**
 5. Vistas semana y día; colores por tipo. **Hecho (Fases 1 y 2).**
 6. Costo estimado de mano de obra. **Hecho en la Fase 1.**
-7. Flujo borrador → aprobada → pagada, bonos y deducciones, y ajustes con registro.
+7. Flujo borrador → aprobada → pagada, bonos y deducciones, y ajustes con registro. **Hecho en la
+   Fase 4.**
 8. Comprobante por empleado y exportación a Excel.
 
 ## Fases
@@ -59,7 +60,7 @@ lo que ya existe y la ordena en fases; cada fase es su propio PR.
 - Vacaciones descuentan el saldo (reemplaza el número a mano); incapacidad y feriado según
   regla configurable.
 
-### Fase 4. Ajustes y flujo de la planilla
+### Fase 4. Ajustes y flujo de la planilla (hecha, 30/10/2026)
 - Líneas de bono, deducción, adelanto, **viáticos**, comisión o reversión por persona en
   borrador. Los viáticos no son salario: no llevan cargas sociales.
 - Viáticos: **monto fijo por quincena** configurado en cada persona (asesores y supervisores
