@@ -106,6 +106,15 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
   `commission_new_client`, 0 por defecto) y propias en `users.commission_*` (vacío = generales;
   admins solo con propias). Cada `commissions` crea un `payroll_adjustment` (comisión) que entra
   en la próxima planilla; Anular lo quita si no se pagó o deja uno negativo si ya se pagó.
+- **Pantallas de Planilla** (`app/templates/payroll/`, pestañas comunes en `_nav.html`): Quincenas
+  con los pasos que faltan (horas por confirmar, borradores, pagos pendientes); detalle con una
+  fila por persona y un panel con el cálculo, las líneas, los días y el pago; el pago de la
+  quincena se registra desde ahí (`POST /payroll/entry/{id}/pay`, con su neto). Las personas ven
+  solo sus quincenas aprobadas, como comprobante. Números de pantalla sin céntimos (filtro `crc0`).
+- **Comprobantes y Excel** (`app/utils/planilla_resumen.py`): comprobante por persona
+  (`/payroll/{id}/comprobante/{entrada}`) y todos juntos (`/payroll/{id}/comprobantes`), listado de
+  pago (`/payroll/report/{id}`) para imprimir o PDF, y Excel con hojas Resumen, Líneas y Días
+  (`/payroll/{id}/excel`, `openpyxl`).
 - **Dashboard Estadístico**: Análisis de KPI operativos (Facturación, vencimientos).
 
 ### 3. Bitácora Digital (Daily Logs)

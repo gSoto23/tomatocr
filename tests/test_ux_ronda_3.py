@@ -121,7 +121,7 @@ def test_final_payroll_needs_the_word_and_no_payments(db, login_as, users, final
 
 def test_status_is_in_spanish(login_as, final_period):
     html = login_as("admin").get("/payroll/").text
-    assert "Final" in html and ">\n                            final</span>" not in html
+    assert "Aprobada" in html and ">final<" not in html
 
 
 def test_vacation_balance_subtracts_days_taken(db, login_as, users):
@@ -136,7 +136,7 @@ def test_vacation_balance_subtracts_days_taken(db, login_as, users):
     db.expire_all()
     assert db.get(User, worker.id).vacation_days_taken == 4
     html = login_as("worker").get("/payroll/").text
-    assert "4.0 tomados" in html
+    assert "4 tomados" in html
 
 
 def test_reactivation_takes_the_chosen_date_and_resets_vacations(db, login_as, users):

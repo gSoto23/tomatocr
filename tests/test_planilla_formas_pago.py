@@ -122,11 +122,15 @@ def test_asesor_sees_only_own_entry(db, login_as, users):
     worker.hourly_rate = 2000
     db.commit()
     work(db, users, worker, date(2026, 10, 19))
-    period_id = generate(login_as("admin"))
+    admin = login_as("admin")
+    period_id = generate(admin)
     client = login_as("ventas")
+    # A draft can still change: people see their quincena once it is approved.
+    assert client.get(f"/payroll/detail/{period_id}").status_code == 404
+    admin.post("/payroll/confirm", json={"period_id": period_id})
     assert client.get("/payroll/").status_code == 200
     detail = client.get(f"/payroll/detail/{period_id}").text
-    assert asesor.full_name in detail and worker.full_name not in detail and "Mensual (quincena)" in detail
+    assert asesor.full_name in detail and worker.full_name not in detail and "Mensual (media quincena" in detail
     report = client.get(f"/payroll/report/{period_id}").text
     assert worker.full_name not in report
     assert client.get("/payments/", follow_redirects=False).headers["location"] == f"/payments/history/{asesor.id}"

@@ -24,7 +24,7 @@ lo que ya existe y la ordena en fases; cada fase es su propio PR.
 6. Costo estimado de mano de obra. **Hecho en la Fase 1.**
 7. Flujo borrador → aprobada → pagada, bonos y deducciones, y ajustes con registro. **Hecho en la
    Fase 4.**
-8. Comprobante por empleado y exportación a Excel.
+8. Comprobante por empleado y exportación a Excel. **Hecho en la Fase 6.**
 
 ## Fases
 
@@ -79,9 +79,11 @@ lo que ya existe y la ordena en fases; cada fase es su propio PR.
   reglas propias. El sistema no deja borrar pagos ni facturas pagadas, así que la reversión es
   **Anular** con motivo: si no se pagó, sale; si ya se pagó, ajuste negativo en la siguiente planilla.
 
-### Fase 6. Comprobantes y exportación
+### Fase 6. Comprobantes y exportación (hecha, 02/11/2026)
 - Comprobante por empleado imprimible / PDF (impresión del navegador).
-- Resumen y detalle a Excel.
+- Resumen y detalle a Excel (.xlsx con `openpyxl`: hojas Resumen, Líneas y Días).
+- Junto con esta fase se rediseñaron las pantallas de Planilla (pestañas, pasos pendientes, detalle
+  con panel por persona, pago desde la quincena, comprobante para las personas).
 
 ### Fuera por ahora
 - Sincronizar con Google Calendar u Outlook. Si se ocupa, un enlace de calendario de solo
@@ -97,9 +99,10 @@ lo que ya existe y la ordena en fases; cada fase es su propio PR.
 - Comisión por factura: sobre el monto **sin IVA**; la gana el vendedor de la oportunidad; los
   administradores no ganan comisión salvo con reglas propias; los montos generales los carga el
   admin (empiezan en 0). (02/11/2026)
+- Exportación: Excel (.xlsx). (02/11/2026)
 
 ## Decisiones pendientes
 
 1. Cuánto paga la empresa por incapacidad y qué feriados son de pago obligatorio (validar con
    el contador antes de la Fase 3).
-2. Exportación: Excel (.xlsx, una librería nueva) o CSV.
+

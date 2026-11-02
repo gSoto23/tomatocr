@@ -1,99 +1,54 @@
-<!DOCTYPE html>
-<html lang="es">
+{% extends "payroll/_print_base.html" %}
+{# The payment list of a quincena: who, how and how much, to pay it (or hand it to the bank). #}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reporte Planilla #{{ period.id }}</title>
-    <!-- Tailwind CSS for Print -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-        }
+{% block title %}Listado de pago · Quincena {{ label }}{% endblock %}
 
-        @media print {
-            .no-print {
-                display: none;
-            }
-
-            body {
-                padding: 0;
-            }
-        }
-    </style>
-</head>
-
-<body class="bg-gray-100 min-h-screen p-8 text-gray-900">
-
-    <div class="max-w-4xl mx-auto bg-white p-8 shadow-md print:shadow-none print:p-0">
-
-        <!-- Header -->
-        <div class="flex justify-between items-center mb-8 border-b pb-4">
-            <div>
-                <h1 class="text-2xl font-bold uppercase">Reporte de Planilla</h1>
-                <p class="text-sm text-gray-600">TOMATO COSTA RICA ANY S.R.L. · Cédula jurídica 3-102-876296</p>
-            </div>
-            <div class="text-right">
-                <p class="font-bold text-lg">Periodo #{{ period.id }}</p>
-                <p class="text-sm text-gray-600">{{ period.start_date.strftime('%d/%m/%Y') }} - {{
-                    period.end_date.strftime('%d/%m/%Y') }}</p>
-            </div>
+{% block content %}
+<article class="sheet mx-auto max-w-4xl rounded-lg bg-white p-6 shadow-sm sm:p-8">
+    <header class="mb-6 flex flex-col gap-2 border-b border-gray-200 pb-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+            <h1 class="text-xl font-bold uppercase">Listado de pago</h1>
+            <p class="text-sm text-gray-600">{{ company }}</p>
         </div>
-
-        <!-- Content Table -->
-        <table class="w-full text-left border-collapse">
-            <thead>
-                <tr class="border-b-2 border-gray-800">
-                    <th class="py-2 text-sm font-bold uppercase">Trabajador</th>
-                    <th class="py-2 text-sm font-bold uppercase text-center">Horas</th>
-                    <th class="py-2 text-sm font-bold uppercase text-center">H. Extra</th>
-                    <th class="py-2 text-sm font-bold uppercase text-center">Monto Extra</th>
-                    <th class="py-2 text-sm font-bold uppercase text-center">Teléfono</th>
-                    <th class="py-2 text-sm font-bold uppercase">Forma de Pago</th>
-                    <th class="py-2 text-sm font-bold uppercase text-right">Neto a Pagar</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-200">
-                {% for entry in entries %}
-                <tr>
-                    <td class="py-3 text-sm">{{ entry.name }}</td>
-                    <td class="py-3 text-sm text-center">{{ entry.hours }}</td>
-                    <td class="py-3 text-sm text-center">{{ entry.overtime_hours }}</td>
-                    <td class="py-3 text-sm text-center">₡{{ "{:,.2f}".format(entry.overtime_amount) }}</td>
-                    <td class="py-3 text-sm text-center">{{ entry.phone }}</td>
-                    <td class="py-3 text-sm">
-                        <div class="flex flex-col">
-                            <span class="font-bold">{{ entry.payment_method }}</span>
-                            {% if entry.payment_method in ['Transferencia', 'Sinpe'] and entry.account_number %}
-                            <span class="text-xs text-gray-500">{{ entry.account_number }}</span>
-                            {% endif %}
-                        </div>
-                    </td>
-                    <td class="py-3 text-sm font-bold text-right">₡{{ "{:,.2f}".format(entry.net_pay) }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-            <tfoot>
-                <tr class="border-t-2 border-gray-800">
-                    <td colspan="6" class="py-4 text-right font-bold text-lg">Total General:</td>
-                    <td class="py-4 text-right font-bold text-lg">₡{{ "{:,.2f}".format(total_net) }}</td>
-                </tr>
-            </tfoot>
-        </table>
-
-        <!-- Footer -->
-        <div class="mt-12 text-center text-xs text-gray-500 border-t pt-4">
-            <p>Generado el {{ today.strftime('%d/%m/%Y') }}</p>
+        <div class="text-sm sm:text-right">
+            <p class="font-semibold">Quincena {{ label }}</p>
+            <p class="text-gray-600">{{ period.start_date | format_date }} – {{ period.end_date | format_date }} · planilla #{{ period.id }}</p>
+            {% if period.status != 'final' %}<p class="font-semibold text-yellow-700">Borrador: todavía puede cambiar</p>{% endif %}
         </div>
-    </div>
-
-    <!-- Auto Print Script -->
-    <script>
-        window.onload = function () {
-            window.print();
-        }
-    </script>
-</body>
-
-</html>
+    </header>
+    <table class="w-full border-collapse text-left text-sm">
+        <thead>
+            <tr class="border-b-2 border-gray-800 text-xs uppercase">
+                <th class="py-2">Persona</th>
+                <th class="py-2">Cómo se paga</th>
+                <th class="py-2 text-right">Bruto</th>
+                <th class="py-2 text-right">CCSS</th>
+                <th class="py-2 text-right">Viáticos y rebajas</th>
+                <th class="py-2 text-right">Neto a pagar</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200">
+            {% for r in rows %}
+            <tr>
+                <td class="py-2">{{ r.name }}{% if r.paid %} <span class="text-xs text-green-700">✓ pagado</span>{% endif %}</td>
+                <td class="py-2"><span class="font-semibold">{{ r.payment_method }}</span>{% if r.account %}<span class="block text-xs text-gray-500">{{ r.account }}</span>{% endif %}</td>
+                <td class="py-2 text-right tabular-nums">{{ r.gross | crc }}</td>
+                <td class="py-2 text-right tabular-nums">{{ (-r.ccss) | crc }}</td>
+                <td class="py-2 text-right tabular-nums">{{ r.net_lines | crc if r.net_lines else '—' }}</td>
+                <td class="py-2 text-right font-bold tabular-nums">{{ r.net | crc }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr class="border-t-2 border-gray-800 font-bold">
+                <td class="py-3" colspan="2">Total · {{ totals.people }} {{ 'persona' if totals.people == 1 else 'personas' }}</td>
+                <td class="py-3 text-right tabular-nums">{{ totals.gross | crc }}</td>
+                <td class="py-3 text-right tabular-nums">{{ (-totals.ccss) | crc }}</td>
+                <td class="py-3 text-right tabular-nums">{{ totals.net_lines | crc }}</td>
+                <td class="py-3 text-right text-lg tabular-nums">{{ totals.net | crc }}</td>
+            </tr>
+        </tfoot>
+    </table>
+    <p class="mt-8 border-t pt-3 text-center text-xs text-gray-500">Generado el {{ today | format_date }}</p>
+</article>
+{% endblock %}

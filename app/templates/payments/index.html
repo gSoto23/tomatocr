@@ -1,39 +1,36 @@
 {% extends "base_dashboard.html" %}
 
-{% block title %}Pagos - Lista de Usuarios | TOMATO{% endblock %}
+{% block title %}Pagos | TOMATO{% endblock %}
 {% block header_title %}Planilla{% endblock %}
 
 {% block content %}
-<div class="mb-6">
-    <h1 class="text-2xl font-bold text-gray-900">Historial de Pagos</h1>
-    <p class="mt-1 text-sm text-gray-500">Seleccione un usuario para ver su historial o registrar un nuevo pago.</p>
+<div class="mb-4">
+    <h1 class="text-2xl font-bold text-gray-900">Pagos</h1>
+    <p class="mt-1 text-sm text-gray-500">El pago de una quincena se registra desde la quincena (tocá a la persona). Aquí está el
+        historial de cada persona y los pagos sueltos.</p>
 </div>
+{% set active = 'pagos' %}{% include "payroll/_nav.html" %}
 
-<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-    {% for worker in workers %}
-    <a href="/payments/history/{{ worker.id }}"
-        class="block p-6 bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md hover:border-black transition-all">
-        <div class="flex items-center gap-4">
-            <div
-                class="h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 font-bold text-lg">
-                {{ worker.username[:2].upper() }}
+<div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+    <ul class="divide-y divide-gray-100">
+        {% for worker in workers %}
+        {% set p = last.get(worker.id) %}
+        <li class="relative flex items-center justify-between gap-4 px-4 py-3 hover:bg-gray-50 sm:px-6">
+            <div class="flex min-w-0 items-center gap-3">
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-bold text-gray-600">{{ ((worker.full_name or worker.username).split() | map('first') | join)[:2] | upper }}</span>
+                <div class="min-w-0">
+                    <a href="/payments/history/{{ worker.id }}" class="font-medium text-gray-900"><span class="absolute inset-0" aria-hidden="true"></span>{{ worker.full_name or worker.username }}</a>
+                    <p class="text-xs text-gray-500">{{ role_names.get(worker.role, worker.role) }}{% if worker.status != 'active' %} · {{ 'Liquidado' if worker.status == 'liquidated' else 'Inactivo' }}{% endif %}</p>
+                </div>
             </div>
-            <div>
-                <h3 class="text-lg font-medium text-gray-900">{{ worker.full_name or worker.username }}</h3>
-                <p class="text-sm text-gray-500 capitalize">{{ worker.role }}</p>
+            <div class="shrink-0 text-right text-sm">
+                {% if p %}<p class="font-medium text-gray-900">{{ p.amount | crc0 }}</p><p class="text-xs text-gray-500">último pago, {{ p.date | format_date }}</p>
+                {% else %}<p class="text-xs text-gray-400">Sin pagos registrados</p>{% endif %}
             </div>
-        </div>
-        <div class="mt-4 pt-4 border-t border-gray-100 flex justify-between items-center">
-            <span class="text-sm text-gray-500">Ver Historial</span>
-            <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-            </svg>
-        </div>
-    </a>
-    {% else %}
-    <div class="col-span-3 text-center py-10">
-        <p class="text-gray-500">No hay trabajadores registrados.</p>
-    </div>
-    {% endfor %}
+        </li>
+        {% else %}
+        <li class="px-4 py-8 text-center text-sm text-gray-500">No hay personas en planilla.</li>
+        {% endfor %}
+    </ul>
 </div>
 {% endblock %}

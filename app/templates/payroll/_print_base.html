@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: Arial, Helvetica, sans-serif; }
+        @media print {
+            .no-print { display: none !important; }
+            body { background: #fff !important; padding: 0 !important; }
+            .sheet { box-shadow: none !important; margin: 0 !important; max-width: none !important; }
+            .page-break { break-after: page; }
+        }
+        @page { size: letter; margin: 14mm; }
+    </style>
+</head>
+<body class="min-h-screen bg-gray-100 p-4 text-gray-900 sm:p-8">
+    <div class="no-print mx-auto mb-4 flex max-w-3xl items-center justify-between gap-3">
+        <p class="text-sm text-gray-600">{% block hint %}Para guardarlo en PDF, en la ventana de imprimir elegí <strong>Guardar como PDF</strong>.{% endblock %}</p>
+        <button type="button" onclick="window.print()" class="shrink-0 rounded-md bg-black px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800">Imprimir</button>
+    </div>
+    {% block content %}{% endblock %}
+</body>
+</html>

@@ -4,14 +4,12 @@
 {% block header_title %}Planilla{% endblock %}
 
 {% block content %}
-<div class="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-    <div>
-        <h1 class="text-2xl font-bold text-gray-900">{{ 'Comisiones' if user.role == 'admin' else 'Mis comisiones' }}</h1>
-        <p class="mt-1 text-sm text-gray-500">Se generan cuando una factura queda <strong>pagada</strong> y entran solas en la
-            próxima planilla del vendedor.</p>
-    </div>
-    <a href="/payroll" class="inline-flex items-center justify-center rounded-md bg-white px-4 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Volver</a>
+<div class="mb-4">
+    <h1 class="text-2xl font-bold text-gray-900">{{ 'Comisiones' if user.role == 'admin' else 'Mis comisiones' }}</h1>
+    <p class="mt-1 text-sm text-gray-500">Se generan cuando una factura queda <strong>pagada</strong> y entran solas en la
+        próxima quincena del vendedor.</p>
 </div>
+{% set active = 'comisiones' %}{% include "payroll/_nav.html" %}
 
 {% if user.role == 'admin' %}
 <div class="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -39,7 +37,9 @@
 
     <div class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
         <h2 class="text-base font-semibold text-gray-900">Quién gana comisiones</h2>
-        <p class="mt-1 text-xs text-gray-500">El vendedor de la oportunidad que generó el proyecto (o el dueño de la cuenta).</p>
+        <p class="mt-1 text-xs text-gray-500">El vendedor de la oportunidad que generó el proyecto (o el dueño de la cuenta).
+            <strong>Montos distintos por persona:</strong> tocá el nombre → Empleados → <em>Comisiones propias</em>; lo que pongas ahí
+            reemplaza las reglas generales solo para esa persona.</p>
         <ul class="mt-3 divide-y divide-gray-100 text-sm">
             {% for s in sellers %}
             <li class="flex items-center justify-between gap-3 py-2">
@@ -51,6 +51,10 @@
             <li class="py-2 text-gray-500">Nadie vende todavía.</li>
             {% endfor %}
         </ul>
+        {% if not_selling %}
+        <p class="mt-3 rounded-md bg-amber-50 p-2 text-xs text-amber-900">Sin comisión hasta marcarlos como <em>También vende</em> en Empleados:
+            {% for p in not_selling %}<a href="/users/{{ p.id }}/edit" class="font-semibold underline">{{ p.full_name or p.username }}</a>{{ ', ' if not loop.last }}{% endfor %}.</p>
+        {% endif %}
     </div>
 </div>
 

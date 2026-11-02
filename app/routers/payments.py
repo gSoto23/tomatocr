@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc
 
 from app.routers import deps
-from app.core.roles import ADMIN, OPERATIONS_ROLES, SUPERVISOR, VENTAS, WORKER
+from app.core.roles import ADMIN, OPERATIONS_ROLES, ROLE_NAMES, SUPERVISOR, VENTAS, WORKER
 from app.db.models.user import User
 from app.db.models.payment import PayrollPayment
 from app.db.models.payroll import PayrollEntry, PayrollPeriod
@@ -37,12 +37,17 @@ def list_payments_view(
         return RedirectResponse(url="/", status_code=303)
 
     # Admin: List all workers to manage payments
-    workers = db.query(User).filter(User.role.in_([WORKER, SUPERVISOR, VENTAS])).all()
-    
+    workers = db.query(User).filter(User.role.in_([WORKER, SUPERVISOR, VENTAS])).order_by(User.full_name).all()
+    # Each person's latest payment, so the list says who is up to date.
+    last = {}
+    for payment in db.query(PayrollPayment).order_by(PayrollPayment.date, PayrollPayment.id):
+        last[payment.user_id] = payment
     return templates.TemplateResponse("payments/index.html", {
         "request": request,
         "user": user,
-        "workers": workers
+        "workers": workers,
+        "last": last,
+        "role_names": ROLE_NAMES,
     })
 
 @router.get("/history/{user_id}")

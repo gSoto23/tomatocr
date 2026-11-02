@@ -76,7 +76,8 @@ def period(db, users):
 def test_deductions_checkbox_works(db, login_as, period):
     p, entry = period
     client = login_as("admin")
-    assert f"toggleDeductions({entry.id}, this.checked" in client.get(f"/payroll/detail/{p.id}").text
+    # The person panel (Planilla UX) has the box; it sends the change for the open person.
+    assert 'onchange="toggleDeductions(this)"' in client.get(f"/payroll/detail/{p.id}").text
     response = client.patch(f"/payroll/entry/{entry.id}", json={"apply_deductions": False})
     assert response.status_code == 200
     db.expire_all()
