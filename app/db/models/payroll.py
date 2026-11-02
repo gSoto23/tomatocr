@@ -12,8 +12,12 @@ class PayrollPeriod(Base):
     end_date = Column(Date, nullable=False)
     status = Column(String(20), default="draft") # draft, final
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    # Paid outside the system (no payments recorded here): who said so and when. It counts as Pagada.
+    paid_outside_at = Column(DateTime(timezone=True), nullable=True)
+    paid_outside_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     entries = relationship("PayrollEntry", back_populates="period", cascade="all, delete-orphan")
+    paid_outside_by = relationship("User", foreign_keys=[paid_outside_by_id])
 
 class PayrollEntry(Base):
     __tablename__ = "payroll_entries"

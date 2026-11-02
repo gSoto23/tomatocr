@@ -111,6 +111,9 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
   fila por persona y un panel con el cálculo, las líneas, los días y el pago; el pago de la
   quincena se registra desde ahí (`POST /payroll/entry/{id}/pay`, con su neto). Las personas ven
   solo sus quincenas aprobadas, como comprobante. Números de pantalla sin céntimos (filtro `crc0`).
+- **Pagada fuera del sistema** (migración 0027, `payroll_periods.paid_outside_at` y `_by_id`): una
+  quincena aprobada pagada sin registrar los pagos se marca como pagada (y se puede deshacer); cuenta
+  como Pagada y no deja registrar pagos encima.
 - **Comprobantes y Excel** (`app/utils/planilla_resumen.py`): comprobante por persona
   (`/payroll/{id}/comprobante/{entrada}`) y todos juntos (`/payroll/{id}/comprobantes`), listado de
   pago (`/payroll/report/{id}`) para imprimir o PDF, y Excel con hojas Resumen, Líneas y Días
