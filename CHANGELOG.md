@@ -6,6 +6,12 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-11-02
 
+### Capturas del manual siempre al día (esta rama)
+- Cada captura del manual lleva en su dirección la fecha del archivo (`?v=...`). Los navegadores
+  guardan las imágenes una semana; ahora una captura regenerada con el mismo nombre se ve nueva al
+  instante, sin esperar a que venza la copia guardada.
+- Despliegue: sin migraciones; reiniciar.
+
 ### Manual de Planilla con capturas nuevas (esta rama)
 - El capítulo **Planilla** del manual vuelve a tener capturas, del diseño actual: Quincenas con
   los pasos de *Qué sigue*, el detalle de una quincena en borrador, el panel de una persona,
