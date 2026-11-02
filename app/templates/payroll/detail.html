@@ -1,558 +1,419 @@
 {% extends "base_dashboard.html" %}
 
-{% block title %}Detalle de Planilla | TOMATO{% endblock %}
+{% block title %}Quincena {{ label }} | TOMATO{% endblock %}
 {% block header_title %}Planilla{% endblock %}
 
 {% block content %}
-<div class="mb-8">
-    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
-        <div>
-            <h1 class="text-3xl font-bold text-gray-900">Planilla #{{ period.id }}</h1>
-            <p class="mt-1 text-sm text-gray-500">
-                Periodo: <span class="font-medium text-gray-900">{{ period.start_date | format_date }}</span> - <span
-                    class="font-medium text-gray-900">{{ period.end_date | format_date }}</span>
-                ·
-                {% if period.status != 'final' %}<span class="font-semibold text-yellow-700">Borrador</span>
-                {% elif payments.complete %}<span class="font-semibold text-green-700">Pagada</span>
-                {% else %}<span class="font-semibold text-blue-700">Aprobada</span>{% if user.role == 'admin' %} · {{ payments.paid }} de {{ payments.owed }} pagados{% endif %}
-                {% endif %}
-            </p>
-        </div>
-        <div class="flex gap-3 mt-4 sm:mt-0">
-            <a href="/payroll"
-                class="inline-flex items-center justify-center rounded-md bg-white px-4 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-all">
-                Volver
-            </a>
-            <a href="/payroll/report/{{ period.id }}" target="_blank"
-                class="inline-flex items-center justify-center rounded-md bg-white px-4 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-all">
-                Imprimir Reporte
-            </a>
-            {% if user.role == 'admin' and period.status == 'draft' %}
-            <button onclick="confirmPayroll({{ period.id }})"
-                class="inline-flex items-center justify-center rounded-md bg-black px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 transition-all">
-                Aprobar planilla
-            </button>
-            {% endif %}
-        </div>
-    </div>
+{% set draft = period.status != 'final' %}
+<a href="/payroll" class="mb-3 inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900">
+    <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clip-rule="evenodd" /></svg>
+    Quincenas
+</a>
 
-    <!-- Summary Cards -->
-    <dl class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        {% if user.role in ['worker', 'supervisor', 'ventas'] %}
-        <!-- Worker/Supervisor View: Simplified -->
-        <div class="overflow-hidden rounded-lg bg-green-50 px-4 py-5 shadow sm:p-6 border border-green-100">
-            <dt class="truncate text-sm font-medium text-green-800">Total a Pagar</dt>
-            <dd class="mt-1 text-3xl font-semibold tracking-tight text-green-900">₡{{ "{:,.2f}".format(totals.net) }}
-            </dd>
-        </div>
-        {% else %}
-        <!-- Admin View Cards -->
-        <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6 border border-gray-100">
-            <dt class="truncate text-sm font-medium text-gray-500">Total Salarios (Neto)</dt>
-            <dd class="mt-1 text-3xl font-semibold tracking-tight text-gray-900">₡{{ "{:,.2f}".format(totals.net) }}
-            </dd>
-        </div>
-        <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6 border border-gray-100">
-            <dt class="truncate text-sm font-medium text-gray-500">Cargas Patronales (26.67%)</dt>
-            <dd class="mt-1 text-3xl font-semibold tracking-tight text-gray-900">₡{{
-                "{:,.2f}".format(totals.cs_empresa) }}</dd>
-        </div>
-        <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6 border border-gray-100">
-            <dt class="truncate text-sm font-medium text-gray-500">Previsiones (18%)</dt>
-            <dd class="mt-1 text-3xl font-semibold tracking-tight text-gray-900">₡{{
-                "{:,.2f}".format(totals.previsiones) }}</dd>
-        </div>
-        <div class="overflow-hidden rounded-lg bg-gray-900 px-4 py-5 shadow sm:p-6 border border-gray-900">
-            <dt class="truncate text-sm font-medium text-gray-400">Costo Total Empresa</dt>
-            <dd class="mt-1 text-3xl font-semibold tracking-tight text-white">₡{{ "{:,.2f}".format(totals.company_cost)
-                }}</dd>
-        </div>
+<div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900">Quincena {{ label }}</h1>
+        <p class="mt-1 flex flex-wrap items-center gap-2 text-sm text-gray-500">
+            {% if draft %}<span class="rounded-full bg-yellow-50 px-2 py-0.5 text-xs font-semibold text-yellow-800 ring-1 ring-yellow-600/20">Borrador</span>
+            {% elif payments.complete %}<span class="rounded-full bg-green-50 px-2 py-0.5 text-xs font-semibold text-green-700 ring-1 ring-green-600/20">Pagada</span>
+            {% else %}<span class="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700 ring-1 ring-blue-600/20">Aprobada</span>{% endif %}
+            <span>{{ period.start_date | format_date }} – {{ period.end_date | format_date }} · planilla #{{ period.id }}</span>
+        </p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+        <a href="/payroll/{{ period.id }}/excel" class="inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Descargar Excel</a>
+        <a href="/payroll/{{ period.id }}/comprobantes" target="_blank" class="inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Comprobantes</a>
+        <a href="/payroll/report/{{ period.id }}" target="_blank" class="inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Listado de pago</a>
+        {% if draft %}
+        <button type="button" onclick="confirmPayroll({{ period.id }})" class="inline-flex items-center rounded-md bg-black px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800">Aprobar quincena</button>
         {% endif %}
-    </dl>
-</div>
-
-<div class="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
-    <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-300">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th scope="col"
-                        class="py-3.5 pl-4 pr-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider sm:pl-6">
-                        Trabajador</th>
-                    <th scope="col"
-                        class="px-2 py-3.5 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Horas
-                    </th>
-                    <th scope="col"
-                        class="px-2 py-3.5 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">H. Extra
-                    </th>
-                    <th scope="col"
-                        class="px-2 py-3.5 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Monto
-                        Salario
-                    </th>
-                    <th scope="col"
-                        class="px-2 py-3.5 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Monto
-                        Extra
-                    </th>
-                    <th scope="col" class="px-2 py-3.5 text-right text-xs font-bold text-gray-500 uppercase tracking-wider" title="Bonos, comisiones y ajustes de salario: llevan CCSS">Bonos / Ajustes</th>
-                    <th scope="col"
-                        class="px-2 py-3.5 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Total
-                        Bruto</th>
-                    <th scope="col"
-                        class="px-2 py-3.5 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">C.C.S.S
-                        (9.17%)</th>
-                    <th scope="col" class="px-2 py-3.5 text-right text-xs font-bold text-gray-500 uppercase tracking-wider" title="Viáticos suman; deducciones y adelantos restan. Sin CCSS">Viáticos / Rebajas</th>
-                    <th scope="col"
-                        class="px-2 py-3.5 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Neto
-                        Pagar</th>
-                    {% if user.role not in ['worker', 'supervisor', 'ventas'] %}
-                    <th scope="col"
-                        class="px-2 py-3.5 text-right text-xs font-bold text-gray-500 uppercase tracking-wider bg-gray-100 text-gray-900">
-                        C.S. Empresa</th>
-                    <th scope="col"
-                        class="px-2 py-3.5 text-right text-xs font-bold text-gray-500 uppercase tracking-wider bg-gray-50 text-gray-900">
-                        Previsiones</th>
-                    {% endif %}
-                    {% if user.role == 'admin' %}
-                    <th scope="col"
-                        class="px-2 py-3.5 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">
-                        Apl. Ded?
-                    </th>
-                    {% endif %}
-                </tr>
-            </thead>
-            <tbody id="payroll-entries-body" class="divide-y divide-gray-200 bg-white">
-                {% for entry in entries %}
-                <tr class="hover:bg-gray-50 transition-colors">
-                    <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
-                        <div class="flex items-center">
-                            <div
-                                class="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 font-bold text-xs mr-3">
-                                {{ (entry.user.full_name or entry.user.username)[:2].upper() }}
-                            </div>
-                            <div>
-                                {{ entry.user.full_name or entry.user.username }}
-                                <div class="text-xs font-normal text-gray-500">{{ pay_types[entry.pay_type] }}{% if entry.pay_type == 'mensual' %} (quincena){% elif entry.pay_type == 'dia' %} · {{ entry.days_worked | int }} {{ 'día' if entry.days_worked == 1 else 'días' }}{% endif %} · ₡{{ "{:,.0f}".format(entry.hourly_rate) }}/h{% if entry.pay_type != 'hora' %} extra base{% endif %} · {{ entry.user.payment_method or 'Sin método' }}{% if entry.user.payment_method in ['Transferencia', 'Sinpe'] and entry.user.account_number %} {{ entry.user.account_number }}{% endif %} ·
-                                    <button type="button"
-                                        onclick='showBreakdown({{ entry.details | tojson | safe }}, {{ (entry.user.full_name or entry.user.username) | tojson }})'
-                                        class="font-semibold text-blue-600 hover:text-blue-900">Ver desglose</button>
-                                    {% if entry.lines or user.role == 'admin' %} ·
-                                    <button type="button" onclick="openLines({{ entry.id }})"
-                                        class="font-semibold text-blue-600 hover:text-blue-900">Líneas{% if entry.lines %} ({{ entry.lines | length }}){% endif %}</button>{% endif %}</div>
-                            </div>
-                        </div>
-                    </td>
-                    <td class="whitespace-nowrap px-2 py-4 text-sm text-gray-500 text-right font-medium">{{
-                        entry.total_hours }}</td>
-                    <td class="whitespace-nowrap px-2 py-4 text-sm text-gray-500 text-right font-medium">{{
-                        entry.overtime_hours }}</td>
-                    <td class="whitespace-nowrap px-2 py-4 text-sm text-gray-900 text-right">₡{{
-                        "{:,.2f}".format(entry.regular_amount) }}</td>
-                    <td class="whitespace-nowrap px-2 py-4 text-sm text-gray-900 text-right">₡{{
-                        "{:,.2f}".format(entry.overtime_amount) }}</td>
-                    <td class="whitespace-nowrap px-2 py-4 text-sm text-gray-900 text-right">{{ entry.salary_lines | crc if entry.salary_lines else '—' }}</td>
-                    <td class="whitespace-nowrap px-2 py-4 text-sm text-gray-900 text-right font-bold">₡{{
-                        "{:,.2f}".format(entry.gross_salary) }}</td>
-                    <td class="whitespace-nowrap px-2 py-4 text-sm text-gray-900 text-right">-₡{{
-                        "{:,.2f}".format(entry.social_charges) }}</td>
-                    <td class="whitespace-nowrap px-2 py-4 text-sm text-gray-900 text-right">{{ entry.net_lines | crc if entry.net_lines else '—' }}</td>
-                    <td class="whitespace-nowrap px-2 py-4 text-sm font-bold text-gray-900 text-right bg-gray-50">₡{{
-                        "{:,.2f}".format(entry.net_salary) }}</td>
-                    {% if user.role not in ['worker', 'supervisor', 'ventas'] %}
-                    <td class="whitespace-nowrap px-2 py-4 text-sm text-gray-900 text-right bg-gray-100">₡{{
-                        "{:,.2f}".format(entry.cs_empresa) }}</td>
-                    <td class="whitespace-nowrap px-2 py-4 text-sm text-gray-900 text-right bg-gray-50">₡{{
-                        "{:,.2f}".format(entry.previsiones) }}</td>
-                    {% endif %}
-                    {% if user.role == 'admin' %}
-                    <td class="whitespace-nowrap px-2 py-4 text-center">
-                        <input type="checkbox" onchange="toggleDeductions({{ entry.id }}, this.checked, this)"
-                            class="h-4 w-4 rounded border-gray-300 text-black focus:ring-black" {% if
-                            entry.apply_deductions %}checked{% endif %} {% if period.status == 'final' %}disabled title="La planilla ya está aprobada"{% endif %}>
-                    </td>
-                    {% endif %}
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="10" class="px-4 py-12 text-center text-sm text-gray-500">No hay registros en esta
-                        planilla.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-            {% if entries %}
-            <tfoot class="bg-gray-100 font-bold text-gray-900">
-                <tr>
-                    <th scope="row" colspan="1" class="pl-4 pr-3 pt-4 pb-4 text-left text-sm sm:pl-6">Totales</th>
-                    <td class="whitespace-nowrap px-2 pt-4 pb-4 text-right text-sm">{{ totals.hours }}</td>
-                    <td class="whitespace-nowrap px-2 pt-4 pb-4 text-right text-sm">{{ totals.overtime_hours }}</td>
-                    <td class="whitespace-nowrap px-2 pt-4 pb-4 text-right text-sm">₡{{ "{:,.2f}".format(totals.regular_amount) }}</td>
-                    <td class="whitespace-nowrap px-2 pt-4 pb-4 text-right text-sm">₡{{ "{:,.2f}".format(totals.overtime_amount) }}</td>
-                    <td class="whitespace-nowrap px-2 pt-4 pb-4 text-right text-sm">{{ totals.salary_lines | crc }}</td>
-                    <td class="whitespace-nowrap px-2 pt-4 pb-4 text-right text-sm font-bold">₡{{ "{:,.2f}".format(totals.gross) }}</td>
-                    <td class="whitespace-nowrap px-2 pt-4 pb-4 text-right text-sm text-gray-900">-₡{{
-                        "{:,.2f}".format(totals.social_charges) }}</td>
-                    <td class="whitespace-nowrap px-2 pt-4 pb-4 text-right text-sm">{{ totals.net_lines | crc }}</td>
-                    <td class="whitespace-nowrap px-2 pt-4 pb-4 text-right text-sm bg-gray-200">₡{{ "{:,.2f}".format(totals.net) }}</td>
-                    {% if user.role not in ['worker', 'supervisor', 'ventas'] %}
-                    <td class="whitespace-nowrap px-2 pt-4 pb-4 text-right text-sm text-gray-900 bg-gray-300">₡{{
-                        "{:,.2f}".format(totals.cs_empresa) }}</td>
-                    <td class="whitespace-nowrap px-2 pt-4 pb-4 text-right text-sm text-gray-900 bg-gray-200">₡{{
-                        "{:,.2f}".format(totals.previsiones) }}</td>
-                    {% endif %}
-                    {% if user.role == 'admin' %}
-                    <td></td>
-                    {% endif %}
-                </tr>
-            </tfoot>
-            {% endif %}
-        </table>
     </div>
-    <!-- Pagination Controls (Placed outside overflow to stick) -->
-    <div id="payroll-entries-body-controls" class="border-t border-gray-200 bg-white"></div>
 </div>
 
-<!-- Breakdown Modal -->
-<div id="breakdown-modal" class="relative z-10 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
-    <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
-        <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-            <div
-                class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
-                <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
-                    <div class="sm:flex sm:items-start">
-                        <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
-                            <h3 class="text-base font-semibold leading-6 text-gray-900" id="modal-title">Desglose de
-                                Horas</h3>
-                            <p class="text-sm text-gray-500 mb-4" id="modal-worker-name"></p>
+<!-- What this stage means and what's next -->
+{% if draft %}
+<p class="mb-4 rounded-md border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-900">
+    <strong>Borrador:</strong> tocá a cada persona para revisar su cálculo y agregar bonos, viáticos o rebajas. Cuando esté bien,
+    <strong>Aprobar quincena</strong>: después ya no se cambia.
+</p>
+{% elif not payments.complete %}
+<p class="mb-4 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
+    <strong>Aprobada · {{ payments.paid }} de {{ payments.owed }} pagados.</strong> Tocá a una persona para registrar su pago.
+    Una corrección se deja como ajuste para la próxima quincena.
+</p>
+{% endif %}
 
-                            <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 rounded-lg">
-                                <table class="min-w-full divide-y divide-gray-300">
-                                    <thead class="bg-gray-50">
-                                        <tr>
-                                            <th scope="col"
-                                                class="py-2 pl-3 pr-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Fecha</th>
-                                            <th scope="col"
-                                                class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Proyecto</th>
-                                            <th scope="col"
-                                                class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Horas</th>
-                                            <th scope="col"
-                                                class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                H. Extra</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="breakdown-body" class="divide-y divide-gray-200 bg-white">
-                                        <!-- JS Content -->
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
-                    <button type="button" onclick="closeBreakdown()"
-                        class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">Cerrar</button>
-                </div>
+<!-- Totals: what is paid first, what it costs the company second -->
+<dl class="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <div class="col-span-2 rounded-lg border border-gray-900 bg-gray-900 p-4 text-white shadow-sm lg:col-span-1">
+        <dt class="text-sm text-gray-300">Neto a pagar</dt>
+        <dd class="mt-1 text-3xl font-semibold">{{ totals.net | crc0 }}</dd>
+        <dd class="text-xs text-gray-400">{{ totals.people }} {{ 'persona' if totals.people == 1 else 'personas' }}</dd>
+    </div>
+    <div class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+        <dt class="text-sm text-gray-500">Bruto</dt>
+        <dd class="mt-1 text-xl font-semibold text-gray-900">{{ totals.gross | crc0 }}</dd>
+        <dd class="text-xs text-gray-500">salarios, extras y bonos</dd>
+    </div>
+    <div class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+        <dt class="text-sm text-gray-500">CCSS trabajadores</dt>
+        <dd class="mt-1 text-xl font-semibold text-gray-900">{{ totals.ccss | crc0 }}</dd>
+        <dd class="text-xs text-gray-500">9,17 % del bruto</dd>
+    </div>
+    <details class="col-span-2 rounded-lg border border-gray-200 bg-white p-4 shadow-sm lg:col-span-1">
+        <summary class="cursor-pointer list-none">
+            <span class="text-sm text-gray-500">Costo para la empresa</span>
+            <span class="mt-1 block text-xl font-semibold text-gray-900">{{ totals.company_cost | crc0 }}</span>
+            <span class="text-xs text-indigo-600">Ver desglose</span>
+        </summary>
+        <dl class="mt-2 space-y-1 text-sm">
+            <div class="flex justify-between"><dt class="text-gray-500">Bruto</dt><dd>{{ totals.gross | crc0 }}</dd></div>
+            <div class="flex justify-between"><dt class="text-gray-500">Cargas patronales 26,67 %</dt><dd>{{ totals.employer | crc0 }}</dd></div>
+            <div class="flex justify-between"><dt class="text-gray-500">Previsiones 18 %</dt><dd>{{ totals.provisions | crc0 }}</dd></div>
+            <div class="flex justify-between"><dt class="text-gray-500">Viáticos</dt><dd>{{ totals.viaticos | crc0 }}</dd></div>
+        </dl>
+    </details>
+</dl>
+
+<!-- People: one row each; the panel has the rest -->
+<div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+    <table class="hidden min-w-full divide-y divide-gray-200 text-sm md:table">
+        <thead class="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+            <tr>
+                <th class="py-3 pl-4 pr-3 sm:pl-6">Persona</th>
+                <th class="px-3 py-3 text-right">Salario</th>
+                <th class="px-3 py-3 text-right" title="Bonos, comisiones y ajustes de salario: llevan CCSS">Bonos y ajustes</th>
+                <th class="px-3 py-3 text-right">CCSS</th>
+                <th class="px-3 py-3 text-right" title="Viáticos suman; deducciones y adelantos restan">Viáticos y rebajas</th>
+                <th class="px-3 py-3 text-right">Neto</th>
+                {% if not draft %}<th class="py-3 pl-3 pr-4 sm:pr-6">Pago</th>{% endif %}
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+            {% for r in rows %}
+            <tr class="cursor-pointer hover:bg-gray-50" onclick="openPerson({{ r.id }})">
+                <td class="py-3 pl-4 pr-3 sm:pl-6">
+                    <button type="button" class="text-left font-medium text-gray-900 hover:underline" onclick="event.stopPropagation(); openPerson({{ r.id }})">{{ r.name }}</button>
+                    <div class="text-xs text-gray-500">{{ r.how }}{% if r.lines %} · {{ r.lines | length }} {{ 'línea' if r.lines | length == 1 else 'líneas' }}{% endif %}</div>
+                </td>
+                <td class="whitespace-nowrap px-3 py-3 text-right">{{ r.base | crc0 }}</td>
+                <td class="whitespace-nowrap px-3 py-3 text-right text-gray-700">{{ r.salary_lines | crc0 if r.salary_lines else '—' }}</td>
+                <td class="whitespace-nowrap px-3 py-3 text-right text-gray-700">{{ ('-' ~ (r.ccss | crc0)) if r.ccss else '—' }}</td>
+                <td class="whitespace-nowrap px-3 py-3 text-right text-gray-700">{{ r.net_lines | crc0 if r.net_lines else '—' }}</td>
+                <td class="whitespace-nowrap px-3 py-3 text-right font-semibold text-gray-900">{{ r.net | crc0 }}</td>
+                {% if not draft %}
+                <td class="whitespace-nowrap py-3 pl-3 pr-4 sm:pr-6">
+                    {% if r.paid %}<span class="text-xs font-semibold text-green-700">✓ Pagado</span>
+                    {% elif r.net > 0 %}<button type="button" class="text-xs font-semibold text-indigo-600 hover:underline" onclick="event.stopPropagation(); openPerson({{ r.id }}, 'pago')">Registrar pago</button>
+                    {% else %}<span class="text-xs text-gray-400">Nada que pagar</span>{% endif %}
+                </td>
+                {% endif %}
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot class="bg-gray-50 font-semibold text-gray-900">
+            <tr>
+                <td class="py-3 pl-4 pr-3 sm:pl-6">Total</td>
+                <td class="px-3 py-3 text-right">{{ totals.base | crc0 }}</td>
+                <td class="px-3 py-3 text-right">{{ totals.salary_lines | crc0 }}</td>
+                <td class="px-3 py-3 text-right">-{{ totals.ccss | crc0 }}</td>
+                <td class="px-3 py-3 text-right">{{ totals.net_lines | crc0 }}</td>
+                <td class="px-3 py-3 text-right">{{ totals.net | crc0 }}</td>
+                {% if not draft %}<td class="py-3 pl-3 pr-4 text-xs font-normal text-gray-500 sm:pr-6">{{ payments.paid }} de {{ payments.owed }}</td>{% endif %}
+            </tr>
+        </tfoot>
+    </table>
+
+    <!-- Phone: one card per person -->
+    <ul class="divide-y divide-gray-100 md:hidden">
+        {% for r in rows %}
+        <li>
+            <button type="button" onclick="openPerson({{ r.id }})" class="flex w-full items-center justify-between gap-3 px-4 py-3 text-left">
+                <span class="min-w-0">
+                    <span class="block font-medium text-gray-900">{{ r.name }}</span>
+                    <span class="block truncate text-xs text-gray-500">{{ r.how }}{% if not draft %} · {{ '✓ Pagado' if r.paid else 'Sin pago' }}{% endif %}</span>
+                </span>
+                <span class="shrink-0 text-right font-semibold text-gray-900">{{ r.net | crc0 }}</span>
+            </button>
+        </li>
+        {% else %}
+        <li class="px-4 py-8 text-center text-sm text-gray-500">Nadie en esta quincena.</li>
+        {% endfor %}
+    </ul>
+    {% if not rows %}<p class="hidden px-6 py-8 text-center text-sm text-gray-500 md:block">Nadie en esta quincena: no había horas confirmadas, salarios mensuales, viáticos ni ajustes.</p>{% endif %}
+</div>
+
+<div class="mt-8 text-right">
+    <button type="button" onclick="deletePayroll({{ period.id }}, {{ (not draft) | tojson }})" class="text-sm font-semibold text-red-600 hover:text-red-800">Eliminar esta quincena</button>
+    <p class="text-xs text-gray-500">{% if draft %}Se puede generar de nuevo después.{% else %}Solo si nadie fue pagado todavía.{% endif %}</p>
+</div>
+
+<!-- One person: the calculation, lines, days and payment -->
+<div id="person-panel" class="fixed inset-0 z-40 hidden" role="dialog" aria-modal="true" aria-labelledby="person-name">
+    <div class="absolute inset-0 bg-gray-900/40" onclick="closePerson()"></div>
+    <div class="absolute inset-y-0 right-0 flex w-full max-w-lg flex-col bg-white shadow-xl">
+        <div class="flex items-start justify-between gap-3 border-b border-gray-200 px-4 py-4 sm:px-6">
+            <div>
+                <h2 id="person-name" class="text-lg font-semibold text-gray-900"></h2>
+                <p id="person-how" class="text-sm text-gray-500"></p>
             </div>
+            <button type="button" onclick="closePerson()" class="rounded-md p-1 text-gray-500 hover:bg-gray-100" aria-label="Cerrar">
+                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
         </div>
-    </div>
-</div>
+        <div class="flex-1 space-y-6 overflow-y-auto px-4 py-4 sm:px-6">
+            <section>
+                <h3 class="text-sm font-semibold text-gray-900">Cálculo</h3>
+                <dl id="person-calc" class="mt-2 divide-y divide-gray-100 rounded-md border border-gray-200 text-sm"></dl>
+                <label id="person-ccss" class="mt-2 hidden items-center gap-2 text-sm text-gray-700">
+                    <input type="checkbox" class="h-4 w-4 rounded border-gray-300" onchange="toggleDeductions(this)"> Rebajar CCSS (9,17 %)
+                </label>
+            </section>
 
-<!-- Lines of one person: list, and (admin) add on a draft or leave an adjustment on an approved one -->
-<div id="lines-modal" class="relative z-20 hidden" role="dialog" aria-modal="true" aria-labelledby="lines-title">
-    <div class="fixed inset-0 bg-gray-500 bg-opacity-75"></div>
-    <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
-        <div class="flex min-h-full items-center justify-center p-4">
-            <div class="relative w-full overflow-hidden rounded-lg bg-white text-left shadow-xl sm:max-w-lg">
-                <div class="px-4 pb-4 pt-5 sm:p-6">
-                    <h3 id="lines-title" class="text-base font-semibold text-gray-900">Líneas</h3>
-                    <p id="lines-person" class="text-sm text-gray-500"></p>
-                    <ul id="lines-list" class="mt-3 divide-y divide-gray-100 rounded-md border border-gray-200 text-sm"></ul>
-                    {% if user.role == 'admin' %}
-                    <form id="lines-form" class="mt-4 space-y-3" onsubmit="saveLine(event)">
-                        <p id="lines-form-title" class="text-sm font-semibold text-gray-900"></p>
-                        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                            <label class="text-sm font-medium text-gray-700">Tipo
-                                <select id="line-kind" class="mt-1 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm">
-                                    {% for value, kind in line_kinds.items() %}<option value="{{ value }}">{{ kind[0] }}</option>{% endfor %}
-                                </select>
-                            </label>
-                            <label class="text-sm font-medium text-gray-700">Monto (₡)
-                                <input id="line-amount" type="number" step="0.01" required class="mt-1 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm">
-                            </label>
-                        </div>
-                        <label class="block text-sm font-medium text-gray-700">Detalle
-                            <input id="line-description" type="text" maxlength="200" placeholder="Ej.: bono por meta, adelanto del 10/11" class="mt-1 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm">
+            <section id="person-pay" class="hidden">
+                <h3 class="text-sm font-semibold text-gray-900">Pago</h3>
+                <p id="person-paid" class="mt-2 hidden rounded-md bg-green-50 p-3 text-sm text-green-800">✓ Pago registrado. Lo ves en Pagos.</p>
+                <form id="pay-form" class="mt-2 space-y-2 rounded-md border border-gray-200 p-3" onsubmit="payEntry(event)">
+                    <p class="text-sm text-gray-700">Registrá que se pagó el neto de <strong id="pay-amount"></strong>.</p>
+                    <div class="grid grid-cols-2 gap-2">
+                        <label class="text-xs font-medium text-gray-600">Fecha
+                            <input id="pay-date" type="date" required value="{{ today.isoformat() }}" class="mt-1 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm">
                         </label>
-                        <p id="line-hint" class="text-xs text-gray-500"></p>
-                        <button type="submit" class="rounded-md bg-black px-3 py-2 text-sm font-semibold text-white hover:bg-gray-800">Guardar</button>
-                    </form>
-                    {% endif %}
-                </div>
-                <div class="flex justify-end bg-gray-50 px-4 py-3 sm:px-6">
-                    <button type="button" onclick="closeLines()" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Cerrar</button>
-                </div>
-            </div>
+                        <label class="text-xs font-medium text-gray-600">Cómo
+                            <select id="pay-method" class="mt-1 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm">
+                                {% for m in methods %}<option value="{{ m }}">{{ m }}</option>{% endfor %}
+                            </select>
+                        </label>
+                    </div>
+                    <label class="block text-xs font-medium text-gray-600">Referencia o comprobante
+                        <input id="pay-reference" type="text" maxlength="100" class="mt-1 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm">
+                    </label>
+                    <p id="pay-account" class="text-xs text-gray-500"></p>
+                    <button type="submit" class="rounded-md bg-green-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-green-600">Registrar pago</button>
+                </form>
+            </section>
+
+            <section>
+                <h3 class="text-sm font-semibold text-gray-900">Bonos, viáticos y rebajas</h3>
+                <ul id="person-lines" class="mt-2 divide-y divide-gray-100 rounded-md border border-gray-200 text-sm"></ul>
+                <form id="line-form" class="mt-3 space-y-2 rounded-md bg-gray-50 p-3" onsubmit="saveLine(event)">
+                    <p id="line-form-title" class="text-sm font-medium text-gray-900"></p>
+                    <div class="grid grid-cols-2 gap-2">
+                        <select id="line-kind" class="rounded-md border border-gray-300 px-2 py-1.5 text-sm" aria-label="Tipo">
+                            {% for value, kind in line_kinds.items() %}<option value="{{ value }}">{{ kind[0] }}</option>{% endfor %}
+                        </select>
+                        <input id="line-amount" type="number" step="0.01" required placeholder="Monto ₡" aria-label="Monto" class="rounded-md border border-gray-300 px-2 py-1.5 text-sm">
+                    </div>
+                    <input id="line-description" type="text" maxlength="200" placeholder="Detalle (ej.: bono por meta)" aria-label="Detalle" class="block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm">
+                    <p id="line-hint" class="text-xs text-gray-500"></p>
+                    <button type="submit" class="rounded-md bg-black px-3 py-1.5 text-sm font-semibold text-white hover:bg-gray-800">Agregar</button>
+                </form>
+            </section>
+
+
+            <details>
+                <summary class="cursor-pointer text-sm font-semibold text-gray-900">Días trabajados</summary>
+                <table class="mt-2 min-w-full text-sm">
+                    <thead class="text-left text-xs text-gray-500"><tr><th class="py-1">Fecha</th><th class="py-1">Proyecto</th><th class="py-1 text-right">Horas</th><th class="py-1 text-right">Extra</th></tr></thead>
+                    <tbody id="person-days" class="divide-y divide-gray-100"></tbody>
+                </table>
+            </details>
+        </div>
+        <div class="flex justify-between gap-2 border-t border-gray-200 bg-gray-50 px-4 py-3 sm:px-6">
+            <a id="person-payslip" href="#" target="_blank" class="text-sm font-semibold text-indigo-600 hover:underline">Ver comprobante</a>
+            <button type="button" onclick="closePerson()" class="rounded-md bg-white px-3 py-1.5 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Cerrar</button>
         </div>
     </div>
 </div>
 
 <script>
-    // ---- Lines (Fase 4) -------------------------------------------------------------------
-    const ENTRIES = { {% for e in entries %}{{ e.id }}: { user_id: {{ e.user.id }}, name: {{ (e.user.full_name or e.user.username) | tojson }}, lines: {{ e.lines | tojson }} },{% endfor %} };
+    const PEOPLE = {{ people | tojson }};
     const PERIOD_ID = {{ period.id }};
-    const IS_DRAFT = {{ (period.status == 'draft') | tojson }};
-    const CAN_EDIT = {{ (user.role == 'admin') | tojson }};
-    const EFFECT_NOTE = { salario: 'Suma al bruto: lleva CCSS y cuenta para el aguinaldo.', suma: 'Suma al neto, sin CCSS.', resta: 'Se resta del neto.' };
+    const IS_DRAFT = {{ draft | tojson }};
     const LINE_EFFECT = { {% for value, kind in line_kinds.items() %}{{ value | tojson }}: {{ kind[1] | tojson }},{% endfor %} };
-    const crc = new Intl.NumberFormat('es-CR', { style: 'currency', currency: 'CRC', minimumFractionDigits: 2 });
-    let linesEntry = null;
+    const EFFECT_NOTE = { salario: 'Suma al bruto: lleva CCSS y cuenta para el aguinaldo.', suma: 'Suma al neto, sin CCSS.', resta: 'Se resta del neto.' };
+    // Same look as the table (₡1,080,800).
+    const fmt = (n) => (Math.round(n) < 0 ? '-' : '') + '₡' + Math.abs(Math.round(n)).toLocaleString('en-US');
+    const num = new Intl.NumberFormat('es-CR', { maximumFractionDigits: 1 });
+    let current = null;
 
-    function openLines(entryId) {
-        linesEntry = entryId;
-        const entry = ENTRIES[entryId];
-        document.getElementById('lines-person').textContent = entry.name;
-        const list = document.getElementById('lines-list');
+    function el(tag, className, text) {
+        const node = document.createElement(tag);
+        if (className) node.className = className;
+        if (text !== undefined) node.textContent = text;
+        return node;
+    }
+
+    function calcRow(label, value, strong = false, note = '') {
+        const row = el('div', 'flex items-baseline justify-between gap-3 px-3 py-2' + (strong ? ' bg-gray-50 font-semibold' : ''));
+        const left = el('dt', strong ? 'text-gray-900' : 'text-gray-600', label);
+        if (note) left.appendChild(el('span', 'ml-1 text-xs text-gray-400', note));
+        row.append(left, el('dd', 'whitespace-nowrap text-gray-900', value));
+        return row;
+    }
+
+    function openPerson(id, focus) {
+        current = PEOPLE[id];
+        const p = current;
+        document.getElementById('person-name').textContent = p.name;
+        document.getElementById('person-how').textContent = `${p.how} · ${p.payment_method}${p.account ? ' ' + p.account : ''}`;
+        document.getElementById('person-payslip').href = `/payroll/${PERIOD_ID}/comprobante/${p.id}`;
+
+        const calc = document.getElementById('person-calc');
+        calc.innerHTML = '';
+        const work = p.pay_type === 'mensual' ? 'media quincena' : p.pay_type === 'dia'
+            ? `${num.format(p.days_worked || 0)} días` : `${num.format(p.hours)} h`;
+        calc.append(calcRow('Salario', fmt(p.regular), false, work));
+        if (p.overtime) calc.append(calcRow('Horas extra', fmt(p.overtime), false, `${num.format(p.overtime_hours)} h × 1,5`));
+        p.lines.filter(l => l.effect === 'salario').forEach(l => calc.append(calcRow(l.label, fmt(l.amount), false, l.description)));
+        calc.append(calcRow('Bruto', fmt(p.gross), true));
+        calc.append(calcRow('CCSS 9,17 %', p.ccss ? fmt(-p.ccss) : 'No se rebaja'));
+        p.lines.filter(l => l.effect !== 'salario').forEach(l => calc.append(calcRow(l.label, fmt(l.signed), false, l.description)));
+        calc.append(calcRow('Neto a pagar', fmt(p.net), true));
+
+        const ccss = document.getElementById('person-ccss');
+        ccss.classList.toggle('hidden', !IS_DRAFT);
+        ccss.classList.toggle('flex', IS_DRAFT);
+        ccss.querySelector('input').checked = !!p.apply_deductions;
+
+        const list = document.getElementById('person-lines');
         list.innerHTML = '';
-        if (!entry.lines.length) {
-            const empty = document.createElement('li');
-            empty.className = 'px-3 py-2 text-gray-500';
-            empty.textContent = 'Sin líneas en esta planilla.';
-            list.appendChild(empty);
-        }
-        entry.lines.forEach(line => {
-            const li = document.createElement('li');
-            li.className = 'flex items-start justify-between gap-3 px-3 py-2';
-            const text = document.createElement('div');
-            const head = document.createElement('div');
-            head.className = 'font-medium text-gray-900';
-            const sign = line.effect === 'resta' ? '−' : '';
-            head.textContent = `${line.label}: ${sign}${crc.format(line.amount)}`;
-            const sub = document.createElement('div');
-            sub.className = 'text-xs text-gray-500';
-            sub.textContent = line.description + (line.from_adjustment ? ' · ajuste de una planilla anterior' : '');
-            text.append(head, sub);
+        if (!p.lines.length) list.appendChild(el('li', 'px-3 py-2 text-gray-500', 'Ninguno en esta quincena.'));
+        p.lines.forEach(line => {
+            const li = el('li', 'flex items-start justify-between gap-3 px-3 py-2');
+            const text = el('div');
+            text.append(el('div', 'font-medium text-gray-900', `${line.label}: ${fmt(line.signed)}`),
+                        el('div', 'text-xs text-gray-500', line.description + (line.from_adjustment && line.kind !== 'comision' ? ' · corrige una quincena anterior' : '')));
             li.appendChild(text);
-            if (CAN_EDIT && IS_DRAFT) {
-                const remove = document.createElement('button');
+            if (IS_DRAFT) {
+                const remove = el('button', 'text-xs font-semibold text-red-600 hover:text-red-800', 'Quitar');
                 remove.type = 'button';
-                remove.className = 'text-xs font-semibold text-red-600 hover:text-red-900';
-                remove.textContent = 'Quitar';
                 remove.onclick = () => deleteLine(line);
                 li.appendChild(remove);
             }
             list.appendChild(li);
         });
-        const title = document.getElementById('lines-form-title');
-        if (title) {
-            title.textContent = IS_DRAFT ? 'Agregar línea'
-                : 'La planilla ya está aprobada: dejá un ajuste para la próxima planilla de esta persona';
-            showLineHint();
+        document.getElementById('line-form-title').textContent = IS_DRAFT
+            ? 'Agregar a esta quincena' : 'La quincena está aprobada: dejá un ajuste para la próxima de esta persona';
+        document.querySelector('#line-form button[type=submit]').textContent = IS_DRAFT ? 'Agregar' : 'Dejar ajuste';
+        showLineHint();
+
+        const pay = document.getElementById('person-pay');
+        pay.classList.toggle('hidden', IS_DRAFT || p.net <= 0);
+        document.getElementById('person-paid').classList.toggle('hidden', !p.paid);
+        document.getElementById('pay-form').classList.toggle('hidden', p.paid);
+        document.getElementById('pay-amount').textContent = fmt(p.net);
+        const method = document.getElementById('pay-method');
+        if ([...method.options].some(o => o.value === p.payment_method)) method.value = p.payment_method;
+        document.getElementById('pay-account').textContent = p.account ? `${p.payment_method}: ${p.account}` : '';
+
+        const days = document.getElementById('person-days');
+        days.innerHTML = '';
+        if (!p.days.length) {
+            const tr = el('tr');
+            tr.appendChild(el('td', 'py-2 text-gray-500', p.pay_type === 'mensual' ? 'Salario mensual: no depende de los días.' : 'Sin días.'));
+            tr.firstChild.colSpan = 4;
+            days.appendChild(tr);
         }
-        document.getElementById('lines-modal').classList.remove('hidden');
+        p.days.forEach(d => {
+            const tr = el('tr');
+            const [y, m, da] = d.date.split('-');
+            tr.append(el('td', 'py-1 text-gray-900', `${da}/${m}`), el('td', 'py-1 text-gray-600', d.project + (d.note ? ` · ${d.note}` : '')),
+                      el('td', 'py-1 text-right', num.format(d.hours || 0)), el('td', 'py-1 text-right', num.format(d.overtime || 0)));
+            days.appendChild(tr);
+        });
+
+        const panel = document.getElementById('person-panel');
+        panel.classList.remove('hidden');
+        if (focus === 'pago') document.getElementById('pay-reference').focus();
     }
 
-    function closeLines() {
-        document.getElementById('lines-modal').classList.add('hidden');
+    function closePerson() {
+        document.getElementById('person-panel').classList.add('hidden');
     }
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePerson(); });
 
     function showLineHint() {
         const kind = document.getElementById('line-kind').value;
         document.getElementById('line-hint').textContent = EFFECT_NOTE[LINE_EFFECT[kind]]
             + (['ajuste', 'comision'].includes(kind) ? ' Puede ser negativo para devolver algo pagado de más.' : '');
     }
-    document.getElementById('line-kind')?.addEventListener('change', showLineHint);
+    document.getElementById('line-kind').addEventListener('change', showLineHint);
+
+    async function send(url, body, fallback) {
+        const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                            body: body === undefined ? undefined : JSON.stringify(body) });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) { showGlobalToast("Error", result.detail || fallback, "error"); return null; }
+        return result;
+    }
+
+    // After a change the page reloads and opens the same person again.
+    function reloadOn(id) {
+        sessionStorage.setItem('payroll-open', String(id));
+        window.location.reload();
+    }
+    try {
+        const reopen = sessionStorage.getItem('payroll-open');
+        sessionStorage.removeItem('payroll-open');
+        if (reopen && PEOPLE[reopen]) openPerson(Number(reopen));
+    } catch (e) { }
 
     async function saveLine(e) {
         e.preventDefault();
-        const body = {
-            kind: document.getElementById('line-kind').value,
-            amount: parseFloat(document.getElementById('line-amount').value),
-            description: document.getElementById('line-description').value,
-        };
-        const url = IS_DRAFT ? `/payroll/entry/${linesEntry}/lines` : '/payroll/adjustments';
-        if (!IS_DRAFT) Object.assign(body, { user_id: ENTRIES[linesEntry].user_id, source_period_id: PERIOD_ID });
-        const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-        const result = await response.json();
-        if (!response.ok) return showGlobalToast("Error", result.detail || "No se pudo guardar", "error");
-        showGlobalToast("Éxito", result.message);
-        setTimeout(() => window.location.reload(), 700);
+        const body = { kind: document.getElementById('line-kind').value,
+                       amount: parseFloat(document.getElementById('line-amount').value),
+                       description: document.getElementById('line-description').value };
+        const url = IS_DRAFT ? `/payroll/entry/${current.id}/lines` : '/payroll/adjustments';
+        if (!IS_DRAFT) Object.assign(body, { user_id: current.user_id, source_period_id: PERIOD_ID });
+        const result = await send(url, body, 'No se pudo guardar');
+        if (!result) return;
+        showGlobalToast("Listo", result.message);
+        reloadOn(current.id);
     }
 
     async function deleteLine(line) {
-        if (!await tomatoConfirm(`¿Quitar «${line.description}» de esta planilla?`, {ok: 'Quitar línea'})) return;
-        const response = await fetch(`/payroll/line/${line.id}/delete`, { method: 'POST' });
-        const result = await response.json();
-        if (!response.ok) return showGlobalToast("Error", result.detail || "No se pudo quitar", "error");
-        showGlobalToast("Éxito", result.message);
-        setTimeout(() => window.location.reload(), 700);
+        if (!await tomatoConfirm(`¿Quitar «${line.description}» de esta quincena?`, {ok: 'Quitar'})) return;
+        const result = await send(`/payroll/line/${line.id}/delete`, undefined, 'No se pudo quitar');
+        if (result) reloadOn(current.id);
     }
 
-    // Pagination Logic
-    function setupPagination(containerId, itemsSelector, pageSize = 10) {
-        const container = document.getElementById(containerId);
-        if (!container) return;
-        const items = container.querySelectorAll(itemsSelector);
-        if (items.length <= pageSize) return; // No pagination needed
-
-        const pageCount = Math.ceil(items.length / pageSize);
-        let currentPage = 1;
-        const controls = document.getElementById(containerId + '-controls');
-
-        // Define function in global scope with unique name for onclick
-        window['changePage_' + containerId] = (newPage) => {
-            if (newPage < 1 || newPage > pageCount) return;
-            currentPage = newPage;
-            showPage();
-        };
-
-        function showPage() {
-            items.forEach((item, index) => {
-                if (index >= (currentPage - 1) * pageSize && index < currentPage * pageSize) {
-                    item.style.display = '';
-                } else {
-                    item.style.display = 'none';
-                }
-            });
-            renderControls();
-        }
-
-        function renderControls() {
-            const start = (currentPage - 1) * pageSize + 1;
-            const end = Math.min(currentPage * pageSize, items.length);
-
-            controls.innerHTML = `
-                <div class="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
-                    <div class="flex flex-1 justify-between sm:hidden">
-                        <button onclick="changePage_${containerId}(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''} class="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">Anterior</button>
-                        <button onclick="changePage_${containerId}(${currentPage + 1})" ${currentPage === pageCount ? 'disabled' : ''} class="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">Siguiente</button>
-                    </div>
-                    <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
-                        <div>
-                            <p class="text-sm text-gray-700">
-                                Mostrando <span class="font-medium">${start}</span> a <span class="font-medium">${end}</span> de <span class="font-medium">${items.length}</span> resultados
-                            </p>
-                        </div>
-                        <div>
-                            <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-                                <button onclick="changePage_${containerId}(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''} class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50">
-                                    <span class="sr-only">Anterior</span>
-                                    <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                        <path fill-rule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clip-rule="evenodd" />
-                                    </svg>
-                                </button>
-                                <span class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 focus:outline-offset-0">Página ${currentPage} de ${pageCount}</span>
-                                <button onclick="changePage_${containerId}(${currentPage + 1})" ${currentPage === pageCount ? 'disabled' : ''} class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50">
-                                    <span class="sr-only">Siguiente</span>
-                                    <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                        <path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" />
-                                    </svg>
-                                </button>
-                            </nav>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        showPage(); // Init
+    async function toggleDeductions(box) {
+        const response = await fetch(`/payroll/entry/${current.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+                                                                         body: JSON.stringify({ apply_deductions: box.checked }) });
+        if (!response.ok) { box.checked = !box.checked; return showGlobalToast("Error", "No se pudo cambiar", "error"); }
+        reloadOn(current.id);
     }
 
-    // Initialize Pagination
-    document.addEventListener('DOMContentLoaded', () => {
-        setupPagination('payroll-entries-body', 'tr', 10);
-    });
+    async function payEntry(e) {
+        e.preventDefault();
+        const result = await send(`/payroll/entry/${current.id}/pay`, {
+            date: document.getElementById('pay-date').value, method: document.getElementById('pay-method').value,
+            reference: document.getElementById('pay-reference').value }, 'No se pudo registrar');
+        if (!result) return;
+        showGlobalToast("Listo", result.message);
+        setTimeout(() => window.location.reload(), 600);
+    }
 
     async function confirmPayroll(id) {
-        if (!await tomatoConfirm("¿Aprobar esta planilla? Después no se cambia: una corrección queda como ajuste para la próxima planilla.", {ok: 'Aprobar planilla'})) return;
-
-        try {
-            const response = await fetch('/payroll/confirm', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ period_id: id })
-            });
-            const result = await response.json();
-
-            if (response.ok) {
-                showGlobalToast("Éxito", "Planilla aprobada");
-                setTimeout(() => window.location.reload(), 1000);
-            } else {
-                showGlobalToast("Error", result.message, "error");
-            }
-        } catch (e) {
-            console.error(e);
-            showGlobalToast("Error", "Error de conexión", "error");
-        }
+        if (!await tomatoConfirm("¿Aprobar esta quincena? Después no se cambia: una corrección queda como ajuste para la próxima.", {ok: 'Aprobar quincena'})) return;
+        const result = await send('/payroll/confirm', { period_id: id }, 'No se pudo aprobar');
+        if (!result) return;
+        showGlobalToast("Listo", "Quincena aprobada");
+        setTimeout(() => window.location.reload(), 600);
     }
 
-    // Marked in the calendar when the day was confirmed ("Asistió" needs no note).
-    const ATTENDANCE_NOTE = { tarde: ' · Llegó tarde', no_llego: ' · No llegó' };
-
-    function showBreakdown(details, workerName) {
-        document.getElementById('modal-worker-name').textContent = workerName;
-        const tbody = document.getElementById('breakdown-body');
-        tbody.innerHTML = '';
-
-        let total = 0;
-        let totalOvertime = 0;
-        details.forEach(d => {
-            total += d.hours;
-            totalOvertime += (d.overtime || 0);
-            // Format date YYYY-MM-DD -> DD/MM/YYYY
-            const [y, m, da] = d.date.split('-');
-            const formattedDate = `${da}/${m}/${y}`;
-
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td class="whitespace-nowrap py-2 pl-3 pr-3 text-sm text-gray-900">${formattedDate}</td>
-                <td class="whitespace-nowrap px-3 py-2 text-sm text-gray-500">${d.project}${ATTENDANCE_NOTE[d.attendance] || ''}</td>
-                <td class="whitespace-nowrap px-3 py-2 text-sm text-gray-500 text-right">${d.hours}</td>
-                <td class="whitespace-nowrap px-3 py-2 text-sm text-gray-500 text-right">${d.overtime || 0}</td>
-            `;
-            tbody.appendChild(tr);
-        });
-
-        // Total row
-        const totalRow = document.createElement('tr');
-        totalRow.className = "bg-gray-50 font-bold";
-        totalRow.innerHTML = `
-            <td colspan="2" class="whitespace-nowrap py-2 pl-3 pr-3 text-sm text-gray-900 text-right">Total</td>
-            <td class="whitespace-nowrap px-3 py-2 text-sm text-gray-900 text-right">${total}</td>
-            <td class="whitespace-nowrap px-3 py-2 text-sm text-gray-900 text-right">${totalOvertime}</td>
-        `;
-        tbody.appendChild(totalRow);
-
-        document.getElementById('breakdown-modal').classList.remove('hidden');
-    }
-
-    function closeBreakdown() {
-        document.getElementById('breakdown-modal').classList.add('hidden');
-    }
-
-    async function toggleDeductions(entryId, checked, checkboxElement) {
-        try {
-            const response = await fetch(`/payroll/entry/${entryId}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ apply_deductions: checked })
-            });
-            const result = await response.json();
-
-            if (response.ok) {
-                showGlobalToast("Actualizado", "Salario recalculado");
-                setTimeout(() => window.location.reload(), 500); // Reload to update totals
-            } else {
-                showGlobalToast("Error", result.detail || result.message || "Error al actualizar", "error");
-                // Revert checkbox
-                checkboxElement.checked = !checked;
-            }
-        } catch (e) {
-            console.error(e);
-            showGlobalToast("Error", "Error de conexión", "error");
-            if (checkboxElement) checkboxElement.checked = !checked;
-        }
+    async function deletePayroll(id, approved) {
+        let word = '';
+        if (approved) {
+            word = await tomatoConfirm("Esta quincena ya está aprobada. Solo se elimina para generarla de nuevo si nadie fue pagado.",
+                                       {ok: 'Eliminar quincena', danger: true, typeWord: 'ELIMINAR'}) || '';
+            if (!word) return;
+        } else if (!await tomatoConfirm("¿Eliminar este borrador? Se puede generar de nuevo.", {ok: 'Eliminar quincena'})) return;
+        const response = await fetch(`/payroll/${id}?confirm=${encodeURIComponent(word)}`, { method: 'DELETE' });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) return showGlobalToast("Error", result.detail || "No se pudo eliminar", "error");
+        window.location.href = '/payroll';
     }
 </script>
 {% endblock %}

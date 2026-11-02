@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc
 
 from app.routers import deps
-from app.core.roles import ADMIN, OPERATIONS_ROLES, SUPERVISOR, WORKER
+from app.core.roles import ADMIN, OPERATIONS_ROLES, ROLE_NAMES, SUPERVISOR, VENTAS, WORKER
 from app.db.models.user import User
 from app.db.models.liquidation import Liquidation
 from app.db.models.payment import PayrollPayment
@@ -39,12 +39,14 @@ def list_liquidations(
         return RedirectResponse(url="/", status_code=303)
 
     # Admin: List all workers
-    workers = db.query(User).filter(User.role.in_([WORKER, SUPERVISOR])).all()
+    # Everyone in the payroll, asesores (ventas) included.
+    workers = db.query(User).filter(User.role.in_([WORKER, SUPERVISOR, VENTAS])).order_by(User.full_name).all()
     
     return templates.TemplateResponse("liquidation/index.html", {
         "request": request,
         "user": user,
-        "workers": workers
+        "workers": workers,
+        "role_names": ROLE_NAMES
     })
 
 @router.get("/history/{user_id}")

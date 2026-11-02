@@ -52,3 +52,6 @@ pywebpush==2.0.3
 py-vapid==1.9.6
 http-ece==1.2.1
 aiohttp==3.13.5
+# Planilla exported to Excel (.xlsx).
+et-xmlfile==2.0.0
+openpyxl==3.1.5

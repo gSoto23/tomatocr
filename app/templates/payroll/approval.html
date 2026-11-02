@@ -1,23 +1,19 @@
 {% extends "base_dashboard.html" %}
 
-{% block title %}Aprobación de Horas | TOMATO{% endblock %}
+{% block title %}Aprobar horas | TOMATO{% endblock %}
 {% block header_title %}Planilla{% endblock %}
 
 {% block content %}
-<div class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center">
-    <div>
-        <h1 class="text-2xl font-bold text-gray-900">Aprobación de Horas</h1>
-        <p class="mt-1 text-sm text-gray-500">Confirma las horas trabajadas antes de generar la planilla.</p>
-    </div>
-    <a href="/payroll" class="text-sm font-semibold text-gray-900 hover:underline">← Volver a Planilla</a>
+<div class="mb-4">
+    <h1 class="text-2xl font-bold text-gray-900">Aprobar horas</h1>
+    <p class="mt-1 text-sm text-gray-500">Confirmá las horas reales de cada día antes de generar la quincena: solo las confirmadas se pagan.
+        Para un solo día es más rápido desde el <a href="/calendar" class="font-semibold text-indigo-600 hover:underline">Calendario</a>.</p>
 </div>
+{% set active = 'horas' %}{% include "payroll/_nav.html" %}
 
 <!-- View 1: Project Selection -->
 <div id="view-projects" class="block">
-    <div class="mb-6">
-        <h2 class="text-lg font-medium text-gray-900">Mis Proyectos Asignados</h2>
-        <p class="text-sm text-gray-500">Selecciona un proyecto para revisar horas.</p>
-    </div>
+    <p class="mb-4 text-sm text-gray-600">Elegí un proyecto. Primero van los que tienen días por confirmar.</p>
 
     <div id="projects-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         <!-- Loaded via JS -->
@@ -33,12 +29,8 @@
 
         <div class="flex flex-col sm:flex-row gap-4 w-full xl:w-auto">
             <button onclick="showProjectsView()"
-                class="text-sm font-semibold text-gray-900 hover:text-black flex items-center gap-1">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                </svg>
-                Volver
+                class="text-sm font-semibold text-gray-600 hover:text-black flex items-center gap-1">
+                ← Proyectos
             </button>
 
             <h3 class="text-lg font-bold text-gray-900 truncate" id="selected-project-name">Proyecto</h3>
@@ -58,11 +50,10 @@
                 </div>
             </div>
 
-            <div class="flex gap-2 w-full lg:w-auto">
-                <button onclick="setRange('today')"
-                    class="text-xs bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded border">Hoy</button>
-                <button onclick="setRange('week')"
-                    class="text-xs bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded border">Semana</button>
+            <div class="flex flex-wrap gap-2 w-full lg:w-auto">
+                <button onclick="setRange('today')" class="rounded-md bg-white px-3 py-1.5 text-sm font-medium text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Hoy</button>
+                <button onclick="setRange('quincena')" class="rounded-md bg-white px-3 py-1.5 text-sm font-medium text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Esta quincena</button>
+                <button onclick="setRange('anterior')" class="rounded-md bg-white px-3 py-1.5 text-sm font-medium text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Quincena anterior</button>
             </div>
 
             <button onclick="loadSchedules()"
@@ -114,7 +105,18 @@
     // Dates in Costa Rica time: after 6 p. m. UTC is already tomorrow.
     const isoCR = (d) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Costa_Rica' }).format(d);
     const today = isoCR(new Date());
-    document.getElementById('start_date').value = today;
+    const PENDING = {{ pending_by_project | tojson }};
+    // Quincena boundaries (1–15, 16–end of month) for a day "YYYY-MM-DD"; offset -1: the one before.
+    function quincena(iso, offset = 0) {
+        const [y, m, d] = iso.split('-').map(Number);
+        const index = (y * 12 + (m - 1)) * 2 + (d > 15 ? 1 : 0) + offset;
+        const year = Math.floor(index / 24), month = Math.floor(index / 2) % 12, second = index % 2 === 1;
+        const pad = (n) => String(n).padStart(2, '0');
+        const last = new Date(year, month + 1, 0).getDate();
+        return [`${year}-${pad(month + 1)}-${second ? '16' : '01'}`, `${year}-${pad(month + 1)}-${second ? last : 15}`];
+    }
+    // By default this quincena up to today: what is about to be paid.
+    document.getElementById('start_date').value = quincena(today)[0];
     document.getElementById('end_date').value = today;
 
     // Load projects on start
@@ -129,18 +131,11 @@
     function setRange(type) {
         const now = new Date();
         const end = isoCR(now);
-        let start = end;
-
-        if (type === 'week') {
-            // From Sunday of this week (Costa Rica time) to today
-            const [y, m, d] = end.split('-').map(Number);
-            const local = new Date(y, m - 1, d);
-            local.setDate(local.getDate() - local.getDay());
-            start = `${local.getFullYear()}-${String(local.getMonth() + 1).padStart(2, '0')}-${String(local.getDate()).padStart(2, '0')}`;
-        }
-
+        let start = end, until = end;
+        if (type === 'quincena') start = quincena(end)[0];
+        if (type === 'anterior') [start, until] = quincena(end, -1);
         document.getElementById('start_date').value = start;
-        document.getElementById('end_date').value = end;
+        document.getElementById('end_date').value = until;
         loadSchedules();
     }
 
@@ -167,21 +162,22 @@
             return;
         }
 
+        // Projects with days to confirm first, the most pending on top.
+        projects.sort((a, b) => (PENDING[b.id] || 0) - (PENDING[a.id] || 0) || a.name.localeCompare(b.name));
         projects.forEach(p => {
-            const card = document.createElement('div');
-            card.className = "bg-white overflow-hidden shadow rounded-lg border border-gray-200 hover:shadow-md transition-shadow cursor-pointer";
+            const pending = PENDING[p.id] || 0;
+            const card = document.createElement('button');
+            card.type = 'button';
+            card.className = 'rounded-lg border bg-white p-4 text-left shadow-sm hover:border-gray-400 '
+                + (pending ? 'border-amber-300' : 'border-gray-200');
             card.onclick = () => selectProject(p.id, p.name);
-            card.innerHTML = `
-                <div class="px-4 py-5 sm:p-6 text-center">
-                    <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
-                         <svg class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                        </svg>
-                    </div>
-                    <h3 class="mt-2 text-lg font-medium text-gray-900">${p.name}</h3>
-                    <p class="mt-1 text-sm text-gray-500">Click para aprobar horas</p>
-                </div>
-            `;
+            const name = document.createElement('span');
+            name.className = 'block font-semibold text-gray-900';
+            name.textContent = p.name;
+            const state = document.createElement('span');
+            state.className = 'mt-1 block text-sm ' + (pending ? 'font-medium text-amber-800' : 'text-gray-500');
+            state.textContent = pending ? `${pending} ${pending === 1 ? 'día' : 'días'} por confirmar` : 'Todo confirmado';
+            card.append(name, state);
             grid.appendChild(card);
         });
     }
@@ -226,7 +222,7 @@
         tbody.innerHTML = '';
 
         if (data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-8 text-center text-sm text-gray-500">No hay registros para esta fecha en este proyecto.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-8 text-center text-sm text-gray-500">No hay días de este proyecto en estas fechas. Probá con la quincena anterior.</td></tr>`;
             return;
         }
 

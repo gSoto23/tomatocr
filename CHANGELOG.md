@@ -6,6 +6,29 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-11-02
 
+### Planilla más clara, comprobantes y Excel (esta rama)
+- **Pestañas** en todas las partes de Planilla: Quincenas, Aprobar horas, Pagos, Comisiones y
+  Liquidaciones.
+- **Quincenas**: arriba, los tres pasos con lo que falta (días por confirmar, borradores por
+  aprobar, pagos pendientes); cada quincena con su estado, personas y neto. *Generar quincena*
+  abre la nueva directamente.
+- **Detalle de la quincena**: una fila por persona con 6 columnas (antes 13 y no cabía); el neto
+  a pagar destacado y el costo para la empresa con su desglose. Al tocar a una persona se abre su
+  panel: el cálculo paso a paso, rebajar CCSS, bonos, viáticos y rebajas, los días trabajados, su
+  comprobante y, en una quincena aprobada, **Registrar pago** con su neto. En el celular, tarjetas.
+- **Comprobante de pago** por persona y todos juntos (uno por página), **Listado de pago** y
+  **Descargar Excel** (Resumen con costo patronal, Líneas y Días). Ya nada se imprime solo al abrir.
+- Las personas ven **sus quincenas aprobadas** como comprobante (un borrador puede cambiar y ya no
+  se muestra).
+- **Aprobar horas** se abre con la quincena actual (antes solo hoy, y parecía vacío); cada
+  proyecto dice cuántos días tiene por confirmar.
+- **Pagos** y **Liquidaciones** como listas: el último pago de cada persona, roles en español,
+  iniciales correctas, y los asesores de Ventas en Liquidaciones.
+- **Comisiones**: explica cómo dar montos distintos por persona y avisa qué supervisores no
+  están marcados *También vende*.
+- Despliegue: sin migraciones; **dependencia nueva `openpyxl`** (`pip install -r requirements.txt`,
+  ya está en el comando de despliegue); reiniciar.
+
 ### Comisiones de los vendedores (esta rama)
 - Cuando una factura queda **Pagada**, el vendedor de la oportunidad del proyecto gana su
   comisión: un **% del monto sin IVA** y, la primera vez que se cobra una oportunidad de tipo

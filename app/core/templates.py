@@ -75,6 +75,15 @@ def crc_filter(value) -> str:
 templates.env.filters["crc"] = crc_filter
 
 
+def crc0_filter(value) -> str:
+    """Whole colones for screens: ₡1,080,800 (payslips keep the cents)."""
+    amount = float(value or 0)
+    return f"{'-' if round(amount) < 0 else ''}₡{abs(amount):,.0f}"
+
+
+templates.env.filters["crc0"] = crc0_filter
+
+
 def long_date_weekday(day) -> str:
     """lunes 28 de septiembre de 2026 (not dependent on the server locale)."""
     from app.utils.company import long_date

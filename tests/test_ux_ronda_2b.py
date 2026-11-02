@@ -91,10 +91,10 @@ def test_payroll_keeps_the_rate_it_was_generated_with(db, login_as, users):
     assert entry.hourly_rate == 1000
     worker.hourly_rate = 5000
     db.commit()
+    # 2 h x 1000 x 1.5, on the person's panel and payslip (Planilla UX).
     detail = client.get(f"/payroll/detail/{period_id}").text
-    report = client.get(f"/payroll/report/{period_id}").text
-    assert "₡3,000.00" in detail and "₡3,000.00" in report  # 2 h x 1000 x 1.5
-    assert 'colspan="6"' in report
+    payslip = client.get(f"/payroll/{period_id}/comprobante/{entry.id}").text
+    assert '"overtime": 3000' in detail and "₡3,000.00" in payslip
 
 
 def test_approval_confirms_only_pending(login_as):

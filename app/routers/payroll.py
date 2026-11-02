@@ -15,8 +15,8 @@ from app.db.models.project import Project
 from app.utils.activity import log_activity
 from app.utils.comisiones import KINDS as COMMISSION_KINDS, STATUS_LABELS, cancel, general_rules, \
     rules_for, set_general_rules, status_of
-from app.utils.planilla import (LINE_KINDS, PAY_TYPES, line_sums, monthly_share, overtime_rate, recompute,
-                                valid_line)
+from app.utils.planilla import LINE_KINDS, monthly_share, overtime_rate, recompute, valid_line
+from app.utils.planilla_resumen import entry_view, payroll_workbook, period_label, totals_of
 from app.utils.timecr import today_cr
 from app.core.templates import templates
 
@@ -28,6 +28,7 @@ router = APIRouter(
 
 # People in the payroll. Everyone but the admin sees only their own entries and payments.
 PAYROLL_PEOPLE = (WORKER, SUPERVISOR, VENTAS)
+COMPANY = "TOMATO COSTA RICA ANY S.R.L. · Cédula jurídica 3-102-876296"
 
 def vacation_balance(user: User) -> dict:
     """1 day per month worked since the start date, minus the days already taken."""
@@ -37,18 +38,6 @@ def vacation_balance(user: User) -> dict:
         earned = max(0.0, days / 30.44)
     taken = user.vacation_days_taken or 0.0
     return {"earned": round(earned, 2), "taken": round(taken, 2), "vacation_days": round(max(0.0, earned - taken), 2)}
-
-
-def entry_rate(entry: PayrollEntry) -> float:
-    """The rate frozen when the payroll was generated (older entries: the person's rate)."""
-    if entry.hourly_rate is not None:
-        return entry.hourly_rate
-    return (entry.user.hourly_rate if entry.user else 0.0) or 0.0
-
-
-def overtime_amount(overtime_hours: float, rate: float) -> float:
-    """Overtime at 1.5x, rounded to hundreds like the gross salary."""
-    return round(((overtime_hours or 0.0) * rate * 1.5) / 100) * 100
 
 
 def pending_adjustments(db: Session):
@@ -67,12 +56,6 @@ def payment_status(db: Session, period: PayrollPeriod) -> dict:
     return {"owed": len(owed), "paid": done, "complete": period.status == "final" and done == len(owed)}
 
 
-def line_payload(line: PayrollLine) -> dict:
-    label, effect = LINE_KINDS.get(line.kind, (line.kind, "suma"))
-    return {"id": line.id, "kind": line.kind, "label": label, "effect": effect, "description": line.description,
-            "amount": line.amount, "from_adjustment": line.adjustment_id is not None}
-
-
 def set_confirmed_hours(schedule: ProjectSchedule, hours: float, overtime: float):
     """Aprobar Horas: a day marked "No llegó" in the calendar that gets hours here did happen."""
     schedule.hours_worked = hours
@@ -80,6 +63,26 @@ def set_confirmed_hours(schedule: ProjectSchedule, hours: float, overtime: float
     schedule.is_confirmed = True
     if schedule.attendance == "no_llego" and (hours or overtime):
         schedule.attendance = "asistio"
+
+
+def period_rows(db: Session, period: PayrollPeriod, user: Optional[User] = None) -> list:
+    """The payroll's people as entry_view() rows (only the user's own when given)."""
+    from app.db.models.payment import PayrollPayment
+    paid = {uid for (uid,) in db.query(PayrollPayment.user_id).filter(PayrollPayment.payroll_period_id == period.id)}
+    entries = sorted(period.entries, key=lambda e: ((e.user.full_name or e.user.username) if e.user else "").lower())
+    return [entry_view(e, paid) for e in entries if user is None or e.user_id == user.id]
+
+
+def visible_period(db: Session, period_id: int, user: User) -> PayrollPeriod:
+    """A payroll the user may open: the admin any; everyone else an approved one they are in
+    (a draft can still change, so it isn't shown to them)."""
+    period = db.get(PayrollPeriod, period_id)
+    if not period:
+        raise HTTPException(status_code=404, detail="Payroll period not found")
+    if user.role != ADMIN:
+        if period.status != "final" or not any(e.user_id == user.id for e in period.entries):
+            raise HTTPException(status_code=404, detail="Esta planilla no está disponible")
+    return period
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -90,31 +93,32 @@ def payroll_dashboard(
 ):
     if user.role not in (ADMIN, *PAYROLL_PEOPLE):
          raise HTTPException(status_code=403, detail="Not authorized")
-    
-    # Admin: Full dashboard
-    # Supervisor: Approval view redirect? Or dashboard with limited options?
-    # Worker: My payments/payroll?
-    
+
     query = db.query(PayrollPeriod).order_by(PayrollPeriod.start_date.desc())
-    
     if user.role in PAYROLL_PEOPLE:
-        # Only periods where user has an entry, OR allows seeing active/draft if they are scheduled?
-        # Usually they only see finalized payrolls or drafts where they are calculated.
-        # Filtering by existence of PayrollEntry for this user
-        query = query.join(PayrollEntry).filter(PayrollEntry.user_id == user.id)
-        
+        # Their approved payrolls only: a draft can still change.
+        query = query.join(PayrollEntry).filter(PayrollEntry.user_id == user.id, PayrollPeriod.status == "final")
     periods = query.all()
 
-    # Calculate stats for Worker/Supervisor
-    worker_stats = {}
+    worker_stats, mine = {}, {}
     if user.role in PAYROLL_PEOPLE:
         worker_stats = vacation_balance(user)
-    
-    # Admin: what each approved payroll still owes, and the adjustments waiting for the next one.
-    statuses, pending = {}, []
+        mine = {e.payroll_period_id: e.net_salary for e in db.query(PayrollEntry).filter(PayrollEntry.user_id == user.id)}
+
+    # Admin: each payroll's size and payments, what to do next, and the adjustments waiting.
+    summaries, pending, todo = {}, [], {}
     if user.role == ADMIN:
-        statuses = {p.id: payment_status(db, p) for p in periods if p.status == "final"}
+        for p in periods:
+            status = payment_status(db, p)
+            summaries[p.id] = {"people": len(p.entries), "net": sum(e.net_salary or 0 for e in p.entries), **status}
         pending = pending_adjustments(db).all()
+        todo = {
+            "hours": db.query(ProjectSchedule).filter(ProjectSchedule.is_confirmed == False,  # noqa: E712
+                                                      ProjectSchedule.date <= today_cr()).count(),
+            "drafts": [p for p in periods if p.status == "draft"],
+            "unpaid": [p for p in periods if p.status == "final" and not summaries[p.id]["complete"]
+                       and summaries[p.id]["paid"] < summaries[p.id]["owed"]][:3],
+        }
     # Commission adjustments are cancelled from Comisiones, not deleted here.
     from_commissions = {i for row in db.query(Commission.adjustment_id, Commission.reversal_adjustment_id)
                         for i in row if i} if pending else set()
@@ -124,8 +128,11 @@ def payroll_dashboard(
         "request": request,
         "user": user,
         "periods": periods,
+        "labels": {p.id: period_label(p) for p in periods},
         "worker_stats": worker_stats,
-        "statuses": statuses,
+        "mine": mine,
+        "summaries": summaries,
+        "todo": todo,
         "pending": pending,
         "line_kinds": LINE_KINDS,
     })
@@ -138,13 +145,15 @@ def approval_view(
 ):
     if user.role not in [ADMIN, SUPERVISOR]:
          raise HTTPException(status_code=403, detail="Not authorized")
-         
-    # Fetch unconfirmed past schedules? Or all for a range?
-    # Let's show unconfirmed logic in the template or fetch here.
-    # For now, just serve the page.
+    # How many past days wait for confirmation, per project (the cards show it).
+    from sqlalchemy import func
+    pending = dict(db.query(ProjectSchedule.project_id, func.count(ProjectSchedule.id)).filter(
+        ProjectSchedule.is_confirmed == False, ProjectSchedule.date <= today_cr())  # noqa: E712
+        .group_by(ProjectSchedule.project_id).all())
     return templates.TemplateResponse("payroll/approval.html", {
         "request": request,
-        "user": user
+        "user": user,
+        "pending_by_project": pending,
     })
 
 
@@ -157,110 +166,66 @@ def payroll_detail(
 ):
     if user.role not in (ADMIN, *PAYROLL_PEOPLE):
          raise HTTPException(status_code=403, detail="Not authorized")
+    period = visible_period(db, period_id, user)
+    # Everyone but the admin sees their own payslip.
+    if user.role != ADMIN:
+        return payslip_page(request, period, period_rows(db, period, user), single=True, embedded=True, user=user)
 
-    period = db.query(PayrollPeriod).filter(PayrollPeriod.id == period_id).first()
-    if not period:
-        raise HTTPException(status_code=404, detail="Payroll period not found")
-        
-    entries = db.query(PayrollEntry).filter(PayrollEntry.payroll_period_id == period_id).all()
-    
-    # Calculate extra columns and totals
-    totals = {
-        "hours": 0.0,
-        "gross": 0.0,
-        "social_charges": 0.0,
-        "net": 0.0,
-        "cs_empresa": 0.0,
-        "previsiones": 0.0,
-        "company_cost": 0.0,
-        "regular_amount": 0.0,
-        "overtime_amount": 0.0,
-        "overtime_hours": 0.0,
-        "salary_lines": 0.0,
-        "net_lines": 0.0,
-        "viaticos": 0.0,
-    }
-    
-    enhanced_entries = []
-    
-    for entry in entries:
-        # Filter for worker/supervisor (only see own)
-        if user.role in PAYROLL_PEOPLE and entry.user_id != user.id:
-            continue
-            
-        gross = entry.gross_salary
-        net = entry.net_salary
-        social = entry.social_charges
-        
-        # Split the gross into regular and overtime with the rate frozen in the payroll.
-        rate = entry_rate(entry)
-        overtime_amt = overtime_amount(entry.overtime_hours, rate)
-        
-        base = entry.base_salary if entry.base_salary is not None else gross
-        regular_amt = base - overtime_amt
-        sums = line_sums(entry.lines)
-        
-        # New Calculations
-        cs_empresa = gross * 0.2667
-        previsiones = gross * 0.18
-        
-        # Accumulate
-        totals["hours"] += entry.total_hours
-        totals["overtime_hours"] += (entry.overtime_hours or 0.0)
-        totals["gross"] += gross
-        totals["social_charges"] += social
-        totals["net"] += net
-        totals["cs_empresa"] += cs_empresa
-        totals["previsiones"] += previsiones
-        totals["regular_amount"] += regular_amt
-        totals["overtime_amount"] += overtime_amt
-        totals["salary_lines"] += sums["salario"]
-        totals["net_lines"] += sums["suma"] - sums["resta"]
-        totals["viaticos"] += sums["suma"]
-        
-        entry_dict = {
-            "id": entry.id,
-            "user": entry.user,
-            "total_hours": entry.total_hours,
-            "gross_salary": gross,
-            "social_charges": social,
-            "net_salary": net,
-            "details": entry.details,
-            "cs_empresa": cs_empresa,
-            "previsiones": previsiones,
-            "apply_deductions": entry.apply_deductions,
-            "regular_amount": regular_amt,
-            "overtime_amount": overtime_amt,
-            "overtime_hours": entry.overtime_hours or 0.0,
-            "hourly_rate": rate,
-            "pay_type": entry.pay_type or "hora",
-            "days_worked": entry.days_worked,
-            "salary_lines": sums["salario"],
-            "net_lines": sums["suma"] - sums["resta"],
-            "lines": [line_payload(line) for line in entry.lines],
-        }
-        enhanced_entries.append(entry_dict)
-
-    # Viáticos are paid by the company too, without charges on them.
-    totals["company_cost"] = totals["gross"] + totals["cs_empresa"] + totals["previsiones"] + totals["viaticos"]
-
-    # For Worker/Supervisor view: Calculate Vacation Days
-    worker_stats = {}
-    if user.role in PAYROLL_PEOPLE:
-        # Logic from liquidation: 1 day per month worked
-        worker_stats = vacation_balance(user)
-
+    rows = period_rows(db, period)
     return templates.TemplateResponse("payroll/detail.html", {
-        "pay_types": PAY_TYPES,
-        "line_kinds": LINE_KINDS,
-        "payments": payment_status(db, period),
         "request": request,
         "user": user,
         "period": period,
-        "entries": enhanced_entries,
-        "totals": totals,
-        "worker_stats": worker_stats
+        "label": period_label(period),
+        "rows": rows,
+        # The person panel's data (the User object stays out of the JSON).
+        "people": {r["id"]: {**{k: v for k, v in r.items() if k != "user"}, "user_id": r["user"].id} for r in rows},
+        "totals": totals_of(rows),
+        "payments": payment_status(db, period),
+        "line_kinds": LINE_KINDS,
+        "methods": ("Sinpe", "Transferencia", "Efectivo"),
+        "today": today_cr(),
     })
+
+
+def payslip_page(request: Request, period: PayrollPeriod, rows: list, single: bool, embedded: bool = False,
+                 user: Optional[User] = None):
+    return templates.TemplateResponse("payroll/payslip.html", {
+        "request": request, "user": user, "period": period, "label": period_label(period), "rows": rows,
+        "single": single, "embedded": embedded, "today": today_cr(), "company": COMPANY,
+    })
+
+
+@router.get("/{period_id}/comprobante/{entry_id}", response_class=HTMLResponse)
+def payslip(period_id: int, entry_id: int, request: Request, db: Session = Depends(deps.get_db),
+            user: User = Depends(deps.get_current_user)):
+    """One person's payslip, to print or save as PDF (the person or the admin)."""
+    period = visible_period(db, period_id, user)
+    rows = [r for r in period_rows(db, period) if r["id"] == entry_id]
+    if not rows or (user.role != ADMIN and rows[0]["user"].id != user.id):
+        raise HTTPException(status_code=404, detail="Comprobante no encontrado")
+    return payslip_page(request, period, rows, single=True)
+
+
+@router.get("/{period_id}/comprobantes", response_class=HTMLResponse,
+            dependencies=[Depends(deps.require_roles(ADMIN))])
+def payslips(period_id: int, request: Request, db: Session = Depends(deps.get_db),
+             user: User = Depends(deps.get_current_user)):
+    """Everyone's payslips, one per page, to print them all at once."""
+    period = visible_period(db, period_id, user)
+    return payslip_page(request, period, period_rows(db, period), single=False)
+
+
+@router.get("/{period_id}/excel", dependencies=[Depends(deps.require_roles(ADMIN))])
+def payroll_excel(period_id: int, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
+    from fastapi.responses import Response
+    period = visible_period(db, period_id, user)
+    rows = period_rows(db, period)
+    content = payroll_workbook(period, rows, totals_of(rows), COMPANY)
+    name = f"planilla-{period.id}-{period.start_date:%Y-%m-%d}.xlsx"
+    return Response(content, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    headers={"Content-Disposition": f'attachment; filename="{name}"'})
+
 
 @router.get("/report/{period_id}", response_class=HTMLResponse)
 def payroll_report(
@@ -269,46 +234,56 @@ def payroll_report(
     db: Session = Depends(deps.get_db),
     user: User = Depends(deps.get_current_user)
 ):
+    """The payment list (who, how, how much) to print; a person gets their payslip instead."""
     if user.role not in (ADMIN, *PAYROLL_PEOPLE):
          raise HTTPException(status_code=403, detail="Not authorized")
-
-    period = db.query(PayrollPeriod).filter(PayrollPeriod.id == period_id).first()
-    if not period:
-        raise HTTPException(status_code=404, detail="Payroll period not found")
-        
-    entries = db.query(PayrollEntry).filter(PayrollEntry.payroll_period_id == period_id).all()
-    
-    report_data = []
-    total_net = 0.0
-
-    for entry in entries:
-        # Filter logic: Admin sees all. Worker/Supervisor sees only own.
-        if user.role in PAYROLL_PEOPLE and entry.user_id != user.id:
-            continue
-        
-        # Same rate and rounding as the payroll detail.
-        overtime_hours = entry.overtime_hours or 0.0
-        extra = overtime_amount(overtime_hours, entry_rate(entry))
-        
-        report_data.append({
-            "name": entry.user.full_name or entry.user.username,
-            "phone": entry.user.phone or "N/A",
-            "hours": entry.total_hours,
-            "overtime_hours": overtime_hours,
-            "overtime_amount": extra,
-            "net_pay": entry.net_salary,
-            "payment_method": entry.user.payment_method,
-            "account_number": entry.user.account_number
-        })
-        total_net += entry.net_salary
-        
+    period = visible_period(db, period_id, user)
+    if user.role != ADMIN:
+        return payslip_page(request, period, period_rows(db, period, user), single=True)
+    rows = period_rows(db, period)
     return templates.TemplateResponse("payroll/report.html", {
         "request": request,
         "period": period,
-        "entries": report_data,
-        "total_net": total_net,
-        "today": date.today()
+        "label": period_label(period),
+        "rows": rows,
+        "totals": totals_of(rows),
+        "today": today_cr(),
+        "company": COMPANY,
     })
+
+
+class EntryPaymentIn(pydantic.BaseModel):
+    date: date
+    method: str
+    reference: str = ""
+
+
+@router.post("/entry/{entry_id}/pay", dependencies=[Depends(deps.require_roles(ADMIN))])
+def pay_entry(entry_id: int, data: EntryPaymentIn, db: Session = Depends(deps.get_db),
+              user: User = Depends(deps.get_current_user)):
+    """Register a person's payment from the approved payroll: its net, linked to it."""
+    from app.db.models.payment import PayrollPayment
+    entry = db.get(PayrollEntry, entry_id)
+    if not entry:
+        raise HTTPException(status_code=404, detail="Entry not found")
+    if entry.period.status != "final":
+        raise HTTPException(status_code=400, detail="Primero aprobá la planilla.")
+    if db.query(PayrollPayment).filter(PayrollPayment.payroll_period_id == entry.payroll_period_id,
+                                       PayrollPayment.user_id == entry.user_id).first():
+        raise HTTPException(status_code=400, detail="Esa persona ya tiene su pago registrado en esta planilla.")
+    if data.method not in ("Sinpe", "Transferencia", "Efectivo"):
+        raise HTTPException(status_code=400, detail="Elegí cómo se pagó")
+    payment = PayrollPayment(user_id=entry.user_id, amount=entry.net_salary or 0.0, hours_paid=entry.total_hours or 0.0,
+                             overtime_hours=entry.overtime_hours or 0.0, date=data.date, method=data.method,
+                             reference=data.reference.strip()[:100] or None, payroll_period_id=entry.payroll_period_id,
+                             notes=f"Planilla #{entry.payroll_period_id}", created_by_id=user.id)
+    db.add(payment)
+    db.commit()
+    person = entry.user.full_name or entry.user.username
+    log_activity(db, user, "CREATE", "PAYMENT", payment.id,
+                 f"Pago de {money(payment.amount)} a {person} por {data.method}"
+                 + (f", ref. {payment.reference}" if payment.reference else "") + f" (planilla #{entry.payroll_period_id})")
+    return {"status": "success", "message": f"Pago de {person} registrado"}
 
 @router.post("/confirm")
 def confirm_payroll(
@@ -820,7 +795,11 @@ def commissions_view(request: Request, persona: Optional[int] = None, estado: Op
         sellers = [{"user": p, "rules": rules_for(db, p)} for p in db.query(User).order_by(User.full_name)
                    if ((p.sells and p.role != ADMIN) or p.commission_percent is not None
                        or p.commission_new_client is not None) and deps.can_log_in(p)]
+    # Supervisors who could sell but aren't marked "También vende" (they earn nothing until they are).
+    not_selling = [p for p in db.query(User).filter(User.role == SUPERVISOR, User.also_sells == False)  # noqa: E712
+                   .order_by(User.full_name) if deps.can_log_in(p)] if user.role == ADMIN else []
     return templates.TemplateResponse("payroll/commissions.html", {
+        "not_selling": not_selling,
         "request": request, "user": user, "rows": rows, "total": total, "kinds": COMMISSION_KINDS,
         "status_labels": STATUS_LABELS, "general": general_rules(db), "sellers": sellers,
         "filters": {"persona": persona, "estado": estado},

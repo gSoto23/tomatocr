@@ -1,0 +1,21 @@
+{# Tabs shared by the Planilla screens, so its parts read as one place. active: quincenas, horas,
+   pagos, comisiones, liquidaciones. #}
+{% set tabs = [] %}
+{% if user.role == 'admin' %}
+{% set tabs = [('quincenas', '/payroll', 'Quincenas'), ('horas', '/payroll/approval', 'Aprobar horas'),
+               ('pagos', '/payments', 'Pagos'), ('comisiones', '/payroll/commissions', 'Comisiones'),
+               ('liquidaciones', '/liquidation', 'Liquidaciones')] %}
+{% else %}
+{% set tabs = [('quincenas', '/payroll', 'Mis quincenas')] %}
+{% if user.role == 'supervisor' %}{% set tabs = tabs + [('horas', '/payroll/approval', 'Aprobar horas')] %}{% endif %}
+{% set tabs = tabs + [('pagos', '/payments/history/' ~ user.id, 'Mis pagos')] %}
+{% if user.sells %}{% set tabs = tabs + [('comisiones', '/payroll/commissions', 'Mis comisiones')] %}{% endif %}
+{% endif %}
+<nav class="mb-6 -mx-4 overflow-x-auto border-b border-gray-200 px-4 sm:mx-0 sm:px-0" aria-label="Planilla">
+    <ul class="flex gap-1 whitespace-nowrap text-sm font-medium">
+        {% for key, href, label in tabs %}
+        <li><a href="{{ href }}" {% if key == active %}aria-current="page"{% endif %}
+               class="inline-block border-b-2 px-3 py-2 {{ 'border-black text-gray-900' if key == active else 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-800' }}">{{ label }}</a></li>
+        {% endfor %}
+    </ul>
+</nav>

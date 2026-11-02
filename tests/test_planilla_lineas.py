@@ -134,12 +134,12 @@ def test_adjustment_on_an_approved_payroll_goes_to_the_next(db, login_as, users,
     response = client.post("/payroll/adjustments", json={"user_id": asesor.id, "kind": "ajuste", "amount": -10000,
                                                          "description": "Día no trabajado", "source_period_id": first})
     assert response.status_code == 200
-    assert "Ajustes para la próxima planilla" in client.get("/payroll/").text
+    assert "para la próxima quincena" in client.get("/payroll/").text
     second = generate(client)
     entry = entry_of(db, asesor.id, second)
     assert entry.lines[0].description == f"Día no trabajado (planilla #{first})"
     assert entry.gross_salary == 290000
-    assert "Ajustes para la próxima planilla" not in client.get("/payroll/").text
+    assert "para la próxima quincena" not in client.get("/payroll/").text
 
 
 def test_deleting_the_draft_frees_the_adjustment(db, login_as, users, asesor):
@@ -163,7 +163,7 @@ def test_removing_an_adjustment_line_leaves_it_pending(db, login_as, users, ases
     line = entry_of(db, asesor.id).lines[0]
     response = client.post(f"/payroll/line/{line.id}/delete")
     assert "pendiente" in response.json()["message"]
-    assert "Ajustes para la próxima planilla" in client.get("/payroll/").text
+    assert "para la próxima quincena" in client.get("/payroll/").text
 
 
 # ---- Borrador → Aprobada → Pagada ----------------------------------------------------------------------
@@ -192,8 +192,9 @@ def test_person_sees_own_lines(db, login_as, users, asesor):
     period_id = generate(client)
     client.post(f"/payroll/entry/{entry_of(db, asesor.id).id}/lines",
                 json={"kind": "adelanto", "amount": 20000, "description": "Adelanto del 20/10"})
+    client.post("/payroll/confirm", json={"period_id": period_id})
     page = login_as("ventas").get(f"/payroll/detail/{period_id}").text
-    assert "Adelanto del 20/10" in page and "Líneas (1)" in page
+    assert "Adelanto del 20/10" in page and "Comprobante de pago" in page
 
 
 # ---- Employee form ----------------------------------------------------------------------------------------
@@ -227,7 +228,7 @@ def test_negative_adjustment_waits_for_a_payroll_with_salary(db, login_as, users
     # No hours this quincena: nothing to take it from, so no entry and the adjustment stays pending.
     generate(client, "2026-11-01", "2026-11-15")
     assert entry_of(db, worker.id) is None
-    assert "Ajustes para la próxima planilla" in client.get("/payroll/").text
+    assert "para la próxima quincena" in client.get("/payroll/").text
     # With hours, it applies.
     db.add(ProjectSchedule(project_id=users["project_id"], user_id=worker.id, date=date(2026, 11, 17),
                            hours_worked=8, is_confirmed=True))

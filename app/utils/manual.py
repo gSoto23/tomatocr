@@ -81,13 +81,13 @@ CHAPTERS: List[Chapter] = [
         "De las horas confirmadas al pago: aprobar horas, generar la planilla quincenal, pagos y liquidaciones.",
         (ADMIN, SUPERVISOR, WORKER, VENTAS), ("/payroll", "/payments", "/liquidation"),
         (("que-es", "Qué es"), ("ciclo", "El ciclo de cada planilla"), ("aprobar", "Confirmar las horas"),
-         ("generar", "Generar y aprobar la planilla"), ("lineas", "Bonos, viáticos, rebajas y ajustes"),
+         ("generar", "Generar, revisar y aprobar la quincena"), ("lineas", "Bonos, viáticos, rebajas y ajustes"),
          ("comisiones", "Comisiones"),
-         ("pagos", "Historial de pagos"), ("liquidacion", "Liquidaciones"),
+         ("pagos", "Pagos"), ("liquidacion", "Liquidaciones"),
          ("preguntas", "Preguntas frecuentes")),
         "planilla salario pago horas extra ccss deducciones vacaciones aguinaldo liquidación aprobar quincena "
         "mensual por día asesor bono viáticos adelanto deducción ajuste aprobada pagada comisión comisiones "
-        "vendedor cliente nuevo factura",
+        "vendedor cliente nuevo factura comprobante excel listado de pago quincena",
     ),
     Chapter(
         "clientes", "Clientes",

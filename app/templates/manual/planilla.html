@@ -4,7 +4,8 @@
 {% call m.section("que-es", "Qué es") %}
 <p><strong>Planilla</strong> calcula lo que se le paga a cada persona cada <strong>quincena</strong> (del 1 al 15 y del 16 al
     fin de mes), según su <strong>forma de pago</strong>: por las horas o los días <strong>confirmados</strong> en el
-    Calendario, o por su salario mensual. También lleva el historial de pagos y las liquidaciones.</p>
+    Calendario, o por su salario mensual. Arriba tiene pestañas para cada parte: <em>Quincenas</em>, <em>Aprobar horas</em>,
+    <em>Pagos</em>, <em>Comisiones</em> y <em>Liquidaciones</em>.</p>
 <p>Quién lo usa: {{ m.roles(["admin", "supervisor", "worker", "ventas"]) }}. El admin genera y cierra las planillas; el
     supervisor confirma las horas de su equipo; cada trabajador y cada asesor ve lo suyo.</p>
 {% if user.role == 'admin' %}
@@ -18,13 +19,14 @@
 {% call m.section("ciclo", "El ciclo de cada planilla") %}
 <ol class="list-decimal space-y-1 pl-5">
     <li>El supervisor o el admin arma las <strong>asignaciones</strong> en el Calendario (cada una empieza con 8 h y 0 extra).</li>
-    <li>Se revisan y <strong>confirman las horas</strong> reales en <em>Aprobar Horas</em>.</li>
-    <li>El admin <strong>genera la planilla</strong> de un periodo: toma solo las horas confirmadas.</li>
-    <li>El admin la revisa (y agrega bonos, viáticos o rebajas si hacen falta), la <strong>aprueba</strong> e imprime el
-        reporte para pagar.</li>
-    <li>Al registrar el pago de cada persona en <em>Historial de Pagos</em> (eligiendo la planilla que paga), la planilla
-        pasa sola a <strong>Pagada</strong> cuando todos tienen el suyo.</li>
+    <li>Se revisan y <strong>confirman las horas</strong> reales en <em>Aprobar horas</em> (o en el Calendario).</li>
+    <li>El admin <strong>genera la quincena</strong>: toma solo las horas confirmadas.</li>
+    <li>La revisa persona por persona (y agrega bonos, viáticos o rebajas si hacen falta) y la <strong>aprueba</strong>.</li>
+    <li>Registra el <strong>pago</strong> de cada persona desde la misma quincena; cuando todos tienen el suyo, pasa sola a
+        <strong>Pagada</strong>.</li>
 </ol>
+{% if user.role == 'admin' %}<p>La pantalla <strong>Quincenas</strong> muestra arriba esos tres pasos con lo que falta en cada uno: días por
+    confirmar, quincenas en borrador y quincenas con pagos pendientes. Tocá el que corresponda.</p>{% endif %}
 <p>Estados: <strong>Borrador</strong> (se puede revisar y cambiar) → <strong>Aprobada</strong> (ya no se cambia; dice
     cuántos van pagados) → <strong>Pagada</strong>.</p>
 {% call m.warn("Confirmá las horas antes de generar") %}
@@ -35,10 +37,9 @@
 
 {% call m.section("aprobar", "Confirmar las horas") %}
 {% if user.role in ['admin', 'supervisor'] %}
-{{ m.shot("planilla/aprobar.webp", "Aprobación de horas", "Aprobar Horas de un proyecto.") }}
 {{ m.steps([
-    (None, "Para un solo día, lo más rápido es el <strong>Calendario</strong>: tocá el proyecto en ese día, corregí las horas y tocá <em>Confirmar horas del día</em>. Para revisar varios días juntos: en Planilla tocá <strong>Aprobar Horas</strong> y elegí el proyecto."),
-    (1, "Elegí las fechas con <strong>Desde</strong> y <strong>Hasta</strong>, o <em>Hoy</em> / <em>Semana</em>, y tocá <em>Refrescar</em>."),
+    (None, "Para un solo día, lo más rápido es el <strong>Calendario</strong>: tocá el proyecto en ese día, corregí las horas y tocá <em>Confirmar horas del día</em>. Para revisar varios días juntos: Planilla → <strong>Aprobar horas</strong> y elegí el proyecto (cada tarjeta dice cuántos días tiene por confirmar; esos van primero)."),
+    (1, "Se abre con <strong>esta quincena</strong> hasta hoy. Cambiá las fechas, o tocá <em>Hoy</em>, <em>Esta quincena</em> o <em>Quincena anterior</em>; <em>Refrescar</em> vuelve a cargar."),
     (2, "Corregí las <strong>Horas</strong> y las horas <strong>Extra (1.5x)</strong> de cada persona si no fueron las 8 de siempre."),
     (3, "Tocá <strong>Confirmar pendientes</strong> y aceptá el aviso. Las filas pasan a <em>Confirmado</em>."),
 ]) }}
@@ -51,21 +52,19 @@
 {% endif %}
 {% endcall %}
 
-{% call m.section("generar", "Generar y aprobar la planilla") %}
+{% call m.section("generar", "Generar, revisar y aprobar la quincena") %}
 {% if user.role == 'admin' %}
-{{ m.shot("planilla/periodos.webp", "Lista de planillas", "Planilla: periodos y accesos.") }}
 {{ m.steps([
-    (1, "<strong>Generar Planilla</strong>: las fechas vienen puestas con la quincena actual; <em>Quincena anterior</em> cambia a la de antes. También podés escribirlas. Tocá <em>Generar</em>: queda como <em>Borrador</em>."),
-    (2, "Tocá el periodo para abrirlo y revisar."),
-    (3, "<strong>Historial de Pagos</strong> y <strong>Liquidaciones</strong>."),
+    (1, "<strong>Generar quincena</strong>: las fechas vienen puestas con la quincena actual; <em>Quincena anterior</em> cambia a la de antes. Tocá <em>Generar</em>: se abre en <em>Borrador</em> para revisarla. Si quedan días sin confirmar, la ventana te avisa."),
+    (2, "Arriba: <strong>Neto a pagar</strong>, el bruto, la CCSS de los trabajadores y el <strong>costo para la empresa</strong> (<em>Ver desglose</em>: cargas patronales 26,67 %, previsiones 18 % y viáticos)."),
+    (3, "Una fila por persona: salario, bonos y ajustes, CCSS, viáticos y rebajas, y <strong>neto</strong>. En el celular, una tarjeta por persona."),
+    (4, "<strong>Tocá a una persona</strong> para abrir su panel: el cálculo paso a paso, <em>Rebajar CCSS</em>, sus bonos, viáticos y rebajas (agregar o quitar), los días trabajados y su comprobante."),
+    (5, "<strong>Aprobar quincena</strong> la cierra: ya no se cambia. Solo las quincenas aprobadas cuentan como costo de los proyectos en Presupuestos."),
 ]) }}
-{{ m.shot("planilla/detalle.webp", "Detalle de una planilla", "El detalle de un periodo.") }}
-{{ m.steps([
-    (1, "Totales: salarios netos, cargas patronales (26,67 %), previsiones (18 %) y costo total para la empresa."),
-    (2, "Por persona: debajo del nombre, la forma de pago (mensual, por día con los días trabajados, o por hora), la tarifa por hora de esta planilla (para los mensuales y por día, la base de las extras), el método de pago y <em>Ver desglose</em> (día por día y proyecto); en las columnas, horas, extras, <em>Bonos / Ajustes</em>, bruto, CCSS (9,17 %), <em>Viáticos / Rebajas</em> y <strong>Neto Pagar</strong>. <em>Líneas</em> abre los bonos, viáticos y rebajas de esa persona."),
-    (3, "<strong>Imprimir Reporte</strong> abre el listado de pago para imprimir o guardar en PDF."),
-    (4, "<strong>Aprobar planilla</strong> la cierra: ya no se cambia. Solo las planillas aprobadas cuentan como costo de los proyectos en Presupuestos."),
-]) }}
+<p><strong>Para pagar y archivar</strong>: <em>Listado de pago</em> (quién, cómo y cuánto, para imprimir o hacer las
+    transferencias), <em>Comprobantes</em> (uno por persona, una página cada uno, para imprimir o guardar en PDF) y
+    <em>Descargar Excel</em> (hojas <em>Resumen</em> con el costo patronal, <em>Líneas</em> y <em>Días</em>). Ninguno se
+    imprime solo: tocá <em>Imprimir</em>.</p>
 <p><strong>Cómo se calcula</strong> según la forma de pago de cada persona:</p>
 <ul class="list-disc space-y-1 pl-5">
     <li><strong>Por hora</strong>: horas confirmadas × tarifa por hora.</li>
@@ -79,18 +78,17 @@
     bruto si tiene <em>Aplicar Deducciones</em>; neto = bruto − CCSS + viáticos − deducciones y adelantos.</p>
 <p><strong>La tarifa queda fija</strong>: al generar la planilla se guarda la tarifa de cada persona. Si después le subís la
     tarifa en Empleados, esta planilla no cambia (el detalle, el reporte y el costo en Presupuestos siguen usando la de ese momento).</p>
-<p><strong>Deducciones</strong>: si a una persona no le corresponde la rebaja de CCSS, desmarcá <em>Apl. Ded?</em> en su fila
-    mientras la planilla está en borrador (o <em>Aplicar Deducciones</em> en su perfil, para las próximas). Una planilla
+<p><strong>Deducciones</strong>: si a una persona no le corresponde la rebaja de CCSS, desmarcá <em>Rebajar CCSS</em> en su
+    panel mientras la quincena está en borrador (o <em>Aplicar Deducciones</em> en su perfil, para las próximas). Una planilla
     <em>aprobada</em> ya no se puede cambiar.</p>
 {% else %}
-<p>El admin genera la planilla de cada quincena. En <strong>Planilla</strong> ves los periodos donde tenés pago
-    {%- if user.role == 'ventas' %} (como asesor, tu salario mensual: la mitad cada quincena){% endif %}; al abrir uno
-    ves tu fila: horas, extras, bonos, viáticos, rebajas, <strong>Total a Pagar</strong>, <em>Ver desglose</em> día por día
-    y <em>Líneas</em> con el detalle de cada bono, viático o rebaja.
-    <em>Imprimir Reporte</em> te da tu comprobante. Arriba ves tu <strong>Fecha de Inicio</strong> y tus
-    <strong>Vacaciones Disponibles</strong>: 1 día por mes trabajado menos los días que ya tomaste (los anota el admin en
-    tu perfil). Debajo dice cuántos acumulaste y cuántos tomaste.</p>
-{{ m.shot("planilla/trabajador.webp", "Planilla vista por un trabajador", "Planilla, vista de un trabajador.", mobile=True) }}
+<p>El admin genera la planilla de cada quincena. En Planilla → <strong>Mis quincenas</strong> ves las quincenas
+    <strong>aprobadas</strong> donde tenés pago, con tu neto
+    {%- if user.role == 'ventas' %} (como asesor, tu salario mensual: la mitad cada quincena){% endif %}. Una quincena en
+    borrador todavía puede cambiar, por eso aparece cuando se aprueba.</p>
+<p>Al abrir una ves tu <strong>comprobante</strong>: salario, extras, bonos, CCSS, viáticos y rebajas, el
+    <strong>neto a pagar</strong>, cómo se te paga y los días trabajados. <em>Imprimir o guardar en PDF</em> lo abre para
+    imprimir. Arriba ves tus <strong>vacaciones disponibles</strong>: 1 día por mes trabajado menos los que ya tomaste.</p>
 {% endif %}
 {% endcall %}
 
@@ -105,16 +103,16 @@
 </ul>
 {% if user.role == 'admin' %}
 {{ m.steps([
-    (None, "En el detalle de una planilla en <em>Borrador</em>, tocá <strong>Líneas</strong> debajo del nombre: elegí el tipo, el monto y el detalle y <em>Guardar</em>. <em>Quitar</em> la saca. Los totales se recalculan solos."),
+    (None, "En una quincena en <em>Borrador</em>, tocá a la persona y en su panel, <em>Agregar a esta quincena</em>: elegí el tipo, el monto y el detalle. <em>Quitar</em> la saca. Los totales se recalculan solos."),
     (None, "<strong>Viáticos fijos</strong>: en Empleados, <em>Viáticos por quincena</em>. Cada planilla que generes los agrega sola como línea; se pueden quitar o cambiar en el borrador."),
-    (None, "<strong>Corregir una planilla aprobada</strong>: no se cambia. En su detalle, <em>Líneas</em> de la persona deja un <strong>ajuste para la próxima planilla</strong> (por ejemplo −₡10 000 por un día pagado de más). Aparece en Planilla, arriba, en <em>Ajustes para la próxima planilla</em>, y entra solo en la próxima planilla que generes de esa persona."),
+    (None, "<strong>Corregir una quincena aprobada</strong>: no se cambia. En el panel de la persona, <em>Dejar ajuste</em> lo deja para la próxima (por ejemplo −₡10 000 por un día pagado de más). Aparece en Quincenas, arriba, en <em>ajustes para la próxima quincena</em>, y entra solo en la próxima que generes de esa persona."),
 ]) }}
 <p>El neto nunca queda negativo: una línea que lo dejaría bajo cero no se guarda, y un ajuste en contra que no cabe en la
     próxima planilla (por ejemplo, la persona no trabajó esa quincena) sigue pendiente para la siguiente.</p>
 <p>Todo queda en <strong>Actividad</strong>: quién agregó o quitó cada línea o ajuste, y cuándo. Si eliminás un borrador
     que tenía un ajuste, el ajuste vuelve a quedar pendiente; un ajuste pendiente se puede <em>Borrar</em>.</p>
 {% else %}
-<p>Las agrega el admin; las ves en tu planilla con <em>Líneas</em>.</p>
+<p>Las agrega el admin; las ves en tu comprobante.</p>
 {% endif %}
 {% endcall %}
 
@@ -142,12 +140,14 @@
 {% endif %}
 {% endcall %}
 
-{% call m.section("pagos", "Historial de pagos") %}
+{% call m.section("pagos", "Pagos") %}
 {% if user.role == 'admin' %}
-<p>Registro de lo que se le pagó a cada persona.</p>
+<p><strong>El pago de una quincena se registra desde la quincena</strong>: en una quincena aprobada tocá a la persona (o
+    <em>Registrar pago</em> en su fila), revisá la fecha, cómo se pagó y la referencia, y tocá <em>Registrar pago</em>. Se
+    guarda con su neto y ligado a esa quincena; la fila queda <em>✓ Pagado</em>.</p>
 {{ m.steps([
-    (None, "Planilla → <strong>Historial de Pagos</strong> → <em>Ver Historial</em> de la persona."),
-    (None, "<strong>Registrar Nuevo Pago</strong>: si el pago es de una planilla final, elegila en <em>Planilla que paga</em> y el monto se llena con el neto. Después el <strong>método</strong> (Sinpe, transferencia o efectivo), la <strong>referencia</strong> del comprobante, fecha, horas y notas. <strong>Guardar Pago</strong>."),
+    (None, "Planilla → <strong>Pagos</strong>: cada persona con su último pago. Tocala para ver su historial."),
+    (None, "<strong>Registrar pago suelto</strong> (en el historial): para un pago que no es de una quincena, o uno anterior al sistema. Si es de una quincena aprobada, elegila en <em>Planilla que paga</em> y el monto se llena con el neto."),
     (None, "<em>Notificar Whatsapp</em> abre WhatsApp con un mensaje listo; no guarda nada por sí solo."),
 ]) }}
 {% else %}
@@ -159,7 +159,7 @@
 {% call m.section("liquidacion", "Liquidaciones") %}
 {% if user.role == 'admin' %}
 {{ m.steps([
-    (None, "Planilla → <strong>Liquidaciones</strong> → <em>Gestionar Liquidación</em> de la persona."),
+    (None, "Planilla → <strong>Liquidaciones</strong> → tocá a la persona (están todos los de planilla, asesores incluidos)."),
     (None, "<strong>Calcular Liquidación</strong>: revisá las fechas, elegí el <strong>motivo de la salida</strong> y escribí los <strong>días de vacaciones ya disfrutados</strong>."),
     (None, "El sistema propone cada concepto según el Código de Trabajo: salario pendiente, vacaciones, aguinaldo proporcional y, si fue despido con responsabilidad patronal, preaviso y cesantía; y rebaja la CCSS del trabajador del salario y las vacaciones. <strong>Cualquier monto se puede corregir.</strong>"),
     (None, "<strong>Generar Carta</strong> abre la carta para imprimir o guardar en PDF."),
@@ -204,9 +204,10 @@
 {% endcall %}
 {% endif %}
 {% if user.role == 'admin' %}
-{% call m.faq("Finalicé una planilla y necesito cambiarla") %}
-<p>Se puede eliminar y volver a generar solo si <strong>ningún pago está ligado a ella</strong>: tocá <em>Eliminar</em> y
-    escribí ELIMINAR. Si ya se pagó, corregí la diferencia en la planilla siguiente.</p>
+{% call m.faq("Aprobé una quincena y necesito cambiarla") %}
+<p>Lo normal es dejar un <strong>ajuste para la próxima</strong> desde el panel de la persona. Si hay que rehacerla entera,
+    se puede eliminar (abajo de todo, <em>Eliminar esta quincena</em>, escribiendo ELIMINAR) solo si <strong>nadie fue
+    pagado</strong> todavía.</p>
 {% endcall %}
 {% call m.faq("Le cambié la tarifa a alguien: ¿se corrige la planilla?") %}
 <p>No: cada planilla se queda con la tarifa con la que se generó. Si la tarifa estaba mal en una planilla en borrador,

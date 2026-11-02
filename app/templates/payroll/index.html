@@ -4,87 +4,72 @@
 {% block header_title %}Planilla{% endblock %}
 
 {% block content %}
-<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+<div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
     <div>
-        <h1 class="text-2xl font-bold text-gray-900">Módulo de Planilla</h1>
-        <p class="mt-1 text-sm text-gray-500">Gestión de pagos, planilla y liquidaciones.</p>
+        <h1 class="text-2xl font-bold text-gray-900">Planilla</h1>
+        <p class="mt-1 text-sm text-gray-500">
+            {% if user.role == 'admin' %}Se paga por quincena: del 1 al 15 y del 16 al fin de mes.
+            {% else %}Tus quincenas aprobadas, tus pagos y tus vacaciones.{% endif %}
+        </p>
     </div>
-    <div class="flex gap-2">
-        {% if user.role in ['admin', 'supervisor'] %}
-        <a href="/payroll/approval"
-            class="inline-flex items-center justify-center rounded-md bg-white px-4 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
-            Aprobar Horas
-        </a>
-        {% endif %}
-
-        {% if user.role == 'admin' %}
-        <button onclick="openGenerateModal()"
-            class="inline-flex items-center justify-center rounded-md bg-black px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800">
-            <svg class="-ml-0.5 mr-1.5 h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z"
-                    clip-rule="evenodd" />
-            </svg>
-            Generar Planilla
-        </button>
-        {% endif %}
-    </div>
+    {% if user.role == 'admin' %}
+    <button type="button" onclick="openGenerateModal()"
+        class="inline-flex items-center justify-center gap-1.5 rounded-md bg-black px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800">
+        <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd" /></svg>
+        Generar quincena
+    </button>
+    {% endif %}
 </div>
 
-{% if user.role in ['worker', 'supervisor', 'ventas'] %}
-<div class="mb-8">
-    <dl class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <a href="/payments/history/{{ user.id }}" class="block overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6 border border-gray-100 hover:border-gray-400">
-            <dt class="truncate text-sm font-medium text-gray-500">Mis pagos</dt>
-            <dd class="mt-1 text-base font-semibold text-indigo-600">Ver lo que me han pagado →</dd>
-        </a>
-        {% if user.sells %}
-        <a href="/payroll/commissions" class="block overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6 border border-gray-100 hover:border-gray-400">
-            <dt class="truncate text-sm font-medium text-gray-500">Mis comisiones</dt>
-            <dd class="mt-1 text-base font-semibold text-indigo-600">Ver de qué facturas y cuándo se pagan →</dd>
-        </a>
-        {% endif %}
-        <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6 border border-gray-100">
-            <dt class="truncate text-sm font-medium text-gray-500">Fecha de Inicio</dt>
-            <dd class="mt-1 text-2xl font-semibold tracking-tight text-gray-900">{{ user.start_date | format_date if
-                user.start_date else 'N/A' }}</dd>
-        </div>
-        <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6 border border-gray-100">
-            <dt class="truncate text-sm font-medium text-gray-500">Vacaciones Disponibles</dt>
-            <dd class="mt-1 text-3xl font-semibold tracking-tight text-gray-900">{{ worker_stats.vacation_days }} días
-            </dd>
-            <p class="mt-1 text-xs text-gray-500">{{ worker_stats.earned }} acumulados − {{ worker_stats.taken }} tomados</p>
-        </div>
-    </dl>
-</div>
-{% endif %}
+{% set active = 'quincenas' %}{% include "payroll/_nav.html" %}
 
-<!-- Tabs or Cards for Sub-modules -->
 {% if user.role == 'admin' %}
-<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-    <a href="/payments" class="block p-6 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 shadow-sm">
-        <h5 class="mb-2 text-lg font-bold tracking-tight text-gray-900">Historial de Pagos</h5>
-        <p class="font-normal text-gray-700">Ver registro histórico de todos los pagos realizados.</p>
+{# What to do next, in the order a quincena goes: hours → draft → payments. #}
+<section class="mb-6 grid grid-cols-1 gap-3 md:grid-cols-3" aria-label="Qué sigue">
+    <a href="/payroll/approval" class="rounded-lg border bg-white p-4 shadow-sm hover:border-gray-400 {{ 'border-amber-300' if todo.hours else 'border-gray-200' }}">
+        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">1 · Horas</p>
+        {% if todo.hours %}
+        <p class="mt-1 text-lg font-semibold text-amber-800">{{ todo.hours }} {{ 'día' if todo.hours == 1 else 'días' }} por confirmar</p>
+        <p class="text-sm text-gray-600">Confirmalas antes de generar: las que no estén confirmadas no se pagan.</p>
+        {% else %}
+        <p class="mt-1 text-lg font-semibold text-gray-900">Todo confirmado</p>
+        <p class="text-sm text-gray-600">No hay horas pendientes hasta hoy.</p>
+        {% endif %}
     </a>
-    <a href="/liquidation" class="block p-6 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 shadow-sm">
-        <h5 class="mb-2 text-lg font-bold tracking-tight text-gray-900">Liquidaciones</h5>
-        <p class="font-normal text-gray-700">Calcular y procesar liquidaciones de personal.</p>
-    </a>
-    <a href="/payroll/commissions" class="block p-6 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 shadow-sm">
-        <h5 class="mb-2 text-lg font-bold tracking-tight text-gray-900">Comisiones</h5>
-        <p class="font-normal text-gray-700">Reglas, comisiones de cada vendedor y en qué planilla se pagan.</p>
-    </a>
-</div>
-{% endif %}
-
-{% if user.role == 'admin' and pending %}
-<!-- Adjustments waiting for the next payroll (Fase 4) -->
-<div class="mb-6 rounded-lg border border-amber-200 bg-amber-50 shadow-sm">
-    <div class="border-b border-amber-200 px-4 py-3 sm:px-6">
-        <h3 class="text-base font-semibold text-amber-900">Ajustes para la próxima planilla</h3>
-        <p class="text-xs text-amber-800">Entran solos en la próxima planilla que generes de cada persona.</p>
+    <div class="rounded-lg border bg-white p-4 shadow-sm {{ 'border-yellow-300' if todo.drafts else 'border-gray-200' }}">
+        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">2 · Revisar y aprobar</p>
+        {% if todo.drafts %}
+        {% for p in todo.drafts %}
+        <a href="/payroll/detail/{{ p.id }}" class="mt-1 block text-lg font-semibold text-yellow-800 hover:underline">{{ labels[p.id] }} en borrador →</a>
+        {% endfor %}
+        <p class="text-sm text-gray-600">Revisá cada persona, agregá bonos o rebajas y aprobala.</p>
+        {% else %}
+        <p class="mt-1 text-lg font-semibold text-gray-900">Nada en borrador</p>
+        <p class="text-sm text-gray-600"><button type="button" onclick="openGenerateModal()" class="font-semibold text-indigo-600 hover:underline">Generar la quincena</button> cuando las horas estén listas.</p>
+        {% endif %}
     </div>
-    <ul class="divide-y divide-amber-100">
+    <div class="rounded-lg border bg-white p-4 shadow-sm {{ 'border-blue-300' if todo.unpaid else 'border-gray-200' }}">
+        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">3 · Pagar</p>
+        {% if todo.unpaid %}
+        {% for p in todo.unpaid %}
+        <a href="/payroll/detail/{{ p.id }}" class="mt-1 block text-lg font-semibold text-blue-800 hover:underline">{{ labels[p.id] }}: {{ summaries[p.id].owed - summaries[p.id].paid }} por pagar →</a>
+        {% endfor %}
+        <p class="text-sm text-gray-600">Registrá el pago de cada persona desde la quincena.</p>
+        {% else %}
+        <p class="mt-1 text-lg font-semibold text-gray-900">Pagos al día</p>
+        <p class="text-sm text-gray-600">Las quincenas aprobadas tienen sus pagos registrados.</p>
+        {% endif %}
+    </div>
+</section>
+
+{% if pending %}
+<!-- Adjustments waiting for the next payroll (Fase 4) -->
+<details class="mb-6 rounded-lg border border-amber-200 bg-amber-50 shadow-sm" {% if pending | length <= 3 %}open{% endif %}>
+    <summary class="cursor-pointer px-4 py-3 text-sm font-semibold text-amber-900 sm:px-6">
+        {{ pending | length }} {{ 'ajuste' if pending | length == 1 else 'ajustes' }} para la próxima quincena
+        <span class="font-normal text-amber-800">· entran solos en la próxima que generes de cada persona</span>
+    </summary>
+    <ul class="divide-y divide-amber-100 border-t border-amber-200">
         {% for a in pending %}
         <li class="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm sm:px-6">
             <div>
@@ -101,188 +86,130 @@
         </li>
         {% endfor %}
     </ul>
+</details>
+{% endif %}
+
+{% else %}
+<!-- A person: vacation and commissions (payments have their tab) -->
+<div class="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <div class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+        <p class="text-sm text-gray-500">Vacaciones disponibles</p>
+        <p class="mt-1 text-2xl font-semibold text-gray-900">{{ '%g' % (worker_stats.vacation_days | round(1)) }} días</p>
+        <p class="text-xs text-gray-500">{{ '%g' % (worker_stats.earned | round(1)) }} acumulados − {{ '%g' % (worker_stats.taken | round(1)) }} tomados · desde {{ user.start_date | format_date if user.start_date else '—' }}</p>
+    </div>
+    {% if user.sells %}
+    <a href="/payroll/commissions" class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm hover:border-gray-400">
+        <p class="text-sm text-gray-500">Mis comisiones</p>
+        <p class="mt-1 font-semibold text-indigo-600">De qué facturas y cuándo se pagan →</p>
+    </a>
+    {% endif %}
 </div>
 {% endif %}
 
-<!-- Recent Payroll Periods -->
-<div class="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
-    <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
-        <h3 class="text-base font-semibold leading-6 text-gray-900">Periodos de Planilla</h3>
+<!-- The quincenas -->
+<div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+    <div class="border-b border-gray-200 px-4 py-3 sm:px-6">
+        <h2 class="text-base font-semibold text-gray-900">{{ 'Quincenas' if user.role == 'admin' else 'Mis quincenas' }}</h2>
     </div>
     <ul id="payroll-periods-list" role="list" class="divide-y divide-gray-100">
         {% for period in periods %}
-        <li class="relative flex justify-between gap-x-6 px-4 py-5 hover:bg-gray-50 sm:px-6">
-            <div class="flex min-w-0 gap-x-4">
-                <div class="min-w-0 flex-auto">
-                    <p class="text-sm font-semibold leading-6 text-gray-900">
-                        <a href="/payroll/detail/{{ period.id }}">
-                            <span class="absolute inset-x-0 -top-px bottom-0"></span>
-                            Periodo: {{ period.start_date | format_date }} - {{ period.end_date | format_date }}
-                        </a>
-                    </p>
-                    <p class="mt-1 flex text-xs leading-5 text-gray-500">
-                        Estado:
-                        {% set paid = statuses.get(period.id) %}
-                        {% if period.status != 'final' %}<span class="ml-1 font-medium text-yellow-600">Borrador</span>
-                        {% elif paid and paid.complete %}<span class="ml-1 font-medium text-green-700">Pagada</span>
-                        {% else %}<span class="ml-1 font-medium text-blue-700">Aprobada</span>{% if paid %}<span class="ml-1">· {{ paid.paid }} de {{ paid.owed }} pagados</span>{% endif %}
-                        {% endif %}
-                    </p>
-                </div>
-            </div>
-            <div class="flex shrink-0 items-center gap-x-4">
-                <div class="hidden sm:flex sm:flex-col sm:items-end">
-                    <p class="text-sm leading-6 text-gray-900">Generado el {{ period.created_at | format_date }}
-                    </p>
-                    {% if user.role == 'admin' %}
-                    <button onclick="event.preventDefault(); deletePayroll({{ period.id }}, {{ (period.status == 'final') | tojson }})"
-                        class="mt-1 text-xs text-red-600 hover:text-red-900 font-semibold relative z-10">Eliminar</button>
+        {% set s = summaries.get(period.id) %}
+        <li class="relative flex items-center justify-between gap-4 px-4 py-4 hover:bg-gray-50 sm:px-6">
+            <div class="min-w-0">
+                <a href="/payroll/detail/{{ period.id }}" class="text-sm font-semibold text-gray-900">
+                    <span class="absolute inset-0" aria-hidden="true"></span>Quincena {{ labels[period.id] }}
+                </a>
+                <p class="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-gray-500">
+                    {% if period.status != 'final' %}<span class="rounded-full bg-yellow-50 px-2 py-0.5 font-medium text-yellow-800 ring-1 ring-yellow-600/20">Borrador</span>
+                    {% elif s and s.complete %}<span class="rounded-full bg-green-50 px-2 py-0.5 font-medium text-green-700 ring-1 ring-green-600/20">Pagada</span>
+                    {% else %}<span class="rounded-full bg-blue-50 px-2 py-0.5 font-medium text-blue-700 ring-1 ring-blue-600/20">Aprobada</span>{% if s %}<span>{{ s.paid }} de {{ s.owed }} pagados</span>{% endif %}
                     {% endif %}
+                    {% if s %}<span>· {{ s.people }} {{ 'persona' if s.people == 1 else 'personas' }}</span>{% endif %}
+                    <span>· planilla #{{ period.id }}</span>
+                </p>
+            </div>
+            <div class="flex shrink-0 items-center gap-3">
+                <div class="text-right">
+                    <p class="text-sm font-semibold text-gray-900">{{ (s.net if s else mine.get(period.id, 0)) | crc0 }}</p>
+                    <p class="text-xs text-gray-500">{{ 'neto a pagar' if user.role == 'admin' else 'tu neto' }}</p>
                 </div>
-                <svg class="h-5 w-5 flex-none text-gray-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                    <path fill-rule="evenodd"
-                        d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z"
-                        clip-rule="evenodd" />
-                </svg>
+                <svg class="h-5 w-5 flex-none text-gray-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" /></svg>
             </div>
         </li>
         {% else %}
-        <li class="px-4 py-5 sm:px-6 text-sm text-gray-500 text-center">No hay planillas generadas.</li>
+        <li class="px-4 py-8 text-center text-sm text-gray-500 sm:px-6">
+            {% if user.role == 'admin' %}Todavía no hay quincenas. Tocá <strong>Generar quincena</strong>.{% else %}Todavía no tenés quincenas aprobadas.{% endif %}
+        </li>
         {% endfor %}
     </ul>
-    <!-- Pagination Controls Placeholder -->
     <div id="payroll-periods-list-controls"></div>
 </div>
 
-<!-- Convert to Modal -->
 {% if user.role == 'admin' %}
-<div id="generateModal" class="relative z-50 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+<div id="generateModal" class="relative z-50 hidden" aria-labelledby="generate-title" role="dialog" aria-modal="true">
+    <div class="fixed inset-0 bg-gray-500 bg-opacity-75"></div>
     <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
-        <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-            <div
-                class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
-                <form onsubmit="submitGenerate(event)">
-                    <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
-                        <div class="sm:flex sm:items-start">
-                            <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
-                                <h3 class="text-base font-semibold leading-6 text-gray-900" id="modal-title">Generar
-                                    Planilla</h3>
-                                <div class="mt-4 space-y-4">
-                                    <p class="text-sm text-gray-500">La planilla es quincenal: del 1 al 15 y del 16 al fin de mes.</p>
-                                    <div class="flex flex-wrap gap-2">
-                                        <button type="button" onclick="setQuincena(0)" class="rounded-md bg-white px-3 py-1.5 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Esta quincena</button>
-                                        <button type="button" onclick="setQuincena(-1)" class="rounded-md bg-white px-3 py-1.5 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Quincena anterior</button>
-                                    </div>
-                                    <div>
-                                        <label for="start_date"
-                                            class="block text-sm font-medium leading-6 text-gray-900">Fecha
-                                            Inicio</label>
-                                        <input type="date" id="start_date" required
-                                            class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
-                                    </div>
-                                    <div>
-                                        <label for="end_date"
-                                            class="block text-sm font-medium leading-6 text-gray-900">Fecha Fin</label>
-                                        <input type="date" id="end_date" required
-                                            class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm sm:leading-6">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+        <div class="flex min-h-full items-end justify-center p-4 sm:items-center">
+            <form onsubmit="submitGenerate(event)" class="relative w-full overflow-hidden rounded-lg bg-white text-left shadow-xl sm:max-w-md">
+                <div class="space-y-4 px-4 pb-4 pt-5 sm:p-6">
+                    <div>
+                        <h3 id="generate-title" class="text-base font-semibold text-gray-900">Generar quincena</h3>
+                        <p class="mt-1 text-sm text-gray-500">Toma las horas confirmadas, los salarios mensuales, los viáticos y los ajustes pendientes. Queda en <strong>borrador</strong> para revisarla.</p>
                     </div>
-                    <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
-                        <button type="submit"
-                            class="inline-flex w-full justify-center rounded-md bg-black px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 sm:ml-3 sm:w-auto">Generar</button>
-                        <button type="button" onclick="closeGenerateModal()"
-                            class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">Cancelar</button>
+                    <div class="flex flex-wrap gap-2">
+                        <button type="button" onclick="setQuincena(0)" class="rounded-md bg-white px-3 py-1.5 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Esta quincena</button>
+                        <button type="button" onclick="setQuincena(-1)" class="rounded-md bg-white px-3 py-1.5 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Quincena anterior</button>
                     </div>
-                </form>
-            </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <label class="text-sm font-medium text-gray-900">Desde
+                            <input type="date" id="start_date" required class="mt-1 block w-full rounded-md border-0 px-3 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm">
+                        </label>
+                        <label class="text-sm font-medium text-gray-900">Hasta
+                            <input type="date" id="end_date" required class="mt-1 block w-full rounded-md border-0 px-3 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-black sm:text-sm">
+                        </label>
+                    </div>
+                    {% if todo.hours %}<p class="rounded-md bg-amber-50 p-2 text-sm text-amber-800">Hay {{ todo.hours }} {{ 'día' if todo.hours == 1 else 'días' }} con horas sin confirmar: no entran. <a href="/payroll/approval" class="font-semibold underline">Confirmarlas</a></p>{% endif %}
+                </div>
+                <div class="flex flex-col-reverse gap-2 bg-gray-50 px-4 py-3 sm:flex-row sm:justify-end sm:px-6">
+                    <button type="button" onclick="closeGenerateModal()" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Cancelar</button>
+                    <button type="submit" class="rounded-md bg-black px-3 py-2 text-sm font-semibold text-white hover:bg-gray-800">Generar</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
 {% endif %}
 
 <script>
-    // Pagination Logic
+    // Ten quincenas per page.
     function setupPagination(containerId, itemsSelector, pageSize = 10) {
         const container = document.getElementById(containerId);
         if (!container) return;
-        const items = container.querySelectorAll(itemsSelector);
-        if (items.length <= pageSize) return; // No pagination needed
-
-        const pageCount = Math.ceil(items.length / pageSize);
-        let currentPage = 1;
+        const items = [...container.querySelectorAll(itemsSelector)];
+        if (items.length <= pageSize) return;
+        const pages = Math.ceil(items.length / pageSize);
         const controls = document.getElementById(containerId + '-controls');
-
-        // Define function in global scope with unique name for onclick
-        window['changePage_' + containerId] = (newPage) => {
-            if (newPage < 1 || newPage > pageCount) return;
-            currentPage = newPage;
-            showPage();
+        let page = 1;
+        const show = () => {
+            items.forEach((item, i) => item.style.display = (i >= (page - 1) * pageSize && i < page * pageSize) ? '' : 'none');
+            controls.innerHTML = `<div class="flex items-center justify-between border-t border-gray-200 px-4 py-3 text-sm sm:px-6">
+                <button type="button" data-step="-1" class="rounded-md px-3 py-1 ring-1 ring-gray-300 disabled:opacity-40" ${page === 1 ? 'disabled' : ''}>Anterior</button>
+                <span class="text-gray-600">Página ${page} de ${pages}</span>
+                <button type="button" data-step="1" class="rounded-md px-3 py-1 ring-1 ring-gray-300 disabled:opacity-40" ${page === pages ? 'disabled' : ''}>Siguiente</button></div>`;
+            controls.querySelectorAll('[data-step]').forEach(b => b.onclick = () => { page += Number(b.dataset.step); show(); });
         };
-
-        function showPage() {
-            items.forEach((item, index) => {
-                if (index >= (currentPage - 1) * pageSize && index < currentPage * pageSize) {
-                    item.style.display = '';
-                } else {
-                    item.style.display = 'none';
-                }
-            });
-            renderControls();
-        }
-
-        function renderControls() {
-            const start = (currentPage - 1) * pageSize + 1;
-            const end = Math.min(currentPage * pageSize, items.length);
-
-            controls.innerHTML = `
-                <div class="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
-                    <div class="flex flex-1 justify-between sm:hidden">
-                        <button onclick="changePage_${containerId}(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''} class="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">Anterior</button>
-                        <button onclick="changePage_${containerId}(${currentPage + 1})" ${currentPage === pageCount ? 'disabled' : ''} class="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">Siguiente</button>
-                    </div>
-                    <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
-                        <div>
-                            <p class="text-sm text-gray-700">
-                                Mostrando <span class="font-medium">${start}</span> a <span class="font-medium">${end}</span> de <span class="font-medium">${items.length}</span> resultados
-                            </p>
-                        </div>
-                        <div>
-                            <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-                                <button onclick="changePage_${containerId}(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''} class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50">
-                                    <span class="sr-only">Anterior</span>
-                                    <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                        <path fill-rule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clip-rule="evenodd" />
-                                    </svg>
-                                </button>
-                                <span class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 focus:outline-offset-0">Página ${currentPage} de ${pageCount}</span>
-                                <button onclick="changePage_${containerId}(${currentPage + 1})" ${currentPage === pageCount ? 'disabled' : ''} class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50">
-                                    <span class="sr-only">Siguiente</span>
-                                    <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                        <path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" />
-                                    </svg>
-                                </button>
-                            </nav>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        showPage(); // Init
+        show();
     }
+    document.addEventListener('DOMContentLoaded', () => setupPagination('payroll-periods-list', 'li', 10));
 
-    // Initialize Pagination
-    document.addEventListener('DOMContentLoaded', () => {
-        setupPagination('payroll-periods-list', 'li');
-    });
-
+    {% if user.role == 'admin' %}
     function openGenerateModal() {
         if (!document.getElementById('start_date').value) setQuincena(0);
         document.getElementById('generateModal').classList.remove('hidden');
+    }
+
+    function closeGenerateModal() {
+        document.getElementById('generateModal').classList.add('hidden');
     }
 
     // The quincena of today in Costa Rica (offset -1: the one before): 1–15 or 16–end of month.
@@ -297,38 +224,8 @@
         document.getElementById('end_date').value = `${year}-${pad(month + 1)}-${second ? last : 15}`;
     }
 
-    function closeGenerateModal() {
-        document.getElementById('generateModal').classList.add('hidden');
-    }
-
-    async function deletePayroll(id, isFinal = false) {
-        let word = '';
-        if (isFinal) {
-            // A final payroll: only if nobody was paid for it, and typing the word.
-            word = await tomatoConfirm("Esta planilla ya está FINAL. Solo se elimina para regenerarla si todavía no se pagó.",
-                                       {ok: 'Eliminar planilla', danger: true, typeWord: 'ELIMINAR'}) || '';
-            if (!word) return;
-        } else if (!await tomatoConfirm("¿Eliminar esta planilla? Esta acción no se puede deshacer.", {ok: 'Eliminar planilla'})) return;
-
-        try {
-            const response = await fetch(`/payroll/${id}?confirm=${encodeURIComponent(word)}`, {
-                method: 'DELETE'
-            });
-            const result = await response.json();
-
-            if (response.ok) {
-                // Remove row or reload
-                window.location.reload();
-            } else {
-                showGlobalToast("Error", result.detail || "No se pudo eliminar", "error");
-            }
-        } catch (e) {
-            console.error(e);
-            alert("Error de conexión");
-        }
-    }
     async function deleteAdjustment(id) {
-        if (!await tomatoConfirm("¿Borrar este ajuste? Ya no entrará en la próxima planilla.", {ok: 'Borrar ajuste', danger: true})) return;
+        if (!await tomatoConfirm("¿Borrar este ajuste? Ya no entrará en la próxima quincena.", {ok: 'Borrar ajuste', danger: true})) return;
         const response = await fetch(`/payroll/adjustments/${id}/delete`, { method: 'POST' });
         const result = await response.json();
         if (!response.ok) return showGlobalToast("Error", result.detail || "No se pudo borrar", "error");
@@ -336,30 +233,22 @@
         setTimeout(() => window.location.reload(), 700);
     }
 
+    // Generated: open it straight away to review it.
     async function submitGenerate(e) {
         e.preventDefault();
-        const start = document.getElementById('start_date').value;
-        const end = document.getElementById('end_date').value;
-
         try {
             const response = await fetch('/payroll/generate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ start_date: start, end_date: end })
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ start_date: document.getElementById('start_date').value,
+                                       end_date: document.getElementById('end_date').value })
             });
             const result = await response.json();
-
-            if (response.ok) {
-                showGlobalToast("Éxito", "Planilla generada correctamente");
-                closeGenerateModal();
-                setTimeout(() => window.location.reload(), 1000);
-            } else {
-                showGlobalToast("Error", result.detail || result.message || "Error al generar", "error");
-            }
+            if (!response.ok) return showGlobalToast("Error", result.detail || result.message || "No se pudo generar", "error");
+            window.location.href = `/payroll/detail/${result.period_id}`;
         } catch (error) {
-            console.error(error);
-            showGlobalToast("Error", "Error de conexión", "error");
+            showGlobalToast("Error", "No hay conexión. Probá de nuevo.", "error");
         }
     }
+    {% endif %}
 </script>
 {% endblock %}

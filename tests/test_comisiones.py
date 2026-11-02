@@ -258,4 +258,4 @@ def test_commission_adjustments_point_to_commissions(db, login_as, sale):
     client = login_as("admin")
     pay(client, sale["invoices"][0])
     page = client.get("/payroll/").text
-    assert "Ver en Comisiones" in page and "deleteAdjustment(" not in page.split("Periodos de Planilla")[0]
+    assert "Ver en Comisiones" in page and 'onclick="deleteAdjustment(' not in page

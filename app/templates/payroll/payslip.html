@@ -1,0 +1,89 @@
+{% extends "base_dashboard.html" if embedded else "payroll/_print_base.html" %}
+{# A person's payslip (comprobante de pago). Standalone to print one or all of a quincena (one per
+   page), or inside the app when a person opens their quincena. #}
+
+{% block title %}{{ 'Comprobante · ' ~ rows[0].name if single and rows else 'Comprobantes' }} · Quincena {{ label }}{% endblock %}
+{% block header_title %}Planilla{% endblock %}
+
+
+{% block content %}
+{% macro amount_row(label, value, note='', strong=False) %}
+<tr class="{{ 'font-semibold' if strong else '' }}">
+    <td class="py-1.5 pr-3 text-gray-700">{{ label }}{% if note %}<span class="ml-1 text-xs text-gray-400">{{ note }}</span>{% endif %}</td>
+    <td class="py-1.5 text-right tabular-nums">{{ value | crc }}</td>
+</tr>
+{% endmacro %}
+{% if embedded %}
+<a href="/payroll" class="mb-3 inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900">← Mis quincenas</a>
+{% set active = 'quincenas' %}{% include "payroll/_nav.html" %}
+{% endif %}
+
+{% for r in rows %}
+<article class="sheet mx-auto mb-6 max-w-3xl rounded-lg bg-white p-6 shadow-sm sm:p-8 {{ 'page-break' if not loop.last }}">
+    <header class="flex flex-col gap-2 border-b border-gray-200 pb-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Comprobante de pago</p>
+            <h1 class="text-xl font-bold text-gray-900">{{ r.name }}</h1>
+            <p class="text-sm text-gray-600">{{ r.how }}</p>
+        </div>
+        <div class="text-sm sm:text-right">
+            <p class="font-semibold text-gray-900">Quincena {{ label }}</p>
+            <p class="text-gray-600">{{ period.start_date | format_date }} – {{ period.end_date | format_date }}</p>
+            <p class="text-gray-500">Planilla #{{ period.id }}{% if period.status != 'final' %} · borrador{% endif %}</p>
+        </div>
+    </header>
+
+    <div class="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-2">
+        <section>
+            <h2 class="text-xs font-semibold uppercase tracking-wide text-gray-500">Ingresos</h2>
+            <table class="mt-1 w-full text-sm">
+                {% if r.pay_type == 'mensual' %}{{ amount_row('Salario', r.regular, 'media quincena') }}
+                {% elif r.pay_type == 'dia' %}{{ amount_row('Salario', r.regular, (r.days_worked | int) ~ ' días') }}
+                {% else %}{{ amount_row('Salario', r.regular, ('%g' % r.hours) ~ ' h') }}{% endif %}
+                {% if r.overtime %}{{ amount_row('Horas extra', r.overtime, ('%g' % r.overtime_hours) ~ ' h × 1,5') }}{% endif %}
+                {% for line in r.lines if line.effect == 'salario' %}{{ amount_row(line.label, line.amount, line.description) }}{% endfor %}
+                <tr class="border-t border-gray-200 font-semibold"><td class="py-1.5">Bruto</td><td class="py-1.5 text-right tabular-nums">{{ r.gross | crc }}</td></tr>
+            </table>
+        </section>
+        <section>
+            <h2 class="text-xs font-semibold uppercase tracking-wide text-gray-500">Rebajas y otros</h2>
+            <table class="mt-1 w-full text-sm">
+                {{ amount_row('CCSS trabajador', -r.ccss, '9,17 %' if r.ccss else 'no se rebaja') }}
+                {% for line in r.lines if line.effect != 'salario' %}{{ amount_row(line.label, line.signed, line.description) }}{% endfor %}
+            </table>
+        </section>
+    </div>
+
+    <div class="mt-6 flex items-center justify-between rounded-md bg-gray-900 px-4 py-3 text-white">
+        <span class="text-sm">Neto a pagar</span>
+        <span class="text-2xl font-semibold tabular-nums">{{ r.net | crc }}</span>
+    </div>
+
+    <footer class="mt-4 flex flex-col gap-1 text-xs text-gray-500 sm:flex-row sm:justify-between">
+        <span>Pago por {{ r.payment_method }}{% if r.account %} · {{ r.account }}{% endif %}{% if r.paid %} · <strong class="text-green-700">pagado</strong>{% endif %}</span>
+        <span>{{ company }} · emitido el {{ today | format_date }}</span>
+    </footer>
+
+    {% if r.days %}
+    <details class="mt-4 text-sm {{ 'no-print' if not single }}">
+        <summary class="cursor-pointer font-semibold text-gray-700">Días trabajados ({{ r.days | length }})</summary>
+        <table class="mt-2 w-full">
+            <thead class="text-left text-xs text-gray-500"><tr><th class="py-1">Fecha</th><th class="py-1">Proyecto</th><th class="py-1 text-right">Horas</th><th class="py-1 text-right">Extra</th></tr></thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for d in r.days %}
+                <tr><td class="py-1">{{ d.date | format_date }}</td><td class="py-1 text-gray-600">{{ d.project }}{% if d.note %} · {{ d.note }}{% endif %}</td>
+                    <td class="py-1 text-right">{{ '%g' % (d.hours or 0) }}</td><td class="py-1 text-right">{{ '%g' % (d.overtime or 0) }}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </details>
+    {% endif %}
+
+    {% if embedded %}
+    <p class="mt-4 text-right"><a href="/payroll/{{ period.id }}/comprobante/{{ r.id }}" target="_blank" class="text-sm font-semibold text-indigo-600 hover:underline">Imprimir o guardar en PDF</a></p>
+    {% endif %}
+</article>
+{% else %}
+<p class="mx-auto max-w-3xl rounded-lg bg-white p-6 text-center text-sm text-gray-500">No hay comprobantes en esta quincena.</p>
+{% endfor %}
+{% endblock %}
