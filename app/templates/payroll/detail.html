@@ -36,11 +36,19 @@
     <strong>Borrador:</strong> tocá a cada persona para revisar su cálculo y agregar bonos, viáticos o rebajas. Cuando esté bien,
     <strong>Aprobar quincena</strong>: después ya no se cambia.
 </p>
+{% elif payments.outside %}
+<div class="mb-4 flex flex-col gap-2 rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-900 sm:flex-row sm:items-center sm:justify-between">
+    <p><strong>Pagada fuera del sistema.</strong> La marcó {{ period.paid_outside_by.full_name or period.paid_outside_by.username if period.paid_outside_by else '?' }}
+        el {{ period.paid_outside_at | format_date }}{% if payments.paid %}; tiene {{ payments.paid }} de {{ payments.owed }} pagos registrados{% endif %}.</p>
+    <button type="button" onclick="undoPaidOutside({{ period.id }})" class="shrink-0 text-sm font-semibold text-green-800 underline">Deshacer</button>
+</div>
 {% elif not payments.complete %}
-<p class="mb-4 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
-    <strong>Aprobada · {{ payments.paid }} de {{ payments.owed }} pagados.</strong> Tocá a una persona para registrar su pago.
-    Una corrección se deja como ajuste para la próxima quincena.
-</p>
+<div class="mb-4 flex flex-col gap-2 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900 sm:flex-row sm:items-center sm:justify-between">
+    <p><strong>Aprobada · {{ payments.paid }} de {{ payments.owed }} pagados.</strong> Tocá a una persona para registrar su pago.
+        Una corrección se deja como ajuste para la próxima quincena.</p>
+    <button type="button" onclick="markPaidOutside({{ period.id }})" class="shrink-0 rounded-md bg-white px-3 py-1.5 text-sm font-semibold text-blue-900 ring-1 ring-inset ring-blue-300 hover:bg-blue-100"
+        title="Para una quincena que ya se pagó sin registrar los pagos aquí">Marcar como pagada fuera del sistema</button>
+</div>
 {% endif %}
 
 <!-- Totals: what is paid first, what it costs the company second -->
@@ -104,6 +112,7 @@
                 {% if not draft %}
                 <td class="whitespace-nowrap py-3 pl-3 pr-4 sm:pr-6">
                     {% if r.paid %}<span class="text-xs font-semibold text-green-700">✓ Pagado</span>
+                    {% elif payments.outside %}<span class="text-xs text-green-700">Fuera del sistema</span>
                     {% elif r.net > 0 %}<button type="button" class="text-xs font-semibold text-indigo-600 hover:underline" onclick="event.stopPropagation(); openPerson({{ r.id }}, 'pago')">Registrar pago</button>
                     {% else %}<span class="text-xs text-gray-400">Nada que pagar</span>{% endif %}
                 </td>
@@ -111,7 +120,7 @@
             </tr>
             {% endfor %}
         </tbody>
-        <tfoot class="bg-gray-50 font-semibold text-gray-900">
+        <tfoot class="whitespace-nowrap bg-gray-50 font-semibold text-gray-900">
             <tr>
                 <td class="py-3 pl-4 pr-3 sm:pl-6">Total</td>
                 <td class="px-3 py-3 text-right">{{ totals.base | crc0 }}</td>
@@ -119,7 +128,7 @@
                 <td class="px-3 py-3 text-right">-{{ totals.ccss | crc0 }}</td>
                 <td class="px-3 py-3 text-right">{{ totals.net_lines | crc0 }}</td>
                 <td class="px-3 py-3 text-right">{{ totals.net | crc0 }}</td>
-                {% if not draft %}<td class="py-3 pl-3 pr-4 text-xs font-normal text-gray-500 sm:pr-6">{{ payments.paid }} de {{ payments.owed }}</td>{% endif %}
+                {% if not draft %}<td class="py-3 pl-3 pr-4 text-xs font-normal text-gray-500 sm:pr-6">{{ 'fuera del sistema' if payments.outside else (payments.paid ~ ' de ' ~ payments.owed) }}</td>{% endif %}
             </tr>
         </tfoot>
     </table>
@@ -230,6 +239,7 @@
     const PEOPLE = {{ people | tojson }};
     const PERIOD_ID = {{ period.id }};
     const IS_DRAFT = {{ draft | tojson }};
+    const PAID_OUTSIDE = {{ payments.outside | tojson }};
     const LINE_EFFECT = { {% for value, kind in line_kinds.items() %}{{ value | tojson }}: {{ kind[1] | tojson }},{% endfor %} };
     const EFFECT_NOTE = { salario: 'Suma al bruto: lleva CCSS y cuenta para el aguinaldo.', suma: 'Suma al neto, sin CCSS.', resta: 'Se resta del neto.' };
     // Same look as the table (₡1,080,800).
@@ -300,8 +310,10 @@
 
         const pay = document.getElementById('person-pay');
         pay.classList.toggle('hidden', IS_DRAFT || p.net <= 0);
-        document.getElementById('person-paid').classList.toggle('hidden', !p.paid);
-        document.getElementById('pay-form').classList.toggle('hidden', p.paid);
+        const paidNote = document.getElementById('person-paid');
+        paidNote.classList.toggle('hidden', !p.paid && !PAID_OUTSIDE);
+        paidNote.textContent = p.paid ? '✓ Pago registrado. Lo ves en Pagos.' : '✓ La quincena está marcada como pagada fuera del sistema.';
+        document.getElementById('pay-form').classList.toggle('hidden', p.paid || PAID_OUTSIDE);
         document.getElementById('pay-amount').textContent = fmt(p.net);
         const method = document.getElementById('pay-method');
         if ([...method.options].some(o => o.value === p.payment_method)) method.value = p.payment_method;
@@ -400,6 +412,24 @@
         const result = await send('/payroll/confirm', { period_id: id }, 'No se pudo aprobar');
         if (!result) return;
         showGlobalToast("Listo", "Quincena aprobada");
+        setTimeout(() => window.location.reload(), 600);
+    }
+
+    // Paid outside the system: it counts as Pagada, with who and when (Actividad keeps it too).
+    async function markPaidOutside(id) {
+        if (!await tomatoConfirm("¿Esta quincena ya se pagó fuera del sistema? Pasa a Pagada sin registrar los pagos de cada persona. Queda en Actividad quién la marcó y se puede deshacer.",
+                                 {ok: 'Marcar como pagada', title: 'Pagada fuera del sistema'})) return;
+        const result = await send(`/payroll/${id}/paid-outside`, undefined, 'No se pudo marcar');
+        if (!result) return;
+        showGlobalToast("Listo", result.message);
+        setTimeout(() => window.location.reload(), 600);
+    }
+
+    async function undoPaidOutside(id) {
+        if (!await tomatoConfirm("¿Deshacer? La quincena vuelve a Aprobada y espera los pagos de cada persona.", {ok: 'Deshacer'})) return;
+        const result = await send(`/payroll/${id}/paid-outside/undo`, undefined, 'No se pudo deshacer');
+        if (!result) return;
+        showGlobalToast("Listo", result.message);
         setTimeout(() => window.location.reload(), 600);
     }
 

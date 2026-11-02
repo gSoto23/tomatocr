@@ -6,6 +6,13 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-11-02
 
+### Quincenas pagadas fuera del sistema (esta rama)
+- En una quincena aprobada, **Marcar como pagada fuera del sistema**: pasa a *Pagada* sin
+  registrar los pagos de cada persona (para las que se pagaron por fuera, como las de enero y
+  febrero). Deja de aparecer en el paso *Pagar*, queda en Actividad quién la marcó y cuándo, y se
+  puede **Deshacer**. Mientras esté marcada no deja registrar pagos encima.
+- Despliegue: **migración 0027** (`alembic upgrade head`); reiniciar.
+
 ### Planilla más clara, comprobantes y Excel (esta rama)
 - **Pestañas** en todas las partes de Planilla: Quincenas, Aprobar horas, Pagos, Comisiones y
   Liquidaciones.

@@ -48,12 +48,15 @@ def pending_adjustments(db: Session):
 
 def payment_status(db: Session, period: PayrollPeriod) -> dict:
     """An approved payroll is "pagada" once everyone with something to receive has a payment
-    registered against it (Historial de Pagos → Planilla que paga)."""
+    registered against it (Historial de Pagos → Planilla que paga), or once the admin marked it as
+    paid outside the system."""
     from app.db.models.payment import PayrollPayment
     owed = {e.user_id for e in period.entries if (e.net_salary or 0) > 0}
     paid = {uid for (uid,) in db.query(PayrollPayment.user_id).filter(PayrollPayment.payroll_period_id == period.id)}
     done = len(owed & paid)
-    return {"owed": len(owed), "paid": done, "complete": period.status == "final" and done == len(owed)}
+    outside = period.paid_outside_at is not None
+    return {"owed": len(owed), "paid": done, "outside": outside,
+            "complete": period.status == "final" and (done == len(owed) or outside)}
 
 
 def set_confirmed_hours(schedule: ProjectSchedule, hours: float, overtime: float):
@@ -268,6 +271,9 @@ def pay_entry(entry_id: int, data: EntryPaymentIn, db: Session = Depends(deps.ge
         raise HTTPException(status_code=404, detail="Entry not found")
     if entry.period.status != "final":
         raise HTTPException(status_code=400, detail="Primero aprobá la planilla.")
+    if entry.period.paid_outside_at is not None:
+        raise HTTPException(status_code=400, detail=(
+            "La quincena está marcada como pagada fuera del sistema. Deshacé eso primero para registrar pagos."))
     if db.query(PayrollPayment).filter(PayrollPayment.payroll_period_id == entry.payroll_period_id,
                                        PayrollPayment.user_id == entry.user_id).first():
         raise HTTPException(status_code=400, detail="Esa persona ya tiene su pago registrado en esta planilla.")
@@ -842,3 +848,45 @@ def cancel_commission(commission_id: int, data: CancelIn, db: Session = Depends(
                  f"{commission.user.full_name or commission.user.username} (factura #{commission.invoice_number}): "
                  f"{message}. Motivo: {commission.cancel_reason}")
     return {"status": "success", "message": message}
+
+
+
+# -----------------------------------------------------------------------------
+# 5. PAID OUTSIDE THE SYSTEM
+# -----------------------------------------------------------------------------
+
+@router.post("/{period_id}/paid-outside", dependencies=[Depends(deps.require_roles(ADMIN))])
+def mark_paid_outside(period_id: int, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
+    """An approved quincena that was paid without recording the payments here (e.g. before the
+    system had them): it counts as Pagada, with who said so and when."""
+    from datetime import timezone
+    period = db.get(PayrollPeriod, period_id)
+    if not period:
+        raise HTTPException(status_code=404, detail="Payroll period not found")
+    if period.status != "final":
+        raise HTTPException(status_code=400, detail="Primero aprobá la quincena.")
+    status = payment_status(db, period)
+    if status["complete"]:
+        raise HTTPException(status_code=400, detail="Esa quincena ya está pagada.")
+    period.paid_outside_at = datetime.now(timezone.utc)
+    period.paid_outside_by_id = user.id
+    db.commit()
+    log_activity(db, user, "Pagada fuera del sistema", "PAYROLL", period.id,
+                 f"Planilla #{period.id} ({period_label(period)}) marcada como pagada fuera del sistema; "
+                 f"tenía {status['paid']} de {status['owed']} pagos registrados")
+    return {"status": "success", "message": "Quincena marcada como pagada"}
+
+
+@router.post("/{period_id}/paid-outside/undo", dependencies=[Depends(deps.require_roles(ADMIN))])
+def undo_paid_outside(period_id: int, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
+    period = db.get(PayrollPeriod, period_id)
+    if not period:
+        raise HTTPException(status_code=404, detail="Payroll period not found")
+    if period.paid_outside_at is None:
+        raise HTTPException(status_code=400, detail="Esa quincena no estaba marcada.")
+    period.paid_outside_at = None
+    period.paid_outside_by_id = None
+    db.commit()
+    log_activity(db, user, "Deshacer pagada fuera del sistema", "PAYROLL", period.id,
+                 f"Planilla #{period.id} ({period_label(period)}) vuelve a esperar sus pagos")
+    return {"status": "success", "message": "Listo: la quincena vuelve a esperar sus pagos"}
