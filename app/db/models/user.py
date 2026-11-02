@@ -28,6 +28,10 @@ class User(Base):
     daily_rate = Column(Float, nullable=False, default=0.0, server_default="0")
     # Fixed viáticos added to each quincena's payroll (not salary: no CCSS).
     viatico_quincenal = Column(Float, nullable=False, default=0.0, server_default="0")
+    # Own commission rules (Fase 5); empty: the general ones (Planilla → Comisiones). Admins earn
+    # commissions only with their own.
+    commission_percent = Column(Float, nullable=True)
+    commission_new_client = Column(Float, nullable=True)
     # Calendar people: "fijo" (regular schedule) or "ocasional" (called when needed).
     employment_type = Column(String(12), nullable=False, default="fijo", server_default="fijo")
     # Vacation days already taken in the current contract (recorded by the admin).

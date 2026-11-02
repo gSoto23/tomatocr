@@ -1,0 +1,180 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}{{ 'Comisiones' if user.role == 'admin' else 'Mis comisiones' }} | TOMATO{% endblock %}
+{% block header_title %}Planilla{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900">{{ 'Comisiones' if user.role == 'admin' else 'Mis comisiones' }}</h1>
+        <p class="mt-1 text-sm text-gray-500">Se generan cuando una factura queda <strong>pagada</strong> y entran solas en la
+            próxima planilla del vendedor.</p>
+    </div>
+    <a href="/payroll" class="inline-flex items-center justify-center rounded-md bg-white px-4 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Volver</a>
+</div>
+
+{% if user.role == 'admin' %}
+<div class="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
+    <form method="post" action="/payroll/commissions/settings" class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
+        <h2 class="text-base font-semibold text-gray-900">Reglas generales</h2>
+        <p class="mt-1 text-xs text-gray-500">Para asesores de Ventas y supervisores que venden. Cada persona puede tener las
+            suyas en Empleados. En 0, no se genera esa comisión.</p>
+        {% if request.query_params.get('error') %}
+        <p class="mt-2 rounded-md bg-red-50 p-2 text-sm text-red-700">El porcentaje va de 0 a 100 y el monto no puede ser negativo.</p>
+        {% endif %}
+        <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <label class="text-sm font-medium text-gray-700">% por factura cobrada (sin IVA)
+                <input type="number" name="percent" step="0.01" min="0" max="100" value="{{ general.percent }}"
+                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm">
+            </label>
+            <label class="text-sm font-medium text-gray-700">Por cliente nuevo (₡)
+                <input type="number" name="new_client" step="0.01" min="0" value="{{ general.new_client }}"
+                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm">
+            </label>
+        </div>
+        <p class="mt-2 text-xs text-gray-500">Cliente nuevo: una sola vez por oportunidad de tipo <em>Nuevo</em>, con su primera
+            factura cobrada.</p>
+        <button type="submit" class="mt-4 rounded-md bg-black px-3 py-2 text-sm font-semibold text-white hover:bg-gray-800">Guardar reglas</button>
+    </form>
+
+    <div class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
+        <h2 class="text-base font-semibold text-gray-900">Quién gana comisiones</h2>
+        <p class="mt-1 text-xs text-gray-500">El vendedor de la oportunidad que generó el proyecto (o el dueño de la cuenta).</p>
+        <ul class="mt-3 divide-y divide-gray-100 text-sm">
+            {% for s in sellers %}
+            <li class="flex items-center justify-between gap-3 py-2">
+                <a href="/users/{{ s.user.id }}/edit" class="font-medium text-gray-900 hover:underline">{{ s.user.full_name or s.user.username }}</a>
+                <span class="text-gray-600">{{ '%g' % s.rules.percent }}% · {{ s.rules.new_client | crc }}
+                    {% if s.user.commission_percent is not none or s.user.commission_new_client is not none %}<span class="text-xs text-indigo-600">(propias)</span>{% endif %}</span>
+            </li>
+            {% else %}
+            <li class="py-2 text-gray-500">Nadie vende todavía.</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<form method="get" class="mb-4 flex flex-wrap items-end gap-3 text-sm">
+    <label class="font-medium text-gray-700">Vendedor
+        <select name="persona" class="mt-1 block rounded-md border border-gray-300 py-1.5 pl-2 pr-8">
+            <option value="">Todos</option>
+            {% for s in sellers %}<option value="{{ s.user.id }}" {% if filters.persona == s.user.id %}selected{% endif %}>{{ s.user.full_name or s.user.username }}</option>{% endfor %}
+        </select>
+    </label>
+    <label class="font-medium text-gray-700">Estado
+        <select name="estado" class="mt-1 block rounded-md border border-gray-300 py-1.5 pl-2 pr-8">
+            <option value="">Todos</option>
+            {% for value, label in status_labels.items() %}<option value="{{ value }}" {% if filters.estado == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+    </label>
+    <button type="submit" class="rounded-md bg-white px-3 py-1.5 font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Filtrar</button>
+</form>
+{% endif %}
+
+<div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200 text-sm">
+            <thead class="bg-gray-50 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
+                <tr>
+                    <th class="px-3 py-3">Cobro</th>
+                    {% if user.role == 'admin' %}<th class="px-3 py-3">Vendedor</th>{% endif %}
+                    <th class="px-3 py-3">Tipo</th>
+                    <th class="px-3 py-3">Cliente</th>
+                    <th class="px-3 py-3">Factura</th>
+                    <th class="px-3 py-3 text-right">Base sin IVA</th>
+                    <th class="px-3 py-3 text-right">Comisión</th>
+                    <th class="px-3 py-3">Estado</th>
+                    {% if user.role == 'admin' %}<th class="px-3 py-3"></th>{% endif %}
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for row in rows %}
+                {% set c = row.c %}
+                <tr class="{{ 'text-gray-400' if c.cancelled_at else 'text-gray-900' }}">
+                    <td class="whitespace-nowrap px-3 py-3">{{ c.payment_date | format_date if c.payment_date else '—' }}</td>
+                    {% if user.role == 'admin' %}<td class="whitespace-nowrap px-3 py-3">{{ c.user.full_name or c.user.username }}</td>{% endif %}
+                    <td class="whitespace-nowrap px-3 py-3">{{ kinds[c.kind] }}{% if c.rate %} ({{ '%g' % c.rate }}%){% endif %}</td>
+                    <td class="px-3 py-3">{% if c.project_id %}<a href="/finance/{{ c.project_id }}" class="hover:underline">{{ c.client_name or '—' }}</a>{% else %}{{ c.client_name or '—' }}{% endif %}</td>
+                    <td class="whitespace-nowrap px-3 py-3">#{{ c.invoice_number or '—' }}</td>
+                    <td class="whitespace-nowrap px-3 py-3 text-right">{{ c.base_amount | crc if c.base_amount else '—' }}</td>
+                    <td class="whitespace-nowrap px-3 py-3 text-right font-semibold">{{ c.amount | crc }}</td>
+                    <td class="px-3 py-3">
+                        <span class="font-medium {{ {'pagada': 'text-green-700', 'borrador': 'text-blue-700', 'pendiente': 'text-amber-700'}.get(row.status.code, 'text-gray-500') }}">{{ row.status.label }}</span>
+                        {% if row.status.period_id %}<a href="/payroll/detail/{{ row.status.period_id }}" class="text-xs text-indigo-600 hover:underline">planilla #{{ row.status.period_id }}</a>{% endif %}
+                        {% if c.cancelled_at %}<div class="text-xs">{{ c.cancel_reason or '' }}{% if c.reversal_adjustment_id %} · se descuenta en la próxima planilla{% endif %}</div>{% endif %}
+                    </td>
+                    {% if user.role == 'admin' %}
+                    <td class="whitespace-nowrap px-3 py-3 text-right">
+                        {% if not c.cancelled_at %}<button type="button" onclick='cancelCommission({{ c.id }}, {{ row.status.code | tojson }})' class="text-xs font-semibold text-red-600 hover:text-red-900">Anular</button>{% endif %}
+                    </td>
+                    {% endif %}
+                </tr>
+                {% else %}
+                <tr><td colspan="9" class="px-3 py-10 text-center text-gray-500">Todavía no hay comisiones.</td></tr>
+                {% endfor %}
+            </tbody>
+            {% if rows %}
+            <tfoot class="bg-gray-50 font-semibold">
+                <tr>
+                    <td colspan="{{ 6 if user.role == 'admin' else 5 }}" class="px-3 py-3 text-right">Total (sin anuladas)</td>
+                    <td class="whitespace-nowrap px-3 py-3 text-right">{{ total | crc }}</td>
+                    <td colspan="{{ 2 if user.role == 'admin' else 1 }}"></td>
+                </tr>
+            </tfoot>
+            {% endif %}
+        </table>
+    </div>
+</div>
+
+{% if user.role == 'admin' %}
+<!-- Anular: the reason is required; before it is paid the commission disappears, once paid it is taken back -->
+<div id="cancel-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="cancel-title">
+    <div class="absolute inset-0 bg-gray-900/50" onclick="closeCancel()"></div>
+    <form class="relative w-full max-w-md rounded-xl bg-white p-5 shadow-xl" onsubmit="sendCancel(event)">
+        <h2 id="cancel-title" class="text-base font-bold text-gray-900">Anular comisión</h2>
+        <p id="cancel-note" class="mt-1 text-sm text-gray-600"></p>
+        <label class="mt-3 block text-sm font-medium text-gray-700">Motivo
+            <textarea id="cancel-reason" rows="2" maxlength="255" required class="mt-1 block w-full rounded-md border border-gray-300 p-2 text-sm"></textarea>
+        </label>
+        <div class="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <button type="button" onclick="closeCancel()" class="rounded-md bg-white px-4 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Cancelar</button>
+            <button type="submit" class="rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800">Anular comisión</button>
+        </div>
+    </form>
+</div>
+<script>
+    let cancelling = null;
+
+    function cancelCommission(id, state) {
+        cancelling = id;
+        document.getElementById('cancel-note').textContent = state === 'pagada'
+            ? 'Ya se pagó: se va a descontar en la próxima planilla del vendedor.'
+            : 'Todavía no se pagó: sale de la planilla y no se paga.';
+        document.getElementById('cancel-reason').value = '';
+        const modal = document.getElementById('cancel-modal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        document.getElementById('cancel-reason').focus();
+    }
+
+    function closeCancel() {
+        const modal = document.getElementById('cancel-modal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+
+    async function sendCancel(e) {
+        e.preventDefault();
+        const reason = document.getElementById('cancel-reason').value;
+        const response = await fetch(`/payroll/commissions/${cancelling}/cancel`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason }) });
+        const result = await response.json();
+        if (!response.ok) return showGlobalToast("Error", result.detail || "No se pudo anular", "error");
+        closeCancel();
+        showGlobalToast("Éxito", result.message);
+        setTimeout(() => window.location.reload(), 800);
+    }
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeCancel(); });
+</script>
+{% endif %}
+{% endblock %}

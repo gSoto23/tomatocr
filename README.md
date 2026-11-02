@@ -99,6 +99,13 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
   agrega viáticos fijos a cada planilla. Una planilla aprobada no se cambia: la corrección queda
   en `payroll_adjustments` y entra como línea en la próxima planilla de la persona. Estados:
   Borrador → Aprobada (`final`) → Pagada (calculado: todos tienen su pago con esa planilla).
+- **Comisiones** (migración 0026, `app/utils/comisiones.py`, `/payroll/commissions`): cuando una
+  factura queda PAGADA, el vendedor de la oportunidad del proyecto (o el dueño de la cuenta) gana
+  el % sin IVA (IVA de la línea del presupuesto) y, una vez por oportunidad *Nuevo*, el monto por
+  cliente nuevo. Reglas generales en `crm_settings` (`commission_percent`,
+  `commission_new_client`, 0 por defecto) y propias en `users.commission_*` (vacío = generales;
+  admins solo con propias). Cada `commissions` crea un `payroll_adjustment` (comisión) que entra
+  en la próxima planilla; Anular lo quita si no se pagó o deja uno negativo si ya se pagó.
 - **Dashboard Estadístico**: Análisis de KPI operativos (Facturación, vencimientos).
 
 ### 3. Bitácora Digital (Daily Logs)

@@ -4,6 +4,22 @@ Cambios en el sistema y en el sitio público, del más reciente al más antiguo.
 Cada entrada indica el PR y si necesitó migración o pasos especiales al
 desplegar. Hora de Costa Rica salvo que diga UTC.
 
+## 2026-11-02
+
+### Comisiones de los vendedores (esta rama)
+- Cuando una factura queda **Pagada**, el vendedor de la oportunidad del proyecto gana su
+  comisión: un **% del monto sin IVA** y, la primera vez que se cobra una oportunidad de tipo
+  *Nuevo*, el monto por **cliente nuevo**. Un pago parcial no genera nada hasta completarse.
+- Planilla → **Comisiones** (admin): reglas generales (empiezan en 0), quién gana cuánto, y cada
+  comisión con fecha de cobro, cliente, factura, base sin IVA, monto y en qué planilla se pagó.
+  Cada persona puede tener **comisiones propias** en Empleados; un admin solo gana con las suyas.
+- Las comisiones entran solas en la **próxima planilla** del vendedor como línea *Comisión*.
+- **Anular** (con motivo): si no se pagó, sale de la planilla; si ya se pagó, queda *Revertida* y
+  se descuenta en la próxima planilla.
+- Los vendedores ven **Mis comisiones** en Planilla.
+- Despliegue: **migración 0026** (`alembic upgrade head`); reiniciar. Cargar las reglas en
+  Planilla → Comisiones: mientras estén en 0 no se genera ninguna comisión.
+
 ## 2026-10-30
 
 ### Planilla: bonos, viáticos, rebajas y ajustes; aprobada y pagada (esta rama)

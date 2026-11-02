@@ -1,17 +1,20 @@
 from typing import List, Optional
 from datetime import date, datetime
-from fastapi import APIRouter, Depends, HTTPException, Body, Request
-from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi import APIRouter, Depends, HTTPException, Body, Form, Request
+from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.routers import deps
 from app.core.roles import ADMIN, SUPERVISOR, VENTAS, WORKER
 from app.db.models.user import User
 from app.db.models.schedule import ProjectSchedule
+from app.db.models.commission import Commission
 from app.db.models.payroll import PayrollAdjustment, PayrollEntry, PayrollLine, PayrollPeriod
 import pydantic
 from app.db.models.project import Project
 from app.utils.activity import log_activity
+from app.utils.comisiones import KINDS as COMMISSION_KINDS, STATUS_LABELS, cancel, general_rules, \
+    rules_for, set_general_rules, status_of
 from app.utils.planilla import (LINE_KINDS, PAY_TYPES, line_sums, monthly_share, overtime_rate, recompute,
                                 valid_line)
 from app.utils.timecr import today_cr
@@ -112,8 +115,12 @@ def payroll_dashboard(
     if user.role == ADMIN:
         statuses = {p.id: payment_status(db, p) for p in periods if p.status == "final"}
         pending = pending_adjustments(db).all()
+    # Commission adjustments are cancelled from Comisiones, not deleted here.
+    from_commissions = {i for row in db.query(Commission.adjustment_id, Commission.reversal_adjustment_id)
+                        for i in row if i} if pending else set()
 
     return templates.TemplateResponse("payroll/index.html", {
+        "from_commissions": from_commissions,
         "request": request,
         "user": user,
         "periods": periods,
@@ -778,9 +785,81 @@ def delete_adjustment(adjustment_id: int, db: Session = Depends(deps.get_db),
     if adjustment.lines:
         raise HTTPException(status_code=400, detail=(
             f"Ese ajuste ya está en la planilla #{adjustment.lines[0].entry.payroll_period_id}: quitalo de ahí."))
+    if db.query(Commission).filter((Commission.adjustment_id == adjustment.id)
+                                   | (Commission.reversal_adjustment_id == adjustment.id)).first():
+        raise HTTPException(status_code=400, detail="Es una comisión: anulala en Planilla → Comisiones.")
     person = adjustment.user.full_name or adjustment.user.username if adjustment.user else "?"
     detail = f"{LINE_KINDS.get(adjustment.kind, (adjustment.kind,))[0]} {money(adjustment.amount)} para {person}"
     db.delete(adjustment)
     db.commit()
     log_activity(db, user, "Borrar Ajuste Planilla", "PAYROLL_ADJUSTMENT", adjustment_id, detail)
     return {"status": "success", "message": "Ajuste borrado"}
+
+
+# -----------------------------------------------------------------------------
+# 4. COMMISSIONS (Fase 5)
+# -----------------------------------------------------------------------------
+
+@router.get("/commissions", response_class=HTMLResponse)
+def commissions_view(request: Request, persona: Optional[int] = None, estado: Optional[str] = None,
+                     db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
+    """Admin: every commission, the general rules and Anular. A seller: their own ("Mis comisiones")."""
+    if user.role != ADMIN and not user.sells:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    query = db.query(Commission).order_by(Commission.payment_date.desc().nullslast(), Commission.id.desc())
+    if user.role != ADMIN:
+        query = query.filter(Commission.user_id == user.id)
+    elif persona:
+        query = query.filter(Commission.user_id == persona)
+    rows = [{"c": c, "status": status_of(c)} for c in query.all()]
+    if estado in STATUS_LABELS:
+        rows = [r for r in rows if r["status"]["code"] == estado]
+    total = sum(r["c"].amount for r in rows if r["status"]["code"] not in ("anulada", "revertida"))
+    sellers = []
+    if user.role == ADMIN:
+        sellers = [{"user": p, "rules": rules_for(db, p)} for p in db.query(User).order_by(User.full_name)
+                   if ((p.sells and p.role != ADMIN) or p.commission_percent is not None
+                       or p.commission_new_client is not None) and deps.can_log_in(p)]
+    return templates.TemplateResponse("payroll/commissions.html", {
+        "request": request, "user": user, "rows": rows, "total": total, "kinds": COMMISSION_KINDS,
+        "status_labels": STATUS_LABELS, "general": general_rules(db), "sellers": sellers,
+        "filters": {"persona": persona, "estado": estado},
+    })
+
+
+@router.post("/commissions/settings", dependencies=[Depends(deps.require_roles(ADMIN))])
+def commissions_settings(percent: float = Form(0.0), new_client: float = Form(0.0), db: Session = Depends(deps.get_db),
+                         user: User = Depends(deps.get_current_user)):
+    if percent < 0 or percent > 100 or new_client < 0:
+        return RedirectResponse(url="/payroll/commissions?error=valores", status_code=303)
+    set_general_rules(db, percent, new_client)
+    db.commit()
+    log_activity(db, user, "Reglas Comisiones", "COMMISSION", None,
+                 f"Generales: {percent:g}% por factura cobrada (sin IVA) y {money(new_client)} por cliente nuevo")
+    response = RedirectResponse(url="/payroll/commissions", status_code=303)
+    response.set_cookie(key="toast_message", value="Reglas de comisión guardadas")
+    return response
+
+
+class CancelIn(pydantic.BaseModel):
+    reason: str = ""
+
+
+@router.post("/commissions/{commission_id}/cancel", dependencies=[Depends(deps.require_roles(ADMIN))])
+def cancel_commission(commission_id: int, data: CancelIn, db: Session = Depends(deps.get_db),
+                      user: User = Depends(deps.get_current_user)):
+    commission = db.get(Commission, commission_id)
+    if not commission:
+        raise HTTPException(status_code=404, detail="Comisión no encontrada")
+    if not data.reason.strip():
+        raise HTTPException(status_code=400, detail="Escribí el motivo")
+    try:
+        message = cancel(db, commission, data.reason, user)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    db.commit()
+    log_activity(db, user, "Anular Comisión", "COMMISSION", commission.id,
+                 f"{COMMISSION_KINDS[commission.kind]} {money(commission.amount)} de "
+                 f"{commission.user.full_name or commission.user.username} (factura #{commission.invoice_number}): "
+                 f"{message}. Motivo: {commission.cancel_reason}")
+    return {"status": "success", "message": message}

@@ -82,10 +82,12 @@ CHAPTERS: List[Chapter] = [
         (ADMIN, SUPERVISOR, WORKER, VENTAS), ("/payroll", "/payments", "/liquidation"),
         (("que-es", "Qué es"), ("ciclo", "El ciclo de cada planilla"), ("aprobar", "Confirmar las horas"),
          ("generar", "Generar y aprobar la planilla"), ("lineas", "Bonos, viáticos, rebajas y ajustes"),
+         ("comisiones", "Comisiones"),
          ("pagos", "Historial de pagos"), ("liquidacion", "Liquidaciones"),
          ("preguntas", "Preguntas frecuentes")),
         "planilla salario pago horas extra ccss deducciones vacaciones aguinaldo liquidación aprobar quincena "
-        "mensual por día asesor bono viáticos adelanto deducción ajuste aprobada pagada",
+        "mensual por día asesor bono viáticos adelanto deducción ajuste aprobada pagada comisión comisiones "
+        "vendedor cliente nuevo factura",
     ),
     Chapter(
         "clientes", "Clientes",

@@ -38,6 +38,12 @@
             <dt class="truncate text-sm font-medium text-gray-500">Mis pagos</dt>
             <dd class="mt-1 text-base font-semibold text-indigo-600">Ver lo que me han pagado →</dd>
         </a>
+        {% if user.sells %}
+        <a href="/payroll/commissions" class="block overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6 border border-gray-100 hover:border-gray-400">
+            <dt class="truncate text-sm font-medium text-gray-500">Mis comisiones</dt>
+            <dd class="mt-1 text-base font-semibold text-indigo-600">Ver de qué facturas y cuándo se pagan →</dd>
+        </a>
+        {% endif %}
         <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6 border border-gray-100">
             <dt class="truncate text-sm font-medium text-gray-500">Fecha de Inicio</dt>
             <dd class="mt-1 text-2xl font-semibold tracking-tight text-gray-900">{{ user.start_date | format_date if
@@ -64,6 +70,10 @@
         <h5 class="mb-2 text-lg font-bold tracking-tight text-gray-900">Liquidaciones</h5>
         <p class="font-normal text-gray-700">Calcular y procesar liquidaciones de personal.</p>
     </a>
+    <a href="/payroll/commissions" class="block p-6 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 shadow-sm">
+        <h5 class="mb-2 text-lg font-bold tracking-tight text-gray-900">Comisiones</h5>
+        <p class="font-normal text-gray-700">Reglas, comisiones de cada vendedor y en qué planilla se pagan.</p>
+    </a>
 </div>
 {% endif %}
 
@@ -83,7 +93,11 @@
                 · {{ a.description }}
                 <span class="text-xs text-gray-500">{% if a.source_period_id %}(corrige la planilla #{{ a.source_period_id }}) {% endif %}por {{ a.created_by.full_name or a.created_by.username if a.created_by else '?' }}, {{ a.created_at | format_date }}</span>
             </div>
+            {% if a.id in from_commissions %}
+            <a href="/payroll/commissions" class="text-xs font-semibold text-indigo-600 hover:underline">Ver en Comisiones</a>
+            {% else %}
             <button type="button" onclick="deleteAdjustment({{ a.id }})" class="text-xs font-semibold text-red-600 hover:text-red-900">Borrar</button>
+            {% endif %}
         </li>
         {% endfor %}
     </ul>
