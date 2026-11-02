@@ -9,7 +9,7 @@ mostraría datos de otros clientes o de finanzas.
 
 Con el PostgreSQL local de desarrollo (docker `tomato-pg17`) y las variables de
 conexión locales (`DB_SERVER=127.0.0.1`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`,
-`SECRET_KEY`, `USE_SQLITE=False`):
+`SECRET_KEY`, `USE_SQLITE=False` y `DB_SSLMODE=disable`, porque el PostgreSQL local no usa SSL):
 
 ```bash
 # 1. Base tomato_manual con datos de ejemplo (la borra y la vuelve a crear)
