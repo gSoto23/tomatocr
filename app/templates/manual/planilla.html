@@ -51,9 +51,11 @@
     el proyecto (cada tarjeta dice cuántos días tiene por confirmar; esos van primero).</p>
 {{ m.shot("planilla/aprobar.webp", "Aprobar horas de un proyecto", "Aprobar horas, con un proyecto abierto.") }}
 {{ m.steps([
-    (1, "Se abre con <strong>esta quincena</strong> hasta hoy. Cambiá las fechas, o tocá <em>Hoy</em>, <em>Esta quincena</em> o <em>Quincena anterior</em>; <em>Refrescar</em> vuelve a cargar."),
-    (2, "Corregí las <strong>Horas</strong> y las horas <strong>Extra (1.5x)</strong> de cada persona si no fueron las 8 de siempre."),
-    (3, "Tocá <strong>Confirmar pendientes</strong> y aceptá el aviso. Las filas pasan a <em>Confirmado</em>."),
+    (1, "Se abre con <strong>esta quincena</strong> hasta hoy, en <em>Desde</em> y <em>Hasta</em>. Cambiá las fechas si querés otro rango."),
+    (2, "O tocá <em>Hoy</em>, <strong>Esta quincena</strong> o <em>Quincena anterior</em>; <em>Refrescar</em> vuelve a cargar."),
+    (3, "Corregí las <strong>Horas</strong> de cada persona si no fueron las 8 de siempre."),
+    (4, "Y las horas <strong>Extra (1.5x)</strong>, si hizo."),
+    (5, "Tocá <strong>Confirmar pendientes</strong> y aceptá el aviso. Las filas pasan a <em>Confirmado</em>."),
 ]) }}
 <p><em>Confirmar pendientes</em> confirma solo las filas de la página que ves que están pendientes, y las ya confirmadas
     a las que les cambiaste las horas; antes te dice cuántas son. El supervisor no ve sus propias horas; las confirma el admin.
@@ -75,7 +77,9 @@
     (2, "Una fila por persona, con su forma de pago: salario, bonos y ajustes, CCSS, viáticos y rebajas, y <strong>neto</strong>. En el celular, una tarjeta por persona."),
     (3, "<strong>Tocá a una persona</strong> para abrir su panel (abajo)."),
     (4, "<strong>Aprobar quincena</strong> la cierra: ya no se cambia. Solo las quincenas aprobadas cuentan como costo de los proyectos en Presupuestos."),
-    (5, "<em>Listado de pago</em>, <em>Comprobantes</em> y <em>Descargar Excel</em>, para pagar y archivar."),
+    (5, "<strong>Listado de pago</strong>: quién, cómo y cuánto, para hacer las transferencias."),
+    (6, "<strong>Comprobantes</strong>: uno por persona, para imprimir o guardar en PDF."),
+    (7, "<strong>Descargar Excel</strong>: el resumen con el costo patronal, las líneas y los días."),
 ]) }}
 <p><strong>El panel de una persona</strong>:</p>
 {{ m.shot("planilla/panel.webp", "Panel de una persona en la quincena", "El panel de una persona, en una quincena en borrador.") }}
@@ -84,7 +88,8 @@
     (2, "<strong>Rebajar CCSS</strong>: desmarcalo si a esa persona no le corresponde (solo en borrador)."),
     (3, "Sus <strong>bonos, viáticos y rebajas</strong> en esta quincena; <em>Quitar</em> saca una."),
     (4, "<strong>Agregar a esta quincena</strong>: tipo, monto y detalle. Los totales se recalculan solos."),
-    (5, "<em>Días trabajados</em> (fecha, proyecto, horas y extras) y <em>Ver comprobante</em>. En una quincena aprobada, aquí también se registra su pago."),
+    (5, "<strong>Días trabajados</strong>: fecha, proyecto, horas y extras de cada día. En una quincena aprobada, en el panel también se registra su pago."),
+    (6, "<strong>Ver comprobante</strong> abre el comprobante de esa persona."),
 ]) }}
 <p><strong>Para pagar y archivar</strong>: <em>Listado de pago</em> (quién, cómo y cuánto, para imprimir o hacer las
     transferencias), <em>Comprobantes</em> (uno por persona, una página cada uno, para imprimir o guardar en PDF) y

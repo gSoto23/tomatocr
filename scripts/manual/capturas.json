@@ -955,12 +955,12 @@
      "tags": "a"
     },
     {
-     "n": 5,
+     "n": 6,
      "text": "Comprobantes",
      "tags": "a"
     },
     {
-     "n": 5,
+     "n": 7,
      "text": "Descargar Excel",
      "tags": "a"
     }
@@ -997,7 +997,7 @@
      "tags": "summary"
     },
     {
-     "n": 5,
+     "n": 6,
      "selector": "#person-payslip"
     }
    ]
@@ -1016,24 +1016,20 @@
      "selector": "#start_date"
     },
     {
-     "n": 1,
-     "selector": "#end_date"
-    },
-    {
-     "n": 1,
+     "n": 2,
      "text": "Esta quincena",
      "tags": "button"
     },
     {
-     "n": 2,
+     "n": 3,
      "selector": "input[id^=\"hours-\"]"
     },
     {
-     "n": 2,
+     "n": 4,
      "selector": "input[id^=\"overtime-\"]"
     },
     {
-     "n": 3,
+     "n": 5,
      "text": "Confirmar pendientes",
      "exact": false,
      "tags": "button"
