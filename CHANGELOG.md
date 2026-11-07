@@ -4,6 +4,15 @@ Cambios en el sistema y en el sitio público, del más reciente al más antiguo.
 Cada entrada indica el PR y si necesitó migración o pasos especiales al
 desplegar. Hora de Costa Rica salvo que diga UTC.
 
+## 2026-11-06
+
+### Arreglo: los correos de avisos se ven con diseño (esta rama)
+- Los avisos por correo y el resumen del día llegaban como texto plano en Gmail aunque
+  tenían diseño: el correo traía las dos versiones, pero la de texto iba de última y los
+  programas de correo muestran la última. Ahora el diseño va de último y la versión de texto
+  queda solo para los programas que no muestran HTML.
+- Despliegue: sin migración; reiniciar.
+
 ## 2026-11-02
 
 ### Comisiones por tramo y filtros en Planilla (esta rama)

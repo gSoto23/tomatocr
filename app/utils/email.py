@@ -177,8 +177,10 @@ async def send_plain_email(recipients: List[str], subject: str, body: str, html:
         return False
     try:
         if html:
-            message = MessageSchema(subject=subject, recipients=recipients, body=html, subtype=MessageType.html,
-                                    multipart_subtype=MultipartSubtypeEnum.alternative, alternative_body=body)
+            # Mail apps show the LAST part of multipart/alternative, and fastapi-mail adds the
+            # alternative_body after the body: so the text goes first and the design last.
+            message = MessageSchema(subject=subject, recipients=recipients, body=body, subtype=MessageType.plain,
+                                    multipart_subtype=MultipartSubtypeEnum.alternative, alternative_body=html)
         else:
             message = MessageSchema(subject=subject, recipients=recipients, body=body, subtype=MessageType.plain)
         await FastMail(conf).send_message(message)

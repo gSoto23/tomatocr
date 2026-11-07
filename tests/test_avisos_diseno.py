@@ -59,3 +59,24 @@ def test_the_bell_shows_label_and_summary(db, login_as, users):
     page = login_as("worker").get("/notificaciones").text
     assert ">Tarea asignada</span>" in page and ">Podar</span>" in page
     assert "u_supervisor te asignó una tarea · Vence" in page and "bg-blue-100 text-blue-700" in page
+
+
+def test_mail_apps_show_the_design(monkeypatch):
+    """Mail apps show the last part of multipart/alternative: it must be the HTML (on 05/11/2026
+    Gmail showed the plain text because fastapi-mail had put it last)."""
+    import asyncio
+    from fastapi_mail.msg import MailMsg
+    from app.utils import email
+
+    sent = []
+
+    async def capture(self, message, template_name=None):
+        sent.append(await MailMsg(message)._message("notificaciones@tomatocr.com"))
+    monkeypatch.setattr(email.settings, "MAIL_USERNAME", "notificaciones@tomatocr.com")
+    monkeypatch.setattr(email.FastMail, "send_message", capture)
+    assert asyncio.run(email.send_plain_email(["a@b.cr"], "Tarea", "texto", "<p>diseño</p>"))
+    parts = [p for p in sent[0].walk() if p.get_content_maintype() == "text"]
+    assert [p.get_content_type() for p in parts] == ["text/plain", "text/html"]
+    alternative = next(p for p in sent[0].walk() if p.get_content_type() == "multipart/alternative")
+    assert alternative.get_payload()[-1].get_content_type() == "text/html"
+    assert "diseño" in parts[-1].get_payload(decode=True).decode()
