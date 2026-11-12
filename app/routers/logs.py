@@ -10,7 +10,7 @@ from fastapi.responses import RedirectResponse, JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
-from app.db.models.log import DailyLog, Photo
+from app.db.models.log import DailyLog, LogExemption, Photo
 from app.db.models.project import Project
 from app.db.models.log_task import DailyLogTask
 from app.db.models.user import User
@@ -147,6 +147,80 @@ def list_logs(
         "sort": sort,
         "order": order
     })
+
+# --- "No ocupa bitácora": a project's day that legitimately has no report ----------------------
+
+def answer(request: Request, next_url: str, message: str, error: bool = False, **extra):
+    """JSON for the calendar (fetch), a redirect with its toast for the Dashboard's forms."""
+    if "application/json" in request.headers.get("accept", ""):
+        return JSONResponse({"status": "error" if error else "success", "message": message, **extra},
+                            status_code=400 if error else 200)
+    url = next_url if next_url.startswith("/") and not next_url.startswith("//") else "/dashboard/"
+    response = RedirectResponse(url=url, status_code=status.HTTP_303_SEE_OTHER)
+    response.set_cookie(key="toast_message", value=message)
+    if error:
+        response.set_cookie(key="toast_type", value="error")
+    return response
+
+
+def exemption_day(db: Session, user: User, project_id: int, day: str):
+    """The project and the day to mark or unmark, or the reason it can't be done."""
+    if user.role not in SEES_ALL_PROJECTS:
+        raise HTTPException(status_code=403, detail="Solo el admin y el supervisor marcan días sin bitácora")
+    try:
+        when = date.fromisoformat(day)
+    except ValueError:
+        return None, None, "Fecha no válida"
+    project = db.get(Project, project_id)
+    if project is None:
+        return None, None, "Proyecto no encontrado"
+    if when > today_cr():
+        return None, None, "Un día que todavía no pasó no se puede marcar"
+    return project, when, None
+
+
+@router.post("/no-ocupa")
+def mark_no_report(request: Request, project_id: int = Form(...), day: str = Form(..., alias="date"),
+                   reason: str = Form(""), next_url: str = Form("/dashboard/", alias="next"),
+                   db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
+    """The day stops counting in "días trabajados sin bitácora" (with an optional short reason)."""
+    project, when, problem = exemption_day(db, user, project_id, day)
+    if problem:
+        return answer(request, next_url, problem, error=True)
+    if db.query(DailyLog.id).filter(DailyLog.project_id == project.id, DailyLog.date == when).first():
+        return answer(request, next_url, "Ese día ya tiene bitácora", error=True)
+    reason = " ".join((reason or "").split())[:200] or None
+    mark = db.query(LogExemption).filter(LogExemption.project_id == project.id, LogExemption.date == when).first()
+    if mark is None:
+        mark = LogExemption(project_id=project.id, date=when, reason=reason, user_id=user.id)
+        db.add(mark)
+    else:
+        mark.reason, mark.user_id = reason or mark.reason, user.id
+    db.commit()
+    log_activity(db, user, "NO_REPORT", "PROJECT", project.id,
+                 f"Marcó que {project.name} del {when:%d/%m/%Y} no ocupa bitácora" + (f". Motivo: {reason}" if reason else ""))
+    return answer(request, next_url, f"Listo: {project.name} del {when:%d/%m} no ocupa bitácora. "
+                                     "Se deshace desde ese día en el Calendario.",
+                  reason=mark.reason, by=user.full_name or user.username)
+
+
+@router.post("/no-ocupa/deshacer")
+def unmark_no_report(request: Request, project_id: int = Form(...), day: str = Form(..., alias="date"),
+                     next_url: str = Form("/dashboard/", alias="next"),
+                     db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
+    """Undo: the day counts again as without report (if it still has none)."""
+    project, when, problem = exemption_day(db, user, project_id, day)
+    if problem:
+        return answer(request, next_url, problem, error=True)
+    mark = db.query(LogExemption).filter(LogExemption.project_id == project.id, LogExemption.date == when).first()
+    if mark is None:
+        return answer(request, next_url, "Ese día no estaba marcado como «No ocupa bitácora»")
+    db.delete(mark)
+    db.commit()
+    log_activity(db, user, "UNDO_NO_REPORT", "PROJECT", project.id,
+                 f"Deshizo «No ocupa bitácora» de {project.name} del {when:%d/%m/%Y}")
+    return answer(request, next_url, f"Deshecho: {project.name} del {when:%d/%m} vuelve a pedir bitácora")
+
 
 @router.get("/{id}/detail")
 def get_log_detail(id: int, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):

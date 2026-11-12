@@ -74,6 +74,10 @@
     paga. Si fue un error, tocá <em>Asistió</em> y vuelven las horas que tenía. La asistencia se ve en el calendario y en
     el desglose de horas de la planilla.</p>
 {% endcall %}
+<p>Arriba de la gente está la <strong>bitácora del día</strong>: <em>Con bitácora</em>, <em>Sin bitácora</em> (con
+    <em>Registrar</em> y <em>No ocupa bitácora</em>) o <em>No ocupa bitácora</em>, con el motivo, quién lo marcó y cuándo,
+    y <strong>Deshacer</strong>. Un día marcado así deja de salir en <em>días trabajados sin bitácora</em> del Dashboard;
+    al deshacerlo vuelve a contar si sigue sin bitácora.</p>
 <p>Para <strong>mover el día</strong>, arrastrá el bloque a otro día: se mueve todo el equipo. Si alguien ya tiene algo ese
     día, te pregunta; un día con horas confirmadas no se mueve.</p>
 {% if user.role == 'supervisor' %}<p>Tus propias horas no las podés confirmar: las confirma el admin.</p>{% endif %}
@@ -125,7 +129,7 @@
 <p>Solo aparecen las personas activas. Si alguien volvió a trabajar, el admin la activa en Empleados.</p>
 {% endcall %}
 {% call m.faq("¿Queda registrado quién cambió una asignación?") %}
-<p>Sí, en Actividad: crear, editar y quitar asignaciones.</p>
+<p>Sí, en Actividad: crear, editar y quitar asignaciones, y marcar o deshacer <em>No ocupa bitácora</em>.</p>
 {% endcall %}
 </div>
 {% endcall %}

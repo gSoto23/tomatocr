@@ -1,5 +1,5 @@
 
-from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, Date
+from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, Date, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.db.base_class import Base
@@ -30,3 +30,20 @@ class Photo(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     log = relationship("DailyLog", back_populates="photos")
+
+
+class LogExemption(Base):
+    """A project's day that does not need a report (it rained, it was only a delivery...): it no longer
+    counts in "días trabajados sin bitácora". One per project and day; deleting it undoes the mark."""
+    __tablename__ = "daily_log_exemptions"
+    __table_args__ = (UniqueConstraint("project_id", "date", name="uq_log_exemption_project_date"),)
+
+    id = Column(Integer, primary_key=True, index=True)
+    project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
+    date = Column(Date, nullable=False, index=True)
+    reason = Column(String(200), nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # who marked it
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    project = relationship("Project")
+    user = relationship("User")

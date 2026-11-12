@@ -425,6 +425,7 @@ def unlink_user(db: Session, user_id: int):
                 "DELETE FROM crm_assignments WHERE user_id = :id",
                 "UPDATE contacts SET user_id = NULL WHERE user_id = :id",
                 "UPDATE account_not_duplicates SET user_id = NULL WHERE user_id = :id",
+                "UPDATE daily_log_exemptions SET user_id = NULL WHERE user_id = :id",
                 "UPDATE activity_logs SET user_id = NULL WHERE user_id = :id AND action = 'LOGIN'",
                 "DELETE FROM notifications WHERE user_id = :id",
                 "DELETE FROM notification_prefs WHERE user_id = :id",

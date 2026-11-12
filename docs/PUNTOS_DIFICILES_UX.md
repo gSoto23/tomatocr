@@ -75,3 +75,9 @@ estados dicen Borrador y Final; el perfil registra los días de vacaciones tomad
 un contrato pide la fecha; un rango del Calendario se edita o borra entero y las
 asignaciones se mueven arrastrándolas; Empleados busca, ordena y muestra quién está
 liquidado; Reforestación calcula la supervivencia a 3, 6 y 12 meses con coma decimal.
+
+Corregido el 12/11/2026 (migración 0029, `daily_log_exemptions`): la alerta *días trabajados
+sin bitácora* no se podía resolver cuando el día legítimamente no llevaba bitácora (lluvia,
+solo una entrega); solo se marcaba como vista y se quedaba en Pendientes. Ahora cada día de la
+alerta trae *Registrar* y *No ocupa bitácora* (ventana propia del sistema con motivo opcional),
+el día del proyecto en el Calendario lo muestra y lo deshace, y queda en Actividad.
