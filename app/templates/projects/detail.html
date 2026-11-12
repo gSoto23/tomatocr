@@ -21,6 +21,9 @@
                 <p class="text-sm text-gray-500 font-medium">{{ project.client_display_name }}</p>
                 {% endif %}
             </div>
+            {% if project.ended_at %}
+            <span class="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-500/20">Terminado</span>
+            {% endif %}
             {% if project.is_active %}
             <span
                 class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Activo</span>
@@ -50,6 +53,18 @@
         {% endif %}
 
         {% if user.role == 'admin' %}
+        {% if project.ended_at %}
+        <form method="post" action="/projects/{{ project.id }}/reabrir"
+              data-confirm="«{{ project.name }}» vuelve a poder renovarse y, si su contrato está por vencer, regresa a la alerta del Dashboard." data-confirm-ok="Reabrir" data-confirm-title="¿Reabrir el proyecto?">
+            <button class="inline-flex items-center gap-2 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Reabrir</button>
+        </form>
+        {% else %}
+        <form method="post" action="/projects/{{ project.id }}/terminar"
+              data-confirm="El contrato de «{{ project.name }}» no se renueva: sale de la alerta de contratos por vencer y, si hay una renovación abierta en Clientes, se cierra como perdida («No renovó»). Se puede reabrir." data-confirm-ok="Terminar proyecto" data-confirm-title="¿Terminar el proyecto?" data-confirm-danger
+              data-confirm-input="reason" data-confirm-input-label="Motivo (opcional)">
+            <button class="inline-flex items-center gap-2 rounded-md bg-white px-3 py-2 text-sm font-semibold text-red-700 shadow-sm ring-1 ring-inset ring-red-600/30 hover:bg-red-50">Terminar proyecto</button>
+        </form>
+        {% endif %}
         <a href="/projects/{{ project.id }}/edit"
             class="inline-flex items-center gap-2 rounded-md bg-black px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black">
             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -61,6 +76,15 @@
         {% endif %}
     </div>
 </div>
+
+{% if project.ended_at %}
+<div class="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+    <p><strong>Proyecto terminado: el contrato no se renueva.</strong>
+        Lo marcó {{ project.ended_by.full_name if project.ended_by else 'alguien' }} el {{ project.ended_at|format_datetime_cr }}.</p>
+    {% if project.end_reason %}<p class="mt-1">Motivo: {{ project.end_reason }}</p>{% endif %}
+    {% if project.is_active and user.role == 'admin' %}<p class="mt-1 text-gray-500">Sigue activo para registrar el trabajo hasta que termine el contrato; después desactivalo en Editar.</p>{% endif %}
+</div>
+{% endif %}
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
     <!-- Left Column: Details -->

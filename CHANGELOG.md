@@ -4,6 +4,23 @@ Cambios en el sistema y en el sitio público, del más reciente al más antiguo.
 Cada entrada indica el PR y si necesitó migración o pasos especiales al
 desplegar. Hora de Costa Rica salvo que diga UTC.
 
+## 2026-11-12
+
+### Terminar un proyecto que no se renueva (esta rama)
+- **Terminar proyecto** (admin): en la ficha del proyecto, en cada contrato de la alerta del
+  Dashboard *contratos por vencer sin renovación* y en *Contratos por vencer* de Clientes. Pide
+  confirmar en la ventana del sistema, con un motivo opcional.
+- Un proyecto terminado sale de la alerta y de Contratos por vencer, ya no ofrece *Crear
+  renovación* y lleva la etiqueta *Terminado*. Si había una renovación abierta en Clientes, se
+  cierra como perdida con el motivo «No renovó». Sigue activo para la bitácora hasta que termine
+  el contrato; después se desactiva en Editar.
+- **Reabrir** lo deshace. Quién terminó o reabrió y cuándo queda en Actividad.
+- La lista de proyectos filtra por estado: Todos, Activos, Terminados e Inactivos.
+- La alerta trae cada contrato con sus botones *Crear renovación* y *Terminar*; el enlace
+  general dice *Ver en Clientes*.
+- La ventana de confirmación del sistema acepta un texto opcional (`data-confirm-input`).
+- Despliegue: **migración 0029** (`alembic upgrade head`); reiniciar.
+
 ## 2026-11-06
 
 ### Arreglo: los correos de avisos se ven con diseño (esta rama)

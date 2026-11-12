@@ -823,6 +823,7 @@ def expiring_contracts(db: Session, today: Optional[date] = None, days: int = RE
     budgets = db.query(ProjectBudget).join(Project, Project.id == ProjectBudget.project_id).filter(
         ProjectBudget.end_date.isnot(None), ProjectBudget.end_date >= today,
         ProjectBudget.end_date <= today + timedelta(days=days), Project.is_active != False,  # noqa: E712
+        Project.ended_at.is_(None),  # terminated: it will not be renewed
     ).order_by(ProjectBudget.end_date)
     for budget in budgets:
         project = db.get(Project, budget.project_id)
@@ -838,6 +839,8 @@ def expiring_contracts(db: Session, today: Optional[date] = None, days: int = RE
 
 def create_renewal(db: Session, project: Project, user: User, today: Optional[date] = None) -> Opportunity:
     today = today or date.today()
+    if project.ended_at is not None:
+        raise ValueError("El proyecto está terminado: reabrilo para crear la renovación")
     if project.account_id is None:
         raise ValueError("El proyecto no tiene cuenta")
     existing = db.query(Opportunity).filter(Opportunity.kind == "renovacion", Opportunity.project_id == project.id,
@@ -858,6 +861,44 @@ def create_renewal(db: Session, project: Project, user: User, today: Optional[da
     db.add(ActivityLog(user_id=user.id, action="CREATE", entity_type="OPPORTUNITY", entity_id=opportunity.id,
                        details=f"Renovación de {project.name} ({account.name})"))
     return opportunity
+
+
+NOT_RENEWED = "No renovó"
+
+
+def end_project(db: Session, project: Project, user: User, reason: Optional[str] = None) -> List[Opportunity]:
+    """Marks the project as terminated (the contract will not be renewed): it leaves the renewal alert and
+    "Contratos por vencer". An open renewal in Clientes is closed as lost ("No renovó"). Returns those.
+    The project stays active until someone deactivates it: the contract can still run to its end date."""
+    if project.ended_at is not None:
+        raise ValueError("El proyecto ya está terminado")
+    reason = (reason or "").strip() or None
+    project.ended_at = datetime.utcnow()
+    project.ended_by_id = user.id
+    project.end_reason = reason
+    lost_reason = f"{NOT_RENEWED}: {reason}" if reason else NOT_RENEWED
+    closed = db.query(Opportunity).filter(Opportunity.kind == "renovacion", Opportunity.project_id == project.id,
+                                          Opportunity.stage.notin_(CLOSED_STAGES)).all()
+    for opportunity in closed:
+        change_stage(db, opportunity, "perdido", user, lost_reason)
+    details = f"Proyecto terminado (no se renueva): {project.name}"
+    if reason:
+        details += f". Motivo: {reason}"
+    if closed:
+        details += f". Renovación cerrada como perdida: {', '.join(o.title for o in closed)}"
+    db.add(ActivityLog(user_id=user.id, action="UPDATE", entity_type="PROJECT", entity_id=project.id, details=details))
+    return closed
+
+
+def reopen_project(db: Session, project: Project, user: User):
+    """Undoes end_project: the project can be renewed again (a renewal closed as lost stays lost)."""
+    if project.ended_at is None:
+        raise ValueError("El proyecto no está terminado")
+    project.ended_at = None
+    project.ended_by_id = None
+    project.end_reason = None
+    db.add(ActivityLog(user_id=user.id, action="UPDATE", entity_type="PROJECT", entity_id=project.id,
+                       details=f"Proyecto reabierto (se puede renovar): {project.name}"))
 
 
 def account_payload(account: Account) -> Dict:

@@ -57,7 +57,8 @@ CHAPTERS: List[Chapter] = [
         (("que-es", "Qué es"), ("lista", "La lista de proyectos"), ("ficha", "La ficha del proyecto"),
          ("bitacora", "Registrar la bitácora del día"), ("reporte", "El reporte por correo al cliente"),
          ("crear", "Crear o editar un proyecto"), ("preguntas", "Preguntas frecuentes")),
-        "proyecto bitácora registro diario fotos tareas horas reporte correo cliente contactos ubicación",
+        "proyecto bitácora registro diario fotos tareas horas reporte correo cliente contactos ubicación "
+        "terminar terminado reabrir no se renueva contrato por vencer renovación",
     ),
     Chapter(
         "calendario", "Calendario",

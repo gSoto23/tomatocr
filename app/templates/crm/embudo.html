@@ -127,6 +127,7 @@
                     {% if row.account %}<a href="/clientes/cuentas/{{ row.account.id }}" class="text-gray-600 hover:underline">· {{ row.account.name }}</a>{% endif %}
                     <div class="{{ 'text-red-700 font-semibold' if row.urgent else 'text-gray-600' }}">Vence el {{ row.end_date|format_date }} ({{ row.days_left }} días)</div>
                 </div>
+                <div class="flex flex-wrap items-center gap-2">
                 {% if row.renewal %}
                 <a href="/clientes/oportunidades/{{ row.renewal.id }}" class="font-semibold text-green-700 hover:underline">Renovación en curso: {{ crm_labels.stage[row.renewal.stage] }}</a>
                 {% elif row.account %}
@@ -134,6 +135,16 @@
                     <button class="rounded-md bg-black px-3 py-2 font-semibold text-white hover:bg-gray-800">Crear renovación</button>
                 </form>
                 {% endif %}
+                {% if user.role == 'admin' %}
+                <form method="post" action="/projects/{{ row.project.id }}/terminar"
+                      data-confirm="El contrato de «{{ row.project.name }}» no se renueva: sale de esta lista y de la alerta del Dashboard{{ ', y la renovación en curso se cierra como perdida («No renovó»)' if row.renewal }}. Se puede reabrir desde el proyecto."
+                      data-confirm-ok="Terminar proyecto" data-confirm-title="¿Terminar el proyecto?" data-confirm-danger
+                      data-confirm-input="reason" data-confirm-input-label="Motivo (opcional)">
+                    <input type="hidden" name="next" value="/clientes">
+                    <button class="rounded-md bg-white px-3 py-2 font-semibold text-red-700 ring-1 ring-inset ring-red-600/30 hover:bg-red-50">Terminar</button>
+                </form>
+                {% endif %}
+                </div>
             </li>
             {% endfor %}
         </ul>

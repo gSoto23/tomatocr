@@ -24,6 +24,23 @@
         {% for label, url in a.links %}<li><a href="{{ url }}" class="font-medium text-indigo-600 hover:underline">{{ label }} &rarr;</a></li>{% endfor %}
     </ul>
     {% endif %}
+    {% if a.rows %}
+    <ul class="space-y-2 pl-5 text-sm">
+        {% for r in a.rows %}
+        <li class="flex flex-wrap items-center justify-between gap-2">
+            <a href="{{ r.url }}" class="min-w-0 font-medium text-gray-800 hover:underline">{{ r.label }}</a>
+            <span class="flex shrink-0 gap-2">
+                {% for b in r.buttons %}
+                <form method="post" action="{{ b.action }}"{% if b.confirm %} data-confirm="{{ b.confirm }}" data-confirm-ok="{{ b.ok }}"{% if b.title %} data-confirm-title="{{ b.title }}"{% endif %}{% if b.danger %} data-confirm-danger{% endif %}{% endif %}{% if b.input %} data-confirm-input="{{ b.input }}" data-confirm-input-label="{{ b.input_label }}"{% endif %}>
+                    {% if b.next %}<input type="hidden" name="next" value="{{ b.next }}">{% endif %}
+                    <button class="rounded-md px-2.5 py-1 text-xs font-semibold ring-1 ring-inset {{ 'bg-white text-red-700 ring-red-600/30 hover:bg-red-50' if b.danger else 'bg-black text-white ring-black hover:bg-gray-800' }}">{{ b.text }}</button>
+                </form>
+                {% endfor %}
+            </span>
+        </li>
+        {% endfor %}
+    </ul>
+    {% endif %}
     <div class="flex flex-wrap items-center justify-between gap-2 pl-5">
         <a href="{{ a.url }}" class="text-sm font-semibold text-indigo-600 hover:text-indigo-800">{{ a.action }} &rarr;</a>
         <form method="post" action="/dashboard/alertas/{{ a.key }}/{{ 'volver' if pending else 'visto' }}">

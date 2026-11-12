@@ -1,6 +1,6 @@
 
 from typing import List, Optional
-from fastapi import APIRouter, Depends, Request, status, HTTPException
+from fastapi import APIRouter, Depends, Form, Request, status, HTTPException
 from fastapi.responses import RedirectResponse, JSONResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -14,8 +14,8 @@ from app.db.models.log import DailyLog
 from app.db.models.reforestation import ReforestationProject
 from app.db.models.crm import Account, Opportunity
 from app.db.models.crm import LABELS, MOTORS, ORIGINS
-from app.utils.crm import (account_payload, project_contact_roles, project_opportunity, set_project_contacts, site_contacts,
-                           win_from_project, win_opportunity)
+from app.utils.crm import (account_payload, end_project, project_contact_roles, project_opportunity, reopen_project,
+                           set_project_contacts, site_contacts, win_from_project, win_opportunity)
 from app.db.models.associations import project_users
 from sqlalchemy import desc, func
 from math import ceil
@@ -105,50 +105,44 @@ class ProjectCreate(BaseModel):
     end_date: Optional[str] = None
     budget_lines: List[BudgetLineCreate] = []
 
+# Filter of the project list: (value, label). "terminados" will not be renewed.
+PROJECT_FILTERS = (("", "Todos"), ("activos", "Activos"), ("terminados", "Terminados"), ("inactivos", "Inactivos"))
+
+
 @router.get("/")
 def list_projects(
     request: Request, 
     page: int = 1, 
     limit: int = 10,
+    estado: str = "",
     db: Session = Depends(deps.get_db), 
     user: User = Depends(deps.get_current_user)
 ):
     offset = (page - 1) * limit
-    
-    if user.role in SEES_ALL_PROJECTS:
-        count_query = db.query(func.count(Project.id))
-        total_records = count_query.scalar()
-        
-        projects = db.query(Project)\
-            .order_by(Project.id.desc())\
-            .offset(offset)\
-            .limit(limit)\
-            .all()
+    query = db.query(Project)
+    if user.role not in SEES_ALL_PROJECTS:
+        query = query.join(project_users).filter(project_users.c.user_id == user.id)
+    if estado == "activos":
+        query = query.filter(Project.is_active != False, Project.ended_at.is_(None))  # noqa: E712
+    elif estado == "terminados":
+        query = query.filter(Project.ended_at.isnot(None))
+    elif estado == "inactivos":
+        query = query.filter(Project.is_active == False)  # noqa: E712
     else:
-        # Explicit query
-        count_query = db.query(func.count(Project.id))\
-            .join(project_users)\
-            .filter(project_users.c.user_id == user.id)
-        total_records = count_query.scalar()
-        
-        projects = db.query(Project)\
-            .join(project_users)\
-            .filter(project_users.c.user_id == user.id)\
-            .order_by(Project.id.desc())\
-            .offset(offset)\
-            .limit(limit)\
-            .all()
-    
-    from math import ceil
+        estado = ""
+    total_records = query.count()
+    projects = query.order_by(Project.id.desc()).offset(offset).limit(limit).all()
     total_pages = ceil(total_records / limit)
-    
+
     return templates.TemplateResponse("projects/list.html", {
         "request": request, 
         "projects": projects, 
         "user": user,
         "page": page,
         "total_pages": total_pages,
-        "total_records": total_records
+        "total_records": total_records,
+        "estado": estado,
+        "project_filters": PROJECT_FILTERS,
     })
 
 def apply_account(db: Session, project: Project, project_in: "ProjectCreate"):
@@ -491,6 +485,53 @@ def get_project_detail(
         "total_pages": total_pages,
         "total_records": total_records
     })
+
+def back_to(next_url: str, project_id: int) -> str:
+    """Where to return after terminating/reopening: a local path (the Dashboard alert) or the project."""
+    return next_url if next_url.startswith("/") and not next_url.startswith("//") else f"/projects/{project_id}"
+
+
+def toast_redirect(url: str, message: str, error: bool = False) -> RedirectResponse:
+    response = RedirectResponse(url=url, status_code=status.HTTP_303_SEE_OTHER)
+    response.set_cookie(key="toast_message", value=message)
+    if error:
+        response.set_cookie(key="toast_type", value="error")
+    return response
+
+
+@router.post("/{id}/terminar")
+def terminate_project(id: int, reason: str = Form(""), next: str = Form(""), db: Session = Depends(deps.get_db),
+                      user: User = Depends(deps.require_roles(ADMIN))):
+    """The contract will not be renewed: leaves the renewal alert; an open renewal closes as lost."""
+    project = db.get(Project, id)
+    if project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    url = back_to(next, id)
+    try:
+        closed = end_project(db, project, user, reason)
+    except ValueError as e:
+        return toast_redirect(url, str(e), error=True)
+    db.commit()
+    message = f"{project.name}: terminado, no se renueva"
+    if closed:
+        message += " (renovación cerrada como perdida)"
+    return toast_redirect(url, message)
+
+
+@router.post("/{id}/reabrir")
+def reopen(id: int, next: str = Form(""), db: Session = Depends(deps.get_db),
+           user: User = Depends(deps.require_roles(ADMIN))):
+    project = db.get(Project, id)
+    if project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    url = back_to(next, id)
+    try:
+        reopen_project(db, project, user)
+    except ValueError as e:
+        return toast_redirect(url, str(e), error=True)
+    db.commit()
+    return toast_redirect(url, f"{project.name}: reabierto, se puede renovar")
+
 
 @router.get("/{id}/logs")
 def project_logs_redirect(id: int):

@@ -15,9 +15,11 @@
 {{ m.shot("proyectos/lista.webp", "Lista de proyectos", "Proyectos, con datos de ejemplo.") }}
 {{ m.steps([
     (1, "Tocá el <strong>nombre</strong> de un proyecto para abrir su ficha."),
-    (2, "<strong>Cliente</strong>, <strong>Ubicación</strong> y <strong>Estado</strong> (Activo o Inactivo)."),
+    (2, "<strong>Cliente</strong>, <strong>Ubicación</strong> y <strong>Estado</strong> (Activo o Inactivo, y <em>Terminado</em> si el contrato no se renueva)."),
     (3, "<strong>Nuevo Proyecto</strong> y <strong>Editar</strong>: solo para el admin."),
 ]) }}
+<p>Arriba de la lista, <strong>Todos / Activos / Terminados / Inactivos</strong> filtra por estado. <em>Activos</em> deja
+    fuera los terminados.</p>
 {% endcall %}
 
 {% call m.section("ficha", "La ficha del proyecto") %}
@@ -32,6 +34,15 @@
 {% if user.role in ['admin', 'client'] %}
 <p>El admin y el cliente ven además la <strong>Definición de Presupuesto</strong> (licitación, duración, prórroga y
     líneas adjudicadas) y el enlace a Presupuestos. El costo del proyecto lo ve solo el admin.</p>
+{% endif %}
+{% if user.role == 'admin' %}
+<p><strong>Terminar proyecto</strong> (admin, junto a <em>Editar</em>): para un contrato que <strong>no se va a
+    renovar</strong>. Pide confirmar en la ventana del sistema, con un motivo opcional. El proyecto queda con la etiqueta
+    <em>Terminado</em>, sale de la alerta <em>contratos por vencer sin renovación</em> del Dashboard y de <em>Contratos
+    por vencer</em> en Clientes, y ya no ofrece <em>Crear renovación</em>. Si había una renovación abierta en Clientes,
+    se cierra como perdida con el motivo «No renovó». Sigue activo para registrar la bitácora hasta que termine el
+    contrato; después desactivalo en <em>Editar</em>. <strong>Reabrir</strong> lo deshace (la renovación cerrada queda
+    perdida; si hace falta, se crea otra). Quién lo terminó o reabrió y cuándo queda en Actividad.</p>
 {% endif %}
 {% endcall %}
 
@@ -149,6 +160,11 @@
 {% call m.faq("Un contacto no aparece en los destinatarios del correo") %}
 <p>Tiene que estar marcado <em>Recibe reportes</em> en ese proyecto y tener correo. Si no tiene correo, la casilla
     está apagada: agregáselo en la cuenta, en Clientes.</p>
+{% endcall %}
+{% call m.faq("Un contrato está por vencer y no se va a renovar") %}
+<p>Tocá <strong>Terminar</strong> en la alerta del Dashboard (o en <em>Contratos por vencer</em> de Clientes), o
+    <strong>Terminar proyecto</strong> en la ficha. Escribí el motivo si querés. Deja de aparecer en la alerta. Si te
+    equivocaste, abrí el proyecto (filtro <em>Terminados</em>) y tocá <strong>Reabrir</strong>.</p>
 {% endcall %}
 {% call m.faq("¿«Acceso al portal» y «Cliente (cuenta)» son lo mismo?") %}
 <p>No. La <strong>cuenta</strong> es la empresa (en Clientes), con sus contactos. Los <strong>usuarios</strong> son las

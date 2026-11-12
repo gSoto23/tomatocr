@@ -608,7 +608,10 @@ def renewal(project_id: int, db: Session = Depends(deps.get_db), user: User = De
         return toast_redirect("/clientes", "El proyecto no tiene cuenta", error=True)
     if not can_edit_account(user, account):
         raise HTTPException(status_code=403, detail="Esta cuenta tiene otro dueño")
-    opportunity = create_renewal(db, project, user)
+    try:
+        opportunity = create_renewal(db, project, user)
+    except ValueError as e:
+        return toast_redirect("/clientes", str(e), error=True)
     db.commit()
     return toast_redirect(f"/clientes/oportunidades/{opportunity.id}", "Renovación creada")
 
