@@ -34,9 +34,12 @@ class Project(Base):
     ended_at = Column(DateTime(timezone=True), nullable=True)
     ended_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     end_reason = Column(Text, nullable=True)
+    # Vendedor encargado: sells and oversees the project; empty = the opportunity's (or account's) owner.
+    seller_id = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     users = relationship("User", secondary=project_users, back_populates="projects")
     ended_by = relationship("User", foreign_keys=[ended_by_id])
+    seller = relationship("User", foreign_keys=[seller_id])
     contacts = relationship("ProjectContact", back_populates="project", cascade="all, delete-orphan")
     # Every task and sede, archived ones included; `tasks` and `locations` are the ones in use.
     all_tasks = relationship("ProjectTask", back_populates="project", order_by="ProjectTask.id")

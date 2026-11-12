@@ -63,11 +63,12 @@ CHAPTERS: List[Chapter] = [
     Chapter(
         "calendario", "Calendario",
         "Quién trabaja en qué proyecto cada día y con qué tareas.",
-        (ADMIN, SUPERVISOR, WORKER), ("/calendar",),
+        (ADMIN, SUPERVISOR, WORKER, VENTAS), ("/calendar",),
         (("que-es", "Qué es"), ("vistas", "Ver el calendario"), ("asignar", "Asignar un proyecto"),
-         ("editar", "El día de un proyecto: personas, cambios y horas"), ("tareas", "Marcar las tareas hechas"), ("horas", "Las horas"),
-         ("preguntas", "Preguntas frecuentes")),
-        "calendario asignación asignar trabajador tareas día semana horas",
+         ("editar", "El día de un proyecto: personas, cambios y horas"),
+         ("vendedor", "El vendedor encargado del proyecto"), ("tareas", "Marcar las tareas hechas"),
+         ("horas", "Las horas"), ("preguntas", "Preguntas frecuentes")),
+        "calendario asignación asignar trabajador tareas día semana horas vendedor encargado comisión",
     ),
     Chapter(
         "proveedores", "Proveedores",

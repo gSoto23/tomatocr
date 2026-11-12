@@ -14,17 +14,19 @@ from app.db.models.project import Project
 from app.db.models.project_details import ProjectLocation
 from app.db.models.user import User
 from app.routers import deps
-from app.core.roles import ADMIN, CLIENT, OPERATIONS_ROLES, SUPERVISOR, WORKER
+from app.core.roles import ADMIN, CLIENT, OPERATIONS_ROLES, SUPERVISOR, VENTAS, WORKER
 
 router = APIRouter(
     prefix="/calendar",
     tags=["calendar"],
-    dependencies=[Depends(deps.require_roles(*OPERATIONS_ROLES))]
+    # Ventas comes in too: a seller sees the days of the projects they are vendedor encargado of.
+    dependencies=[Depends(deps.require_roles(*OPERATIONS_ROLES, VENTAS))]
 )
 
 from app.core.templates import templates
 from app.utils.activity import log_activity
 from app.utils.planilla import overtime_rate
+from app.utils.vendedor import project_seller, projects_sold_by, seller_choices
 
 @router.get("/")
 def calendar_view(request: Request, db: Session = Depends(deps.get_db), user: User = Depends(deps.get_current_user)):
@@ -51,6 +53,8 @@ def calendar_view(request: Request, db: Session = Depends(deps.get_db), user: Us
         "projects": projects,
         "workers": workers,
         "locations": locations,
+        "sellers": [{"id": u.id, "name": u.full_name or u.username} for u in seller_choices(db)]
+                   if user.role == ADMIN else [],
     })
 
 # Fixed, readable colors: each project always gets the same one.
@@ -92,12 +96,16 @@ def get_events(start: str, end: str, db: Session = Depends(deps.get_db), user: U
         return JSONResponse({"status": "error", "message": "Fechas no válidas"}, status_code=400)
     query = db.query(ProjectSchedule)
     is_manager = user.role in [ADMIN, SUPERVISOR]
-    if not is_manager:
+    is_seller = user.role == VENTAS
+    if is_seller:
+        # The days of the projects they sold and oversee, with everyone in them (read only).
+        query = query.filter(ProjectSchedule.project_id.in_(projects_sold_by(db, user)))
+    elif not is_manager:
         query = query.filter(ProjectSchedule.user_id == user.id)
     schedules = [s for s in query.filter(ProjectSchedule.date >= start, ProjectSchedule.date <= end)
                  .order_by(ProjectSchedule.date).all() if s.user and s.project]
 
-    if not is_manager:
+    if not (is_manager or is_seller):
         # A worker sees their own days, and taps one to open the project.
         return JSONResponse([{
             "id": s.id,
@@ -117,6 +125,10 @@ def get_events(start: str, end: str, db: Session = Depends(deps.get_db), user: U
         DailyLog.date >= start, DailyLog.date <= end)}
     exempt = {(e.project_id, e.date): e for e in db.query(LogExemption).filter(
         LogExemption.date >= start, LogExemption.date <= end)}
+    sellers = {}
+    for project_id in {pid for pid, _ in days}:
+        seller = project_seller(db, days_project(days, project_id))
+        sellers[project_id] = {"id": seller.id, "name": seller.full_name or seller.username} if seller else None
     events = []
     for (project_id, day), members in days.items():
         members.sort(key=lambda m: (m.user.full_name or m.user.username).lower())
@@ -139,10 +151,39 @@ def get_events(start: str, end: str, db: Session = Depends(deps.get_db), user: U
                 "absent": absent,
                 "members": [member_payload(m, group_sizes) for m in members],
                 "has_log": (project_id, day) in reported,
+                "seller": sellers[project_id],
+                "seller_chosen": members[0].project.seller_id is not None,
                 "no_report": exemption_payload(exempt.get((project_id, day))),
             },
         })
     return JSONResponse(events)
+
+def days_project(days: dict, project_id: int) -> Project:
+    """The project of any of the grouped days of `project_id`."""
+    return next(members[0].project for (pid, _), members in days.items() if pid == project_id)
+
+
+@router.post("/project/{project_id}/seller")
+def set_project_seller(project_id: int, seller_id: str = Form(""), db: Session = Depends(deps.get_db),
+                       user: User = Depends(deps.get_current_user)):
+    """The admin chooses the project's vendedor encargado from the calendar (empty: by default)."""
+    if user.role != ADMIN:
+        return JSONResponse({"status": "error", "message": "Solo el administrador cambia el vendedor"}, status_code=403)
+    project = db.get(Project, project_id)
+    if project is None:
+        return JSONResponse({"status": "error", "message": "El proyecto no existe"}, status_code=404)
+    chosen = int(seller_id) if seller_id.strip().isdigit() else None
+    if chosen is not None and chosen not in {u.id for u in seller_choices(db)}:
+        return JSONResponse({"status": "error", "message": "Tiene que ser alguien que vende"}, status_code=400)
+    project.seller_id = chosen
+    db.commit()
+    seller = project_seller(db, project)
+    name = (seller.full_name or seller.username) if seller else None
+    log_activity(db, user, "Vendedor del proyecto", "PROJECT", project.id,
+                 f"{project.name}: {name or 'sin vendedor'}{'' if chosen else ' (por defecto)'}")
+    return {"status": "success", "message": f"Vendedor encargado: {name or 'ninguno'}",
+            "seller": {"id": seller.id, "name": name} if seller else None, "seller_chosen": chosen is not None}
+
 
 def exemption_payload(mark: Optional[LogExemption]) -> Optional[dict]:
     if mark is None:

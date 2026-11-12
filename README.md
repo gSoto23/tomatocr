@@ -110,7 +110,8 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
   en `payroll_adjustments` y entra como línea en la próxima planilla de la persona. Estados:
   Borrador → Aprobada (`final`) → Pagada (calculado: todos tienen su pago con esa planilla).
 - **Comisiones** (migración 0026, `app/utils/comisiones.py`, `/payroll/commissions`): cuando una
-  factura queda PAGADA, el vendedor de la oportunidad del proyecto (o el dueño de la cuenta) gana
+  factura queda PAGADA, el vendedor encargado del proyecto (`projects.seller_id`, migración 0031,
+  `app/utils/vendedor.py`; vacío = el dueño de la oportunidad o de la cuenta) gana
   el % sin IVA (IVA de la línea del presupuesto) y, una vez por oportunidad *Nuevo*, el monto por
   cliente nuevo. Reglas generales en `crm_settings` (`commission_percent`,
   `commission_new_client`, 0 por defecto) y propias en `users.commission_*` (vacío = generales;

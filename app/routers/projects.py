@@ -22,6 +22,7 @@ from math import ceil
 from app.routers import deps
 from app.core.roles import ADMIN, CLIENT, OPERATIONS_ROLES, SEES_ALL_PROJECTS, SUPERVISOR, WORKER
 from app.utils.activity import log_activity
+from app.utils.vendedor import default_seller, project_seller, seller_choices
 from app.utils.project_sync import LineInUse, sync_budget_lines, sync_locations, sync_tasks
 import logging
 
@@ -82,6 +83,7 @@ class ProjectCreate(BaseModel):
     account_id: Optional[int] = None
     contact_roles: List[ContactRoleIn] = []
     opportunity_id: Optional[int] = None  # set when the project is created from a won opportunity
+    seller_id: Optional[int] = None  # vendedor encargado; empty: the opportunity's or account's owner
     # A project that came in without an opportunity (e.g. a tender won in SICOP) can be
     # registered as won in Clientes, so it counts in the goals (app/utils/crm.py win_from_project).
     register_won: bool = False
@@ -167,6 +169,15 @@ def register_won(db: Session, project: Project, project_in: "ProjectCreate", use
         raise HTTPException(status_code=400, detail=str(e))
 
 
+def check_seller(db: Session, seller_id: Optional[int]) -> Optional[int]:
+    """The chosen vendedor encargado must be someone who sells."""
+    if seller_id is None:
+        return None
+    if seller_id not in {u.id for u in seller_choices(db)}:
+        raise HTTPException(status_code=400, detail="El vendedor encargado tiene que ser alguien que vende.")
+    return seller_id
+
+
 def won_choices():
     """Motors and origins for the "register as won" section of the form."""
     return {"motors": [(m, LABELS["motor"][m]) for m in MOTORS],
@@ -202,6 +213,8 @@ def new_project_form(request: Request, opportunity_id: Optional[int] = None, db:
         "opportunity": opportunity,
         "won_opportunity": None,
         "won_choices": won_choices(),
+        "sellers": seller_choices(db),
+        "default_seller": db.get(User, opportunity.owner_id) if opportunity and opportunity.owner_id else None,
     })
 
 @router.post("/new")
@@ -220,7 +233,8 @@ def create_project(
         address=project_in.address,
         waze_link=project_in.waze_link,
         description=project_in.description,
-        is_active=project_in.is_active
+        is_active=project_in.is_active,
+        seller_id=check_seller(db, project_in.seller_id),
     )
     
     # Assign users
@@ -325,6 +339,8 @@ def edit_project_form(id: int, request: Request, db: Session = Depends(deps.get_
         "opportunity": None,
         "won_opportunity": project_opportunity(db, project),
         "won_choices": won_choices(),
+        "sellers": seller_choices(db),
+        "default_seller": default_seller(db, project),
     })
 
 @router.post("/{id}/edit")
@@ -348,6 +364,8 @@ def update_project(
     project.waze_link = project_in.waze_link
     project.description = project_in.description
     project.is_active = project_in.is_active
+    if project_in.seller_id != project.seller_id:
+        project.seller_id = check_seller(db, project_in.seller_id)
     
     # Update Users
     all_ids = project_in.client_ids + project_in.worker_ids
@@ -475,6 +493,7 @@ def get_project_detail(
         "monitoring_available": monitoring_available,
         "site_contacts": site_contacts(db, project),
         "account_id": project.account_id,
+        "seller": project_seller(db, project),
         "request": request, 
         "project": project, 
         "user": user,

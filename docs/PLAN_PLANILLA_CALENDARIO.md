@@ -104,6 +104,10 @@ lo que ya existe y la ordena en fases; cada fase es su propio PR.
   factura; general y por persona. (02/11/2026)
 - Las comisiones se pagan en la **última quincena del mes** (la que termina el último día): las
   cobradas en el mes esperan a esa planilla; la del 1 al 15 no las incluye. (12/11/2026)
+- Cada proyecto tiene un **vendedor encargado** (lo vendió y lo supervisa a nivel administrativo):
+  gana sus comisiones y ve los días del proyecto en el calendario (solo lectura); no se le agendan
+  días. Lo elige el admin en el proyecto o en el calendario; por defecto, el dueño de la oportunidad
+  o de la cuenta. (12/11/2026)
 
 ## Decisiones pendientes
 

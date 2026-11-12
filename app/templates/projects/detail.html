@@ -187,6 +187,14 @@
             </div>
         </div>
 
+        {# The project's seller: sold it and oversees it administratively #}
+        {% if seller and user.role != 'client' %}
+        <div class="bg-white shadow-sm rounded-lg border border-gray-200 px-6 py-4 text-sm">
+            <span class="text-gray-500 text-xs uppercase">Vendedor encargado</span>
+            <div class="font-medium text-gray-900">{{ seller.full_name or seller.username }}</div>
+        </div>
+        {% endif %}
+
         <!-- Contact: the account's contacts this project uses (Clientes) -->
         {% if site_contacts %}
         <div class="bg-white shadow-sm rounded-lg border border-gray-200 p-6">

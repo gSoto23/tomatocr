@@ -173,7 +173,7 @@
             </a>
             {% endif %}
 
-            {% if user.role in ['admin', 'supervisor', 'worker'] %}
+            {% if user.role in ['admin', 'supervisor', 'worker', 'ventas'] %}
             <a href="/calendar"
                 class="group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors {{ 'bg-white/10 text-white' if request and request.url.path.startswith('/calendar') else 'text-white/70 hover:bg-white/10 hover:text-white' }}">
                 <svg class="mr-3 h-5 w-5 text-white/70 group-hover:text-white" fill="none" viewBox="0 0 24 24"
