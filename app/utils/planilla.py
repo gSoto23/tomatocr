@@ -22,6 +22,15 @@ def quincena_of(day: date) -> tuple:
     return day.replace(day=16), day.replace(day=last)
 
 
+def closes_month(end: date) -> bool:
+    """A payroll that ends on the month's last day: the one that pays commissions."""
+    return end.day == calendar.monthrange(end.year, end.month)[1]
+
+
+# Kinds that wait for the payroll that closes the month.
+MONTH_END_KINDS = {"comision"}
+
+
 def monthly_share(monthly: float, start: date, end: date, hired: Optional[date] = None) -> float:
     """What a monthly salary pays for start..end (both included): half per full quincena, and the
     share of its days for a partial one. Days before `hired` are not paid."""

@@ -6,6 +6,14 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-11-12
 
+### Comisiones en la última quincena del mes (esta rama)
+- Las comisiones se pagan en la **quincena que cierra el mes** (del 16 al último día). Al generar
+  la planilla del 1 al 15, las comisiones (y las reversiones de comisión) siguen pendientes y entran
+  solas en la de fin de mes. Los demás ajustes siguen entrando en la próxima planilla.
+- En Comisiones el estado pendiente ahora dice *Para la planilla de fin de mes*; en Quincenas el
+  panel de ajustes pendientes lo aclara en cada comisión. Manual de Planilla y Presupuestos al día.
+- Sin migración ni pasos especiales al desplegar.
+
 ### Días que no ocupan bitácora (esta rama)
 - La alerta **días trabajados sin bitácora** del Dashboard lista cada día con dos acciones:
   **Registrar** (abre la bitácora con ese proyecto y ese día) y **No ocupa bitácora**, que pide

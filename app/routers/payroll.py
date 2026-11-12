@@ -15,7 +15,7 @@ from app.db.models.project import Project
 from app.utils.activity import log_activity
 from app.utils.comisiones import KINDS as COMMISSION_KINDS, STATUS_LABELS, cancel, general_rules, \
     has_own_rules, rules_for, set_general_rules, status_of
-from app.utils.planilla import LINE_KINDS, monthly_share, overtime_rate, recompute, valid_line
+from app.utils.planilla import LINE_KINDS, MONTH_END_KINDS, closes_month, monthly_share, overtime_rate, recompute, valid_line
 from app.utils.planilla_resumen import entry_view, payroll_workbook, period_label, totals_of
 from app.utils.timecr import today_cr
 from app.core.templates import templates
@@ -577,7 +577,9 @@ def generate_payroll(
         if deps.can_log_in(p):
             people.setdefault(p.id, p)
     # Adjustments left for the next payroll come in now (pending: no line applies them yet).
-    pending = pending_adjustments(db).all()
+    # Commissions are paid in the quincena that closes the month; before that they keep waiting.
+    pending = [a for a in pending_adjustments(db)
+               if a.kind not in MONTH_END_KINDS or closes_month(e_date)]
     for adjustment in pending:
         if adjustment.user:
             people.setdefault(adjustment.user_id, adjustment.user)

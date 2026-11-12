@@ -116,7 +116,8 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
   `commission_new_client`, 0 por defecto) y propias en `users.commission_*` (vacío = generales;
   admins solo con propias); con umbral (`commission_threshold`, migración 0028) la factura entera toma
   el % de su tramo (`commission_percent` o `commission_percent_high`). Cada `commissions` crea un `payroll_adjustment` (comisión) que entra
-  en la próxima planilla; Anular lo quita si no se pagó o deja uno negativo si ya se pagó.
+  en la próxima planilla que cierra el mes (la que termina el último día, `closes_month` en
+  `app/utils/planilla.py`; la del 1 al 15 lo deja pendiente); Anular lo quita si no se pagó o deja uno negativo si ya se pagó.
 - **Pantallas de Planilla** (`app/templates/payroll/`, pestañas comunes en `_nav.html`): Quincenas
   con los pasos que faltan (horas por confirmar, borradores, pagos pendientes); detalle con una
   fila por persona y un panel con el cálculo, las líneas, los días y el pago; el pago de la
