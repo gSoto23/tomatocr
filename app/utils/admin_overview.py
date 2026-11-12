@@ -48,6 +48,9 @@ class Alert:
     links: List[tuple] = field(default_factory=list)
     # Days without a report, each with "Registrar" and "No ocupa bitácora" (admin and supervisor).
     days: List[dict] = field(default_factory=list)
+    # One line per thing with its own buttons (POST forms), e.g. per contract: renew or terminate.
+    # Each: {"label", "url", "buttons": [{"text", "action", "confirm", "ok", "danger", "input", "input_label"}]}
+    rows: List[dict] = field(default_factory=list)
 
 
 def by_importance(alerts: List[Alert]) -> List[Alert]:
@@ -157,6 +160,20 @@ def worker_missing(db: Session, today: date, user: User) -> List[dict]:
     return [{"project_id": pid, "project": projects.get(pid, "?"), "date": d} for pid, d in missing]
 
 
+def renewal_row(row: Dict) -> dict:
+    """A contract about to end with no renewal: create the renewal, or terminate the project (not renewed)."""
+    project = row["project"]
+    return {"label": f"{project.name} · vence el {row['end_date']:%d/%m/%Y} ({row['days_left']} días)",
+            "url": f"/projects/{project.id}",
+            "buttons": [
+                {"text": "Crear renovación", "action": f"/clientes/proyectos/{project.id}/renovacion"},
+                {"text": "Terminar", "action": f"/projects/{project.id}/terminar", "danger": True,
+                 "ok": "Terminar proyecto", "title": "¿Terminar el proyecto?",
+                 "confirm": f"El contrato de «{project.name}» no se renueva: sale de esta alerta. Se puede reabrir desde el proyecto.",
+                 "input": "reason", "input_label": "Motivo (opcional)", "next": "/dashboard"},
+            ]}
+
+
 def worker_alerts(db: Session, today: date, user: User) -> List[Alert]:
     """The worker's own days without a report, each with its link to register it."""
     missing = worker_missing(db, today, user)
@@ -257,7 +274,8 @@ def admin_overview(db: Session, today: date, next_steps: Optional[Dict] = None,
         ov.alerts.append(Alert("contratos_por_vencer", "importante" if urgent else "revisar",
                                n(len(pending_renewals), "contrato por vencer sin renovación", "contratos por vencer sin renovación"),
                                f"El primero, {first['project'].name}, vence el {first['end_date']:%d/%m/%Y} ({first['days_left']} días).",
-                               "/clientes", "Crear renovación", items=[str(row["project"].id) for row in pending_renewals]))
+                               "/clientes", "Ver en Clientes", items=[str(row["project"].id) for row in pending_renewals],
+                               rows=[renewal_row(row) for row in pending_renewals]))
 
     without_email = db.query(User.id).filter((User.email.is_(None)) | (User.email == ""),
                                              User.is_active == True).all()  # noqa: E712

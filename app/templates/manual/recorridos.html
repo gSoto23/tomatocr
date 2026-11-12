@@ -53,7 +53,7 @@
 {% call m.section("renovacion", "Renovar un contrato") %}
 {% call flow() %}
 {{ step("Sistema", "90 días antes de que termine un contrato de Presupuestos, aparece en <strong>Contratos por vencer</strong> en el Filtro (en rojo si faltan menos de 60).", "/manual/clientes#admin") }}
-{{ step("Admin", "Toca <strong>Crear renovación</strong>: se abre una oportunidad de tipo Renovación para el dueño de la cuenta.") }}
+{{ step("Admin", "Toca <strong>Crear renovación</strong>: se abre una oportunidad de tipo Renovación para el dueño de la cuenta. Si el cliente no va a renovar, toca <strong>Terminar</strong> (en el Filtro, en la alerta del Dashboard o en el proyecto) y el contrato sale de la lista.", "/manual/proyectos#ficha") }}
 {{ step("Vendedor o admin", "La trabaja como cualquier oportunidad y cotiza desde ella.", "/manual/cotizador#nueva") }}
 {{ step("Admin", "Al aceptarse, <strong>Marcar ganada</strong> y <em>ligar el proyecto existente</em>, y actualiza las fechas del contrato en el proyecto.", "/manual/proyectos#crear") }}
 {% endcall %}

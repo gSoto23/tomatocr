@@ -8,7 +8,8 @@
             <form onsubmit="return confirmSubmit(event, '¿Borrar el árbol N° ' + this.tree_number.value + '?', {ok: 'Borrar'})">
             A short optional text (e.g. a reason) that goes into a field of the form when accepted:
             <form ... data-confirm="..." data-confirm-input="reason" data-confirm-input-label="Motivo (opcional)"
-                  data-confirm-input-placeholder="Ej.: llovió"><input type="hidden" name="reason">
+                  data-confirm-input-placeholder="Ej.: llovió" data-confirm-input-maxlength="500"><input type="hidden" name="reason">
+            (maxlength is optional; 200 by default.)
             In scripts: const r = await tomatoConfirm("...", {input: {label: "Motivo (opcional)"}}); if (!r) return; r.value
    Options: title, ok (button text), cancel, danger (red button), typeWord, input ({label, placeholder, maxlength}). #}
 <div id="tomato-confirm" class="fixed inset-0 z-[1000] hidden items-center justify-center p-4" role="dialog" aria-modal="true"
@@ -136,7 +137,8 @@
         tomatoConfirm(form.dataset.confirm, {ok: form.dataset.confirmOk, title: form.dataset.confirmTitle,
                                              danger: form.hasAttribute("data-confirm-danger") ? true : undefined,
                                              input: field ? {label: form.dataset.confirmInputLabel,
-                                                             placeholder: form.dataset.confirmInputPlaceholder} : null}).then((ok) => {
+                                                             placeholder: form.dataset.confirmInputPlaceholder,
+                                                             maxlength: parseInt(form.dataset.confirmInputMaxlength, 10) || undefined} : null}).then((ok) => {
             if (!ok) return;
             if (field && form.elements[field]) form.elements[field].value = ok.value;
             sendConfirmed(form, submitter);

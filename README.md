@@ -69,7 +69,8 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
 - **Alertas** con clave y nivel (`urgente`, `importante`, `revisar`) en
   `app/utils/admin_overview.py`, ordenadas por nivel. Admin: facturas vencidas, horas
   sin confirmar, días sin bitácora, planillas en borrador, pasos atrasados en Clientes,
-  contratos por vencer sin renovación y personas sin correo; supervisor: las del equipo;
+  contratos por vencer sin renovación (cada uno con *Crear renovación* y *Terminar*) y
+  personas sin correo; supervisor: las del equipo;
   trabajador: sus días sin bitácora (un enlace por día); ventas: sus pasos atrasados.
 - **No ocupa bitácora** (`daily_log_exemptions`, migración 0029; `LogExemption`): un día de
   proyecto que legítimamente no lleva bitácora deja de contar en *días trabajados sin
@@ -319,6 +320,12 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
   que ya cuenta, muestra el enlace a su oportunidad (`win_from_project`).
 - **Contratos por vencer** (en el Filtro): contratos de Presupuestos que
   vencen en 90 días (en rojo, menos de 60) con botón "Crear renovación".
+- **Terminar un proyecto** (admin; ficha del proyecto, alerta del Dashboard y
+  Contratos por vencer): el contrato no se renueva. `projects.ended_at`,
+  `ended_by_id` y `end_reason` (migración 0030); sale de la alerta y de
+  Contratos por vencer, ya no deja crear la renovación y una renovación abierta
+  se cierra como perdida («No renovó»). *Reabrir* lo deshace; los dos quedan en
+  Actividad. La lista de proyectos filtra Todos / Activos / Terminados / Inactivos.
 - **Permisos**: ventas ve todas las cuentas sin finanzas y edita las suyas y
   las que no tienen dueño (al editarlas queda como dueño). Solo admin
   reasigna dueños, edita metas y fusiona. Los demás roles reciben 403.

@@ -23,12 +23,22 @@
 </div>
 
 {% macro status_badge(project) %}
+{% if project.ended_at %}
+<span class="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-500/20" title="No se renueva{{ ': ' ~ project.end_reason if project.end_reason }}">Terminado</span>
+{% endif %}
 {% if project.is_active %}
 <span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Activo</span>
 {% else %}
 <span class="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/10">Inactivo</span>
 {% endif %}
 {% endmacro %}
+
+<nav class="mb-4 flex flex-wrap gap-1 rounded-lg bg-gray-100 p-1 text-sm font-semibold sm:inline-flex" aria-label="Filtrar por estado">
+    {% for value, label in project_filters %}
+    <a href="/projects{{ '?estado=' ~ value if value }}" {% if estado == value %}aria-current="page"{% endif %}
+       class="rounded-md px-3 py-1.5 {{ 'bg-white text-gray-900 shadow-sm' if estado == value else 'text-gray-600 hover:text-gray-900' }}">{{ label }}</a>
+    {% endfor %}
+</nav>
 
 <div class="bg-white shadow-sm rounded-lg border border-gray-200 overflow-x-auto">
     {# Phone: one card per project #}
@@ -41,12 +51,12 @@
                 <div class="mt-0.5 text-sm text-gray-500">{% if project.province %}{{ project.province }}, {% endif %}{{ project.address or project.location or '-' }}</div>
             </a>
             <div class="flex shrink-0 flex-col items-end gap-2">
-                {{ status_badge(project) }}
+                <div class="flex flex-wrap justify-end gap-1">{{ status_badge(project) }}</div>
                 {% if user.role == "admin" %}<a href="/projects/{{ project.id }}/edit" class="text-sm font-medium text-indigo-600">Editar</a>{% endif %}
             </div>
         </li>
         {% else %}
-        <li class="p-6 text-center text-sm text-gray-500">No hay proyectos registrados aún.</li>
+        <li class="p-6 text-center text-sm text-gray-500">{{ 'No hay proyectos con ese estado.' if estado else 'No hay proyectos registrados aún.' }}</li>
         {% endfor %}
     </ul>
     <table class="hidden min-w-full divide-y divide-gray-200 md:table">
@@ -84,7 +94,7 @@
                     </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                    {{ status_badge(project) }}
+                    <div class="flex gap-1">{{ status_badge(project) }}</div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     {% if user.role == "admin" %}
@@ -95,13 +105,13 @@
             {% else %}
             <tr>
                 <td colspan="5" class="px-6 py-10 text-center text-sm text-gray-500">
-                    No hay proyectos registrados aún.
+                    {{ 'No hay proyectos con ese estado.' if estado else 'No hay proyectos registrados aún.' }}
                 </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
     {% from "components/pagination.html" import render_pagination %}
-    {{ render_pagination(page, total_pages, '/projects') }}
+    {{ render_pagination(page, total_pages, '/projects' ~ ('?estado=' ~ estado if estado else '')) }}
 </div>
 {% endblock %}
