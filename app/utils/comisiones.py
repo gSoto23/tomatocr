@@ -29,7 +29,7 @@ OWN_FIELDS = {"percent": "commission_percent", "new_client": "commission_new_cli
               "threshold": "commission_threshold", "percent_high": "commission_percent_high"}
 NO_RULES = {"percent": 0.0, "new_client": 0.0, "threshold": 0.0, "percent_high": 0.0}
 KINDS = {"factura": "Factura cobrada", "cliente_nuevo": "Cliente nuevo"}
-STATUS_LABELS = {"pendiente": "Para la próxima planilla", "borrador": "En planilla (borrador)",
+STATUS_LABELS = {"pendiente": "Para la planilla de fin de mes", "borrador": "En planilla (borrador)",
                  "pagada": "Pagada", "anulada": "Anulada", "revertida": "Revertida"}
 
 
@@ -177,7 +177,7 @@ def cancel(db: Session, commission: Commission, reason: str, by: User) -> str:
         db.add(reversal)
         db.flush()
         commission.reversal_adjustment_id = reversal.id
-        message = "Comisión revertida: se descuenta en la próxima planilla"
+        message = "Comisión revertida: se descuenta en la planilla de fin de mes"
     else:
         if adjustment:
             for line in list(adjustment.lines):

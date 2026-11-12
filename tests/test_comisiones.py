@@ -125,7 +125,7 @@ def test_without_opportunity_the_account_owner_earns(db, login_as, users, sale):
 
 # ---- Paid through the payroll ------------------------------------------------------------------------
 
-def generate(client, start="2026-11-01", end="2026-11-15"):
+def generate(client, start="2026-11-16", end="2026-11-30"):
     response = client.post("/payroll/generate", json={"start_date": start, "end_date": end})
     assert response.status_code == 200, response.text
     return response.json()["period_id"]
@@ -141,6 +141,29 @@ def test_commission_joins_the_next_payroll_and_shows_where(db, login_as, sale):
     assert "En planilla (borrador)" in page and f"planilla #{period_id}" in page
     client.post("/payroll/confirm", json={"period_id": period_id})
     assert "Pagada" in client.get("/payroll/commissions").text
+
+
+def test_commission_waits_for_the_quincena_that_closes_the_month(db, login_as, sale):
+    client = login_as("admin")
+    pay(client, sale["invoices"][0])
+    first = generate(client, "2026-11-01", "2026-11-15")
+    entries = db.query(PayrollEntry).filter(PayrollEntry.payroll_period_id == first,
+                                            PayrollEntry.user_id == sale["seller"].id).all()
+    assert [l for e in entries for l in e.lines if l.kind == "comision"] == []
+    assert "Para la planilla de fin de mes" in client.get("/payroll/commissions").text
+    assert "Entra en la quincena de fin de mes" in client.get("/payroll/").text
+    second = generate(client, "2026-11-16", "2026-11-30")
+    db.expire_all()
+    entry = db.query(PayrollEntry).filter(PayrollEntry.payroll_period_id == second,
+                                          PayrollEntry.user_id == sale["seller"].id).one()
+    assert sorted(l.amount for l in entry.lines if l.kind == "comision") == [5000, 50000]
+
+
+def test_february_closes_on_its_last_day():
+    from datetime import date
+    from app.utils.planilla import closes_month
+    assert closes_month(date(2026, 2, 28)) and closes_month(date(2028, 2, 29)) and closes_month(date(2026, 11, 30))
+    assert not closes_month(date(2026, 11, 15)) and not closes_month(date(2028, 2, 28))
 
 
 # ---- Cancelling ---------------------------------------------------------------------------------------------
@@ -176,7 +199,7 @@ def test_cancel_after_paid_takes_it_back_next_time(db, login_as, sale):
     first = generate(client)
     client.post("/payroll/confirm", json={"period_id": first})
     response = cancel(client, commissions(db)["factura"])
-    assert "próxima planilla" in response.json()["message"]
+    assert "planilla de fin de mes" in response.json()["message"]
     reversal = db.query(PayrollAdjustment).filter(PayrollAdjustment.amount == -5000).one()
     assert reversal.source_period_id == first
     assert "Revertida" in client.get("/payroll/commissions").text

@@ -125,7 +125,7 @@
                     <td class="px-3 py-3">
                         <span class="font-medium {{ {'pagada': 'text-green-700', 'borrador': 'text-blue-700', 'pendiente': 'text-amber-700'}.get(row.status.code, 'text-gray-500') }}">{{ row.status.label }}</span>
                         {% if row.status.period_id %}<a href="/payroll/detail/{{ row.status.period_id }}" class="text-xs text-indigo-600 hover:underline">planilla #{{ row.status.period_id }}</a>{% endif %}
-                        {% if c.cancelled_at %}<div class="text-xs">{{ c.cancel_reason or '' }}{% if c.reversal_adjustment_id %} · se descuenta en la próxima planilla{% endif %}</div>{% endif %}
+                        {% if c.cancelled_at %}<div class="text-xs">{{ c.cancel_reason or '' }}{% if c.reversal_adjustment_id %} · se descuenta en la planilla de fin de mes{% endif %}</div>{% endif %}
                     </td>
                     {% if user.role == 'admin' %}
                     <td class="whitespace-nowrap px-3 py-3 text-right">
@@ -172,7 +172,7 @@
     function cancelCommission(id, state) {
         cancelling = id;
         document.getElementById('cancel-note').textContent = state === 'pagada'
-            ? 'Ya se pagó: se va a descontar en la próxima planilla del vendedor.'
+            ? 'Ya se pagó: se va a descontar en la planilla de fin de mes del vendedor.'
             : 'Todavía no se pagó: sale de la planilla y no se paga.';
         document.getElementById('cancel-reason').value = '';
         const modal = document.getElementById('cancel-modal');

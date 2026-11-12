@@ -102,6 +102,8 @@ lo que ya existe y la ordena en fases; cada fase es su propio PR.
 - Exportación: Excel (.xlsx). (02/11/2026)
 - Comisión por factura con tramos: umbral sin IVA, un % debajo y otro desde el umbral, sobre toda la
   factura; general y por persona. (02/11/2026)
+- Las comisiones se pagan en la **última quincena del mes** (la que termina el último día): las
+  cobradas en el mes esperan a esa planilla; la del 1 al 15 no las incluye. (12/11/2026)
 
 ## Decisiones pendientes
 
