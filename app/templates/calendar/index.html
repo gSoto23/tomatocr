@@ -12,6 +12,8 @@
             Asignación de proyectos y personal.
             {% elif user.role == 'supervisor' %}
             Gestión de asignaciones y proyectos personales.
+            {% elif user.role == 'ventas' %}
+            Los días de trabajo de los proyectos de los que sos vendedor encargado.
             {% else %}
             Tus proyectos asignados.
             {% endif %}
@@ -255,6 +257,7 @@
                 <div class="border-b border-gray-100 px-4 py-4 sm:px-6">
                     <h3 id="day-title" class="text-lg font-semibold text-gray-900"></h3>
                     <p id="day-subtitle" class="text-sm text-gray-500"></p>
+                    <div id="day-seller" class="mt-2 flex flex-wrap items-center gap-2 text-sm text-gray-700"></div>
                 </div>
                 <div class="px-4 py-4 sm:px-6">
                     <p id="day-error" class="mb-3 hidden rounded-md bg-red-50 p-3 text-sm text-red-700"></p>
@@ -276,6 +279,30 @@
 {% endif %}
 
 <!-- Worker Task Modal (Read Only + Checkboxes) -->
+{% if user.role == 'ventas' %}
+<!-- A seller's project day: who is there and how it went (read only) -->
+<div id="sellerDayModal" class="relative z-50 hidden" role="dialog" aria-modal="true" aria-labelledby="seller-day-title">
+    <div class="fixed inset-0 bg-gray-500 bg-opacity-75" onclick="closeSellerDay()"></div>
+    <div class="fixed inset-0 z-10 w-screen overflow-y-auto pointer-events-none">
+        <div class="flex min-h-full items-center justify-center p-4">
+            <div class="pointer-events-auto relative w-full overflow-hidden rounded-lg bg-white text-left shadow-xl sm:my-8 sm:max-w-lg">
+                <div class="border-b border-gray-100 px-4 py-4 sm:px-6">
+                    <h3 id="seller-day-title" class="text-lg font-semibold text-gray-900"></h3>
+                    <p id="seller-day-subtitle" class="text-sm text-gray-500"></p>
+                </div>
+                <div class="px-4 py-4 sm:px-6">
+                    <p id="seller-day-report" class="mb-3 text-sm"></p>
+                    <ul id="seller-day-members" class="divide-y divide-gray-100 text-sm"></ul>
+                </div>
+                <div class="flex bg-gray-50 px-4 py-3 sm:px-6">
+                    <button type="button" onclick="closeSellerDay()" class="ml-auto inline-flex justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 {% if user.role not in ['admin', 'supervisor'] %}
 <div id="workerScheduleModal" class="relative z-50 hidden" aria-labelledby="modal-title" role="dialog"
     aria-modal="true">
@@ -626,12 +653,69 @@
         return { id: m.id, start: currentDay.date, extendedProps: { ...m } };
     }
 
+    // The project's vendedor encargado: the admin changes it here; the supervisor only sees it.
+    const SELLERS = {{ sellers | tojson }};
+    function renderDaySeller() {
+        const box = document.getElementById('day-seller');
+        box.innerHTML = '';
+        const label = document.createElement('span');
+        label.className = 'font-medium';
+        label.textContent = 'Vendedor encargado:';
+        box.append(label);
+        const seller = currentDay.seller;
+        {% if user.role == 'admin' %}
+        const select = document.createElement('select');
+        select.className = 'rounded-md border border-gray-300 py-1 pl-2 pr-8 text-sm';
+        select.setAttribute('aria-label', 'Vendedor encargado');
+        const byDefault = document.createElement('option');
+        byDefault.value = '';
+        byDefault.textContent = !currentDay.seller_chosen && seller ? `Por defecto: ${seller.name}` : 'Según la oportunidad o la cuenta';
+        select.append(byDefault);
+        SELLERS.forEach(s => {
+            const o = document.createElement('option');
+            o.value = s.id; o.textContent = s.name;
+            select.append(o);
+        });
+        select.value = currentDay.seller_chosen && seller ? String(seller.id) : '';
+        select.onchange = () => saveDaySeller(select.value);
+        box.append(select);
+        {% else %}
+        const name = document.createElement('span');
+        name.textContent = seller ? seller.name : 'sin vendedor';
+        box.append(name);
+        {% endif %}
+    }
+
+    {% if user.role == 'admin' %}
+    async function saveDaySeller(sellerId) {
+        const body = new FormData();
+        body.append('seller_id', sellerId);
+        try {
+            const response = await fetch(`/calendar/project/${currentDay.project_id}/seller`, { method: 'POST', body });
+            const result = await response.json();
+            if (!response.ok) {
+                showGlobalToast('Error', result.message || 'No se pudo cambiar el vendedor', 'error');
+                renderDaySeller();
+                return;
+            }
+            currentDay.seller = result.seller;
+            currentDay.seller_chosen = result.seller_chosen;
+            renderDaySeller();
+            showGlobalToast('Listo', result.message, 'success');
+            if (window.tomatoCalendar) window.tomatoCalendar.refetchEvents();
+        } catch (e) {
+            showGlobalToast('Error', 'Error de conexión', 'error');
+        }
+    }
+    {% endif %}
+
     function openDayModal(event) {
         currentDayEvent = event;
         currentDay = { ...event.extendedProps };
         document.getElementById('day-title').textContent = currentDay.project_name;
         document.getElementById('day-subtitle').textContent = `${fmtDay(currentDay.date)} · ${currentDay.members.length} ${currentDay.members.length === 1 ? 'persona' : 'personas'}`;
         document.getElementById('day-project-link').href = `/projects/${currentDay.project_id}`;
+        renderDaySeller();
         document.getElementById('day-error').classList.add('hidden');
         renderDayReport();
         const list = document.getElementById('day-members');
@@ -802,6 +886,39 @@
             console.error(error);
             showGlobalToast("Error", "Error de conexión", "error");
         }
+    }
+    {% endif %}
+
+    {% if user.role == 'ventas' %}
+    const SELLER_ATTENDANCE = { asistio: 'Asistió', tarde: 'Llegó tarde', no_llego: 'No llegó' };
+    function openSellerDay(event) {
+        const p = event.extendedProps;
+        document.getElementById('seller-day-title').textContent = p.project_name;
+        document.getElementById('seller-day-subtitle').textContent =
+            `${p.date.split('-').reverse().join('/')} · ${p.members.length} ${p.members.length === 1 ? 'persona' : 'personas'}`;
+        const report = document.getElementById('seller-day-report');
+        report.textContent = p.has_log ? 'Bitácora del día: registrada.'
+            : p.no_report ? 'Bitácora del día: no ocupa.' : 'Bitácora del día: todavía no.';
+        report.className = 'mb-3 text-sm ' + (p.has_log || p.no_report ? 'text-green-700' : 'text-amber-700');
+        const list = document.getElementById('seller-day-members');
+        list.innerHTML = '';
+        p.members.forEach(m => {
+            const item = document.createElement('li');
+            item.className = 'flex flex-wrap justify-between gap-2 py-2';
+            const name = document.createElement('span');
+            name.className = 'font-medium text-gray-900';
+            name.textContent = m.worker_name;
+            const state = document.createElement('span');
+            state.className = 'text-gray-500';
+            state.textContent = [m.location_name, SELLER_ATTENDANCE[m.attendance] || (m.confirmed ? 'Horas confirmadas' : 'Programado')]
+                .filter(Boolean).join(' · ');
+            item.append(name, state);
+            list.append(item);
+        });
+        document.getElementById('sellerDayModal').classList.remove('hidden');
+    }
+    function closeSellerDay() {
+        document.getElementById('sellerDayModal').classList.add('hidden');
     }
     {% endif %}
 
@@ -1000,6 +1117,8 @@
 
                 {% if user.role in ['admin', 'supervisor'] %}
                 openDayModal(info.event);
+                {% elif user.role == 'ventas' %}
+                openSellerDay(info.event);
                 {% else %}
                 openWorkerModal(info.event);
                 {% endif %}
@@ -1026,6 +1145,12 @@
                 count.className = 'truncate text-[11px] opacity-90';
                 count.textContent = `${p.all_confirmed ? '✓ ' : ''}${colorMode === 'type' ? typeCount(p.members) : people(p.members.length)}${p.absent ? ` · ${absentText(p.absent)}` : ''}`;
                 box.append(name, count);
+                if (type === 'dayGridDay' && p.seller) {
+                    const seller = document.createElement('div');
+                    seller.className = 'truncate text-[11px] opacity-90';
+                    seller.textContent = `Vendedor: ${p.seller.name}`;
+                    box.append(seller);
+                }
                 if (type === 'dayGridWeek' || type === 'dayGridDay') {
                     const list = document.createElement('ul');
                     list.className = 'mt-1 space-y-0.5 text-[11px] sm:text-xs';
@@ -1080,6 +1205,7 @@
         });
 
         calendar.render();
+        window.tomatoCalendar = calendar;
 
         const colorSelect = document.getElementById('color-mode');
         if (colorSelect) {

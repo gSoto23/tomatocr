@@ -3,7 +3,8 @@
 - When an invoice becomes PAGADA, its seller earns a % of its amount without IVA. With a threshold,
   an invoice under it earns one % and one at or above it another (on the whole invoice).
 - When the first invoice of a "Nuevo" opportunity is paid, the seller earns the new-client amount.
-- The seller is the owner of the opportunity that made the project (or of the account).
+- The seller is the project's vendedor encargado (by default the owner of the opportunity that
+  made the project, or of the account); see app/utils/vendedor.py.
 - Each commission becomes a payroll adjustment, so it joins the seller's next payroll and the
   record says which payroll paid it. Cancelling one before it is paid removes it; after, a
   negative adjustment takes it back in the next payroll.
@@ -21,6 +22,7 @@ from app.db.models.payroll import PayrollAdjustment
 from app.db.models.project import Project
 from app.db.models.user import User
 from app.utils.planilla import recompute
+from app.utils.vendedor import project_seller
 
 GENERAL_KEYS = {"percent": "commission_percent", "new_client": "commission_new_client",
                 "threshold": "commission_threshold", "percent_high": "commission_percent_high"}
@@ -93,10 +95,10 @@ def invoice_context(db: Session, invoice: Invoice) -> dict:
     opportunity = db.get(Opportunity, project.opportunity_id) if project and project.opportunity_id else None
     account_id = (opportunity.account_id if opportunity else None) or (project.account_id if project else None)
     account = db.get(Account, account_id) if account_id else None
-    owner_id = (opportunity.owner_id if opportunity and opportunity.owner_id else None) or \
-        (account.owner_id if account else None)
+    # The project's vendedor encargado (by default the opportunity's or the account's owner).
     return {"project": project, "opportunity": opportunity, "account": account,
-            "seller": db.get(User, owner_id) if owner_id else None}
+            "seller": project_seller(db, project) if project else
+            (db.get(User, account.owner_id) if account and account.owner_id else None)}
 
 
 def without_iva(invoice: Invoice) -> float:

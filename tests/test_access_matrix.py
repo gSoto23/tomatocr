@@ -23,8 +23,8 @@ MATRIX = {
     "/payments/history/{me}":          (200, 200, 200, 200, 200),
     "/liquidation/":                   (200, 303, 303, 303, 403),
     "/liquidation/history/{me}":       (200, 200, 200, 200, 403),
-    "/calendar/":                      (200, 200, 200, 303, 403),
-    "/calendar/events?start=2026-01-01&end=2026-12-31": (200, 200, 200, 200, 403),
+    "/calendar/":                      (200, 200, 200, 303, 200),
+    "/calendar/events?start=2026-01-01&end=2026-12-31": (200, 200, 200, 200, 200),
     "/logs/":                          (200, 200, 200, 200, 403),
     "/logs/new":                       (200, 200, 200, 303, 403),
     "/users/":                         (200, 403, 403, 403, 403),
@@ -57,9 +57,11 @@ def test_ventas_cannot_post_to_restricted_modules(path, users, login_as):
     assert response.status_code == 403
 
 
-def test_ventas_menu_shows_only_dashboard_quotes_clients_and_payroll(users, login_as):
+def test_ventas_menu_shows_only_dashboard_quotes_clients_payroll_and_calendar(users, login_as):
     # Asesores are in the payroll (Fase 2 of docs/PLAN_PLANILLA_CALENDARIO.md): they see their own.
+    # The calendar shows them the days of the projects they are vendedor encargado of.
     html = login_as("ventas").get("/dashboard/").text
     assert 'href="/cotizador"' in html and 'href="/clientes"' in html and 'href="/payroll"' in html
-    for hidden in ['href="/projects"', 'href="/finance"', 'href="/calendar"', 'href="/users"']:
+    assert 'href="/calendar"' in html
+    for hidden in ['href="/projects"', 'href="/finance"', 'href="/users"']:
         assert hidden not in html

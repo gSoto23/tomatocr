@@ -6,8 +6,9 @@
     supervisor ven <strong>un bloque por proyecto y día</strong>, con la gente adentro; por dentro, cada persona en cada día
     es una <strong>asignación</strong>. Las asignaciones aparecen en el Dashboard de cada trabajador y, cuando se
     confirman sus horas en Planilla, se pagan y cuentan como costo del proyecto.</p>
-<p>Quién lo usa: {{ m.roles(["admin", "supervisor", "worker"]) }}. El admin y el supervisor ven y organizan las
-    asignaciones de todo el equipo; cada trabajador ve solo las suyas.</p>
+<p>Quién lo usa: {{ m.roles(["admin", "supervisor", "worker", "ventas"]) }}. El admin y el supervisor ven y organizan las
+    asignaciones de todo el equipo; cada trabajador ve solo las suyas; el vendedor ve los días de los proyectos de los
+    que es <a href="#vendedor" class="text-indigo-600 hover:underline">vendedor encargado</a>.</p>
 {% endcall %}
 
 {% call m.section("vistas", "Ver el calendario") %}
@@ -86,6 +87,26 @@
     con horas ya confirmadas, esas horas se van de la planilla.</p>
 {% else %}
 <p>No podés cambiar tus asignaciones; pedíselo al supervisor.</p>
+{% endif %}
+{% endcall %}
+
+{% call m.section("vendedor", "El vendedor encargado del proyecto") %}
+<p>Cada proyecto tiene un <strong>vendedor encargado</strong>: quien lo vendió y lo supervisa a nivel administrativo. Gana
+    las comisiones de sus facturas (ver <a href="/manual/planilla#comisiones" class="text-indigo-600 hover:underline">Planilla
+    → Comisiones</a>) y ve sus días en el calendario. No se le agendan días de trabajo.</p>
+<p>Si nadie lo eligió, es <strong>por defecto</strong> el vendedor de la oportunidad que generó el proyecto (o, si no tiene
+    oportunidad, el dueño de la cuenta).</p>
+{% if user.role == 'admin' %}
+{{ m.steps([
+    (None, "<strong>Desde el calendario</strong>: tocá el bloque del proyecto en cualquier día; arriba, en <em>Vendedor encargado</em>, elegilo de la lista. Vale para todo el proyecto, no solo ese día. <em>Por defecto</em> lo vuelve al de la oportunidad o la cuenta."),
+    (None, "<strong>Desde el proyecto</strong>: Proyectos → Editar, campo <em>Vendedor encargado</em>."),
+    (None, "En la lista salen los que venden: asesores de Ventas, supervisores marcados como <em>También vende</em> y administradores."),
+]) }}
+{% elif user.role == 'supervisor' %}
+<p>Lo ves arriba en el día de cada proyecto; lo cambia el admin.</p>
+{% elif user.role == 'ventas' %}
+<p>En tu calendario ves, en cada día, los proyectos de los que sos vendedor encargado. Tocá un bloque para ver quién está
+    agendado, cómo le fue (asistió, llegó tarde, no llegó) y si ya está la bitácora del día. No podés cambiar nada ahí.</p>
 {% endif %}
 {% endcall %}
 

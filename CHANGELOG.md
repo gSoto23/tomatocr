@@ -6,6 +6,16 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-11-12
 
+### Vendedor encargado del proyecto (esta rama)
+- Cada proyecto tiene un **vendedor encargado**: quien lo vendió y lo supervisa a nivel administrativo.
+  El admin lo elige desde el **calendario** (tocando el bloque del proyecto, arriba) o en Proyectos →
+  Editar. Vacío: el vendedor de la oportunidad o, si no hay, el dueño de la cuenta (como antes).
+- Las **comisiones** las gana el vendedor encargado.
+- El rol **Ventas** entra al Calendario: ve los días de sus proyectos, con quién está agendado, la
+  asistencia y si está la bitácora (solo lectura). El supervisor ve el vendedor en el día del proyecto
+  y la ficha del proyecto lo muestra.
+- Migración **0031** (`projects.seller_id`): correr `alembic upgrade head` al desplegar.
+
 ### Textos de comisiones de fin de mes (esta rama)
 - El encabezado de Comisiones y la tarjeta *Generar quincena* dicen que las comisiones entran en la
   quincena que cierra el mes (faltaban en #136). Sin migración.
