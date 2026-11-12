@@ -1,7 +1,7 @@
 """proyectos: terminar un proyecto (el contrato no se renueva)
 
-Revision ID: 0029
-Revises: 0028
+Revision ID: 0030
+Revises: 0029
 Create Date: 2026-11-12 10:00:00
 
 """
@@ -12,8 +12,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '0029'
-down_revision: Union[str, None] = '0028'
+revision: str = '0030'
+down_revision: Union[str, None] = '0029'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

@@ -6,6 +6,19 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-11-12
 
+### Días que no ocupan bitácora (esta rama)
+- La alerta **días trabajados sin bitácora** del Dashboard lista cada día con dos acciones:
+  **Registrar** (abre la bitácora con ese proyecto y ese día) y **No ocupa bitácora**, que pide
+  confirmación en la ventana propia del sistema con un motivo corto opcional. El día deja de
+  contar (también en el recordatorio del trabajador) y la alerta desaparece cuando no queda
+  ninguno. Admin y supervisor.
+- En el **Calendario**, el día del proyecto muestra su bitácora: con bitácora, sin bitácora
+  (Registrar / No ocupa bitácora) o *No ocupa bitácora* con motivo, quién y cuándo, y
+  **Deshacer**. *Hoy en campo* dice *No ocupa bitácora* si hoy se marcó así.
+- Marcar y deshacer quedan en **Actividad**.
+- La ventana de confirmación acepta un texto corto opcional (`data-confirm-input`).
+- Despliegue: **migración 0029** (`alembic upgrade head`); reiniciar.
+
 ### Terminar un proyecto que no se renueva (esta rama)
 - **Terminar proyecto** (admin): en la ficha del proyecto, en cada contrato de la alerta del
   Dashboard *contratos por vencer sin renovación* y en *Contratos por vencer* de Clientes. Pide
@@ -19,7 +32,7 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 - La alerta trae cada contrato con sus botones *Crear renovación* y *Terminar*; el enlace
   general dice *Ver en Clientes*.
 - La ventana de confirmación del sistema acepta un texto opcional (`data-confirm-input`).
-- Despliegue: **migración 0029** (`alembic upgrade head`); reiniciar.
+- Despliegue: **migración 0030** (`alembic upgrade head`); reiniciar.
 
 ## 2026-11-06
 

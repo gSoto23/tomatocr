@@ -34,6 +34,7 @@ def test_alert_offers_renew_and_terminate(login_as, contract):
     assert f'action="/projects/{contract.id}/terminar"' in html
     assert f'action="/clientes/proyectos/{contract.id}/renovacion"' in html
     assert 'data-confirm-input="reason"' in html  # the system's window asks the optional reason
+    assert '<input type="hidden" name="reason">' in html and 'data-confirm-input-maxlength="500"' in html
 
 
 def test_terminate_from_the_alert(db, login_as, users, contract):

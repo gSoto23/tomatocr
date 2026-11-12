@@ -163,7 +163,7 @@ Por confirmar: usuarios de Melina y Albert (rol ventas) para asignarles sus moto
 - Los próximos pasos y los montos en propuesta dejan fuera las cuentas descartadas (antes una cuenta descartada con el botón viejo seguía en "Para hoy").
 - Contexto de las metas (Presupuestos al 29/09/2026): licitaciones de ₡15,5 M y ₡19,1 M, un contrato privado de ₡9,4 M y propuestas abiertas de ₡40 mil a ₡270 mil. Por eso se separan las metas: son ventas de tamaño y ritmo muy distintos.
 
-## Terminar un proyecto: no se renueva (12/11/2026, migración 0029)
+## Terminar un proyecto: no se renueva (12/11/2026, migración 0030)
 
 - `projects.ended_at`, `ended_by_id` (FK `users`) y `end_reason` (texto, opcional). Un proyecto con `ended_at` está **terminado**: su contrato no se va a renovar.
 - `end_project` (`app/utils/crm.py`, `POST /projects/{id}/terminar`, solo admin): guarda quién, cuándo y el motivo; cierra como `perdido` las oportunidades `renovacion` abiertas del proyecto con motivo «No renovó» (o «No renovó: <motivo>») usando `change_stage`, y registra todo en Actividad (`entity_type = PROJECT`). No toca `is_active`: el contrato puede seguir corriendo hasta su `end_date` y el equipo sigue registrando bitácora; el admin lo desactiva después.

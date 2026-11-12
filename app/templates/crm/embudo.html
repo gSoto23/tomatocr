@@ -139,7 +139,8 @@
                 <form method="post" action="/projects/{{ row.project.id }}/terminar"
                       data-confirm="El contrato de «{{ row.project.name }}» no se renueva: sale de esta lista y de la alerta del Dashboard{{ ', y la renovación en curso se cierra como perdida («No renovó»)' if row.renewal }}. Se puede reabrir desde el proyecto."
                       data-confirm-ok="Terminar proyecto" data-confirm-title="¿Terminar el proyecto?" data-confirm-danger
-                      data-confirm-input="reason" data-confirm-input-label="Motivo (opcional)">
+                      data-confirm-input="reason" data-confirm-input-label="Motivo (opcional)" data-confirm-input-maxlength="500">
+                    <input type="hidden" name="reason">
                     <input type="hidden" name="next" value="/clientes">
                     <button class="rounded-md bg-white px-3 py-2 font-semibold text-red-700 ring-1 ring-inset ring-red-600/30 hover:bg-red-50">Terminar</button>
                 </form>
