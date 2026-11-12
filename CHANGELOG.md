@@ -6,6 +6,10 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-11-12
 
+### Textos de comisiones de fin de mes (esta rama)
+- El encabezado de Comisiones y la tarjeta *Generar quincena* dicen que las comisiones entran en la
+  quincena que cierra el mes (faltaban en #136). Sin migración.
+
 ### Comisiones en la última quincena del mes (esta rama)
 - Las comisiones se pagan en la **quincena que cierra el mes** (del 16 al último día). Al generar
   la planilla del 1 al 15, las comisiones (y las reversiones de comisión) siguen pendientes y entran
