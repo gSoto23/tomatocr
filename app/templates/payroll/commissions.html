@@ -7,7 +7,7 @@
 <div class="mb-4">
     <h1 class="text-2xl font-bold text-gray-900">{{ 'Comisiones' if user.role == 'admin' else 'Mis comisiones' }}</h1>
     <p class="mt-1 text-sm text-gray-500">Se generan cuando una factura queda <strong>pagada</strong> y entran solas en la
-        próxima quincena del vendedor.</p>
+        quincena de fin de mes del vendedor (del 16 al último día).</p>
 </div>
 {% set active = 'comisiones' %}{% include "payroll/_nav.html" %}
 
