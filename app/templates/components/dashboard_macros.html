@@ -19,6 +19,35 @@
             {% if pending %}<p class="mt-1 text-xs text-gray-500">La marcaste el {{ pending.acked_at|format_datetime_cr }}. Vuelve a Nuevas si empeora.</p>{% endif %}
         </div>
     </div>
+    {% if a.days %}
+    {# Each day without a report: register it, or mark that it doesn't need one (with an optional reason). #}
+    <ul class="space-y-1.5 pl-5 text-sm" x-data="{ all: false }">
+        {% for d in a.days %}
+        <li class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-lg bg-gray-50 px-3 py-2"{% if loop.index > 5 %} x-show="all" x-cloak{% endif %}>
+            <span class="min-w-0"><span class="font-medium text-gray-900">{{ d.project }}</span> <span class="whitespace-nowrap text-gray-500">· {{ d.day }}</span></span>
+            <span class="flex shrink-0 items-center gap-3">
+                <a href="{{ d.new_url }}" class="text-xs font-semibold text-indigo-600 hover:underline">Registrar</a>
+                <form method="post" action="/logs/no-ocupa"
+                      data-confirm="{{ d.project }} del {{ d.date|format_date }} deja de contar como día sin bitácora. Se puede deshacer desde ese día en el Calendario."
+                      data-confirm-title="¿Este día no ocupa bitácora?" data-confirm-ok="No ocupa bitácora"
+                      data-confirm-input="reason" data-confirm-input-label="Motivo (opcional)"
+                      data-confirm-input-placeholder="Ej.: llovió, solo fue una entrega">
+                    <input type="hidden" name="project_id" value="{{ d.project_id }}">
+                    <input type="hidden" name="date" value="{{ d.date.isoformat() }}">
+                    <input type="hidden" name="reason" value="">
+                    <input type="hidden" name="next" value="/dashboard/">
+                    <button class="rounded-md bg-white px-2 py-1 text-xs font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-100"
+                            title="Ese día no necesitaba bitácora: deja de contar en esta alerta">No ocupa bitácora</button>
+                </form>
+            </span>
+        </li>
+        {% endfor %}
+        {% if a.days|length > 5 %}
+        <li><button type="button" @click="all = !all" class="text-xs font-semibold text-gray-500 hover:text-black"
+                    x-text="all ? 'Ver menos' : 'Ver {{ a.days|length - 5 }} más'">Ver {{ a.days|length - 5 }} más</button></li>
+        {% endif %}
+    </ul>
+    {% endif %}
     {% if a.links %}
     <ul class="space-y-1 pl-5 text-sm">
         {% for label, url in a.links %}<li><a href="{{ url }}" class="font-medium text-indigo-600 hover:underline">{{ label }} &rarr;</a></li>{% endfor %}

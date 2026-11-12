@@ -71,6 +71,15 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
   sin confirmar, días sin bitácora, planillas en borrador, pasos atrasados en Clientes,
   contratos por vencer sin renovación y personas sin correo; supervisor: las del equipo;
   trabajador: sus días sin bitácora (un enlace por día); ventas: sus pasos atrasados.
+- **No ocupa bitácora** (`daily_log_exemptions`, migración 0029; `LogExemption`): un día de
+  proyecto que legítimamente no lleva bitácora deja de contar en *días trabajados sin
+  bitácora* (también en el recordatorio del trabajador) y la alerta desaparece cuando no
+  queda ninguno. Admin y supervisor lo marcan desde la alerta (cada día con *Registrar* y
+  *No ocupa bitácora*, confirmación propia con motivo opcional de hasta 200 caracteres) o
+  desde el día del proyecto en el Calendario, donde también se deshace. `POST
+  /logs/no-ocupa` y `/logs/no-ocupa/deshacer` (`project_id`, `date`, `reason`, `next`;
+  JSON si se pide `Accept: application/json`). Solo días que ya pasaron o de hoy y sin
+  bitácora; marcar y deshacer quedan en Actividad (`NO_REPORT` / `UNDO_NO_REPORT`).
 - **"Ya lo vi"** (`alert_acks`, por persona): la alerta pasa a la pestaña *Pendientes*
   con la lista de elementos que tenía; vuelve a *Nuevas* si aparece uno nuevo
   (empeoró) y la marca se borra sola cuando la alerta se resuelve.
@@ -134,6 +143,9 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
   agregan o quitan personas, se confirman las horas del día y se mueve el día
   arrastrándolo. Cada persona en cada día sigue siendo una `ProjectSchedule` (lo que
   usan la planilla y el Dashboard).
+- El día del proyecto muestra su bitácora: *Con bitácora*, *Sin bitácora* (con
+  *Registrar* y *No ocupa bitácora*) o *No ocupa bitácora* con motivo, quién y cuándo, y
+  *Deshacer* (`has_log` y `no_report` en `/calendar/events`).
 - Vistas Mes, Semana, Día y Lista (la semana empieza el lunes; se recuerda la última
   vista en el navegador). En Semana y Día cada bloque lista a su gente; en Día, con
   horas y sede.
@@ -393,7 +405,10 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
   incluida en `base_dashboard.html` y el Cotizador), nunca `confirm()`/`prompt()` del
   navegador: formularios con `data-confirm="…"` (`data-confirm-ok`, `data-confirm-danger`),
   `confirmSubmit(event, mensaje, opciones)` si el mensaje se arma al enviar, y
-  `await tomatoConfirm(mensaje, {ok, danger, typeWord})` en scripts. La pantalla
+  `await tomatoConfirm(mensaje, {ok, danger, typeWord})` en scripts. Un texto corto
+  opcional (p. ej. un motivo): `data-confirm-input="campo"` (+ `data-confirm-input-label` y
+  `-placeholder`) lo pone en ese campo del formulario; en scripts, `{input: {label}}` y la
+  respuesta es `{value}`. La pantalla
   "Cargando" solo aparece si el envío sigue (`!e.defaultPrevented`).
 
 ---

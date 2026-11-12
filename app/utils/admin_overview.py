@@ -9,7 +9,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.db.models.finance import Invoice, InvoiceStatus, ProjectBudget
-from app.db.models.log import DailyLog
+from app.db.models.log import DailyLog, LogExemption
 from app.db.models.payroll import PayrollPeriod
 from app.db.models.project import Project
 from app.db.models.schedule import ProjectSchedule
@@ -17,6 +17,7 @@ from app.db.models.user import User
 
 OPEN_INVOICES = (InvoiceStatus.PENDING, InvoiceStatus.PARTIAL, InvoiceStatus.OVERDUE)
 MISSING_REPORT_DAYS = 7  # how far back a day without a report is still flagged
+WEEKDAYS_SHORT = ("lun", "mar", "mié", "jue", "vie", "sáb", "dom")
 
 
 @dataclass
@@ -24,6 +25,7 @@ class FieldDay:
     project: Project
     people: List[str]
     reported: bool
+    exempt: bool = False  # marked "No ocupa bitácora"
 
 
 # Most important first. urgente: money or people waiting; importante: affects the work
@@ -44,6 +46,8 @@ class Alert:
     items: List[str] = field(default_factory=list)
     # Extra direct links, e.g. one "Registrar bitácora" per missing day.
     links: List[tuple] = field(default_factory=list)
+    # Days without a report, each with "Registrar" and "No ocupa bitácora" (admin and supervisor).
+    days: List[dict] = field(default_factory=list)
 
 
 def by_importance(alerts: List[Alert]) -> List[Alert]:
@@ -77,18 +81,25 @@ def field_today(db: Session, today: date):
     """Each project with people today, who they are and whether its report is in."""
     todays = db.query(ProjectSchedule).filter(ProjectSchedule.date == today).all()
     reported_today = {pid for (pid,) in db.query(DailyLog.project_id).filter(DailyLog.date == today)}
+    exempt_today = {pid for pid, _ in exempt_days(db, today, today)}
     by_project: Dict[int, List[ProjectSchedule]] = {}
     for s in todays:
         if s.project:
             by_project.setdefault(s.project_id, []).append(s)
-    days = sorted((FieldDay(rows[0].project, names(r.user for r in rows), pid in reported_today)
+    days = sorted((FieldDay(rows[0].project, names(r.user for r in rows), pid in reported_today, pid in exempt_today)
                    for pid, rows in by_project.items()), key=lambda d: d.project.name.lower())
     return days, len({s.user_id for s in todays})
 
 
+def exempt_days(db: Session, since: date, until: date) -> set:
+    """(project_id, day) marked "No ocupa bitácora" between since and until (both included)."""
+    return {(pid, d) for pid, d in db.query(LogExemption.project_id, LogExemption.date).filter(
+        LogExemption.date >= since, LogExemption.date <= until)}
+
+
 def missing_reports(db: Session, today: date, user_id: Optional[int] = None) -> List[tuple]:
-    """(project_id, day) of the last days that had people assigned but no report of that project.
-    With user_id, only the days that person was assigned."""
+    """(project_id, day) of the last days that had people assigned but no report of that project,
+    leaving out the days marked "No ocupa bitácora". With user_id, only the days that person was assigned."""
     since = today - timedelta(days=MISSING_REPORT_DAYS)
     query = db.query(ProjectSchedule.project_id, ProjectSchedule.date).filter(
         ProjectSchedule.date >= since, ProjectSchedule.date < today)
@@ -96,16 +107,20 @@ def missing_reports(db: Session, today: date, user_id: Optional[int] = None) -> 
         query = query.filter(ProjectSchedule.user_id == user_id)
     reported = {(pid, d) for pid, d in db.query(DailyLog.project_id, DailyLog.date).filter(
         DailyLog.date >= since, DailyLog.date < today)}
-    return sorted({(pid, d) for pid, d in query.distinct()} - reported, key=lambda x: x[1], reverse=True)
+    skipped = exempt_days(db, since, today - timedelta(days=1))
+    return sorted({(pid, d) for pid, d in query.distinct()} - reported - skipped, key=lambda x: x[1], reverse=True)
 
 
 def missing_alert(db: Session, missing: List[tuple]) -> Alert:
     projects = {p.id: p.name for p in db.query(Project).filter(Project.id.in_({pid for pid, _ in missing}))}
-    listed = ", ".join(f"{projects.get(pid, '?')} ({d:%d/%m})" for pid, d in missing[:3])
-    more = f" y {len(missing) - 3} más" if len(missing) > 3 else ""
+    missing = sorted(missing, key=lambda x: (-x[1].toordinal(), projects.get(x[0], "").lower()))  # newest first, then by name
     return Alert("sin_bitacora", "importante", n(len(missing), "día trabajado sin bitácora", "días trabajados sin bitácora"),
-                 f"Últimos {MISSING_REPORT_DAYS} días: {listed}{more}.", "/logs/", "Ver bitácora",
-                 items=[f"{pid}:{d.isoformat()}" for pid, d in missing])
+                 f"Días con gente asignada en los últimos {MISSING_REPORT_DAYS} y sin bitácora. Registrala, o marcá "
+                 "«No ocupa bitácora» si ese día no la necesitaba.", "/logs/", "Ver bitácora",
+                 items=[f"{pid}:{d.isoformat()}" for pid, d in missing],
+                 days=[{"project_id": pid, "project": projects.get(pid, "?"), "date": d,
+                        "day": f"{WEEKDAYS_SHORT[d.weekday()]} {d:%d/%m}",
+                        "new_url": f"/logs/new?project_id={pid}&date={d.isoformat()}"} for pid, d in missing])
 
 
 def unconfirmed_alert(db: Session, today: date, exclude_user_id: Optional[int] = None) -> Optional[Alert]:

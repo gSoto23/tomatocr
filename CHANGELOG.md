@@ -4,6 +4,21 @@ Cambios en el sistema y en el sitio público, del más reciente al más antiguo.
 Cada entrada indica el PR y si necesitó migración o pasos especiales al
 desplegar. Hora de Costa Rica salvo que diga UTC.
 
+## 2026-11-12
+
+### Días que no ocupan bitácora (esta rama)
+- La alerta **días trabajados sin bitácora** del Dashboard lista cada día con dos acciones:
+  **Registrar** (abre la bitácora con ese proyecto y ese día) y **No ocupa bitácora**, que pide
+  confirmación en la ventana propia del sistema con un motivo corto opcional. El día deja de
+  contar (también en el recordatorio del trabajador) y la alerta desaparece cuando no queda
+  ninguno. Admin y supervisor.
+- En el **Calendario**, el día del proyecto muestra su bitácora: con bitácora, sin bitácora
+  (Registrar / No ocupa bitácora) o *No ocupa bitácora* con motivo, quién y cuándo, y
+  **Deshacer**. *Hoy en campo* dice *No ocupa bitácora* si hoy se marcó así.
+- Marcar y deshacer quedan en **Actividad**.
+- La ventana de confirmación acepta un texto corto opcional (`data-confirm-input`).
+- Despliegue: **migración 0029** (`alembic upgrade head`); reiniciar.
+
 ## 2026-11-06
 
 ### Arreglo: los correos de avisos se ven con diseño (esta rama)

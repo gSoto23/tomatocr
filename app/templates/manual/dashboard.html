@@ -98,7 +98,7 @@
 {{ m.steps([
     (1, "<strong>Mis tareas</strong> de hoy y las atrasadas (ver Mis tareas)."),
     (2, "<strong>Hoy en campo</strong>: cada proyecto con gente asignada hoy en el Calendario, quiénes van y si ya tiene la bitácora del día."),
-    (3, "<strong>Requiere atención</strong>: facturas vencidas y horas sin confirmar (urgente); días sin bitácora, planillas en borrador, pasos atrasados en Clientes y contratos por vencer sin renovación (importante); personas sin correo (para revisar). Cada una tiene su enlace para resolverla y <em>Ya lo vi</em>. Si no hay nada, dice <em>Todo al día</em>."),
+    (3, "<strong>Requiere atención</strong>: facturas vencidas y horas sin confirmar (urgente); días sin bitácora, planillas en borrador, pasos atrasados en Clientes y contratos por vencer sin renovación (importante); personas sin correo (para revisar). Cada una tiene su enlace para resolverla y <em>Ya lo vi</em>. En los días sin bitácora, cada día trae <em>Registrar</em> y <em>No ocupa bitácora</em>. Si no hay nada, dice <em>Todo al día</em>."),
     (4, "<strong>Pendientes</strong>: las alertas que marcaste como vistas (ver Alertas)."),
     (5, "<strong>Dinero</strong>: <em>Por cobrar</em> (facturado que falta pagar), <em>Vencido</em>, <em>Facturado este mes</em> y <em>Por facturar</em> (adjudicado que falta facturar). Tocá <em>Por cobrar</em> o <em>Vencido</em> para ir a la lista de facturas (Vencido ya filtrada) y <em>Por facturar</em> para ir a Presupuestos. Debajo, los proyectos activos y los totales adjudicado y facturado."),
     (6, "<strong>Filtro comercial del equipo</strong>: cuántas cuentas llegaron a cada etapa en el periodo del piloto; Propuesta y Ganado contra su meta y las demás con el % que pasó de la anterior. Debajo, lo <strong>ganado en el periodo</strong> en colones: Licitaciones y Trabajos puntuales contra su meta. Fuera del periodo se muestra en una sola línea. Ver el capítulo Clientes."),
@@ -125,7 +125,7 @@
 {{ m.steps([
     (1, "<strong>Mis tareas</strong>: las tuyas y las que le asignás al equipo (con <em>Para</em>)."),
     (2, "<strong>Hoy en campo</strong>: cada proyecto con gente hoy, quiénes van y si ya tiene bitácora."),
-    (3, "<strong>Requiere atención</strong>: las jornadas del equipo con horas sin confirmar (las tuyas las confirma el admin) y los días trabajados sin bitácora de los últimos 7 días."),
+    (3, "<strong>Requiere atención</strong>: las jornadas del equipo con horas sin confirmar (las tuyas las confirma el admin) y los días trabajados sin bitácora de los últimos 7 días, cada uno con <em>Registrar</em> y <em>No ocupa bitácora</em>."),
     (4, "<strong>Gestionar Calendario</strong>: para organizar el equipo de cada proyecto y confirmar sus horas. Debajo están tus propias asignaciones, igual que las de un trabajador."),
 ]) }}
 <p>Si en Empleados tenés marcado <strong>También vende</strong>, el Dashboard suma lo de un vendedor: <em>Próximos pasos de
@@ -165,8 +165,19 @@
 {% call m.faq("¿De dónde sale «días trabajados sin bitácora»?") %}
 <p>Son los días de los últimos 7 en que un proyecto tenía gente asignada en el Calendario y nadie registró la bitácora de
     ese proyecto ese día. Si el trabajo no se hizo, quitá la asignación; si se hizo, registrá la bitácora (se puede hasta
-    7 días atrás).</p>
+    7 días atrás); si ese día no la necesitaba, marcá <strong>No ocupa bitácora</strong> (ver la pregunta siguiente).</p>
 {% endcall %}
+{% endif %}
+{% if user.role in ['admin', 'supervisor'] %}
+{% call m.faq("Un día no necesitaba bitácora: ¿cómo lo saco de la alerta?") %}
+<p>En la alerta <em>días trabajados sin bitácora</em>, tocá <strong>No ocupa bitácora</strong> al lado de ese día. Se abre
+    una ventana para confirmarlo, con un <strong>motivo</strong> corto opcional (por ejemplo: llovió, solo fue una
+    entrega). El día deja de contar, también en el Dashboard del trabajador, y cuando no queda ninguno la alerta desaparece
+    sola. También se marca desde el día del proyecto en el <strong>Calendario</strong>, que es donde se
+    <strong>deshace</strong> (<em>Deshacer</em>). Marcar y deshacer quedan en Actividad, con quién y cuándo.</p>
+{% endcall %}
+{% endif %}
+{% if user.role == 'admin' %}
 {% call m.faq("Filtré por fecha y el Total Adjudicado no cambió") %}
 <p>Es así: los filtros solo cambian <strong>Total Facturado</strong> y la tabla de facturación. Proyectos activos y
     total adjudicado siempre muestran todo.</p>

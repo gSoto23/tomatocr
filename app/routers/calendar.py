@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from pydantic import BaseModel
 
+from app.db.models.log import DailyLog, LogExemption
 from app.db.models.payroll import PayrollPeriod
 from app.db.models.schedule import ProjectSchedule, ScheduleTask
 from app.db.models.project import Project
@@ -111,6 +112,11 @@ def get_events(start: str, end: str, db: Session = Depends(deps.get_db), user: U
     days = {}
     for s in schedules:
         days.setdefault((s.project_id, s.date), []).append(s)
+    # Each day's report: in, or marked "No ocupa bitácora" (with who, when and why).
+    reported = {(pid, d) for pid, d in db.query(DailyLog.project_id, DailyLog.date).filter(
+        DailyLog.date >= start, DailyLog.date <= end)}
+    exempt = {(e.project_id, e.date): e for e in db.query(LogExemption).filter(
+        LogExemption.date >= start, LogExemption.date <= end)}
     events = []
     for (project_id, day), members in days.items():
         members.sort(key=lambda m: (m.user.full_name or m.user.username).lower())
@@ -132,9 +138,18 @@ def get_events(start: str, end: str, db: Session = Depends(deps.get_db), user: U
                 "all_confirmed": all_confirmed,
                 "absent": absent,
                 "members": [member_payload(m, group_sizes) for m in members],
+                "has_log": (project_id, day) in reported,
+                "no_report": exemption_payload(exempt.get((project_id, day))),
             },
         })
     return JSONResponse(events)
+
+def exemption_payload(mark: Optional[LogExemption]) -> Optional[dict]:
+    if mark is None:
+        return None
+    return {"reason": mark.reason or "", "by": (mark.user.full_name or mark.user.username) if mark.user else "",
+            "at": mark.created_at.strftime("%d/%m/%Y") if mark.created_at else ""}
+
 
 def group_key(schedule: ProjectSchedule):
     """Assignments made together (one date range) share project, person and creation time."""
