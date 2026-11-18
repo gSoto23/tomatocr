@@ -311,7 +311,8 @@ def create_schedule(
     if not days:
         return JSONResponse({"status": "error", "message": "El rango no tiene días para asignar"}, status_code=400)
     # One or several people (the calendar assigns a project to its team).
-    people = list(dict.fromkeys([*user_ids, *([user_id] if user_id else [])]))
+    # The checked people when there are any; the single select only stands in when none came.
+    people = list(dict.fromkeys(user_ids or ([user_id] if user_id else [])))
     if not people:
         return JSONResponse({"status": "error", "message": "Elegí al menos una persona"}, status_code=400)
     found = [c for person in people for c in conflicts(db, person, days)]

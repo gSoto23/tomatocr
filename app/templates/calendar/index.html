@@ -508,7 +508,7 @@
         const scopeGroup = document.querySelector('input[name="scope"]:checked')?.value === 'group';
         ['date', 'project_id', 'user_id'].forEach(id => {
             const el = document.getElementById(id);
-            if (el.disabled && scopeGroup) formData.set(el.name, el.value);
+            if (el.disabled && scopeGroup && currentScheduleId) formData.set(el.name, el.value);
         });
         if (!currentScheduleId && !formData.getAll('user_ids').length) {
             return showGlobalToast("Error", "Marcá al menos una persona", "error");
@@ -548,7 +548,10 @@
     // In "whole range" mode only sede, hours and tasks change: day, project and person stay.
     function toggleScope() {
         const group = document.querySelector('input[name="scope"]:checked')?.value === 'group';
-        ['date', 'project_id', 'user_id'].forEach(id => document.getElementById(id).disabled = group);
+        ['date', 'project_id'].forEach(id => document.getElementById(id).disabled = group);
+        // The single-person select is only for editing; when assigning, the checkboxes say who goes.
+        const single = !document.getElementById('person-box').classList.contains('hidden');
+        document.getElementById('user_id').disabled = group || !single;
     }
 
     // ---- Project day ------------------------------------------------------------------
