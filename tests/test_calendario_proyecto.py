@@ -32,6 +32,14 @@ def test_assign_several_people_and_see_one_event_per_day(db, login_as, users, te
     assert events[0]["title"].endswith("3 personas") and "url" not in events[0]
 
 
+def test_assign_only_the_checked_people_not_the_hidden_single_select(db, login_as, users, team):
+    # The form used to also send its hidden one-person select (first option): only the checked go.
+    client = login_as("admin")
+    response = assign(client, users, [users["worker"].id], user_id=users["supervisor"].id)
+    assert response.status_code == 200
+    assert [s.user_id for s in db.query(ProjectSchedule)] == [users["worker"].id]
+
+
 def test_assign_needs_someone(login_as, users):
     response = login_as("admin").post("/calendar/schedule", data={"project_id": users["project_id"],
                                                                    "date": "2026-09-21"})

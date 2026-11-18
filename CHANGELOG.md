@@ -4,6 +4,15 @@ Cambios en el sistema y en el sitio público, del más reciente al más antiguo.
 Cada entrada indica el PR y si necesitó migración o pasos especiales al
 desplegar. Hora de Costa Rica salvo que diga UTC.
 
+## 2026-11-18
+
+### Asignar en el calendario ya no agrega a una persona de más (esta rama)
+- Al usar **Asignar Proyecto** (o *+ Agregar persona*), se agregaba también a la primera persona de la
+  lista (Priscilla) aunque no estuviera marcada: el selector de una sola persona, que solo se usa al
+  editar, se enviaba igual. Ahora solo entran las personas marcadas, y el servidor ignora ese selector
+  cuando vienen personas marcadas. Las asignaciones de más que ya existen se quitan con *Quitar*.
+- Sin migración.
+
 ## 2026-11-12
 
 ### Vendedor encargado del proyecto (esta rama)
