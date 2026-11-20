@@ -49,7 +49,7 @@
         "areaServed": {"@type": "Country", "name": "Costa Rica"},
         "address": {"@type": "PostalAddress", "addressCountry": "CR"},
         "contactPoint": {"@type": "ContactPoint", "telephone": "+506-7080-8613", "contactType": "sales", "areaServed": "CR", "availableLanguage": "es"},
-        "knowsAbout": ["Reforestación", "Trazabilidad GPS de árboles", "Mantenimiento de zonas verdes", "Jardinería", "Paisajismo", "Vivero de especies nativas"],
+        "knowsAbout": ["Reforestación", "Trazabilidad GPS de árboles", "Mantenimiento de zonas verdes", "Jardinería", "Paisajismo", "Mantenimiento de condominios", "Vivero de especies nativas"],
         "hasOfferCatalog": {
             "@type": "OfferCatalog",
             "name": "Servicios",
@@ -57,7 +57,8 @@
                 {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Proyectos de reforestación con trazabilidad GPS", "url": "https://tomatocr.com/servicios/reforestacion-para-empresas"}},
                 {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Mantenimiento de zonas verdes", "url": "https://tomatocr.com/servicios/mantenimiento-de-zonas-verdes"}},
                 {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Jardinería", "url": "https://tomatocr.com/servicios/jardineria"}},
-                {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Paisajismo", "url": "https://tomatocr.com/servicios/paisajismo"}}
+                {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Paisajismo", "url": "https://tomatocr.com/servicios/paisajismo"}},
+                {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Mantenimiento integral para condominios", "url": "https://tomatocr.com/servicios/mantenimiento-de-condominios"}}
             ]
         },
         "sameAs": ["https://www.linkedin.com/company/tomato-cr"]
@@ -163,6 +164,7 @@
                 <nav class="hidden lg:flex items-center gap-6 text-sm" aria-label="Principal">
                     <a href="#about" class="hover:opacity-70">Empresa</a>
                     <a href="#services" class="hover:opacity-70">Servicios</a>
+                    <a href="/servicios/mantenimiento-de-condominios" class="hover:opacity-70">Condominios</a>
                     <a href="#projects" class="hover:opacity-70">Proyectos</a>
                     <a href="#process" class="hover:opacity-70">Proceso</a>
                     <a href="/programas/darboles" class="hover:opacity-70">Dárboles</a>
@@ -171,7 +173,8 @@
 
                 <div class="hidden lg:flex items-center gap-2">
                     <!-- Login (desktop): secondary, the form opens in a panel so it doesn't compete with the quote CTA -->
-                    <div class="relative" x-data="{ open: false }" x-init="open = showToast && !toastOk"
+                    <div class="relative" x-data="{ open: false }"
+                        x-init="open = (showToast && !toastOk) || (location.hash === '#ingresar' && matchMedia('(min-width: 1024px)').matches); if (open && location.hash === '#ingresar') $nextTick(() => $refs.user.focus())"
                         @keydown.escape.window="open = false" @click.outside="open = false">
                         <button type="button" @click="open = !open; if (open) $nextTick(() => $refs.user.focus())"
                             :aria-expanded="open.toString()" aria-controls="loginPanel"
@@ -229,6 +232,7 @@
                 <nav class="grid text-base font-semibold" aria-label="Principal (móvil)">
                     <a href="#about" class="js-mobile-link border-b border-black/10 py-3 dark:border-white/10">Empresa</a>
                     <a href="#services" class="js-mobile-link border-b border-black/10 py-3 dark:border-white/10">Servicios</a>
+                    <a href="/servicios/mantenimiento-de-condominios" class="js-mobile-link border-b border-black/10 py-3 dark:border-white/10">Condominios</a>
                     <a href="#projects" class="js-mobile-link border-b border-black/10 py-3 dark:border-white/10">Proyectos</a>
                     <a href="#process" class="js-mobile-link border-b border-black/10 py-3 dark:border-white/10">Proceso</a>
                     <a href="/programas/darboles" class="js-mobile-link border-b border-black/10 py-3 dark:border-white/10">Dárboles</a>
@@ -487,6 +491,27 @@
                 </article>
                 {% endfor %}
             </div>
+
+            <!-- Condominiums: a band (not a fourth card, there is no condominium photo yet) to their own page -->
+            <div class="mt-4 flex flex-col gap-5 rounded-2xl border border-green-700/20 bg-[#f5f6f1] p-6 md:flex-row md:items-center md:justify-between md:p-8 dark:border-green-400/20 dark:bg-neutral-950">
+                <div>
+                    <h3 class="text-lg md:text-xl font-semibold tracking-tight">¿Administrás un condominio?</h3>
+                    <p class="mt-1 max-w-2xl text-sm {{ muted }} leading-relaxed">
+                        Zonas verdes, áreas comunes, instalaciones y piscinas con un solo equipo, y el reporte de cada
+                        visita para compartir con la junta.
+                    </p>
+                </div>
+                <div class="flex shrink-0 flex-wrap gap-3">
+                    <a href="/servicios/mantenimiento-de-condominios"
+                        class="inline-flex items-center px-4 py-2 text-sm font-semibold rounded-lg transition-colors bg-brand text-white hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand dark:bg-brand-light dark:hover:bg-brand">
+                        Mantenimiento para condominios
+                    </a>
+                    <a href="#contact" data-motor="mantenimiento_condominio"
+                        class="inline-flex items-center px-4 py-2 border border-black/20 text-sm font-semibold rounded-lg hover:bg-black hover:text-white transition-colors dark:border-white/20 dark:hover:bg-white dark:hover:text-black">
+                        Coordinar visita
+                    </a>
+                </div>
+            </div>
         </div>
     </section>
 
@@ -627,6 +652,7 @@
                     <a href="/servicios/mantenimiento-de-zonas-verdes" class="hover:opacity-70">Mantenimiento de zonas verdes</a>
                     <a href="/servicios/jardineria" class="hover:opacity-70">Jardinería</a>
                     <a href="/servicios/paisajismo" class="hover:opacity-70">Paisajismo</a>
+                    <a href="/servicios/mantenimiento-de-condominios" class="hover:opacity-70">Condominios</a>
                     <a href="/programas/darboles" class="hover:opacity-70">Programa Dárboles</a>
                     <a href="https://darboles.com" target="_blank" rel="noopener noreferrer"
                         class="hover:opacity-70">Tienda darboles.com</a>

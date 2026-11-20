@@ -97,7 +97,7 @@ def view_service(slug: str, request: Request, db: Session = Depends(deps.get_db)
         raise StarletteHTTPException(status_code=404)
     stats = safe_public_stats(db) if service.get("live_stats") else None
     faq_ld = [{"@type": "Question", "name": question, "acceptedAnswer": {"@type": "Answer", "text": answer}}
-              for question, answer in service["faq"]]
+              for question, answer, *_link in service["faq"]]
     return templates.TemplateResponse("servicios/servicio.html", {
         "request": request, "slug": slug, "s": service, "servicios": SERVICIOS, "stats": stats, "faq_ld": faq_ld})
 
