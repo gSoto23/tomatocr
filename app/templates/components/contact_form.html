@@ -15,7 +15,7 @@
             </label>
             <p id="contact-error-name" class="{{ error }}"></p>
         </div>
-        <label class="block text-sm font-medium">Empresa o institución
+        <label class="block text-sm font-medium">{{ "Condominio o administradora" if ctx.condo else "Empresa o institución" }}
             <input name="company" maxlength="200" autocomplete="organization" class="{{ field }}">
         </label>
         <div>
@@ -43,6 +43,25 @@
             </select>
         </label>
         <p id="contact-error-motor" class="{{ error }}"></p>
+    </div>
+    {# Only for "Mantenimiento para mi condominio": shown while it is chosen (the script toggles it;
+       without JavaScript, only the condominium page shows them). Both optional. #}
+    <div data-condo-fields {% if not ctx.condo %}hidden{% endif %}>
+    <div class="grid sm:grid-cols-2 gap-4">
+        <div>
+            <label class="block text-sm font-medium">Cantidad de filiales
+                <input name="units" type="text" inputmode="numeric" maxlength="5" placeholder="Ej. 40"
+                    aria-describedby="contact-error-units" class="{{ field }}">
+            </label>
+            <p id="contact-error-units" class="{{ error }}"></p>
+        </div>
+        <label class="block text-sm font-medium">Tu rol
+            <select name="role" class="{{ field }}">
+                <option value="">Elegí una opción</option>
+                {% for role in ctx.condo_roles %}<option value="{{ role }}">{{ role }}</option>{% endfor %}
+            </select>
+        </label>
+    </div>
     </div>
     <label class="block text-sm font-medium">Mensaje
         <textarea name="message" rows="4" maxlength="3000" class="{{ field }}"
@@ -97,6 +116,11 @@
         var success = box.querySelector('[data-contact-success]');
         var message = form.querySelector('[data-contact-message]');
         var button = form.querySelector('button[type=submit]');
+        var condo = form.querySelector('[data-condo-fields]');
+        var condoValue = '{{ ctx.condo_value }}';
+        // Filiales and rol only matter for a condominium: shown while that option is chosen.
+        function toggleCondo() { condo.hidden = form.elements.motor.value !== condoValue; }
+        form.elements.motor.addEventListener('change', toggleCondo);
         function show(text, ok) {
             message.textContent = text;
             message.className = 'text-sm ' + (ok ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400');
@@ -130,8 +154,10 @@
             if (!data.email.trim() && !data.phone.trim()) errors.email = 'Dejanos un correo o un teléfono.';
             else if (data.email.trim() && form.elements.email.validity.typeMismatch) errors.email = 'Revisá el correo: le falta algo (ej. nombre@empresa.com).';
             if (!data.motor) errors.motor = 'Elegí qué te interesa.';
+            // Same rule as the server (app/utils/leads.py, UNITS_RE); only when the fields are shown.
+            if (data.motor === condoValue && data.units && !/^\d{1,5}$/.test(data.units.trim())) errors.units = 'Escribí solo el número de filiales (ej. 40).';
             if (!data.consent) errors.consent = 'Aceptá la política de privacidad para que podamos contactarte.';
-            ['name', 'email', 'phone', 'motor', 'consent'].forEach(function (name) { mark(name, errors[name]); });
+            ['name', 'email', 'phone', 'motor', 'units', 'consent'].forEach(function (name) { mark(name, errors[name]); });
             return Object.keys(errors);
         }
         // "Cotizar este servicio" and similar links preselect what the visitor is interested in.
@@ -140,6 +166,7 @@
             if (link && form.elements.motor.querySelector('option[value="' + link.dataset.motor + '"]')) {
                 form.elements.motor.value = link.dataset.motor;
                 mark('motor', '');
+                toggleCondo();
             }
         });
         form.addEventListener('submit', function (event) {
@@ -163,6 +190,7 @@
             }).then(function (answer) {
                 if (answer.ok) {
                     form.reset();
+                    toggleCondo();
                     show('', true);
                     form.hidden = true;
                     success.hidden = false;

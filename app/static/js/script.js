@@ -82,6 +82,13 @@
     overlay?.addEventListener("click", closeMenu);
     links.forEach((a) => a.addEventListener("click", closeMenu));
 
+    // /#ingresar ("Ingresar a la plataforma" on the service pages) opens the login right away: on a
+    // phone or tablet the menu with the form; on a computer the header panel does it (index.html).
+    if (location.hash === "#ingresar" && !window.matchMedia("(min-width: 1024px)").matches) {
+        openMenu();
+        menu?.querySelector('input[name="user"]')?.focus();
+    }
+
     document.addEventListener("keydown", (e) => {
         if (e.key === "Escape") closeMenu();
     });

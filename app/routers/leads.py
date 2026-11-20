@@ -12,8 +12,8 @@ from app.core.templates import templates
 from app.db.models.user import User
 from app.routers import deps
 from app.utils.email import send_plain_email
-from app.utils.leads import (CONSENT_TEXT_VERSION, LeadRejected, clean_lead, intake_lead, lead_fields, notification,
-                             rate_limited, record_spam, record_submission)
+from app.utils.leads import (CONDO_ROLES, CONSENT_TEXT_VERSION, INTERESTS, LeadRejected, clean_lead, intake_lead,
+                             lead_fields, notification, rate_limited, record_spam, record_submission)
 from app.utils.login_throttle import client_ip
 from app.utils.notifications import notify as add_notification, send_soon
 from app.utils.spam import form_token, spam_reasons
@@ -122,11 +122,24 @@ PUBLIC_MOTOR_LABELS = {
     "mantenimiento": "Mantenimiento, jardinería o paisajismo",
     "regalo_corporativo": "Árboles como regalo corporativo",
 }
+# Options that aren't a motor (app/utils/leads.py INTERESTS): shown right after their motor's.
+PUBLIC_INTEREST_LABELS = {"mantenimiento_condominio": "Mantenimiento para mi condominio"}
+CONDO_INTEREST = "mantenimiento_condominio"
+
+
+def public_options():
+    options = []
+    for motor, label in PUBLIC_MOTOR_LABELS.items():
+        options.append((motor, label))
+        options += [(key, text) for key, text in PUBLIC_INTEREST_LABELS.items() if INTERESTS[key]["motor"] == motor]
+    return options
 
 
 def contact_form_context(default_motor: Optional[str] = None):
-    """Options for the form partial (templates/components/contact_form.html)."""
-    return {"motors": list(PUBLIC_MOTOR_LABELS.items()), "default_motor": default_motor, "token": form_token()}
+    """Options for the form partial (templates/components/contact_form.html). The condominium
+    fields (filiales, rol) show only while that option is chosen."""
+    return {"motors": public_options(), "default_motor": default_motor, "token": form_token(),
+            "condo_value": CONDO_INTEREST, "condo_roles": CONDO_ROLES, "condo": default_motor == CONDO_INTEREST}
 
 
 templates.env.globals["contact_form_context"] = contact_form_context

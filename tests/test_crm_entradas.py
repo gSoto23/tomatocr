@@ -1,5 +1,7 @@
 """Fase 2D: leads from the contact form and darboles.com, assignment, erasure,
 account rename and the sales-board import."""
+import re
+
 import pytest
 
 from app.core.config import settings
@@ -355,3 +357,55 @@ def test_form_does_not_offer_the_store_but_the_api_still_accepts_it(db, sellers,
         html = new_client().get(path).text
         assert 'value="tienda"' not in html and "Compra en la tienda" not in html
     assert api({**FORM, "email": "tienda@x.cr", "motor": "tienda"}).status_code == 200
+
+
+# --- Condominium requests (/servicios/mantenimiento-de-condominios) ---------------------------
+
+CONDO_FORM = {**FORM, "company": "Condominio Los Robles", "email": "admin@losrobles.cr",
+              "motor": "mantenimiento_condominio", "units": "40", "role": "Junta directiva"}
+
+
+def test_condominium_request_goes_to_the_maintenance_seller_as_a_condominium(db, sellers, mails):
+    response = post_form(CONDO_FORM)
+    assert response.status_code == 200 and response.json()["ok"]
+    account = db.query(Account).one()
+    assert (account.name, account.kind, account.owner_id) == ("Condominio Los Robles", "condominio",
+                                                              sellers["albert"].id)
+    opp = db.query(Opportunity).one()
+    assert (opp.motor, opp.owner_id) == ("mantenimiento", sellers["albert"].id)
+    assert opp.title == "Mantenimiento de condominio · formulario web"
+    note = db.query(CrmActivity).one().notes
+    assert note.startswith("Solicitud desde formulario web (Mantenimiento de condominio · Filiales: 40 · "
+                           "Rol: Junta directiva):")
+    assert "Jardines de 2 hectáreas" in note
+    assert mails[0]["subject"] == "Nueva oportunidad: Condominio Los Robles (Mantenimiento de condominio)"
+    for line in ("Interés: Mantenimiento de condominio", "Filiales: 40", "Rol: Junta directiva"):
+        assert line in mails[0]["body"]
+
+
+def test_condominium_fields_are_optional_and_checked(db, sellers, mails):
+    response = post_form({**CONDO_FORM, "units": "unos 40"})
+    assert response.status_code == 400 and "número de filiales" in response.json()["message"]
+    assert db.query(Account).count() == 0
+    # Without them, or with a role that isn't on the list, it still goes in (the role is left out)
+    assert post_form({**CONDO_FORM, "units": "", "role": "Presidente"}).json()["ok"]
+    note = db.query(CrmActivity).one().notes
+    assert note.startswith("Solicitud desde formulario web (Mantenimiento de condominio):") and "Rol" not in note
+    assert "Filiales" not in mails[0]["body"] and "Rol:" not in mails[0]["body"]
+
+
+def test_condominium_fields_only_count_for_a_condominium(db, sellers, mails):
+    assert post_form({**FORM, "units": "40", "role": "Administrador"}).json()["ok"]
+    account = db.query(Account).one()
+    assert account.kind == "otro" and db.query(Opportunity).one().title == "Mantenimiento · formulario web"
+    assert "Filiales" not in db.query(CrmActivity).one().notes and "Filiales" not in mails[0]["body"]
+
+
+def test_form_offers_the_condominium_option_right_after_maintenance_everywhere():
+    for path in ("/", "/programas/darboles", "/servicios/jardineria"):
+        html = new_client().get(path).text
+        form = html[html.index("data-contact-form"):html.index("</form>", html.index("data-contact-form"))]
+        options = re.findall(r'<option value="([a-z_]+)"', form)
+        assert options[options.index("mantenimiento") + 1] == "mantenimiento_condominio", path
+        assert "<div data-condo-fields hidden>" in form and "Empresa o institución" in form
+

@@ -20,6 +20,15 @@ CONSENT_TEXT_VERSION = "2026-09-27"
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 SOURCES = {"web": "formulario web", "darboles": "darboles.com"}
 LIMITS = {"name": 150, "company": 200, "email": 150, "phone": 30, "message": 3000}
+# Options of "¿Qué te interesa?" that aren't a CRM motor: the motor the request goes to (so the
+# seller assignment doesn't change), the kind a new account gets and the name in the CRM.
+INTERESTS = {
+    "mantenimiento_condominio": {"motor": "mantenimiento", "kind": "condominio", "crm": "Mantenimiento de condominio"},
+}
+# Optional fields of a condominium request (/servicios/mantenimiento-de-condominios).
+CONDO_ROLES = ("Administrador", "Junta directiva", "Condómino", "Otro")
+UNITS_RE = re.compile(r"^\d{1,5}$")
+UNITS_PROBLEM = "Escribí solo el número de filiales (ej. 40)"
 
 
 class LeadRejected(ValueError):
@@ -43,7 +52,25 @@ def lead_fields(data: Dict) -> Dict:
     lead = {key: get(key)[:limit] for key, limit in LIMITS.items()}
     lead["email"] = lead["email"].lower()
     lead["motor"] = get("motor")
+    lead["interest"], lead["kind"], lead["units"], lead["role"] = "", "", "", ""
+    interest = INTERESTS.get(lead["motor"])
+    if interest:
+        lead["interest"], lead["motor"], lead["kind"] = lead["motor"], interest["motor"], interest["kind"]
+        lead["units"] = get("units")[:10]
+        lead["role"] = get("role") if get("role") in CONDO_ROLES else ""
     return lead
+
+
+def interest_label(lead: Dict) -> str:
+    """What the request is about, in the CRM's words: the motor, or the interest within it."""
+    interest = INTERESTS.get(lead.get("interest") or "")
+    return interest["crm"] if interest else LABELS["motor"][lead["motor"]]
+
+
+def condo_details(lead: Dict) -> List[str]:
+    """The optional condominium fields that came, as lines for the note and the e-mail."""
+    return [line for value, line in ((lead.get("units"), f"Filiales: {lead.get('units')}"),
+                                     (lead.get("role"), f"Rol: {lead.get('role')}")) if value]
 
 
 def clean_lead(data: Dict, strict: bool = False) -> Dict:
@@ -65,6 +92,8 @@ def clean_lead(data: Dict, strict: bool = False) -> Dict:
         errors.append("Revisá el correo, no parece válido")
     if lead["motor"] not in MOTORS:
         errors.append("Elegí qué te interesa")
+    if lead["units"] and not UNITS_RE.match(lead["units"]):
+        errors.append(UNITS_PROBLEM)
     consent = data.get("consent")
     if not (consent is True or str(consent).lower() in ("true", "1", "on", "si", "sí")):
         errors.append("Aceptá la política de privacidad para que podamos contactarte")
@@ -126,7 +155,8 @@ def intake_lead(db: Session, lead: Dict, source: str) -> LeadResult:
     if new_account:
         name = lead["company"] or lead["name"]
         owner = assigned_owner(db, lead["motor"])
-        account = Account(name=name, kind=guess_kind(name) if lead["company"] else "persona",
+        kind = lead.get("kind") or (guess_kind(name) if lead["company"] else "persona")
+        account = Account(name=name, kind=kind,
                           owner_id=owner.id if owner else None, source=source, origin_ref=f"{source}:{now:%Y%m%d%H%M%S}")
         db.add(account)
         db.flush()
@@ -164,7 +194,7 @@ def intake_lead(db: Session, lead: Dict, source: str) -> LeadResult:
         owner = db.get(User, account.owner_id) if account.owner_id else assigned_owner(db, lead["motor"])
         owner_id = owner.id if owner else None
         opportunity = Opportunity(
-            account_id=account.id, title=f"{LABELS['motor'][lead['motor']]} · {SOURCES[source]}",
+            account_id=account.id, title=f"{interest_label(lead)} · {SOURCES[source]}",
             motor=lead["motor"], stage="prospecto", max_stage=0, owner_id=owner_id, source=source, origin="web",
             next_step="Responder la solicitud", next_step_date=date.today(),
         )
@@ -172,19 +202,22 @@ def intake_lead(db: Session, lead: Dict, source: str) -> LeadResult:
         db.flush()
 
     note = f"Solicitud desde {SOURCES[source]}"
+    details = ([interest_label(lead)] if lead.get("interest") else []) + condo_details(lead)
+    if details:
+        note += f" ({' · '.join(details)})"
     if lead["message"]:
         note += f":\n{lead['message']}"
     db.add(CrmActivity(account_id=account.id, opportunity_id=opportunity.id, contact_id=contact.id, type="nota",
                        happened_at=now, notes=note))
     db.add(ActivityLog(action="CREATE", entity_type="LEAD", entity_id=opportunity.id,
-                       details=f"Oportunidad {SOURCES[source]}: {account.name} ({LABELS['motor'][lead['motor']]})"))
+                       details=f"Oportunidad {SOURCES[source]}: {account.name} ({interest_label(lead)})"))
     db.commit()
     return LeadResult(account, contact, opportunity, new_account, new_opportunity)
 
 
 def notification(result: LeadResult, lead: Dict, source: str) -> Dict:
     """Subject and body of the internal e-mail about a new lead."""
-    motor = LABELS["motor"][lead["motor"]]
+    motor = interest_label(lead)
     lines = [
         f"Nueva oportunidad desde {SOURCES[source]}.",
         "",
@@ -193,6 +226,7 @@ def notification(result: LeadResult, lead: Dict, source: str) -> Dict:
         f"Correo: {lead['email'] or '—'}",
         f"Teléfono: {lead['phone'] or '—'}",
         f"Interés: {motor}",
+        *condo_details(lead),
         "",
         lead["message"] or "(sin mensaje)",
     ]

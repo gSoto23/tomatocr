@@ -510,6 +510,19 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
    (título ≤ 60, descripción ≤ 155, `motor` que preselecciona el formulario, foto, para
    quién, alcance, pasos, galería y preguntas frecuentes); una página nueva = una entrada
    ahí, y entra sola al sitemap, al menú de las páginas de servicio y a las pruebas.
+   Las secciones extra son opcionales (la lista está al inicio de `servicios.py`):
+   introducción bajo *Para quién es* (o el título que se le dé), título propio de *Qué
+   incluye*, tarjetas de *Qué incluye* con ícono y enlace (`components/icons.html`), *Frecuencia*,
+   *Todo a la vista* (la plataforma del cliente, `PLATAFORMA`), *Un equipo en regla*
+   (CCSS, INS, MTSS, `EQUIPO_EN_REGLA`), botón y texto de WhatsApp propios; sin galería
+   no sale *Trabajo real*. **Condominios** (`/servicios/mantenimiento-de-condominios`,
+   para administradores y juntas) usa todas: formulario con *Mantenimiento para mi
+   condominio* elegido y los campos opcionales *Cantidad de filiales* y *Tu rol*. Su botón
+   *Ingresar a la plataforma* lleva a `/#ingresar`, que abre el acceso del home (el panel
+   en computadora, el menú con el formulario en celular). El home la enlaza en el menú, en
+   la franja *¿Administrás un condominio?* de Servicios y en el pie. Está escrita para la
+   búsqueda *mantenimiento de condominios* (frase exacta en título, URL, H1, descripción,
+   introducción y una pregunta; la prueba `test_condominium_page_targets_the_search_…` lo revisa).
 
 ---
 

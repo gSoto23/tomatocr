@@ -153,7 +153,7 @@ def test_home_structured_data_describes_the_business():
     html = new_client().get("/").text
     data = json.loads(re.search(r'<script type="application/ld\+json">(.*?)</script>', html, re.S).group(1))
     assert data["@type"] == "LocalBusiness" and data["logo"].startswith("https://tomatocr.com/")
-    assert len(data["hasOfferCatalog"]["itemListElement"]) == 4
+    assert len(data["hasOfferCatalog"]["itemListElement"]) == 5
     assert data["areaServed"]["name"] == "Costa Rica"
 
 
@@ -232,3 +232,119 @@ def test_css_and_js_links_are_versioned(path):
     html = new_client().get(path).text
     for link in re.findall(r'(?:href|src)="(/static/(?:css|js)/[^"]+)"', html):
         assert "?v=" in link, link
+
+
+# --- Condominiums (/servicios/mantenimiento-de-condominios) ---------------------------------
+
+CONDO = "/servicios/mantenimiento-de-condominios"
+
+
+def test_condominium_page_has_its_sections_in_order_and_no_real_work_gallery():
+    html = new_client().get(CONDO).text
+    titles = [re.sub(r"<[^>]+>", "", t).strip() for t in re.findall(r"<h2[^>]*>(.*?)</h2>", html, re.S)]
+    assert titles == ["Lo que resolvemos", "Qué incluye el mantenimiento de tu condominio", "Frecuencia a tu medida", "Paso a paso", "Todo a la vista",
+                      "Un equipo en regla", "Preguntas frecuentes", "Otros servicios", "Cotizá: condominio"]
+    assert "Trabajo real" not in html and "Para quién es" not in html
+    assert '<li aria-current="page" class="text-black/80 dark:text-white/80">Condominios</li>' in html
+    assert "Zonas verdes · Áreas comunes · Instalaciones" in html
+    assert '<a href="#contacto" data-motor="mantenimiento_condominio"' in html and ">Coordinar visita</a>" in html
+    whatsapp = ("https://wa.me/50670808613?text=Hola%2C%20quiero%20coordinar%20una%20visita%20para%20el%20"
+                "mantenimiento%20de%20mi%20condominio")
+    assert html.count(f'href="{whatsapp}"') == 2  # hero and the contact box
+    assert "Después de la visita te enviamos una propuesta formal con números para tu condominio." in html
+    assert "Ajustamos el alcance y la frecuencia a cada condominio." in html
+    # No prices nor client logos: no money signs in the text, and the only images are TOMATO's logo and the hero
+    text = re.sub(r"<script.*?</script>|<[^>]+>", " ", html, flags=re.S)
+    assert "₡" not in text and "$" not in text and "colones" not in text.lower()
+    assert set(re.findall(r'<img src="([^"]+)"', html)) == {"/static/images/LogoTomatoB.png", "/static/images/LogoTomatoW.png",
+                                                           "/static/images/servicios/mantenimiento.jpg"}
+
+
+def test_condominium_page_links_the_services_with_their_own_page_and_the_platform():
+    html = new_client().get(CONDO).text
+    includes = html[html.index(">Qué incluye el mantenimiento de tu condominio</h2>"):html.index(">Frecuencia a tu medida</h2>")]
+    assert includes.count("<li") == 7 and includes.count("<svg") == 7
+    for page in ("mantenimiento-de-zonas-verdes", "jardineria", "paisajismo"):
+        assert f'href="/servicios/{page}"' in includes
+    assert includes.count("Ver el servicio →") == 3
+    platform = html[html.index(">Todo a la vista</h2>"):html.index(">Un equipo en regla</h2>")]
+    assert '<a href="/#ingresar"' in platform and "Ingresar a la plataforma" in platform
+    for card in ("Seguimiento y reportes", "Control de contratos", "Facturación", "Próximas visitas"):
+        assert card in platform
+    team = html[html.index(">Un equipo en regla</h2>"):html.index(">Preguntas frecuentes</h2>")]
+    for card in ("CCSS", "INS", "MTSS"):
+        assert card in team
+
+
+def test_condominium_form_comes_ready_for_a_condominium():
+    html = new_client().get(CONDO).text
+    form = html[html.index("data-contact-form"):html.index("</form>", html.index("data-contact-form"))]
+    assert '<option value="mantenimiento_condominio" selected>Mantenimiento para mi condominio</option>' in form
+    assert "<div data-condo-fields >" in form  # shown, not hidden
+    assert "Cantidad de filiales" in form and 'name="units"' in form
+    for role in ("Administrador", "Junta directiva", "Condómino", "Otro"):
+        assert f'<option value="{role}">{role}</option>' in form
+    assert "Condominio o administradora" in form
+    assert "contanos: nombre y ubicación del condominio, cantidad de filiales" in html
+
+
+def test_other_service_pages_keep_their_layout_and_zonas_verdes_links_condominiums():
+    client = new_client()
+    for slug in ("reforestacion-para-empresas", "jardineria", "paisajismo"):
+        html = client.get(f"/servicios/{slug}").text
+        assert "Para quién es" in html and "Cómo lo hacemos" in html and "Trabajo real" in html
+        assert "Todo a la vista" not in html and "Frecuencia a tu medida" not in html
+        assert "<div data-condo-fields hidden>" in html  # the condominium fields wait for that option
+        assert 'href="https://wa.me/50670808613"' in html and "Cotizar este servicio" in html
+    html = client.get("/servicios/mantenimiento-de-zonas-verdes").text
+    who = html[html.index(">Para quién es</h2>"):html.index("Cómo lo hacemos")]
+    faq = html[html.index(">Preguntas frecuentes</h2>"):html.index(">Otros servicios</h2>")]
+    assert f'href="{CONDO}"' in who and f'href="{CONDO}"' in faq
+    graph = json.loads(re.search(r'<script type="application/ld\+json">(.*?)</script>', html, re.S).group(1))["@graph"]
+    answers = [q["acceptedAnswer"]["text"] for q in graph[2]["mainEntity"]]
+    assert any(a.startswith("Sí. Trabajamos con condominios") for a in answers)
+    assert not any("servicios/" in a for a in answers)  # the link stays out of the structured data
+
+
+def test_home_and_menus_lead_to_condominiums():
+    client = new_client()
+    html = client.get("/").text
+    assert html.count(f'href="{CONDO}"') == 4  # desktop bar, phone menu, the band in Servicios, footer
+    services = html[html.index('id="services"'):html.index('id="projects"')]
+    assert "¿Administrás un condominio?" in services and 'data-motor="mantenimiento_condominio"' in services
+    # "Ingresar a la plataforma" (/#ingresar) opens the login: header panel on a computer, menu on a phone
+    assert "location.hash === '#ingresar'" in html
+    assert '"#ingresar"' in client.get("/static/js/script.js").text
+    page = client.get("/servicios/jardineria").text
+    nav = page[page.index('aria-label="Servicios"'):page.index("</nav>", page.index('aria-label="Servicios"'))]
+    assert f'href="{CONDO}"' in nav and ">Condominios</a>" in nav
+
+
+def test_condominium_page_targets_the_search_mantenimiento_de_condominios():
+    """The search is "mantenimiento de condominios" (Costa Rica): the exact phrase in the title, URL, H1,
+    description, introduction, a question and the links that point to the page."""
+    client = new_client()
+    html = client.get(CONDO).text
+    phrase = "mantenimiento de condominios"
+    title = re.search(r"<title>(.*?)</title>", html).group(1)
+    description = re.search(r'<meta name="description" content="([^"]+)"', html).group(1)
+    h1 = re.search(r"<h1[^>]*>(.*?)</h1>", html, re.S).group(1).strip()
+    assert title.lower().startswith(phrase) and "Costa Rica" in title
+    assert description.lower().startswith(phrase + " en costa rica") and len(description) <= 155
+    assert h1.lower() == phrase and phrase.replace(" ", "-") in CONDO
+    lead = re.search(r"</h1>\s*<p[^>]*>(.*?)</p>", html, re.S).group(1)
+    assert "Costa Rica" in lead
+    text = re.sub(r"\s+", " ", re.sub(r"<script.*?</script>|<head.*?</head>|<[^>]+>", " ", html, flags=re.S)).lower()
+    assert text.count(phrase) >= 3  # H1, introduction and a question: natural use, no stuffing
+    intro = html[html.index(">Lo que resolvemos</h2>"):html.index(">Qué incluye el mantenimiento")]
+    assert "El mantenimiento de condominios suele" in intro and "Costa Rica" in intro
+    graph = json.loads(re.search(r'<script type="application/ld\+json">(.*?)</script>', html, re.S).group(1))["@graph"]
+    assert graph[0]["name"] == "Mantenimiento de condominios" and graph[0]["serviceType"] == "Mantenimiento de condominios"
+    assert "¿Qué incluye el mantenimiento de condominios?" in [q["name"] for q in graph[2]["mainEntity"]]
+    # Links from other pages say what the page is about
+    home = client.get("/").text
+    assert ">Mantenimiento de condominios</a>" in home  # footer
+    assert re.search(r'href="/servicios/mantenimiento-de-condominios"[^>]*>\s*Mantenimiento de condominios\s*</a>', home)
+    for page in ("/servicios/mantenimiento-de-zonas-verdes", "/servicios/jardineria"):
+        assert "Mantenimiento de condominios →" in client.get(page).text  # "Otros servicios" (and the zonas verdes card)
+

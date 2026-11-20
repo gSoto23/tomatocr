@@ -4,6 +4,32 @@ Cambios en el sistema y en el sitio público, del más reciente al más antiguo.
 Cada entrada indica el PR y si necesitó migración o pasos especiales al
 desplegar. Hora de Costa Rica salvo que diga UTC.
 
+## 2026-11-20
+
+### Página de condominios (esta rama)
+- Nueva página **`/servicios/mantenimiento-de-condominios`** para administradores y juntas directivas,
+  con el contenido del brochure *Mantenimiento Condominios TOMATO* en voseo: *Lo que resolvemos*,
+  *Qué incluye* (7 servicios con ícono; zonas verdes, jardinería y paisajismo enlazan a su página),
+  *Frecuencia a tu medida*, *Paso a paso*, *Todo a la vista* (la plataforma del cliente, con
+  *Ingresar a la plataforma*), *Un equipo en regla* (CCSS, INS, MTSS), preguntas frecuentes, otros
+  servicios y el formulario. Sin precios, clientes, cifras ni *Trabajo real*. Entra sola al sitemap,
+  al menú de las páginas de servicio y a su JSON-LD (Service, BreadcrumbList, FAQPage).
+- Formulario (todo el sitio): opción **Mantenimiento para mi condominio**, que entra como motor
+  Mantenimiento (mismo vendedor) con la cuenta nueva de tipo Condominio; con esa opción aparecen
+  *Cantidad de filiales* y *Tu rol* (opcionales), que llegan en la nota, el correo y el aviso.
+- Plantilla de servicio con secciones opcionales (las otras cuatro páginas se ven igual, salvo
+  *Otros servicios* en 4 columnas y el menú de servicios, que ahora aparece desde 1024 px).
+- Home: *Condominios* en el menú y el pie, franja *¿Administrás un condominio?* en Servicios y quinta
+  oferta en el JSON-LD. `/#ingresar` abre el acceso (panel en computadora, menú en celular).
+- Zonas verdes: la tarjeta *Condominios y áreas comunes* y la respuesta *¿Atienden condominios y
+  empresas?* enlazan a la página nueva.
+- CSS de Tailwind recompilado. Sin migración.
+- SEO para la búsqueda *mantenimiento de condominios*: la frase exacta va en el título, la URL, el H1
+  ("Mantenimiento de condominios"), la descripción, una introducción bajo *Lo que resolvemos*, el
+  título de *Qué incluye* y una pregunta frecuente; la bajada y la introducción nombran Costa Rica; los
+  enlaces del home (franja y pie), zonas verdes y *Otros servicios* dicen "Mantenimiento de condominios".
+- Pendiente: foto de un condominio (por ahora la de mantenimiento).
+
 ## 2026-11-18
 
 ### Asignar en el calendario ya no agrega a una persona de más (esta rama)
