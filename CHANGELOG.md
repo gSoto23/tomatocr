@@ -24,6 +24,10 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 - Zonas verdes: la tarjeta *Condominios y áreas comunes* y la respuesta *¿Atienden condominios y
   empresas?* enlazan a la página nueva.
 - CSS de Tailwind recompilado. Sin migración.
+- SEO para la búsqueda *mantenimiento de condominios*: la frase exacta va en el título, la URL, el H1
+  ("Mantenimiento de condominios"), la descripción, una introducción bajo *Lo que resolvemos*, el
+  título de *Qué incluye* y una pregunta frecuente; la bajada y la introducción nombran Costa Rica; los
+  enlaces del home (franja y pie), zonas verdes y *Otros servicios* dicen "Mantenimiento de condominios".
 - Pendiente: foto de un condominio (por ahora la de mantenimiento).
 
 ## 2026-11-18

@@ -3,7 +3,8 @@ templates/servicios/servicio.html. Titles <= 60 and descriptions <= 155 characte
 (tests/test_public_pages.py checks them). Facts only from what TOMATO already publishes
 (the site and the brochure): no prices, zones, clients or guarantees that aren't there.
 
-Optional keys (a page without them looks like the first four): for_whom_title, include_cards
+Optional keys (a page without them looks like the first four): for_whom_title, for_whom_intro
+(paragraphs under it), include_title, include_cards
 (rows of (icon, title, text, link or None); icons in templates/components/icons.html),
 include_note, frequency, steps_note, platform, team, cta, whatsapp_text, contact_title and
 contact_hint. intro/includes/result and gallery are skipped when empty. "motor" is the value
@@ -132,7 +133,7 @@ SERVICIOS = {
                  "Franja de césped recién cortado con bordes definidos y maceteros junto a un parqueo", "center 60%"),
         "for_whom": [
             ("Condominios y áreas comunes", "Zonas verdes presentables para quienes viven y visitan.", CONDOMINIOS,
-             "Mantenimiento integral para condominios"),
+             "Mantenimiento de condominios"),
             ("Empresas y centros educativos", "Buena presentación sin interrumpir la operación."),
             ("Propiedades residenciales", "Césped y bordes al día sin tener que estar pendiente."),
         ],
@@ -178,7 +179,7 @@ SERVICIOS = {
             ("¿Atienden condominios y empresas?",
              "Sí. Trabajamos con condominios, empresas, centros educativos, áreas comunes y propiedades "
              "residenciales.",
-             (CONDOMINIOS, "Ver el mantenimiento integral para condominios")),
+             (CONDOMINIOS, "Ver el mantenimiento de condominios")),
             ("¿Cómo pido una cotización?",
              "Por el formulario o por WhatsApp, con la ubicación, el área aproximada y la frecuencia que buscás. "
              "Te respondemos en menos de 24 horas."),
@@ -311,12 +312,14 @@ SERVICIOS = {
         # For administrators and boards. No "Trabajo real" nor logos on this page.
         "nav": "Condominios",
         "title": "Mantenimiento de condominios en Costa Rica | TOMATO",
-        "description": "Mantenimiento integral para condominios: zonas verdes, áreas comunes, instalaciones y "
+        # SEO: the search is "mantenimiento de condominios"; the exact phrase goes in the title, H1,
+        # description, introduction, a question and the links that point here.
+        "description": "Mantenimiento de condominios en Costa Rica: zonas verdes, áreas comunes, instalaciones y "
                        "piscinas, con reporte de cada visita. Te respondemos en 24 horas.",
-        "h1": "Mantenimiento integral para condominios",
+        "h1": "Mantenimiento de condominios",
         "kicker": "Zonas verdes · Áreas comunes · Instalaciones",
-        "lead": "Un solo equipo para las zonas verdes, áreas comunes e instalaciones de tu condominio, con reporte "
-                "de cada visita.",
+        "lead": "Mantenimiento integral con un solo equipo para las zonas verdes, áreas comunes e instalaciones de tu "
+                "condominio en Costa Rica, con reporte de cada visita.",
         "motor": "mantenimiento_condominio",
         "service_type": "Mantenimiento de condominios",
         "cta": "Coordinar visita",
@@ -326,12 +329,21 @@ SERVICIOS = {
         "hero": (f"{IMG}/servicios/mantenimiento.jpg", 800, 600,
                  "Franja de césped recién cortado con bordes definidos y maceteros junto a un parqueo", "center 60%"),
         "for_whom_title": "Lo que resolvemos",
+        "for_whom_intro": [
+            "El mantenimiento de condominios suele quedar repartido entre varios proveedores: uno para el césped, "
+            "otro para la piscina, otro para la limpieza. En TOMATO lo resolvemos con un solo equipo: cuadrillas con "
+            "maquinaria, insumos y supervisión en campo para las zonas verdes, las áreas comunes, las instalaciones "
+            "y la piscina de tu condominio.",
+            "Cada visita queda registrada con su reporte en nuestra plataforma, para que la administración y la junta "
+            "directiva sepan qué se hizo. El alcance y la frecuencia se ajustan a cada condominio en Costa Rica.",
+        ],
         "for_whom": [
             ("Un solo proveedor", "Zonas verdes, limpieza, instalaciones y piscina con un mismo equipo, sin "
                                   "coordinar varias empresas."),
             ("Sabés qué se hizo", "El reporte de cada visita, listo para compartir con la junta directiva."),
             ("Personal en regla", "Colaboradores en la CCSS y con póliza del INS."),
         ],
+        "include_title": "Qué incluye el mantenimiento de tu condominio",
         "include_cards": [
             [
                 ("arbol", "Mantenimiento de zonas verdes", "Corte y bordeado, control de maleza y retiro de residuos "
@@ -371,6 +383,10 @@ SERVICIOS = {
         "team": EQUIPO_EN_REGLA,
         "gallery": [],
         "faq": [
+            ("¿Qué incluye el mantenimiento de condominios?",
+             "Zonas verdes, jardinería, paisajismo, mantenimiento de instalaciones, limpieza de áreas comunes, "
+             "recolección de basura y reciclaje, y mantenimiento de piscinas. Ajustamos el alcance y la frecuencia a "
+             "cada condominio."),
             ("¿Puedo contratar solo algunos servicios?",
              "Sí. Armamos el alcance según lo que necesite el condominio: solo las zonas verdes, por ejemplo, o "
              "todos los servicios con un mismo equipo."),
