@@ -324,10 +324,9 @@ SERVICIOS = {
         "service_type": "Mantenimiento de condominios",
         "cta": "Coordinar visita",
         "whatsapp_text": "Hola, quiero coordinar una visita para el mantenimiento de mi condominio",
-        # PENDIENTE: a photo of a condominium TOMATO maintains (with permission); meanwhile the
-        # maintenance one.
-        "hero": (f"{IMG}/servicios/mantenimiento.jpg", 800, 600,
-                 "Franja de césped recién cortado con bordes definidos y maceteros junto a un parqueo", "center 60%"),
+        "hero": (f"{IMG}/servicios/condominios.jpg", 768, 1024,
+                 "Jardín frente a una casa de condominio con césped recién cortado, sendero de adoquines entre piedras, "
+                 "maceteros y palmeras", "center 62%"),
         "for_whom_title": "Lo que resolvemos",
         "for_whom_intro": [
             "El mantenimiento de condominios suele quedar repartido entre varios proveedores: uno para el césped, "
