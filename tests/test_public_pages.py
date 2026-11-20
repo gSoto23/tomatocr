@@ -257,7 +257,7 @@ def test_condominium_page_has_its_sections_in_order_and_no_real_work_gallery():
     text = re.sub(r"<script.*?</script>|<[^>]+>", " ", html, flags=re.S)
     assert "₡" not in text and "$" not in text and "colones" not in text.lower()
     assert set(re.findall(r'<img src="([^"]+)"', html)) == {"/static/images/LogoTomatoB.png", "/static/images/LogoTomatoW.png",
-                                                           "/static/images/servicios/mantenimiento.jpg"}
+                                                           "/static/images/servicios/condominios.jpg"}
 
 
 def test_condominium_page_links_the_services_with_their_own_page_and_the_platform():

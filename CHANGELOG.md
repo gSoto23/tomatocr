@@ -6,7 +6,12 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
 
 ## 2026-11-20
 
-### Página de condominios (esta rama)
+### Foto de la página de condominios (esta rama)
+- `/servicios/mantenimiento-de-condominios` usa una foto propia (`static/images/servicios/condominios.jpg`,
+  768×1024, 160 KB, sin metadatos ni ubicación) en lugar de la de mantenimiento, con texto alternativo
+  que describe el jardín del condominio. Sin migración.
+
+### Página de condominios (#140)
 - Nueva página **`/servicios/mantenimiento-de-condominios`** para administradores y juntas directivas,
   con el contenido del brochure *Mantenimiento Condominios TOMATO* en voseo: *Lo que resolvemos*,
   *Qué incluye* (7 servicios con ícono; zonas verdes, jardinería y paisajismo enlazan a su página),
@@ -28,7 +33,6 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
   ("Mantenimiento de condominios"), la descripción, una introducción bajo *Lo que resolvemos*, el
   título de *Qué incluye* y una pregunta frecuente; la bajada y la introducción nombran Costa Rica; los
   enlaces del home (franja y pie), zonas verdes y *Otros servicios* dicen "Mantenimiento de condominios".
-- Pendiente: foto de un condominio (por ahora la de mantenimiento).
 
 ## 2026-11-18
 
