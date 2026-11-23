@@ -559,10 +559,9 @@ Estado al 27/09/2026:
   tiene una copia vieja de marzo y no se usa.
 - `apt install` en el servidor reinicia `tomato` y nginx por su cuenta
   (needrestart).
-- **Tamaño de los envíos en nginx:** si el sitio de nginx no define
-  `client_max_body_size`, nginx rechaza con *413* todo envío de más de 1 MB (un reporte
-  de la Bitácora con fotos). Debe tener `client_max_body_size 50M;` en el bloque
-  `server` de tomatocr.com. Revisar: `sudo nginx -T 2>/dev/null | grep -n client_max_body_size`;
+- **Tamaño de los envíos en nginx:** `client_max_body_size 50M;` (revisado el
+  23/11/2026). Sin esa línea nginx rechaza con *413* todo envío de más de 1 MB (un
+  reporte de la Bitácora con fotos). Revisar: `sudo nginx -T 2>/dev/null | grep -n client_max_body_size`;
   después de cambiarlo, `sudo nginx -t && sudo systemctl reload nginx`.
 
 ### Correo

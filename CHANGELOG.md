@@ -17,7 +17,8 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
     servidor; ya no hay "Error desconocido".
   - Un error interno al guardar o editar un reporte responde con un motivo en español, deshace el guardado y deja
     el detalle en el log del servicio.
-  - Producción: confirmar `client_max_body_size 50M;` en nginx (ver README, *Producción*).
+  - Producción ya tiene `client_max_body_size 50M;` en nginx (revisado el 23/11): un 413 solo pasaría con más de
+    50 MB juntos (unas 8-10 fotos sin achicar), que ahora el celular evita.
 - **Horas propias del supervisor**: la regla sigue (las confirma el admin), pero ahora el supervisor ve sus días
   en *Aprobar horas* y en el Calendario marcados *Las confirma el admin*, sin poder cambiarlos, con la explicación
   arriba, en vez de no verlos. `/payroll/hours/confirm`, `confirm-batch-update` y `confirm-batch` también la
