@@ -4,6 +4,43 @@ Cambios en el sistema y en el sitio público, del más reciente al más antiguo.
 Cada entrada indica el PR y si necesitó migración o pasos especiales al
 desplegar. Hora de Costa Rica salvo que diga UTC.
 
+## 2026-11-23
+
+### Bitácora: fotos que no subían y "Error desconocido"; horas propias del supervisor (esta rama)
+- Reporte de Will (22/11, Android): **No se guardó el reporte — Error desconocido**. Ese texto salía cuando la
+  respuesta no traía JSON: un 413 de nginx (envío demasiado grande, con varias fotos del celular), un 502/504 o
+  un 500. El servidor de la app acepta fotos de hasta 20 MB (probado en local con 5 fotos de 9,9 MB), así que el
+  rechazo viene de antes de la app.
+  - **Un solo optimizador de fotos**: el que usaba el correo del reporte (1280 px, JPEG calidad 80, en
+    `app/utils/email.py`, que lo aplicaba en cada envío) ahora se aplica **antes de subir**: el celular optimiza
+    cada JPEG/PNG/WebP así en *Nuevo Reporte* y en *Editar* (`app/static/js/photo_upload.js`), el servidor guarda
+    con esos mismos números (`REPORT_PHOTO_MAX_SIDE`, `REPORT_PHOTO_QUALITY` en `app/utils/uploads.py`; HEIC y lo
+    que el celular no pudo achicar) y el correo los usa también. Una foto de 6 MB queda en 0,2-0,3 MB; 10 fotos
+    se guardaron en local con 1,8 MB en total. Las fotos se guardan a 1280 px (antes 2048); las ya guardadas no cambian.
+  - **Máximo 10 fotos por reporte** (`MAX_REPORT_PHOTOS`): el formulario muestra *N de 10* y no agrega la once en
+    adelante (dice cuáles); *Editar* cuenta las que el reporte conserva más las nuevas; el servidor lo aplica
+    también. Un reporte viejo con más de 10 se puede editar mientras no se le agreguen fotos.
+  - El aviso dice **qué falló y qué hacer** según el código (413, 502/503, 504, 500, 401/403) o el motivo del
+    servidor; ya no hay "Error desconocido".
+  - Un error interno al guardar o editar un reporte responde con un motivo en español, deshace el guardado y deja
+    el detalle en el log del servicio.
+  - Causa confirmada: Will mandó **10 fotos de la galería** juntas (40-80 MB sin achicar), más de lo que nginx
+    acepta en un envío (50 MB) → 413. Achicadas son unos 5-15 MB. Si aun así suman más de 45 MB (fotos HEIC/HEIF
+    que el celular no puede achicar), el formulario avisa antes de enviar cuántos MB son y qué hacer.
+  - Producción ya tiene `client_max_body_size 50M;` en nginx (revisado el 23/11): un 413 solo pasaría con más de
+    50 MB juntos (unas 8-10 fotos sin achicar), que ahora el celular evita.
+- **Horas propias del supervisor**: la regla sigue (las confirma el admin), pero ahora el supervisor ve sus días
+  en *Aprobar horas* y en el Calendario marcados *Las confirma el admin*, sin poder cambiarlos, con la explicación
+  arriba, en vez de no verlos. `/payroll/hours/confirm`, `confirm-batch-update` y `confirm-batch` también la
+  aplican (antes solo la pantalla la escondía) y limitan al supervisor a sus proyectos.
+- **Excepción: *Confirma sus propias horas*** (para Will). Casilla nueva en Empleados, solo para supervisores
+  (`users.confirms_own_hours`): ese supervisor confirma sus propias horas en *Aprobar horas* y en el Calendario
+  como las del resto, siempre dentro de sus proyectos, y su alerta del Dashboard las cuenta. Marcarla o quitarla
+  queda en Actividad. Los demás supervisores siguen con la regla.
+- Pruebas: `tests/test_bitacora_fotos_y_horas_propias.py`.
+- Despliegue: **migración 0032** (snapshot de la base, `alembic upgrade head`); reiniciar. Después, en
+  Empleados → Will → marcar *Confirma sus propias horas* y guardar.
+
 ## 2026-11-20
 
 ### Foto de la página de condominios (esta rama)

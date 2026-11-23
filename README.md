@@ -136,7 +136,17 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
 ### 3. Bitácora Digital (Daily Logs)
 - **Reportes Diarios Multilocación**: Reporte desde el campo con asignación exacta de la sede de operaciones.
 - **Evidencias Cloud**: Carga de notas operativas y material fotográfico en Alta Calidad conectado a repositorios persistentes.
-  Fotos JPEG, PNG, WebP o HEIC (iPhone) de hasta 20 MB: se giran según la cámara, se achican a 2048 px y se guardan en JPEG.
+  Hasta **10 fotos por reporte** (`MAX_REPORT_PHOTOS`), JPEG, PNG, WebP o HEIC (iPhone) de hasta 20 MB cada una.
+  Un solo optimizador, el que usaba el correo del reporte: **1280 px, JPEG calidad 80**, girada según la cámara y sin
+  metadatos (`REPORT_PHOTO_MAX_SIDE` y `REPORT_PHOTO_QUALITY` en `app/utils/uploads.py`). El celular lo aplica antes de
+  subir (`app/static/js/photo_upload.js`, en *Nuevo Reporte* y en *Editar*, con los mismos números; una prueba los
+  compara), el servidor al guardar (HEIC y lo que el celular no pudo achicar) y el correo al adjuntar. Una foto de
+  celular queda en 0,2-0,3 MB, así 10 fotos caben de sobra en un envío.
+  Si aun así suman más de 45 MB (nginx acepta 50), el formulario avisa antes de enviar.
+- **Si no se guarda**, el aviso dice el motivo: el del servidor (fecha, tarea obligatoria, foto que no se pudo leer) o,
+  si la respuesta no trae uno, qué significa el código (413: las fotos pesan demasiado juntas; 502/503: el sistema se
+  estaba reiniciando; 504: tardó demasiado; 500: error interno). Un error interno al guardar responde con un motivo en
+  español, deshace todo y deja el detalle en `journalctl -u tomato`. Ya no existe "Error desconocido".
 - **Fecha del trabajo**: hoy o hasta 7 días atrás (hora de Costa Rica, `app/utils/timecr.py`).
 - **Notificaciones Dinámicas (Email)**: Reportería automática hacia partes interesadas vía SMTP. TOMATO
   (`REPORT_BCC_EMAIL`) va en copia oculta; si el envío falla, la pantalla lo dice.
@@ -154,6 +164,13 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
   horas y sede.
 - Colores por proyecto, por estado de las horas (por confirmar, confirmado, alguien
   no llegó) o por tipo de empleado (`users.employment_type`: fijo u ocasional), con leyenda.
+- Las horas propias de un supervisor las confirma el admin (nadie aprueba su propio pago). El supervisor las ve en
+  el día del Calendario y en *Aprobar horas*, sin poder cambiarlas, marcadas *Las confirma el admin*; los tres
+  endpoints de Planilla (`/payroll/hours/confirm`, `confirm-batch-update`, `confirm-batch`) y el del Calendario lo
+  aplican, igual que el límite a los proyectos asignados (`can_confirm` en `app/routers/payroll.py`).
+  **Excepción por persona:** *Confirma sus propias horas* en Empleados (`users.confirms_own_hours`, migración 0032,
+  solo supervisores; `User.own_hours_by_admin`): ese supervisor confirma las suyas como las del resto, siempre en
+  sus proyectos, y su alerta de horas sin confirmar las incluye. Marcarla o quitarla queda en Actividad.
 - Asistencia al confirmar el día (migración 0022, `project_schedules.attendance`):
   Asistió, Llegó tarde o No llegó; *No llegó* guarda 0 horas y 0 extras. Se ve en el
   calendario y en el desglose de horas de la planilla.
@@ -331,6 +348,8 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
 - **Permisos**: ventas ve todas las cuentas sin finanzas y edita las suyas y
   las que no tienen dueño (al editarlas queda como dueño). Solo admin
   reasigna dueños, edita metas y fusiona. Los demás roles reciben 403.
+- **"Confirma sus propias horas"** (`users.confirms_own_hours`, migración 0032): excepción para un supervisor;
+  ver Calendario.
 - **"También vende"** (`users.also_sells`, migración 0017): un supervisor con esa casilla
   (Empleados) trabaja Clientes y el Cotizador como ventas, sin perder nada de supervisor:
   puede ser dueño de cuentas y oportunidades, recibir prospectos en la asignación y enviar
@@ -549,6 +568,10 @@ Estado al 27/09/2026:
   tiene una copia vieja de marzo y no se usa.
 - `apt install` en el servidor reinicia `tomato` y nginx por su cuenta
   (needrestart).
+- **Tamaño de los envíos en nginx:** `client_max_body_size 50M;` (revisado el
+  23/11/2026). Sin esa línea nginx rechaza con *413* todo envío de más de 1 MB (un
+  reporte de la Bitácora con fotos). Revisar: `sudo nginx -T 2>/dev/null | grep -n client_max_body_size`;
+  después de cambiarlo, `sudo nginx -t && sudo systemctl reload nginx`.
 
 ### Correo
 

@@ -96,7 +96,8 @@
 
                 <!-- Photos -->
                 <div class="col-span-full">
-                    <label class="block text-sm font-medium leading-6 text-gray-900">Fotografías del avance</label>
+                    <label class="block text-sm font-medium leading-6 text-gray-900">Fotografías del avance
+                        <span class="font-normal text-gray-500" x-text="`(${files.length} de {{ max_photos }})`"></span></label>
 
                     <!-- File List Display -->
                     <div class="mt-2 mb-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4"
@@ -141,7 +142,7 @@
                                 </label>
                                 <p class="pl-1">o arrastrar y soltar</p>
                             </div>
-                            <p class="text-xs leading-5 text-gray-600">{{ photo_rules }}. Se achican solas al guardar.</p>
+                            <p class="text-xs leading-5 text-gray-600">{{ photo_rules }}. El celular las optimiza antes de subirlas.</p>
                             <p class="mt-2 text-xs text-amber-700" x-show="skipped.length" x-text="'No se agregaron: ' + skipped.join(', ')"></p>
                         </div>
                     </div>
@@ -169,6 +170,7 @@
     </form>
 </div>
 
+<script src="/static/js/photo_upload.js?v={{ static_version('js/photo_upload.js') }}"></script>
 <script>
     // Define the data globally first to bypass parsing issues
     const projectTasksData = {{ project_tasks_json | safe }};
@@ -209,7 +211,9 @@
                 const photo = /\.(jpe?g|png|webp|heic|heif)$/i;
                 this.skipped = [];
                 for (const file of fileList) {
-                    if (!(file.type.startsWith('image/') || photo.test(file.name))) {
+                    if (this.files.length >= {{ max_photos }}) {
+                        this.skipped.push(`${file.name} (ya hay {{ max_photos }} fotos, el máximo por reporte)`);
+                    } else if (!(file.type.startsWith('image/') || photo.test(file.name))) {
                         this.skipped.push(`${file.name} (no es una foto)`);
                     } else if (file.size > 20 * 1024 * 1024) {
                         this.skipped.push(`${file.name} (pesa más de 20 MB)`);
@@ -266,6 +270,10 @@
                 });
 
                 try {
+                    // Shrunk here (2048 px JPEG), so several phone photos fit in one request.
+                    await TomatoPhotos.shrinkField(formData);
+                    const tooBig = TomatoPhotos.tooBig(formData);
+                    if (tooBig) { this.isSubmitting = false; return this.fail(tooBig); }
                     const response = await fetch('/logs/new', {
                         method: 'POST',
                         body: formData
@@ -276,9 +284,7 @@
                     } else if (response.ok) {
                         window.location.href = '/projects/' + this.selectedProjectId;
                     } else {
-                        const errorData = await response.json().catch(() => ({}));
-                        const detail = Array.isArray(errorData.detail) ? 'Revisá los datos del formulario.' : errorData.detail;
-                        this.fail(detail || 'Error desconocido. Probá de nuevo.');
+                        this.fail(await TomatoPhotos.failureMessage(response, formData));
                         this.isSubmitting = false;
                     }
                 } catch (error) {

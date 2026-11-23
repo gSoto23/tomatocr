@@ -154,6 +154,18 @@ def payroll_dashboard(
         "line_kinds": LINE_KINDS,
     })
 
+OWN_HOURS_RULE = "tus propias horas las confirma el admin"
+
+
+def can_confirm(user: User, schedule: ProjectSchedule) -> bool:
+    """The admin confirms any day; a supervisor, the days of their projects except their own
+    (unless the admin marked them "Confirma sus propias horas")."""
+    if user.role == ADMIN:
+        return True
+    return (user.role == SUPERVISOR and not (schedule.user_id == user.id and user.own_hours_by_admin)
+            and schedule.project_id in {p.id for p in user.projects})
+
+
 @router.get("/approval", response_class=HTMLResponse)
 def approval_view(
     request: Request,
@@ -416,9 +428,9 @@ def get_schedules_for_approval(
         if not project_id:
              query = query.filter(ProjectSchedule.project_id.in_(supervisor_project_ids))
 
-        # Prevent seeing own records (Self-approval not allowed)
-        # These must be approved by Admin
-        query = query.filter(ProjectSchedule.user_id != user.id)
+        # A supervisor's own days show up read-only ("own"): only the admin confirms them,
+        # so nobody approves their own pay (see OWN_HOURS_RULE), except a supervisor marked
+        # "Confirma sus propias horas" in Empleados.
         
     # Order by date desc, then worker
     query = query.order_by(ProjectSchedule.date.desc(), ProjectSchedule.user_id)
@@ -434,7 +446,8 @@ def get_schedules_for_approval(
             "date": s.date.isoformat(),
             "hours_worked": s.hours_worked,
             "overtime_hours": s.overtime_hours,
-            "is_confirmed": s.is_confirmed
+            "is_confirmed": s.is_confirmed,
+            "own": user.own_hours_by_admin and s.user_id == user.id,
         })
         
     return JSONResponse(data)
@@ -457,6 +470,10 @@ def confirm_hours(
     schedule = db.query(ProjectSchedule).filter(ProjectSchedule.id == schedule_id).first()
     if not schedule:
         raise HTTPException(status_code=404, detail="Schedule not found")
+    if not can_confirm(user, schedule):
+        raise HTTPException(status_code=403, detail=OWN_HOURS_RULE.capitalize()
+                            if schedule.user_id == user.id and user.own_hours_by_admin
+                            else "Ese día no es de un proyecto tuyo")
 
     set_confirmed_hours(schedule, hours, overtime)
     db.commit()
@@ -479,22 +496,23 @@ def confirm_hours_batch_update(
     if user.role not in [ADMIN, SUPERVISOR]:
         raise HTTPException(status_code=403, detail="Not authorized")
 
-    count = 0
+    count, own = 0, 0
     for item in updates:
         schedule = db.query(ProjectSchedule).filter(ProjectSchedule.id == item.id).first()
-        if schedule:
-            if user.role == SUPERVISOR:
-                 if schedule.project not in user.projects:
-                     continue 
-            
+        if schedule and can_confirm(user, schedule):
             set_confirmed_hours(schedule, item.hours, item.overtime)
             count += 1
-            
+        elif schedule and schedule.user_id == user.id and user.own_hours_by_admin:
+            own += 1
+
     db.commit()
-    
+
     log_activity(db, user, "Aprobar Lote", "SCHEDULE", 0, f"Se confirmaron {count} registros")
 
-    return {"status": "success", "message": f"{count} registros confirmados"}
+    message = f"{count} registros confirmados"
+    if own:
+        message += f". {own} tuyo(s) sin cambiar: {OWN_HOURS_RULE}"
+    return {"status": "success", "message": message}
 
 @router.post("/hours/confirm-batch")
 def confirm_hours_batch(
@@ -505,9 +523,10 @@ def confirm_hours_batch(
     if user.role not in [ADMIN, SUPERVISOR]:
         raise HTTPException(status_code=403, detail="Not authorized")
 
-    db.query(ProjectSchedule).filter(ProjectSchedule.id.in_(schedule_ids)).update(
-        {"is_confirmed": True}, synchronize_session=False
-    )
+    schedules = db.query(ProjectSchedule).filter(ProjectSchedule.id.in_(schedule_ids)).all()
+    for schedule in schedules:
+        if can_confirm(user, schedule):
+            schedule.is_confirmed = True
     db.commit()
     return {"status": "success", "message": "Lote confirmado"}
 

@@ -42,18 +42,28 @@ PHOTO_MAX_SIDE = 2048
 PHOTO_QUALITY = 82
 PHOTO_RULES = "Fotos JPEG, PNG, WebP o HEIC (iPhone) de hasta 20 MB"
 
+# Bitácora photos: the optimization the report e-mail always applied (1280 px, JPEG 80) is now done
+# once, before uploading (the phone, app/static/js/photo_upload.js, with these same numbers) and
+# when saving (here, for HEIC and anything the phone could not shrink). The e-mail uses them too.
+REPORT_PHOTO_MAX_SIDE = 1280
+REPORT_PHOTO_QUALITY = 80
+MAX_REPORT_PHOTOS = 10
+REPORT_PHOTO_RULES = f"Hasta {MAX_REPORT_PHOTOS} fotos JPEG, PNG, WebP o HEIC (iPhone) de hasta 20 MB cada una"
+
 
 def is_photo(content_type: str, filename: str) -> bool:
     return content_type in PHOTO_TYPES or (filename or "").lower().endswith(PHOTO_EXTENSIONS)
 
 
 def process_photo(contents: bytes, content_type: str, filename: str) -> bytes:
-    """Validated, upright, resized JPEG bytes. Raises HTTPException(400) naming the file."""
-    return process_photo_sized(contents, content_type, filename)[0]
+    """A Bitácora photo: validated, upright, at most 1280 px, JPEG 80. Raises HTTPException(400)
+    naming the file."""
+    return process_photo_sized(contents, content_type, filename, max_side=REPORT_PHOTO_MAX_SIDE,
+                               quality=REPORT_PHOTO_QUALITY)[0]
 
 
 def process_photo_sized(contents: bytes, content_type: str, filename: str,
-                        max_side: int = PHOTO_MAX_SIDE) -> tuple:
+                        max_side: int = PHOTO_MAX_SIDE, quality: int = PHOTO_QUALITY) -> tuple:
     """Like process_photo, with its own maximum side, returning (jpeg, width, height). The JPEG
     is written again from the pixels, so it carries no EXIF metadata (no GPS, no camera)."""
     from io import BytesIO
@@ -80,7 +90,7 @@ def process_photo_sized(contents: bytes, content_type: str, filename: str,
             image.thumbnail((max_side, max_side))
             out = BytesIO()
             image = image.convert("RGB")
-            image.save(out, "JPEG", quality=PHOTO_QUALITY, optimize=True)
+            image.save(out, "JPEG", quality=quality, optimize=True)
             return out.getvalue(), image.width, image.height
     except (UnidentifiedImageError, OSError, ValueError):
         raise HTTPException(status_code=400, detail=f"No se pudo leer «{name}» como foto. {PHOTO_RULES}.")

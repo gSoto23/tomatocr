@@ -178,6 +178,7 @@ def create_user(
     vacation_days_taken: Optional[float] = Form(None),
     is_active: bool = Form(False),
     also_sells: bool = Form(False),
+    confirms_own_hours: bool = Form(False),
     apply_deductions: bool = Form(False),
     payment_method: str = Form("Efectivo"),
     account_number: Optional[str] = Form(None),
@@ -237,6 +238,7 @@ def create_user(
         vacation_days_taken=max(0.0, vacation_days_taken or 0.0),
         is_active=is_active,
         also_sells=also_sells and role == SUPERVISOR,
+        confirms_own_hours=confirms_own_hours and role == SUPERVISOR,
         apply_deductions=apply_deductions,
         payment_method=payment_method,
         account_number=account_number if payment_method in ["Transferencia", "Sinpe"] else None
@@ -287,6 +289,7 @@ def update_user(
     vacation_days_taken: Optional[float] = Form(None),
     is_active: bool = Form(False),
     also_sells: bool = Form(False),
+    confirms_own_hours: bool = Form(False),
     apply_deductions: bool = Form(False),
     payment_method: str = Form("Efectivo"),
     account_number: Optional[str] = Form(None),
@@ -350,6 +353,10 @@ def update_user(
             edit_user.vacation_days_taken = max(0.0, vacation_days_taken)
         edit_user.is_active = is_active
         edit_user.also_sells = also_sells and role == SUPERVISOR  # only supervisors "also sell"
+        # The exception to "the admin confirms a supervisor's own hours" goes to Actividad on its own.
+        own_hours = confirms_own_hours and role == SUPERVISOR
+        own_hours_changed = own_hours != bool(edit_user.confirms_own_hours)
+        edit_user.confirms_own_hours = own_hours
         edit_user.apply_deductions = apply_deductions
         
         # Update Payment Info
@@ -363,6 +370,10 @@ def update_user(
             db.commit()
             # Audit Log
             log_activity(db, user, "UPDATE", "USER", edit_user.id, f"Updated user {username}")
+            if own_hours_changed:
+                name = edit_user.full_name or edit_user.username
+                log_activity(db, user, "UPDATE", "USER", edit_user.id,
+                             f"{name} {'ahora confirma' if own_hours else 'ya no confirma'} sus propias horas")
         except IntegrityError:
             db.rollback()
             response = RedirectResponse(url=f"/users/{id}/edit", status_code=status.HTTP_303_SEE_OTHER)

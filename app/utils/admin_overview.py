@@ -143,7 +143,7 @@ def supervisor_overview(db: Session, today: date, user: User) -> Overview:
     """The supervisor organizes the whole team: today in the field and what's pending."""
     ov = Overview(today=today)
     ov.in_field, ov.counts["people_today"] = field_today(db, today)
-    alert = unconfirmed_alert(db, today, exclude_user_id=user.id)
+    alert = unconfirmed_alert(db, today, exclude_user_id=user.id if user.own_hours_by_admin else None)
     if alert:
         ov.alerts.append(alert)
     missing = missing_reports(db, today)

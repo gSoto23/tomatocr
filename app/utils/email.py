@@ -7,6 +7,7 @@ from app.core.config import settings
 from app.db.models.log import DailyLog
 from pathlib import Path
 from PIL import Image, ImageOps
+from app.utils.uploads import REPORT_PHOTO_MAX_SIDE, REPORT_PHOTO_QUALITY
 import tempfile
 import os
 import logging
@@ -100,13 +101,13 @@ async def send_log_email(log_id: int, recipients: List[EmailStr], additional_tex
                     if img.mode in ("RGBA", "P"):
                         img = img.convert("RGB")
                     
-                    # Resize (Max 1280px)
-                    img.thumbnail((1280, 1280), Image.Resampling.LANCZOS)
+                    # Same size as the Bitácora keeps (photos saved before 23/11/2026 were 2048 px)
+                    img.thumbnail((REPORT_PHOTO_MAX_SIDE, REPORT_PHOTO_MAX_SIDE), Image.Resampling.LANCZOS)
                     
                     # Save to Temp File
                     fd, tmp_path = tempfile.mkstemp(suffix=".jpg")
                     with os.fdopen(fd, 'wb') as tmp:
-                        img.save(tmp, format="JPEG", quality=80, optimize=True)
+                        img.save(tmp, format="JPEG", quality=REPORT_PHOTO_QUALITY, optimize=True)
                     
                     attachments.append(tmp_path)
                     temp_files.append(tmp_path)
