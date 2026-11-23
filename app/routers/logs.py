@@ -1,6 +1,8 @@
 
 import uuid
 import json
+import logging
+from contextlib import contextmanager
 from pathlib import Path
 from datetime import datetime, date, timedelta
 from typing import List, Optional
@@ -25,6 +27,24 @@ from app.utils.timecr import today_cr
 from app.utils.uploads import PHOTO_RULES, process_photo
 
 MAX_DAYS_BACK = 7  # a report can be for a forgotten day, up to a week back
+logger = logging.getLogger(__name__)
+SAVE_FAILED = ("El servidor no pudo guardar el reporte por un error interno. Lo que escribiste sigue aquí: "
+               "probá de nuevo y, si se repite, avisale al admin con la fecha y la hora.")
+
+
+@contextmanager
+def saving_report(db: Session, what: str):
+    """An unexpected error while saving answers with a reason the page can show (JSON 500)
+    instead of a bare "Internal Server Error", and leaves the traceback in the service log
+    (journalctl -u tomato)."""
+    try:
+        yield
+    except HTTPException:
+        raise
+    except Exception:
+        db.rollback()
+        logger.exception("No se pudo guardar el reporte (%s)", what)
+        raise HTTPException(status_code=500, detail=SAVE_FAILED)
 
 router = APIRouter(
     prefix="/logs",
@@ -306,6 +326,25 @@ def delete_log(id: int, db: Session = Depends(deps.get_db), user: User = Depends
     response.set_cookie(key="toast_message", value="Reporte eliminado correctamente")
     return response
 
+def save_log_edit(db: Session, log: DailyLog, notes: str, location_id: Optional[int], task_ids: List[int],
+                  remove_photo_ids: List[int], processed: List[bytes]):
+    log.notes = notes
+    # The edit window doesn't show the sede: keep it unless one is sent.
+    if location_id:
+        log.location_id = location_id
+
+    # Tasks: the checklist replaces the previous one.
+    db.query(DailyLogTask).filter(DailyLogTask.log_id == log.id).delete()
+    for t_id in task_ids:
+        db.add(DailyLogTask(log_id=log.id, task_id=t_id, completed=True))
+
+    # Photos: remove the ones unchecked in the window (only this report's) and add the new ones.
+    for photo in [p for p in log.photos if p.id in set(remove_photo_ids)]:
+        db.delete(photo)
+    store_photos(db, log, processed)
+    db.commit()
+
+
 @router.post("/{id}/edit")
 def update_log(
     id: int,
@@ -327,26 +366,9 @@ def update_log(
     check_required_tasks(log.project, task_ids)
     processed = read_photos(photos)
 
-    log.notes = notes
-    # The edit window doesn't show the sede: keep it unless one is sent.
-    if location_id:
-        log.location_id = location_id
-    
-    # Update tasks
-    # Clear existing tasks? Or merge?
-    # Usually easier to clear and re-add for checklist behavior
-    db.query(DailyLogTask).filter(DailyLogTask.log_id == id).delete()
-    
-    for t_id in task_ids:
-        db.add(DailyLogTask(log_id=log.id, task_id=t_id, completed=True))
+    with saving_report(db, f"editar #{log.id}"):
+        save_log_edit(db, log, notes, location_id, task_ids, remove_photo_ids, processed)
 
-    # Photos: remove the ones unchecked in the window (only this report's) and add the new ones.
-    for photo in [p for p in log.photos if p.id in set(remove_photo_ids)]:
-        db.delete(photo)
-    store_photos(db, log, processed)
-
-    db.commit()
-    
     # Audit Log
     try:
         log_activity(db, user=user, action="UPDATE", entity_type="REPORT", entity_id=log.id, details=f"Editó reporte del proyecto ID {log.project_id}")
@@ -459,32 +481,33 @@ def create_log(
     # doesn't lose the report: the page shows which file failed and keeps what was typed.
     processed = read_photos(photos)
 
-    # Create Log
-    new_log = DailyLog(
-        project_id=project_id,
-        location_id=location_id if location_id else None,
-        user=user,
-        date=log_date,
-        notes=notes
-    )
-    db.add(new_log)
-    db.flush() # Get ID
+    with saving_report(db, f"nuevo, proyecto {project_id}"):
+        # Create Log
+        new_log = DailyLog(
+            project_id=project_id,
+            location_id=location_id if location_id else None,
+            user=user,
+            date=log_date,
+            notes=notes
+        )
+        db.add(new_log)
+        db.flush() # Get ID
 
-    # Handle Tasks
-    if task_ids:
-        # We only get IDs of CHECKED tasks (completed=True)
-        # Should we save unchecked tasks as completed=False? 
-        # Requirement: "Checkbox list... attach to create report". 
-        # Storing only completed ones is efficient, but if we want to show "Missed tasks" later, we might want all.
-        # For now, let's store all tasks for the project? Or just the ones submitted?
-        # Usually easier to just store relevant ones. Let's start with just storing completed ones for history.
-        for t_id in task_ids:
-            db.add(DailyLogTask(log_id=new_log.id, task_id=t_id, completed=True))
+        # Handle Tasks
+        if task_ids:
+            # We only get IDs of CHECKED tasks (completed=True)
+            # Should we save unchecked tasks as completed=False? 
+            # Requirement: "Checkbox list... attach to create report". 
+            # Storing only completed ones is efficient, but if we want to show "Missed tasks" later, we might want all.
+            # For now, let's store all tasks for the project? Or just the ones submitted?
+            # Usually easier to just store relevant ones. Let's start with just storing completed ones for history.
+            for t_id in task_ids:
+                db.add(DailyLogTask(log_id=new_log.id, task_id=t_id, completed=True))
 
-    # Save the processed photos (JPEG).
-    store_photos(db, new_log, processed)
+        # Save the processed photos (JPEG).
+        store_photos(db, new_log, processed)
 
-    db.commit()
+        db.commit()
     
     # Audit Log
     try:

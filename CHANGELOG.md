@@ -4,6 +4,26 @@ Cambios en el sistema y en el sitio público, del más reciente al más antiguo.
 Cada entrada indica el PR y si necesitó migración o pasos especiales al
 desplegar. Hora de Costa Rica salvo que diga UTC.
 
+## 2026-11-23
+
+### Bitácora: fotos que no subían y "Error desconocido"; horas propias del supervisor (esta rama)
+- Reporte de Will (22/11, Android): **No se guardó el reporte — Error desconocido**. Ese texto salía cuando la
+  respuesta no traía JSON: un 413 de nginx (envío demasiado grande, con varias fotos del celular), un 502/504 o
+  un 500. El servidor de la app acepta fotos de hasta 20 MB (probado en local con 5 fotos de 9,9 MB), así que el
+  rechazo viene de antes de la app.
+  - El celular **achica las fotos antes de enviarlas** (JPEG/PNG/WebP a 2048 px; 9,9 MB → 1,5 MB en el peor caso),
+    en *Nuevo Reporte* y en *Editar* (`app/static/js/photo_upload.js`).
+  - El aviso dice **qué falló y qué hacer** según el código (413, 502/503, 504, 500, 401/403) o el motivo del
+    servidor; ya no hay "Error desconocido".
+  - Un error interno al guardar o editar un reporte responde con un motivo en español, deshace el guardado y deja
+    el detalle en el log del servicio.
+  - Producción: confirmar `client_max_body_size 50M;` en nginx (ver README, *Producción*).
+- **Horas propias del supervisor**: la regla sigue (las confirma el admin), pero ahora el supervisor ve sus días
+  en *Aprobar horas* y en el Calendario marcados *Las confirma el admin*, sin poder cambiarlos, con la explicación
+  arriba, en vez de no verlos. `/payroll/hours/confirm`, `confirm-batch-update` y `confirm-batch` también la
+  aplican (antes solo la pantalla la escondía) y limitan al supervisor a sus proyectos.
+- Pruebas: `tests/test_bitacora_fotos_y_horas_propias.py`. Sin migración.
+
 ## 2026-11-20
 
 ### Foto de la página de condominios (esta rama)

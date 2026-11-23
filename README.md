@@ -137,6 +137,12 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
 - **Reportes Diarios Multilocación**: Reporte desde el campo con asignación exacta de la sede de operaciones.
 - **Evidencias Cloud**: Carga de notas operativas y material fotográfico en Alta Calidad conectado a repositorios persistentes.
   Fotos JPEG, PNG, WebP o HEIC (iPhone) de hasta 20 MB: se giran según la cámara, se achican a 2048 px y se guardan en JPEG.
+  El celular ya las achica antes de enviarlas (JPEG/PNG/WebP a 2048 px, `app/static/js/photo_upload.js`, en
+  *Nuevo Reporte* y en *Editar*), así varias fotos caben en un solo envío; las HEIC van tal cual y las convierte el servidor.
+- **Si no se guarda**, el aviso dice el motivo: el del servidor (fecha, tarea obligatoria, foto que no se pudo leer) o,
+  si la respuesta no trae uno, qué significa el código (413: las fotos pesan demasiado juntas; 502/503: el sistema se
+  estaba reiniciando; 504: tardó demasiado; 500: error interno). Un error interno al guardar responde con un motivo en
+  español, deshace todo y deja el detalle en `journalctl -u tomato`. Ya no existe "Error desconocido".
 - **Fecha del trabajo**: hoy o hasta 7 días atrás (hora de Costa Rica, `app/utils/timecr.py`).
 - **Notificaciones Dinámicas (Email)**: Reportería automática hacia partes interesadas vía SMTP. TOMATO
   (`REPORT_BCC_EMAIL`) va en copia oculta; si el envío falla, la pantalla lo dice.
@@ -154,6 +160,10 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
   horas y sede.
 - Colores por proyecto, por estado de las horas (por confirmar, confirmado, alguien
   no llegó) o por tipo de empleado (`users.employment_type`: fijo u ocasional), con leyenda.
+- Las horas propias de un supervisor las confirma el admin (nadie aprueba su propio pago). El supervisor las ve en
+  el día del Calendario y en *Aprobar horas*, sin poder cambiarlas, marcadas *Las confirma el admin*; los tres
+  endpoints de Planilla (`/payroll/hours/confirm`, `confirm-batch-update`, `confirm-batch`) y el del Calendario lo
+  aplican, igual que el límite a los proyectos asignados (`can_confirm` en `app/routers/payroll.py`).
 - Asistencia al confirmar el día (migración 0022, `project_schedules.attendance`):
   Asistió, Llegó tarde o No llegó; *No llegó* guarda 0 horas y 0 extras. Se ve en el
   calendario y en el desglose de horas de la planilla.
@@ -549,6 +559,11 @@ Estado al 27/09/2026:
   tiene una copia vieja de marzo y no se usa.
 - `apt install` en el servidor reinicia `tomato` y nginx por su cuenta
   (needrestart).
+- **Tamaño de los envíos en nginx:** si el sitio de nginx no define
+  `client_max_body_size`, nginx rechaza con *413* todo envío de más de 1 MB (un reporte
+  de la Bitácora con fotos). Debe tener `client_max_body_size 50M;` en el bloque
+  `server` de tomatocr.com. Revisar: `sudo nginx -T 2>/dev/null | grep -n client_max_body_size`;
+  después de cambiarlo, `sudo nginx -t && sudo systemctl reload nginx`.
 
 ### Correo
 

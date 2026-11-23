@@ -81,7 +81,9 @@
     al deshacerlo vuelve a contar si sigue sin bitácora.</p>
 <p>Para <strong>mover el día</strong>, arrastrá el bloque a otro día: se mueve todo el equipo. Si alguien ya tiene algo ese
     día, te pregunta; un día con horas confirmadas no se mueve.</p>
-{% if user.role == 'supervisor' %}<p>Tus propias horas no las podés confirmar: las confirma el admin.</p>{% endif %}
+{% if user.role == 'supervisor' %}<p>Tus propias horas no las podés confirmar: las confirma el admin, para que nadie apruebe
+    su propio pago. En el día las ves con el aviso <em>Tus horas las confirma el admin</em> y sin poder cambiarlas; si
+    alguna está mal, avisale al admin.</p>{% endif %}
 <p>En <em>Editar</em> de una persona, <strong>Eliminar</strong> pide confirmación (<em>Sí, Eliminar</em>).</p>
 <p>Las tareas que el trabajador ya marcó como hechas <strong>se conservan</strong> al editar. Si borrás una asignación
     con horas ya confirmadas, esas horas se van de la planilla.</p>

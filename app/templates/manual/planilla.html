@@ -58,7 +58,8 @@
     (5, "Tocá <strong>Confirmar pendientes</strong> y aceptá el aviso. Las filas pasan a <em>Confirmado</em>."),
 ]) }}
 <p><em>Confirmar pendientes</em> confirma solo las filas de la página que ves que están pendientes, y las ya confirmadas
-    a las que les cambiaste las horas; antes te dice cuántas son. El supervisor no ve sus propias horas; las confirma el admin.
+    a las que les cambiaste las horas; antes te dice cuántas son. Las horas del supervisor las confirma el admin, para que nadie apruebe su propio pago: el supervisor las ve en la
+    lista marcadas <em>Las confirma el admin</em>, sin poder cambiarlas, y si alguna está mal le avisa al admin.
     {% if user.role == 'supervisor' %}Ves solo los proyectos que tenés asignados.{% endif %}</p>
 {% else %}
 <p>Tus horas las confirma el supervisor o el admin. Si trabajaste más de 8 horas o hiciste horas extra, avisales para que

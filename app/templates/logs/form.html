@@ -169,6 +169,7 @@
     </form>
 </div>
 
+<script src="/static/js/photo_upload.js?v={{ static_version('js/photo_upload.js') }}"></script>
 <script>
     // Define the data globally first to bypass parsing issues
     const projectTasksData = {{ project_tasks_json | safe }};
@@ -266,6 +267,8 @@
                 });
 
                 try {
+                    // Shrunk here (2048 px JPEG), so several phone photos fit in one request.
+                    await TomatoPhotos.shrinkField(formData);
                     const response = await fetch('/logs/new', {
                         method: 'POST',
                         body: formData
@@ -276,9 +279,7 @@
                     } else if (response.ok) {
                         window.location.href = '/projects/' + this.selectedProjectId;
                     } else {
-                        const errorData = await response.json().catch(() => ({}));
-                        const detail = Array.isArray(errorData.detail) ? 'Revisá los datos del formulario.' : errorData.detail;
-                        this.fail(detail || 'Error desconocido. Probá de nuevo.');
+                        this.fail(await TomatoPhotos.failureMessage(response, formData));
                         this.isSubmitting = false;
                     }
                 } catch (error) {
