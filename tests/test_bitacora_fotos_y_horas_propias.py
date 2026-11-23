@@ -210,3 +210,77 @@ def test_forms_show_the_limit(login_as, users):
     html = client.get(f"/logs/new?project_id={users['project_id']}").text
     assert "Hasta 10 fotos" in html and "de 10)" in html and "el máximo por reporte" in html
     assert "currentLogData.max_photos" in client.get("/logs/").text
+
+
+# --- The exception: a supervisor the admin marked "Confirma sus propias horas" ----------------
+
+from app.db.models.activity import ActivityLog  # noqa: E402
+from app.db.models.user import User  # noqa: E402
+
+
+@pytest.fixture
+def exception(db, users):
+    users["supervisor"].confirms_own_hours = True
+    db.commit()
+    return users["supervisor"]
+
+
+def test_the_exception_confirms_own_hours_everywhere(db, login_as, users, days, exception):
+    client = login_as("supervisor")
+    rows = client.get(f"/payroll/schedules?start_date={DAY}&end_date={DAY}").json()
+    assert not any(r["own"] for r in rows)
+    assert "own-hours-note" not in client.get("/payroll/approval").text
+    assert "const OWN_HOURS_USER_ID = null" in client.get("/calendar").text
+    response = client.post("/payroll/hours/confirm-batch-update", json=[{"id": days["supervisor"], "hours": 9}])
+    assert "1 registros confirmados" == response.json()["message"] and confirmed(db, days["supervisor"])
+
+
+def test_the_exception_confirms_own_day_from_the_calendar(db, login_as, days, exception):
+    response = login_as("supervisor").post("/calendar/day/confirm-hours",
+                                           json=[{"id": days["supervisor"], "hours": 8, "overtime": 0}])
+    assert response.status_code == 200 and confirmed(db, days["supervisor"])
+
+
+def test_the_exception_still_only_covers_own_projects(db, login_as, users, exception):
+    from app.db.models.project import Project
+    other = Project(name="Otro", is_active=True)
+    db.add(other)
+    db.flush()
+    row = ProjectSchedule(project_id=other.id, user_id=exception.id, date=DAY, hours_worked=8, is_confirmed=False)
+    db.add(row)
+    db.commit()
+    assert login_as("supervisor").post("/payroll/hours/confirm", json={"schedule_id": row.id, "hours": 8}).status_code == 403
+
+
+def test_other_supervisors_keep_the_rule(db, users, exception):
+    from app.db.models.project import Project
+    from tests.conftest import login, make_user, new_client
+    other = make_user(db, "u_sup2", "supervisor")
+    project = db.get(Project, users["project_id"])
+    project.users.append(other)
+    row = ProjectSchedule(project_id=users["project_id"], user_id=other.id, date=DAY, hours_worked=8, is_confirmed=False)
+    db.add(row)
+    db.commit()
+    client = new_client()
+    login(client, "u_sup2")
+    assert client.post("/payroll/hours/confirm", json={"schedule_id": row.id, "hours": 8}).status_code == 403
+    assert "own-hours-note" in client.get("/payroll/approval").text
+
+
+def test_admin_sets_the_exception_only_for_supervisors_and_it_goes_to_activity(db, login_as, users):
+    admin = login_as("admin")
+    form = {"password": "clave-segura", "full_name": "Will", "email": "w@example.com", "payment_method": "Efectivo",
+            "is_active": "true", "confirms_own_hours": "true"}
+    admin.post("/users/new", data={**form, "username": "will", "role": "supervisor"}, follow_redirects=False)
+    admin.post("/users/new", data={**form, "username": "trab3", "role": "worker", "email": "t@example.com"},
+               follow_redirects=False)
+    assert db.query(User).filter_by(username="will").one().confirms_own_hours is True
+    assert db.query(User).filter_by(username="trab3").one().confirms_own_hours is False
+    sup = users["supervisor"]
+    edit = {"username": sup.username, "full_name": "Supervisor", "email": "s@example.com", "role": "supervisor",
+            "payment_method": "Efectivo", "is_active": "true", "confirms_own_hours": "true"}
+    admin.post(f"/users/{sup.id}/edit", data=edit, follow_redirects=False)
+    db.expire_all()
+    assert db.get(User, sup.id).confirms_own_hours is True
+    assert db.query(ActivityLog).filter(ActivityLog.details.contains("ahora confirma sus propias horas")).count() == 1
+    assert "Confirma sus propias horas" in admin.get(f"/users/{sup.id}/edit").text

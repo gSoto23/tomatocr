@@ -168,6 +168,9 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
   el día del Calendario y en *Aprobar horas*, sin poder cambiarlas, marcadas *Las confirma el admin*; los tres
   endpoints de Planilla (`/payroll/hours/confirm`, `confirm-batch-update`, `confirm-batch`) y el del Calendario lo
   aplican, igual que el límite a los proyectos asignados (`can_confirm` en `app/routers/payroll.py`).
+  **Excepción por persona:** *Confirma sus propias horas* en Empleados (`users.confirms_own_hours`, migración 0032,
+  solo supervisores; `User.own_hours_by_admin`): ese supervisor confirma las suyas como las del resto, siempre en
+  sus proyectos, y su alerta de horas sin confirmar las incluye. Marcarla o quitarla queda en Actividad.
 - Asistencia al confirmar el día (migración 0022, `project_schedules.attendance`):
   Asistió, Llegó tarde o No llegó; *No llegó* guarda 0 horas y 0 extras. Se ve en el
   calendario y en el desglose de horas de la planilla.
@@ -345,6 +348,8 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
 - **Permisos**: ventas ve todas las cuentas sin finanzas y edita las suyas y
   las que no tienen dueño (al editarlas queda como dueño). Solo admin
   reasigna dueños, edita metas y fusiona. Los demás roles reciben 403.
+- **"Confirma sus propias horas"** (`users.confirms_own_hours`, migración 0032): excepción para un supervisor;
+  ver Calendario.
 - **"También vende"** (`users.also_sells`, migración 0017): un supervisor con esa casilla
   (Empleados) trabaja Clientes y el Cotizador como ventas, sin perder nada de supervisor:
   puede ser dueño de cuentas y oportunidades, recibir prospectos en la asignación y enviar

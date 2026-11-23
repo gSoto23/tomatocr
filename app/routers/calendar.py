@@ -485,7 +485,8 @@ def in_final_payroll(db: Session, day) -> bool:
 def confirm_day_hours(items: List[HoursItem] = Body(...), db: Session = Depends(deps.get_db),
                       user: User = Depends(deps.get_current_user)):
     """From the project's day in the calendar: set and confirm each person's hours.
-    A supervisor never confirms their own hours, and a day in a final payroll is closed."""
+    A supervisor doesn't confirm their own hours (unless marked "Confirma sus propias horas"),
+    and a day in a final payroll is closed."""
     if user.role not in [ADMIN, SUPERVISOR]:
         raise HTTPException(status_code=403, detail="Not authorized")
     done, skipped = 0, []
@@ -494,7 +495,7 @@ def confirm_day_hours(items: List[HoursItem] = Body(...), db: Session = Depends(
         if not schedule:
             continue
         name = schedule.user.full_name or schedule.user.username if schedule.user else "?"
-        if user.role == SUPERVISOR and schedule.user_id == user.id:
+        if schedule.user_id == user.id and user.own_hours_by_admin:
             skipped.append(f"{name} (tus propias horas las confirma el admin)")
             continue
         if in_final_payroll(db, schedule.date):

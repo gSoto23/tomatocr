@@ -158,10 +158,11 @@ OWN_HOURS_RULE = "tus propias horas las confirma el admin"
 
 
 def can_confirm(user: User, schedule: ProjectSchedule) -> bool:
-    """The admin confirms any day; a supervisor, the days of their projects except their own."""
+    """The admin confirms any day; a supervisor, the days of their projects except their own
+    (unless the admin marked them "Confirma sus propias horas")."""
     if user.role == ADMIN:
         return True
-    return (user.role == SUPERVISOR and schedule.user_id != user.id
+    return (user.role == SUPERVISOR and not (schedule.user_id == user.id and user.own_hours_by_admin)
             and schedule.project_id in {p.id for p in user.projects})
 
 
@@ -428,7 +429,8 @@ def get_schedules_for_approval(
              query = query.filter(ProjectSchedule.project_id.in_(supervisor_project_ids))
 
         # A supervisor's own days show up read-only ("own"): only the admin confirms them,
-        # so nobody approves their own pay (see OWN_HOURS_RULE).
+        # so nobody approves their own pay (see OWN_HOURS_RULE), except a supervisor marked
+        # "Confirma sus propias horas" in Empleados.
         
     # Order by date desc, then worker
     query = query.order_by(ProjectSchedule.date.desc(), ProjectSchedule.user_id)
@@ -445,7 +447,7 @@ def get_schedules_for_approval(
             "hours_worked": s.hours_worked,
             "overtime_hours": s.overtime_hours,
             "is_confirmed": s.is_confirmed,
-            "own": user.role == SUPERVISOR and s.user_id == user.id,
+            "own": user.own_hours_by_admin and s.user_id == user.id,
         })
         
     return JSONResponse(data)
@@ -469,7 +471,8 @@ def confirm_hours(
     if not schedule:
         raise HTTPException(status_code=404, detail="Schedule not found")
     if not can_confirm(user, schedule):
-        raise HTTPException(status_code=403, detail=OWN_HOURS_RULE.capitalize() if schedule.user_id == user.id
+        raise HTTPException(status_code=403, detail=OWN_HOURS_RULE.capitalize()
+                            if schedule.user_id == user.id and user.own_hours_by_admin
                             else "Ese día no es de un proyecto tuyo")
 
     set_confirmed_hours(schedule, hours, overtime)
@@ -499,7 +502,7 @@ def confirm_hours_batch_update(
         if schedule and can_confirm(user, schedule):
             set_confirmed_hours(schedule, item.hours, item.overtime)
             count += 1
-        elif schedule and schedule.user_id == user.id:
+        elif schedule and schedule.user_id == user.id and user.own_hours_by_admin:
             own += 1
 
     db.commit()

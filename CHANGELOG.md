@@ -33,7 +33,13 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
   en *Aprobar horas* y en el Calendario marcados *Las confirma el admin*, sin poder cambiarlos, con la explicación
   arriba, en vez de no verlos. `/payroll/hours/confirm`, `confirm-batch-update` y `confirm-batch` también la
   aplican (antes solo la pantalla la escondía) y limitan al supervisor a sus proyectos.
-- Pruebas: `tests/test_bitacora_fotos_y_horas_propias.py`. Sin migración.
+- **Excepción: *Confirma sus propias horas*** (para Will). Casilla nueva en Empleados, solo para supervisores
+  (`users.confirms_own_hours`): ese supervisor confirma sus propias horas en *Aprobar horas* y en el Calendario
+  como las del resto, siempre dentro de sus proyectos, y su alerta del Dashboard las cuenta. Marcarla o quitarla
+  queda en Actividad. Los demás supervisores siguen con la regla.
+- Pruebas: `tests/test_bitacora_fotos_y_horas_propias.py`.
+- Despliegue: **migración 0032** (snapshot de la base, `alembic upgrade head`); reiniciar. Después, en
+  Empleados → Will → marcar *Confirma sus propias horas* y guardar.
 
 ## 2026-11-20
 

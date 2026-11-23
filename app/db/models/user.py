@@ -41,6 +41,9 @@ class User(Base):
     vacation_days_taken = Column(Float, nullable=False, default=0.0, server_default="0")
     # A supervisor who also sells: sees Clientes and the Cotizador like ventas ("También vende").
     also_sells = Column(Boolean, nullable=False, default=False, server_default="false")
+    # The rule is that the admin confirms a supervisor's own hours; the admin can make an exception
+    # for one supervisor ("Confirma sus propias horas", migration 0032).
+    confirms_own_hours = Column(Boolean, nullable=False, default=False, server_default="false")
     status = Column(Enum("active", "inactive", "liquidated", name="worker_status"), default="active")
     
     # Payment Info
@@ -49,6 +52,11 @@ class User(Base):
 
     projects = relationship("Project", secondary=project_users, back_populates="users")
     documents = relationship("UserDocument", back_populates="user", cascade="all, delete-orphan")
+
+    @property
+    def own_hours_by_admin(self) -> bool:
+        """A supervisor whose own hours only the admin confirms (all of them but the exceptions)."""
+        return self.role == "supervisor" and not self.confirms_own_hours
 
     @property
     def sells(self) -> bool:

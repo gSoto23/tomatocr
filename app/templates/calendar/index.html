@@ -264,7 +264,7 @@
                     <div id="day-report" class="mb-3 hidden flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm"></div>
                     <div id="day-members" class="divide-y divide-gray-100"></div>
                     <p class="mt-3 text-xs text-gray-500">Marcá si cada persona asistió, llegó tarde o no llegó, corregí las horas y las extras y tocá <strong>Confirmar horas del día</strong>. <em>No llegó</em> deja el día en 0 horas.
-                        {% if user.role == 'supervisor' %}Tus propias horas las confirma el admin.{% endif %} Un día que ya está en una planilla final no se cambia.</p>
+                        {% if user.own_hours_by_admin %}Tus propias horas las confirma el admin.{% endif %} Un día que ya está en una planilla final no se cambia.</p>
                 </div>
                 <div class="flex flex-col gap-2 bg-gray-50 px-4 py-3 sm:flex-row-reverse sm:px-6">
                     <button type="button" id="day-confirm" onclick="confirmDayHours()" class="inline-flex justify-center rounded-md bg-green-700 px-3 py-2 text-sm font-semibold text-white hover:bg-green-600">Confirmar horas del día</button>
@@ -842,8 +842,9 @@
         setTimeout(() => window.location.reload(), 700);
     }
 
-    // A supervisor's own row is read-only: only the admin confirms it (nobody approves their own pay).
-    const OWN_HOURS_USER_ID = {{ user.id if user.role == 'supervisor' else 'null' }};
+    // A supervisor's own row is read-only: only the admin confirms it (nobody approves their own pay),
+    // unless the admin marked them "Confirma sus propias horas" in Empleados.
+    const OWN_HOURS_USER_ID = {{ user.id if user.own_hours_by_admin else 'null' }};
     function isOwnRow(m) { return OWN_HOURS_USER_ID !== null && m.worker_id === OWN_HOURS_USER_ID; }
 
     async function confirmDayHours() {
