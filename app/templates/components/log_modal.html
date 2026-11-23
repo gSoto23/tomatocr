@@ -389,6 +389,8 @@
             try {
                 const data = new FormData(form);
                 await TomatoPhotos.shrinkField(data);  // 2048 px JPEG, so several photos fit
+                const tooBig = TomatoPhotos.tooBig(data);
+                if (tooBig) return fail(tooBig);
                 const response = await fetch(`/logs/${currentLogId}/edit`, { method: 'POST', body: data });
                 if (response.ok) { window.location.href = response.url; return; }
                 fail(await TomatoPhotos.failureMessage(response, data));

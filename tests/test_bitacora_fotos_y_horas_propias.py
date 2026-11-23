@@ -120,11 +120,12 @@ def test_both_forms_shrink_photos_and_never_say_unknown_error(login_as, users):
         assert "/static/js/photo_upload.js?v=" in html
     assert "TomatoPhotos.shrinkField(formData)" in new_form and "Error desconocido" not in new_form
     assert "TomatoPhotos.failureMessage(response, data)" in log_list
+    assert "TomatoPhotos.tooBig(formData)" in new_form and "TomatoPhotos.tooBig(data)" in log_list
 
 
 def test_photo_script_explains_each_error_code(login_as):
     script = Path("app/static/js/photo_upload.js").read_text()
     for code in ("error 413", "error 504", "error ${code}"):
         assert code in script
-    assert "2048" in script and "image/jpeg" in script
+    assert "2048" in script and "image/jpeg" in script and "MAX_REQUEST_MB = 45" in script
     assert login_as("worker").get("/static/js/photo_upload.js").status_code == 200

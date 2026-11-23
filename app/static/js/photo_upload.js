@@ -6,6 +6,8 @@
 window.TomatoPhotos = (() => {
     const MAX_SIDE = 2048;
     const QUALITY = 0.82;
+    // nginx in production accepts 50 MB per request (README, Producción); leave room for the rest.
+    const MAX_REQUEST_MB = 45;
 
     async function shrink(file) {
         if (!/^image\/(jpeg|png|webp)$/i.test(file.type) || typeof createImageBitmap !== 'function') return file;
@@ -41,6 +43,15 @@ window.TomatoPhotos = (() => {
         return bytes / (1024 * 1024);
     }
 
+    // Checked before sending, after shrinking: photos the phone can't shrink (HEIC/HEIF) can still
+    // add up to more than the server takes in one go. "" when it fits.
+    function tooBig(formData) {
+        const mb = megabytes(formData);
+        if (mb <= MAX_REQUEST_MB) return '';
+        return `Las fotos suman ${mb.toLocaleString('es-CR', { maximumFractionDigits: 0 })} MB y se pueden mandar hasta `
+            + `${MAX_REQUEST_MB} MB juntas. Quitá algunas y volvé a guardar; las demás las agregás después con Editar en el reporte.`;
+    }
+
     // What to tell the person when the save failed: the server's own reason when it sent one,
     // otherwise what that error code means and what to do. Never just "error desconocido".
     async function failureMessage(response, formData) {
@@ -66,5 +77,5 @@ window.TomatoPhotos = (() => {
         return `No se pudo guardar (error ${code}). Probá de nuevo; si se repite, avisale al admin con la fecha y la hora.`;
     }
 
-    return { shrink, shrinkField, failureMessage };
+    return { shrink, shrinkField, tooBig, failureMessage };
 })();

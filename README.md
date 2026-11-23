@@ -139,6 +139,7 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
   Fotos JPEG, PNG, WebP o HEIC (iPhone) de hasta 20 MB: se giran según la cámara, se achican a 2048 px y se guardan en JPEG.
   El celular ya las achica antes de enviarlas (JPEG/PNG/WebP a 2048 px, `app/static/js/photo_upload.js`, en
   *Nuevo Reporte* y en *Editar*), así varias fotos caben en un solo envío; las HEIC van tal cual y las convierte el servidor.
+  Si aun así suman más de 45 MB (nginx acepta 50), el formulario avisa antes de enviar.
 - **Si no se guarda**, el aviso dice el motivo: el del servidor (fecha, tarea obligatoria, foto que no se pudo leer) o,
   si la respuesta no trae uno, qué significa el código (413: las fotos pesan demasiado juntas; 502/503: el sistema se
   estaba reiniciando; 504: tardó demasiado; 500: error interno). Un error interno al guardar responde con un motivo en

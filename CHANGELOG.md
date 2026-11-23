@@ -17,6 +17,9 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
     servidor; ya no hay "Error desconocido".
   - Un error interno al guardar o editar un reporte responde con un motivo en español, deshace el guardado y deja
     el detalle en el log del servicio.
+  - Causa confirmada: Will mandó **10 fotos de la galería** juntas (40-80 MB sin achicar), más de lo que nginx
+    acepta en un envío (50 MB) → 413. Achicadas son unos 5-15 MB. Si aun así suman más de 45 MB (fotos HEIC/HEIF
+    que el celular no puede achicar), el formulario avisa antes de enviar cuántos MB son y qué hacer.
   - Producción ya tiene `client_max_body_size 50M;` en nginx (revisado el 23/11): un 413 solo pasaría con más de
     50 MB juntos (unas 8-10 fotos sin achicar), que ahora el celular evita.
 - **Horas propias del supervisor**: la regla sigue (las confirma el admin), pero ahora el supervisor ve sus días

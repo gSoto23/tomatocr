@@ -269,6 +269,8 @@
                 try {
                     // Shrunk here (2048 px JPEG), so several phone photos fit in one request.
                     await TomatoPhotos.shrinkField(formData);
+                    const tooBig = TomatoPhotos.tooBig(formData);
+                    if (tooBig) { this.isSubmitting = false; return this.fail(tooBig); }
                     const response = await fetch('/logs/new', {
                         method: 'POST',
                         body: formData
