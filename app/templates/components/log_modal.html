@@ -388,6 +388,13 @@
             button.disabled = true;
             try {
                 const data = new FormData(form);
+                const max = currentLogData.max_photos || TomatoPhotos.MAX_PHOTOS;
+                const kept = (currentLogData.photos || []).length - data.getAll('remove_photos').length;
+                const added = data.getAll('photos').filter(f => f instanceof File && f.name).length;
+                if (added && kept + added > max) {
+                    return fail(`Un reporte lleva hasta ${max} fotos` + (kept ? ` (ya tiene ${kept})` : '')
+                        + `: quitá ${kept + added - max} de las que elegiste o marcá Quitar en alguna de las que ya tiene.`);
+                }
                 await TomatoPhotos.shrinkField(data);  // 2048 px JPEG, so several photos fit
                 const tooBig = TomatoPhotos.tooBig(data);
                 if (tooBig) return fail(tooBig);

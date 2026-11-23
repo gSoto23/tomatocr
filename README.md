@@ -136,9 +136,12 @@ Un entorno administrativo enfocado en la supervisión de proyectos, reportes de 
 ### 3. Bitácora Digital (Daily Logs)
 - **Reportes Diarios Multilocación**: Reporte desde el campo con asignación exacta de la sede de operaciones.
 - **Evidencias Cloud**: Carga de notas operativas y material fotográfico en Alta Calidad conectado a repositorios persistentes.
-  Fotos JPEG, PNG, WebP o HEIC (iPhone) de hasta 20 MB: se giran según la cámara, se achican a 2048 px y se guardan en JPEG.
-  El celular ya las achica antes de enviarlas (JPEG/PNG/WebP a 2048 px, `app/static/js/photo_upload.js`, en
-  *Nuevo Reporte* y en *Editar*), así varias fotos caben en un solo envío; las HEIC van tal cual y las convierte el servidor.
+  Hasta **10 fotos por reporte** (`MAX_REPORT_PHOTOS`), JPEG, PNG, WebP o HEIC (iPhone) de hasta 20 MB cada una.
+  Un solo optimizador, el que usaba el correo del reporte: **1280 px, JPEG calidad 80**, girada según la cámara y sin
+  metadatos (`REPORT_PHOTO_MAX_SIDE` y `REPORT_PHOTO_QUALITY` en `app/utils/uploads.py`). El celular lo aplica antes de
+  subir (`app/static/js/photo_upload.js`, en *Nuevo Reporte* y en *Editar*, con los mismos números; una prueba los
+  compara), el servidor al guardar (HEIC y lo que el celular no pudo achicar) y el correo al adjuntar. Una foto de
+  celular queda en 0,2-0,3 MB, así 10 fotos caben de sobra en un envío.
   Si aun así suman más de 45 MB (nginx acepta 50), el formulario avisa antes de enviar.
 - **Si no se guarda**, el aviso dice el motivo: el del servidor (fecha, tarea obligatoria, foto que no se pudo leer) o,
   si la respuesta no trae uno, qué significa el código (413: las fotos pesan demasiado juntas; 502/503: el sistema se

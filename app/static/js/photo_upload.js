@@ -1,11 +1,13 @@
 // Photos from the phone, before they leave it (Bitácora: new report and Editar).
-// A phone photo weighs 3-8 MB; several together can exceed what the server (nginx) accepts in
-// one request and take long on mobile data. Each JPEG/PNG/WebP is shrunk here to the same
-// size the server keeps (2048 px, JPEG); HEIC and anything the browser can't open goes as is
-// and the server converts it (app/utils/uploads.py).
+// A phone photo weighs 3-8 MB; ten together exceed what the server (nginx) accepts in one
+// request (that was the 413 of 22/11/2026). Each JPEG/PNG/WebP is optimized here the way the
+// report e-mail always did it: 1280 px, JPEG 80 (about 0.2-0.5 MB). HEIC and anything the
+// browser can't open goes as is and the server optimizes it the same way. These numbers are
+// REPORT_PHOTO_MAX_SIDE, REPORT_PHOTO_QUALITY and MAX_REPORT_PHOTOS in app/utils/uploads.py.
 window.TomatoPhotos = (() => {
-    const MAX_SIDE = 2048;
-    const QUALITY = 0.82;
+    const MAX_SIDE = 1280;
+    const QUALITY = 0.80;
+    const MAX_PHOTOS = 10;
     // nginx in production accepts 50 MB per request (README, Producción); leave room for the rest.
     const MAX_REQUEST_MB = 45;
 
@@ -77,5 +79,5 @@ window.TomatoPhotos = (() => {
         return `No se pudo guardar (error ${code}). Probá de nuevo; si se repite, avisale al admin con la fecha y la hora.`;
     }
 
-    return { shrink, shrinkField, tooBig, failureMessage };
+    return { MAX_PHOTOS, shrink, shrinkField, tooBig, failureMessage };
 })();

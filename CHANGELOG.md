@@ -11,8 +11,15 @@ desplegar. Hora de Costa Rica salvo que diga UTC.
   respuesta no traía JSON: un 413 de nginx (envío demasiado grande, con varias fotos del celular), un 502/504 o
   un 500. El servidor de la app acepta fotos de hasta 20 MB (probado en local con 5 fotos de 9,9 MB), así que el
   rechazo viene de antes de la app.
-  - El celular **achica las fotos antes de enviarlas** (JPEG/PNG/WebP a 2048 px; 9,9 MB → 1,5 MB en el peor caso),
-    en *Nuevo Reporte* y en *Editar* (`app/static/js/photo_upload.js`).
+  - **Un solo optimizador de fotos**: el que usaba el correo del reporte (1280 px, JPEG calidad 80, en
+    `app/utils/email.py`, que lo aplicaba en cada envío) ahora se aplica **antes de subir**: el celular optimiza
+    cada JPEG/PNG/WebP así en *Nuevo Reporte* y en *Editar* (`app/static/js/photo_upload.js`), el servidor guarda
+    con esos mismos números (`REPORT_PHOTO_MAX_SIDE`, `REPORT_PHOTO_QUALITY` en `app/utils/uploads.py`; HEIC y lo
+    que el celular no pudo achicar) y el correo los usa también. Una foto de 6 MB queda en 0,2-0,3 MB; 10 fotos
+    se guardaron en local con 1,8 MB en total. Las fotos se guardan a 1280 px (antes 2048); las ya guardadas no cambian.
+  - **Máximo 10 fotos por reporte** (`MAX_REPORT_PHOTOS`): el formulario muestra *N de 10* y no agrega la once en
+    adelante (dice cuáles); *Editar* cuenta las que el reporte conserva más las nuevas; el servidor lo aplica
+    también. Un reporte viejo con más de 10 se puede editar mientras no se le agreguen fotos.
   - El aviso dice **qué falló y qué hacer** según el código (413, 502/503, 504, 500, 401/403) o el motivo del
     servidor; ya no hay "Error desconocido".
   - Un error interno al guardar o editar un reporte responde con un motivo en español, deshace el guardado y deja

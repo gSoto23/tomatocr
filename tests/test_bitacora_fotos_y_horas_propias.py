@@ -127,5 +127,86 @@ def test_photo_script_explains_each_error_code(login_as):
     script = Path("app/static/js/photo_upload.js").read_text()
     for code in ("error 413", "error 504", "error ${code}"):
         assert code in script
-    assert "2048" in script and "image/jpeg" in script and "MAX_REQUEST_MB = 45" in script
+    assert "image/jpeg" in script and "MAX_REQUEST_MB = 45" in script
     assert login_as("worker").get("/static/js/photo_upload.js").status_code == 200
+
+
+# --- One photo optimizer (the one the report e-mail used) and at most 10 photos ---------------
+
+from app.db.models.log import Photo
+from app.utils import uploads
+from tests.test_ux_ronda_1 import image_bytes
+
+
+def photo(i=0):
+    return ("photos", (f"foto{i}.png", image_bytes(), "image/png"))
+
+
+def new_report(client, users, count):
+    return client.post("/logs/new", data={"project_id": users["project_id"], "date": today_cr().isoformat(),
+                                          "notes": "ok"}, files=[photo(i) for i in range(count)],
+                       follow_redirects=False)
+
+
+@pytest.fixture
+def uploads_dir(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "app" / "static" / "uploads").mkdir(parents=True)
+    return tmp_path
+
+
+def test_phone_server_and_email_use_the_same_numbers():
+    script = Path("app/static/js/photo_upload.js").read_text()
+    assert f"MAX_SIDE = {uploads.REPORT_PHOTO_MAX_SIDE};" in script
+    assert f"QUALITY = {uploads.REPORT_PHOTO_QUALITY / 100:.2f};" in script
+    assert f"MAX_PHOTOS = {uploads.MAX_REPORT_PHOTOS};" in script
+    email = Path("app/utils/email.py").read_text()
+    assert "REPORT_PHOTO_MAX_SIDE, REPORT_PHOTO_MAX_SIDE" in email and "quality=REPORT_PHOTO_QUALITY" in email
+
+
+def test_saved_photos_are_at_most_1280_px(db, login_as, users, uploads_dir):
+    from PIL import Image
+    assert new_report(login_as("worker"), users, 1).status_code == 303
+    path = uploads_dir / "app" / db.query(Photo).one().file_path.lstrip("/")
+    with Image.open(path) as img:
+        assert img.format == "JPEG" and max(img.size) == 1280
+
+
+def test_ten_photos_save_and_eleven_are_refused(db, login_as, users, uploads_dir):
+    client = login_as("worker")
+    refused = new_report(client, users, 11)
+    assert refused.status_code == 400 and "hasta 10 fotos" in refused.json()["detail"]
+    assert db.query(DailyLog).count() == 0
+    assert new_report(client, users, 10).status_code == 303 and db.query(Photo).count() == 10
+
+
+def test_edit_counts_the_photos_the_report_keeps(db, login_as, users, uploads_dir):
+    client = login_as("worker")
+    new_report(client, users, 9)
+    log = db.query(DailyLog).one()
+    edit = lambda count, remove=(): client.post(
+        f"/logs/{log.id}/edit", data={"notes": "ok", "remove_photos": list(remove)},
+        files=[photo(i) for i in range(count)], follow_redirects=False)
+    refused = edit(2)
+    assert refused.status_code == 400 and "ya tiene 9" in refused.json()["detail"]
+    first = db.query(Photo).first().id
+    assert edit(2, remove=[first]).status_code == 303
+    db.expire_all()
+    assert db.query(Photo).count() == 10
+
+
+def test_an_old_report_with_more_than_ten_can_still_be_edited_without_new_photos(db, login_as, users):
+    log = DailyLog(project_id=users["project_id"], user_id=users["worker"].id, date=today_cr(), notes="ok")
+    db.add(log)
+    db.flush()
+    db.add_all([Photo(log_id=log.id, file_path=f"/static/uploads/x{i}.jpg") for i in range(12)])
+    db.commit()
+    response = login_as("worker").post(f"/logs/{log.id}/edit", data={"notes": "nuevo"}, follow_redirects=False)
+    assert response.status_code == 303
+
+
+def test_forms_show_the_limit(login_as, users):
+    client = login_as("worker")
+    html = client.get(f"/logs/new?project_id={users['project_id']}").text
+    assert "Hasta 10 fotos" in html and "de 10)" in html and "el máximo por reporte" in html
+    assert "currentLogData.max_photos" in client.get("/logs/").text

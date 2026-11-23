@@ -96,7 +96,8 @@
 
                 <!-- Photos -->
                 <div class="col-span-full">
-                    <label class="block text-sm font-medium leading-6 text-gray-900">Fotografías del avance</label>
+                    <label class="block text-sm font-medium leading-6 text-gray-900">Fotografías del avance
+                        <span class="font-normal text-gray-500" x-text="`(${files.length} de {{ max_photos }})`"></span></label>
 
                     <!-- File List Display -->
                     <div class="mt-2 mb-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4"
@@ -141,7 +142,7 @@
                                 </label>
                                 <p class="pl-1">o arrastrar y soltar</p>
                             </div>
-                            <p class="text-xs leading-5 text-gray-600">{{ photo_rules }}. Se achican solas al guardar.</p>
+                            <p class="text-xs leading-5 text-gray-600">{{ photo_rules }}. El celular las optimiza antes de subirlas.</p>
                             <p class="mt-2 text-xs text-amber-700" x-show="skipped.length" x-text="'No se agregaron: ' + skipped.join(', ')"></p>
                         </div>
                     </div>
@@ -210,7 +211,9 @@
                 const photo = /\.(jpe?g|png|webp|heic|heif)$/i;
                 this.skipped = [];
                 for (const file of fileList) {
-                    if (!(file.type.startsWith('image/') || photo.test(file.name))) {
+                    if (this.files.length >= {{ max_photos }}) {
+                        this.skipped.push(`${file.name} (ya hay {{ max_photos }} fotos, el máximo por reporte)`);
+                    } else if (!(file.type.startsWith('image/') || photo.test(file.name))) {
                         this.skipped.push(`${file.name} (no es una foto)`);
                     } else if (file.size > 20 * 1024 * 1024) {
                         this.skipped.push(`${file.name} (pesa más de 20 MB)`);

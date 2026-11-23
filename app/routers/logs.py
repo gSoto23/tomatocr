@@ -24,7 +24,7 @@ from app.core.roles import ADMIN, CLIENT, OPERATIONS_ROLES, SEES_ALL_PROJECTS
 from app.utils.activity import log_activity
 from app.core.config import settings
 from app.utils.timecr import today_cr
-from app.utils.uploads import PHOTO_RULES, process_photo
+from app.utils.uploads import MAX_REPORT_PHOTOS, REPORT_PHOTO_RULES, process_photo
 
 MAX_DAYS_BACK = 7  # a report can be for a forgotten day, up to a week back
 logger = logging.getLogger(__name__)
@@ -67,9 +67,16 @@ def check_required_tasks(project: Project, task_ids: List[int]):
         raise HTTPException(status_code=400, detail="Falta marcar la tarea obligatoria: " + ", ".join(missing))
 
 
-def read_photos(photos: Optional[List[UploadFile]]) -> List[bytes]:
-    """Checks and processes every photo before anything is saved (see process_photo)."""
-    return [process_photo(p.file.read(), p.content_type, p.filename) for p in photos or [] if p.filename]
+def read_photos(photos: Optional[List[UploadFile]], already: int = 0) -> List[bytes]:
+    """Checks and processes every photo before anything is saved (see process_photo). A report
+    has at most MAX_REPORT_PHOTOS, counting the `already` ones it keeps."""
+    photos = [p for p in photos or [] if p.filename]
+    if photos and already + len(photos) > MAX_REPORT_PHOTOS:
+        extra = already + len(photos) - MAX_REPORT_PHOTOS
+        kept = f" (ya tiene {already})" if already else ""
+        raise HTTPException(status_code=400, detail=(
+            f"Un reporte lleva hasta {MAX_REPORT_PHOTOS} fotos{kept}: quitá {extra} de las que elegiste."))
+    return [process_photo(p.file.read(), p.content_type, p.filename) for p in photos]
 
 
 def store_photos(db: Session, log: DailyLog, processed: List[bytes]):
@@ -285,7 +292,8 @@ def get_log_detail(id: int, db: Session = Depends(deps.get_db), user: User = Dep
         "date": log.date.strftime('%Y-%m-%d'),
         "notes": log.notes,
         "photos": [{"id": p.id, "file_path": p.file_path} for p in log.photos],
-        "photo_rules": PHOTO_RULES,
+        "photo_rules": REPORT_PHOTO_RULES,
+        "max_photos": MAX_REPORT_PHOTOS,
         "created_at": log.created_at.isoformat() if log.created_at else None,
         "updated_at": log.updated_at.isoformat() if log.updated_at else None,
         "can_edit": (user.role == ADMIN or log.user_id == user.id),
@@ -364,7 +372,8 @@ def update_log(
         raise HTTPException(status_code=403, detail="Not authorized")
     
     check_required_tasks(log.project, task_ids)
-    processed = read_photos(photos)
+    kept = len([p for p in log.photos if p.id not in set(remove_photo_ids)])
+    processed = read_photos(photos, already=kept)
 
     with saving_report(db, f"editar #{log.id}"):
         save_log_edit(db, log, notes, location_id, task_ids, remove_photo_ids, processed)
@@ -429,7 +438,8 @@ def new_log_form(request: Request, project_id: Optional[int] = None,
         "today": today,
         "earliest": earliest,
         "chosen_date": chosen,
-        "photo_rules": PHOTO_RULES,
+        "photo_rules": REPORT_PHOTO_RULES,
+        "max_photos": MAX_REPORT_PHOTOS,
         "project_tasks_json": project_tasks_json,
         "project_locations_json": project_locations_json,
         "selected_project_id": project_id,
